@@ -38,6 +38,9 @@ init() ->
     log4erl:conf("conf/log4erl.conf"),
     log4erl:change_log_level(info),
 
+    %Startup jiffy
+    application:start(jiffy),
+
     % Create schema and load db data
     ?INFO("Creating schema and loading db data..."), 
     %db:create_schema(),

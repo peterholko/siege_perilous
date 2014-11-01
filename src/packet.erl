@@ -469,12 +469,11 @@ fill_buy_order() ->
 %% API Functions
 %%
 
-read(?CMD_POLICYREQUEST) ->
-    io:fwrite("packet: CMD_POLICYREQUEST.~n"),
-    policy_request;
 
-read(<<"1\r\n">>) ->
-    ?INFO("Test accept");
+read(JSON) ->
+    io:fwrite("JSON: ~p~n", [JSON]),
+    Decode = jiffy:decode(JSON),
+    io:fwrite("Decode: ~p~n", [Decode]);
 
 read(<<?CMD_LOGIN, Bin/binary>>) ->
     io:fwrite("packet: read() - Read Data accepted: ~w~n", [Bin]),
