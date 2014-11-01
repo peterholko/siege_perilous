@@ -473,6 +473,9 @@ read(?CMD_POLICYREQUEST) ->
     io:fwrite("packet: CMD_POLICYREQUEST.~n"),
     policy_request;
 
+read(<<"1\r\n">>) ->
+    ?INFO("Test accept");
+
 read(<<?CMD_LOGIN, Bin/binary>>) ->
     io:fwrite("packet: read() - Read Data accepted: ~w~n", [Bin]),
     unpickle(login(), Bin);

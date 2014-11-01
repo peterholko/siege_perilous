@@ -203,8 +203,9 @@ process_event(Client, _Socket, Event) ->
         Client#client.ready == true ->
             gen_server:cast(Client#client.player_pid, Event);
         true ->
-            io:fwrite("server - process_event client not ready~n"),
-            ok = gen_server:call(Client#client.player_pid, 'LOGOUT')
+            ?INFO("process_event client not ready"),
+            ?INFO("client: ~w", Client)
+            %ok = gen_server:call(Client#client.player_pid, 'LOGOUT')
     end,
     Client.
 
