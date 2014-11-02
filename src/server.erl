@@ -41,6 +41,9 @@ init() ->
     %Startup jiffy
     application:start(jiffy),
 
+    %Startup rec2json
+    application:start(rec2json),
+
     % Create schema and load db data
     ?INFO("Creating schema and loading db data..."), 
     %db:create_schema(),
@@ -182,10 +185,10 @@ process_clocksync(Client, Socket) ->
     Client.
 
 process_clientready(Client, _Socket) ->
-    log4erl:debug("server - process_clientready~n"),
+    log4erl:info("server - process_clientready~n"),
     if
         Client#client.ready =/= true ->
-            log4erl:debug("server - client.ready =/= true~n"),
+            log4erl:info("server - client.ready =/= true~n"),
             %PlayerPID = Client#client.player_pid,    
             %log4erl:debug("PlayerPID ~w~n", [PlayerPID]),			
             %PlayerId = gen_server:call(PlayerPID, 'ID'),   
@@ -195,19 +198,21 @@ process_clientready(Client, _Socket) ->
             
             NewClient = Client#client{ ready = true };
         true ->			
-            log4erl:debug("server - clientready failed as ready state was true"),
+            log4erl:info("server - clientready failed as ready state was true"),
             NewClient = Client
     end,
     
     NewClient.
 
-process_event(Client, _Socket, Event) ->
+process_event(Client, Socket, Event) ->
     if
         Client#client.ready == true ->
             gen_server:cast(Client#client.player_pid, Event);
         true ->
             ?INFO("process_event client not ready"),
-            ?INFO("client: ~w", Client)
+            ?INFO("client: ~w~n", Client),
+            ?INFO("event: ~p~n", Event),
+            ok = packet:send(Socket, #bad{ cmd = ?CMD_LOGIN, error = 99})
             %ok = gen_server:call(Client#client.player_pid, 'LOGOUT')
     end,
     Client.

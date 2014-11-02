@@ -14,6 +14,10 @@
 -record(login, {name,
                 pass}).
 
+-record(login2, {cmd,
+                 username,
+                 password}).
+
 -define(CMD_LOGOUT, 2).
 -record(logout, {}).
 
