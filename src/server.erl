@@ -113,7 +113,9 @@ handle_client(Socket, Client) ->
         {tcp, Socket, Bin} ->
             
             log4erl:info("Status: Data accepted: ~w", [Bin]),
-            NewClient = case catch packet:read(Bin) of
+            PacketReturn = packet:read(Bin),
+
+            NewClient = case catch PacketReturn of
                             {'EXIT', Error} ->
                                 log4erl:error("Could not parse packet"),
                                 error_logger:error_report(
@@ -124,8 +126,8 @@ handle_client(Socket, Client) ->
                                    {error, Error},
                                    {now, now()}]),
                                 Client;                    
-                            #login{ name = Name, pass = Pass} ->
-                                process_login(Client, Socket, Name, Pass);   
+                            #{<<"cmd">> := <<"login">>} ->                                
+                                process_login(Client, Socket, PacketReturn);   
                             #logout{} ->
                                 process_logout(Client, Socket);                        
                             #chat_message{player_id = PlayerId, player_name = PlayerName, message = Message} ->
@@ -155,8 +157,12 @@ handle_client(Socket, Client) ->
     
     end.
 
-process_login(Client, Socket, Name, Pass) ->
-    case login:login(Name, Pass, self()) of
+process_login(Client, Socket, PacketReturn) ->
+
+    User = maps:get(<<"user">>, PacketReturn),
+    Pass = maps:get(<<"pass">>, PacketReturn),
+
+    case login:login(User, Pass, self()) of
         {error, Error} ->
             ok = packet:send(Socket, #bad{ cmd = ?CMD_LOGIN, error = Error}),
             Client;

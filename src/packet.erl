@@ -474,10 +474,7 @@ read(JSON) ->
     io:fwrite("JSON: ~p~n", [JSON]),
     Decode = jiffy:decode(JSON, [return_maps]),
     io:fwrite("Decode: ~p~n", [Decode]),
-    Username = maps:get(<<"username">>, Decode),
-    Password = maps:get(<<"password">>, Decode),
-    Login = #login {name = Username, pass = Password},
-    io:fwrite("Login: ~w~n", [Login]);
+    Decode;
 
 read(<<?CMD_LOGIN, Bin/binary>>) ->
     io:fwrite("packet: read() - Read Data accepted: ~w~n", [Bin]),

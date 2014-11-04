@@ -202,51 +202,6 @@ read_wrap({_, Wrap}, {_, Pickler}, Bin) ->
     {Value, Bin1} = Pickler(Bin),
     {Wrap(Value), Bin1}.
 
-%%% Erlang does not support enumerations but I want to have
-%%% {cow, sheep, horse} as well as [{cow, 10}, {sheep, 100}]
-%%% and be able to marshal these back and forth. Enumerated 
-%%% values start from 1 for the tuple case.
-
-prep_enum_tuple(Enum)
-  when is_tuple(Enum) ->
-    prep_enum_tuple(Enum, size(Enum), [], []).
-
-prep_enum_tuple(_, 0, Acc1, Acc2) ->
-    {Acc1, Acc2};
-
-prep_enum_tuple(Enum, N, Acc1, Acc2) ->
-    prep_enum_tuple(Enum, N - 1, 
-                    [{element(N, Enum), N}|Acc1],
-                    [{N, element(N, Enum)}|Acc2]).
-
-prep_enum_list(Enum) 
-  when is_list(Enum) ->
-                                                % expect a list of {tag, #value} pairs
-    Inv = fun({Key, Val}) -> {Val, Key} end,
-    InvEnum = lists:map(Inv, Enum),
-    {Enum, InvEnum}.
-
-wrap_enum(Enum) 
-  when is_tuple(Enum) ->
-    wrap_enum_1(prep_enum_tuple(Enum));
-
-wrap_enum(Enum) 
-  when is_list(Enum) ->
-    wrap_enum_1(prep_enum_list(Enum)).
-
-wrap_enum_1({List1, List2}) ->
-    F = fun(A, B) -> A < B end,
-    %% gb_trees needs an ordered list
-    Dict1 = lists:sort(F, List1),
-    Dict2 = lists:sort(F, List2),
-    Tree1 = gb_trees:from_orddict(Dict1),
-    Tree2 = gb_trees:from_orddict(Dict2),
-    {fun(Key) -> gb_trees:get(Key, Tree1) end,
-     fun(Key) -> gb_trees:get(Key, Tree2) end}.       
-
-enum(Enum, Pickler) ->
-    wrap(wrap_enum(Enum), Pickler).
-
 %%% Tuple. Uses a tuple of picklers of the same size.
 
 tuple(Picklers) 
