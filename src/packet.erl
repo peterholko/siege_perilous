@@ -472,9 +472,15 @@ fill_buy_order() ->
 
 read(JSON) ->
     io:fwrite("JSON: ~p~n", [JSON]),
-    Decode = jiffy:decode(JSON, [return_maps]),
-    io:fwrite("Decode: ~p~n", [Decode]),
-    Decode;
+    NewDecode = case catch jiffy:decode(JSON, [return_maps]) of
+                {error, Error} ->
+                    ?INFO("Error: ~p~n", [Error]),
+                    [];
+                Decode ->
+                    Decode
+                end,
+    io:fwrite("Decode: ~p~n", [NewDecode]),
+    NewDecode;
 
 read(<<?CMD_LOGIN, Bin/binary>>) ->
     io:fwrite("packet: read() - Read Data accepted: ~w~n", [Bin]),
