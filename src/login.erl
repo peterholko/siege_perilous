@@ -23,11 +23,11 @@ login(Name, Pass, Socket)
   when is_binary(Name),
        is_binary(Pass),
        is_pid(Socket) -> % socket handler process
-    io:fwrite("login:login - Name: ~w~n", [Name]),
-    io:fwrite("login:login - Pass: ~w~n", [Pass]),
+    io:fwrite("login:login - Name: ~p~n", [Name]),
+    io:fwrite("login:login - Pass: ~p~n", [Pass]),
     
     PlayerInfo = db:index_read(player, Name, #player.name),
-    io:fwrite("login:login - PlayerInfo: ~w~n", [PlayerInfo]),
+    io:fwrite("login:login - PlayerInfo: ~p~n", [PlayerInfo]),
     login(PlayerInfo, [Name, Pass, Socket]).
 
 %%
@@ -41,7 +41,6 @@ login([], _) ->
 
 login([PlayerInfo], [_Name, Pass,_] = Args)
   when is_record(PlayerInfo, player) ->
-    io:fwrite("login:login - PlayerInfo2: ~w~n", [PlayerInfo]),
     PlayerId = PlayerInfo#player.id,
     PlayerConn = case db:read(connection, PlayerId) of
                      [P] ->

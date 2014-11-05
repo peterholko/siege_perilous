@@ -46,10 +46,9 @@ init() ->
 
     % Create schema and load db data
     ?INFO("Creating schema and loading db data..."), 
-    %db:create_schema(),
-    %ok = db:start(),
-    %db:reset_tables(),
-    %db:reset_game_tables(),
+    db:create_schema(),
+    ok = db:start(),
+    db:reset_tables(),
 
     % Load game data
     %data:load(),
@@ -87,7 +86,8 @@ init() ->
                                                {active, once},
                                                {keepalive, true},
                                                {nodelay, true},
-                                               {packet, 0}]),
+                                               {packet, 0},
+                                               {reuseaddr, true}]),
 
     
     Client = #client{ server_pid = self() },
@@ -101,44 +101,17 @@ init() ->
 do_accept(ListenSocket, Client) ->	
     case gen_tcp:accept(ListenSocket) of 
         {ok, Socket} ->
-            log4erl:debug("Socket accepted."),
+            log4erl:info("Socket accepted."),
             spawn(fun() -> do_accept(ListenSocket, Client) end),
             handle_client(Socket, Client);
         {error, closed} ->
-            log4erl:error("Socket not accepted.")
+            log4erl:info("Socket not accepted.")
     end.
 
 handle_client(Socket, Client) ->
     receive
         {tcp, Socket, Bin} ->
-            
-            log4erl:info("Status: Data accepted: ~w", [Bin]),
-            PacketReturn = packet:read(Bin),
-
-            NewClient = case catch PacketReturn of
-                            {'EXIT', Error} ->
-                                log4erl:error("Could not parse packet"),
-                                error_logger:error_report(
-                                  [{module, ?MODULE},
-                                   {line, ?LINE},
-                                   {message, "Could not parse command"},
-                                   {Bin, Bin},
-                                   {error, Error},
-                                   {now, now()}]),
-                                Client;                    
-                            #{<<"cmd">> := <<"login">>} ->                                
-                                process_login(Client, Socket, PacketReturn);   
-                            #logout{} ->
-                                process_logout(Client, Socket);                        
-                            #chat_message{player_id = PlayerId, player_name = PlayerName, message = Message} ->
-                                process_chat(Client, PlayerId, PlayerName, Message);
-                            clocksync ->
-                                process_clocksync(Client, Socket);    
-                            clientready ->
-                                process_clientready(Client, Socket);
-                            Event ->
-                                process_event(Client, Socket, Event)                            
-                        end,
+            NewClient = handle_packet(Socket, Client, Bin),
             inet:setopts(Socket,[{active, once}]),
             handle_client(Socket, NewClient);
         
@@ -156,6 +129,25 @@ handle_client(Socket, Client) ->
             handle_client(Socket, Client)   
     
     end.
+
+handle_packet(Socket, Client, Bin) ->
+    
+    log4erl:info("Data received: ~p~n", [Bin]),
+    PacketReturn = packet:read(Bin),
+
+    NewClient = case catch PacketReturn of
+                    {'EXIT', Error} ->
+                        log4erl:info("Could not parse packet. Bin: ~p Error: ~p~n", [Bin, Error]),
+                        Client;                    
+                    #{<<"cmd">> := <<"login">>} ->                                
+                        process_login(Client, Socket, PacketReturn);   
+                    clientready ->
+                        process_clientready(Client, Socket);
+                    Event ->
+                        process_event(Client, Socket, Event)                            
+                end,
+
+    NewClient.
 
 process_login(Client, Socket, PacketReturn) ->
 
@@ -175,28 +167,13 @@ process_login(Client, Socket, PacketReturn) ->
             Client#client{ player_pid = PlayerPID }
     end.	
 
-process_logout(Client, _Socket) ->
-    ?INFO("process_logout"),
-    ok = gen_server:call(Client#client.player_pid, 'LOGOUT'),
-    Client.
-
-process_chat(Client, PlayerId, PlayerName, Message) ->
-    ?INFO("process_chat"),
-    chat:broadcast(PlayerId, PlayerName, Message),
-    Client. 
-
-process_clocksync(Client, Socket) ->
-    log4erl:debug("server: process_clocksync~n"),
-    ok = packet:send_clocksync(Socket),
-    Client.
-
 process_clientready(Client, _Socket) ->
     log4erl:info("server - process_clientready~n"),
     if
         Client#client.ready =/= true ->
             log4erl:info("server - client.ready =/= true~n"),
             %PlayerPID = Client#client.player_pid,    
-            %log4erl:debug("PlayerPID ~w~n", [PlayerPID]),			
+            %log4erl:info("PlayerPID ~w~n", [PlayerPID]),			
             %PlayerId = gen_server:call(PlayerPID, 'ID'),   
  
             %gen_server:cast(PlayerPID, {'SEND_SETUP_INFO'}),        

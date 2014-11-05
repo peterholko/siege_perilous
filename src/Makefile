@@ -15,7 +15,7 @@ BEAMS=$(ERLS:.erl=.beam)
 # to the end of the line and continue on the next line
 
 # Edit the lines below
-MODS = login server db packet pickle
+MODS = login server db packet pickle util
 
 #BEAMS = $(ERLS:.erl=.beam)
 #MODS = $(BEAMS:.beam=)

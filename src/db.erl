@@ -102,14 +102,16 @@ test_tables() ->
      {connection, 2, none, none},
      {connection, 3, none, none},
      {connection, 4, none, none},     
+     {connection, 99, none, none},     
      {player, 1, <<"test1">>, <<"123123">>, 0, false},
      {player, 2, <<"test2">>, <<"123123">>, 0, false},
      {player, 3, <<"test3">>, <<"123123">>, 0, false},
-     {player, 4, <<"test4">>, <<"123123">>, 0, false}].
+     {player, 4, <<"peter">>, <<"123123">>, 0, false},
+     {player, 99, <<"test99">>, <<"123123">>, 0, false}].
 
 reset_tables() ->
 
     F = fun() ->
-            list:foreach(fun mnesia:write/1, test_tables())
+            lists:foreach(fun mnesia:write/1, test_tables())
         end,    
     mnesia:transaction(F).    
