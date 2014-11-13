@@ -1,15 +1,28 @@
-SRC = src
+NAME=sp
 
-all:    subdirs
+all: compile release
+	./rebar compile
 
-subdirs: 
-	cd ${SRC}; make
+compile:
+	./rebar compile
 
-# remove all the code
-clean: 
-	rm -rf ebin/*.beam erl_crash.dump
-	rm -f *~
-	rm -f src/*~
-	rm -f ebin/*~
-	rm -f include/*~
-	rm -f src/*.beam
+release:
+	cd rel && ../rebar generate && cd -
+
+node:
+	(cd rel && ../rebar create-node nodeid=${NAME} && cd -)
+
+clean:
+	./rebar clean
+	rm -rf rel/${NAME}
+
+run:
+	rel/${NAME}/bin/${NAME} start
+
+stop:
+	rel/${NAME}/bin/${NAME} stop
+
+runconsole:
+	rel/${NAME}/bin/${NAME} console
+
+alldev: clean all runconsole
