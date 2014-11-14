@@ -6,27 +6,35 @@
 -export([decode/1]).
 
 decode(Bin) ->
-    io:fwrite("JSON: ~p~n", [Bin]),
-    NewDecode = case catch jiffy:decode(Bin, [return_maps]) of
-                {error, Error} ->
-                        io:fwrite("Error: ~p~n", [Error]),
-                        [];
-                Decode ->
-                        Decode
-                end,
-    io:fwrite("Decode: ~p~n", [NewDecode]),
+    lager:info("JSON: ~p~n", [Bin]),
+    
+    Decoded = json_decode(Bin),
+    lager:info("Decoded: ~p~n", [Decoded]),
 
-    Cmd = maps:get(<<"cmd">>, NewDecode),    
-
-    message_handle(Cmd, NewDecode).
+    try
+        Cmd = maps:get(<<"cmd">>, Decoded),    
+        message_handle(Cmd, Decoded)
+    catch
+        _:_ ->
+            lager:info("Error invalid message")
+    end.
 
 message_handle(<<"login">>, Message) -> 
-
+    lager:info("Login"),
     Username = maps:get(<<"username">>, Message),
     Password = maps:get(<<"password">>, Message),
 
-    io:fwrite("Username: ~p~n", [Username]),
-    io:fwrite("Password: ~p~n", [Password]);
+    lager:info("Username: ~p~n", [Username]),
+    lager:info("Password: ~p~n", [Password]),
+
+    login:login(Username, Password, self());
 
 message_handle(_Cmd, Message) ->
-    io:fwrite("Unrecognized message: ~p~n", [Message]).
+    lager:info("Unrecognized message: ~p~n", [Message]).
+
+json_decode(Bin) ->
+    try jiffy:decode(Bin, [return_maps]) 
+    catch 
+        _:_ ->
+            lager:info("Error json_decode")
+    end. 

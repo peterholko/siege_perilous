@@ -23,8 +23,6 @@ login(Name, Pass, Socket)
   when is_binary(Name),
        is_binary(Pass),
        is_pid(Socket) -> % socket handler process
-    io:fwrite("login:login - Name: ~p~n", [Name]),
-    io:fwrite("login:login - Pass: ~p~n", [Pass]),
     
     PlayerInfo = db:index_read(player, Name, #player.name),
     io:fwrite("login:login - PlayerInfo: ~p~n", [PlayerInfo]),
@@ -136,7 +134,7 @@ is_player_online(_, PlayerConn, _) ->
 is_bad_password(PlayerInfo, _, [Pass]) ->
     %Hash = erlang:phash2(Pass, 1 bsl 32),
     Match = PlayerInfo#player.password =:= Pass,
-    io:fwrite("login: is_bad_password - Match: ~w~n", [Match]),
+    lager:info("login: is_bad_password - Match: ~w~n", [Match]),
     {not Match, bad_password}.
 
 is_offline(_, PlayerConn, _) ->
