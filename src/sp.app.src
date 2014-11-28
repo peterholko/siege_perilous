@@ -1,0 +1,17 @@
+%% Siege Perilous MMO
+
+{application, sp, [
+	{description, "Siege Perilous MMO."},
+	{vsn, "1"},
+	{modules, []},
+	{registered, [sp_sup]},
+	{applications, [
+        lager,
+		kernel,
+		stdlib,
+		cowboy,
+        jiffy
+	]},
+	{mod, {sp_app, []}},
+	{env, []}
+]}.
