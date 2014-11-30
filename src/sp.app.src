@@ -8,7 +8,10 @@
 	{applications, [
         lager,
 		kernel,
+        crypto,
 		stdlib,
+        compiler,
+        syntax_tools,
 		cowboy,
         jiffy
 	]},

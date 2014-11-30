@@ -19,6 +19,7 @@ start(_Type, _Args) ->
 	]),
 	{ok, _} = cowboy:start_http(http, 100, [{port, 10100}],
 		[{env, [{dispatch, Dispatch}]}]),
+
 	sp_sup:start_link().
 
 stop(_State) ->

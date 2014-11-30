@@ -10,8 +10,12 @@ init(Req, Opts) ->
 
 websocket_handle({text, Msg}, Req, State) ->
     message:decode(Msg),
+    
+    PID = self(),
+    ReturnMsgList = "PID: " ++ pid_to_list(PID),
+    ReturnMsgBin = list_to_binary(ReturnMsgList),
 
-	{reply, {text, << "That's what she said! ", Msg/binary >>}, Req, State};
+	{reply, {text, ReturnMsgBin}, Req, State};
 websocket_handle(_Data, Req, State) ->
 	{ok, Req, State}.
 

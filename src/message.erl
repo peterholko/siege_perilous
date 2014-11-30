@@ -11,20 +11,21 @@ decode(Message) ->
     Decoded = json_decode(Message),
     lager:info("Decoded: ~p~n", [Decoded]),
 
-    Cmd = get_cmd(Decoded),
+    Cmd = map_get(<<"cmd">>, Decoded),
     message_handle(Cmd, Decoded).
 
-get_cmd(Message) ->
-    try maps:get(<<"cmd">>, Message)
+map_get(Key, Map) ->
+    try maps:get(Key, Map)
     catch
         _:_ ->
-            lager:info("Error invalid message")
+            lager:info("Invalid Map Key: ~p~n", [Key]),
+            none
     end.
 
 message_handle(<<"login">>, Message) -> 
     lager:info("Login"),
-    Username = maps:get(<<"username">>, Message),
-    Password = maps:get(<<"password">>, Message),
+    Username = map_get(<<"username">>, Message),
+    Password = map_get(<<"password">>, Message),
 
     lager:info("Username: ~p~n", [Username]),
     lager:info("Password: ~p~n", [Password]);
