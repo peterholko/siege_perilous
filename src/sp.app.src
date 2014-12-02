@@ -10,6 +10,7 @@
 		kernel,
         crypto,
 		stdlib,
+        mnesia,
         compiler,
         syntax_tools,
 		cowboy,

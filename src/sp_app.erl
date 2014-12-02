@@ -20,6 +20,10 @@ start(_Type, _Args) ->
 	{ok, _} = cowboy:start_http(http, 100, [{port, 10100}],
 		[{env, [{dispatch, Dispatch}]}]),
 
+    db:create_schema(),
+    ok = db:start(),
+    db:reset_tables(),
+
 	sp_sup:start_link().
 
 stop(_State) ->

@@ -8,7 +8,6 @@
                  disabled = false}).
 
 -record(connection, {player_id,
-                     process = none,
                      socket = none}).
 
 -record(tile, {index,

@@ -9,13 +9,11 @@ init(Req, Opts) ->
 	{cowboy_websocket, Req, Opts}.
 
 websocket_handle({text, Msg}, Req, State) ->
-    message:decode(Msg),
-    
-    PID = self(),
-    ReturnMsgList = "PID: " ++ pid_to_list(PID),
-    ReturnMsgBin = list_to_binary(ReturnMsgList),
+    Result = message:decode(Msg),
+    lager:info("Result: ~p~n", [Result]),
 
-	{reply, {text, ReturnMsgBin}, Req, State};
+
+	{reply, {text, list_to_binary([Result])}, Req, State};
 websocket_handle(_Data, Req, State) ->
 	{ok, Req, State}.
 

@@ -28,7 +28,15 @@ message_handle(<<"login">>, Message) ->
     Password = map_get(<<"password">>, Message),
 
     lager:info("Username: ~p~n", [Username]),
-    lager:info("Password: ~p~n", [Password]);
+    lager:info("Password: ~p~n", [Password]),
+
+    case login:login(Username, Password, self()) of
+        {error, Error} ->
+            Error;
+        {success, PlayerId} ->
+            lager:info("Successful login"),
+            PlayerId
+    end;
 
 message_handle(_Cmd, Message) ->
     lager:info("Unrecognized message: ~p~n", [Message]).

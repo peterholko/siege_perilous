@@ -98,11 +98,11 @@ do(Q) ->
 %% Testing data
 
 test_tables() ->
-    [{connection, 1, none, none},
-     {connection, 2, none, none},
-     {connection, 3, none, none},
-     {connection, 4, none, none},     
-     {connection, 99, none, none},     
+    [{connection, 1, none},
+     {connection, 2, none},
+     {connection, 3, none},
+     {connection, 4, none},     
+     {connection, 99, one},     
      {player, 1, <<"test1">>, <<"123123">>, 0, false},
      {player, 2, <<"test2">>, <<"123123">>, 0, false},
      {player, 3, <<"test3">>, <<"123123">>, 0, false},
