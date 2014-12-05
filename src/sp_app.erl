@@ -23,6 +23,11 @@ start(_Type, _Args) ->
     db:create_schema(),
     ok = db:start(),
     db:reset_tables(),
+    
+    map:start(),
+    map:load(),
+
+    spawn(fun() -> game_loop:loop(util:get_time(), global:whereis_name(game_pid)) end),
 
 	sp_sup:start_link().
 

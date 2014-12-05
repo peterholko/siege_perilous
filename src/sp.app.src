@@ -14,7 +14,9 @@
         compiler,
         syntax_tools,
 		cowboy,
-        jiffy
+        jiffy,
+        bson,
+        mongodb
 	]},
 	{mod, {sp_app, []}},
 	{env, []}

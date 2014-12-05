@@ -21,7 +21,8 @@
          get_time_seconds/0,
          unique_list/1,
          replace/3,
-         is_process_alive/1 
+         is_process_alive/1,
+         get_app/1
         ]).
 
 %%
@@ -76,3 +77,6 @@ diff_game_days(StartTime, EndTime) ->
     NumGameDays = Diff / (3600 * ?GAME_NUM_HOURS_PER_DAY),
     NumGameDays.
 
+get_app(Module) ->
+    {ok, App} = application:get_application(Module),
+    App.

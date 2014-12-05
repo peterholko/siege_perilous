@@ -10,10 +10,12 @@ init(Req, Opts) ->
 
 websocket_handle({text, Msg}, Req, State) ->
     Result = message:decode(Msg),
-    lager:info("Result: ~p~n", [Result]),
+    lager:info("Result: ~p", [Result]),
 
+    Tiles = map:get_neighbours(1,1),
+    lager:info("Tiles: ~p", [Tiles]),
 
-	{reply, {text, list_to_binary([Result])}, Req, State};
+	{reply, {text, jiffy:encode(Tiles)}, Req, State};
 websocket_handle(_Data, Req, State) ->
 	{ok, Req, State}.
 

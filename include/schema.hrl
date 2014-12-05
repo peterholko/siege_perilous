@@ -11,14 +11,7 @@
                      socket = none}).
 
 -record(tile, {index,
-               type,
-               resources}).
-
--record(resource, {id,
-                   type,
-                   total,
-                   regen_rate,
-                   last_update}).
+               type}).
 
 -record(kingdom, {id, 
                  player_id,
