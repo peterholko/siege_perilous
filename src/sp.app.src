@@ -14,7 +14,7 @@
         compiler,
         syntax_tools,
 		cowboy,
-        jiffy,
+        jsx,
         bson,
         mongodb
 	]},

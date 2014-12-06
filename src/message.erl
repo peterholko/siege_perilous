@@ -37,7 +37,7 @@ message_handle(<<"login">>, Message) ->
             lager:info("Successful login"),
             ExploredTiles = player:get_perception(PlayerId),
             lager:info("Tiles: ~p", [ExploredTiles]),
-            jiffy:encode({ExploredTiles})
+            jsx:encode(ExploredTiles)
             
     end;
 
@@ -45,7 +45,7 @@ message_handle(_Cmd, Message) ->
     lager:info("Unrecognized message: ~p~n", [Message]).
 
 json_decode(Data) ->
-    try jiffy:decode(Data, [return_maps])
+    try jsx:decode(Data, [return_maps])
     catch
         _:_ ->
             lager:info("Error json_decode")

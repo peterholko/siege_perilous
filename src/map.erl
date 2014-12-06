@@ -128,7 +128,7 @@ get_map_tiles(TileIndexList, MapList) ->
     if
         TileIndex >= 0 ->
             [Tile] = db:dirty_read(tile, TileIndex),
-            NewMapList = [{integer_to_binary(TileIndex), Tile#tile.type} | MapList];
+            NewMapList = [{TileIndex, Tile#tile.type} | MapList];
         true ->
             NewMapList = MapList
     end,
