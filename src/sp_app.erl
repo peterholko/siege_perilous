@@ -24,6 +24,8 @@ start(_Type, _Args) ->
     ok = db:start(),
     db:reset_tables(),
     
+    mdb:start(),
+
     map:start(),
     map:load(),
 

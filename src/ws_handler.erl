@@ -5,17 +5,15 @@
 -export([websocket_info/3]).
 
 init(Req, Opts) ->
-	erlang:start_timer(1000, self(), <<"Hello!">>),
+    %erlang:start_timer(1000, self(), <<"Hello!">>),
 	{cowboy_websocket, Req, Opts}.
 
 websocket_handle({text, Msg}, Req, State) ->
     Result = message:decode(Msg),
     lager:info("Result: ~p", [Result]),
 
-    Tiles = map:get_neighbours(1,1),
-    lager:info("Tiles: ~p", [Tiles]),
+	{reply, {text, Result}, Req, State};
 
-	{reply, {text, jiffy:encode(Tiles)}, Req, State};
 websocket_handle(_Data, Req, State) ->
 	{ok, Req, State}.
 

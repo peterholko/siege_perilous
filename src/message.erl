@@ -35,7 +35,10 @@ message_handle(<<"login">>, Message) ->
             Error;
         {success, PlayerId} ->
             lager:info("Successful login"),
-            PlayerId
+            ExploredTiles = player:get_perception(PlayerId),
+            lager:info("Tiles: ~p", [ExploredTiles]),
+            jiffy:encode({ExploredTiles})
+            
     end;
 
 message_handle(_Cmd, Message) ->

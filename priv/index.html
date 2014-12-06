@@ -65,6 +65,11 @@
       };  
 
       function onMessage(evt) { 
+
+          var test = JSON.parse(evt.data);
+
+          alert(test);
+
           showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
       };  
 
