@@ -16,7 +16,6 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([load/0, get_tile/2, get_explored_map/1, get_neighbours/2]).
--export([convert_coords/1, convert_coords/2]).
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -29,16 +28,13 @@ load() ->
     gen_server:call({global, map}, load).
 
 get_tile(X, Y) ->
-    TileIndex = convert_coords(X,Y),
-    gen_server:call({global, map}, {get_tile, TileIndex}).
+    gen_server:call({global, map}, {get_tile, {X,Y}}).
 
-get_explored_map(TileIndexList) ->
-    gen_server:call({global, map}, {get_explored_map, TileIndexList}).
+get_explored_map(TilesList) ->
+    gen_server:call({global, map}, {get_explored_map, TilesList}).
 
 get_neighbours(X, Y) ->
-    Tiles2D = surrounding_tiles_2D(X, Y, 1),
-    TileList = surrounding_tiles(Tiles2D),
-    TileList.
+    neighbours(X,Y).   
 
 %% ====================================================================
 %% Server functions
@@ -125,23 +121,10 @@ get_map_tiles([], MapList) ->
 get_map_tiles(TileIndexList, MapList) ->
     [TileIndex | Rest] = TileIndexList,
 
-    if
-        TileIndex >= 0 ->
-            [Tile] = db:dirty_read(tile, TileIndex),
-            NewMapList = [{TileIndex, Tile#tile.type} | MapList];
-        true ->
-            NewMapList = MapList
-    end,
+    [Tile] = db:dirty_read(tile, TileIndex),
+    NewMapList = [{TileIndex, Tile#tile.type} | MapList],
 
     get_map_tiles(Rest, NewMapList).
-
-convert_coords(X, Y) ->
-    Y * ?MAP_HEIGHT + X.
-
-convert_coords(TileIndex) ->
-    TileX = TileIndex rem ?MAP_WIDTH,
-    TileY = TileIndex div ?MAP_HEIGHT,
-    {TileX , TileY}.
 
 is_valid_coords(X, Y) ->
     GuardX = (X >= 0) and (X < ?MAP_WIDTH),
@@ -156,47 +139,26 @@ is_valid_coords(X, Y) ->
     
     Result.
 
-surrounding_tiles_2D(X, Y, ViewRange) ->
-    MinX = X - ViewRange,
-    MinY = Y - ViewRange,
-    MaxX = X + ViewRange + 1,
-    MaxY = Y + ViewRange + 1,
-    tiles_y_2D(MinX, MinY, MaxX, MaxY, []).
+%From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
+neighbours(Q, R) ->
 
-tiles_y_2D(_, MaxY, _, MaxY, Tiles) ->
-    Tiles;
+    Parity = Q band 1,
+    ConversionList = conversion_list(Parity),
 
-tiles_y_2D(X, Y, MaxX, MaxY, Tiles) ->
-    NewTiles = tiles_x_2D(X, Y, MaxX, MaxY, Tiles),
-    tiles_y_2D(X, Y + 1, MaxX, MaxY, NewTiles).
+    neighbours(ConversionList, Q, R, []).
 
-tiles_x_2D(MaxX, _, MaxX, _, Tiles) ->
-    Tiles;
+conversion_list(0) ->
+    [{1,0}, {1,-1}, {0,-1}, {-1,-1}, {-1,0}, {0,1}];
+conversion_list(1) ->
+     [{1,1}, {1,0}, {0,-1}, {-1,0}, {-1,1}, {0,1}].
 
-tiles_x_2D(X, Y, MaxX, MaxY, Tiles) ->
-    Tile = {X, Y},
-    NewTiles = [Tile | Tiles],
-    tiles_x_2D(X + 1, Y, MaxX, MaxY, NewTiles).
+neighbours([], _Q, _R, Neighbours) ->
+    Neighbours;
 
-%% TODO: Combine with above tiles x,y looping
-surrounding_tiles(Tiles2D) ->
-    
-    F = fun(Tile2D, Tiles) ->
-                
-                {X, Y} = Tile2D,
-                ValidTile = is_valid_coords(X, Y),
-                
-                if
-                    ValidTile ->
-                        Tile = convert_coords(X, Y),
-                        NewTiles = [Tile | Tiles];
-                    true ->
-                        NewTiles = Tiles
-                end,
-                
-                NewTiles
-        end,
-    
-    lists:foldl(F, [], Tiles2D).
+neighbours([Conversion | Rest], Q, R, Neighbours) ->
 
-     
+    {OffsetQ, OffsetR} = Conversion,
+    Neighbour = {Q + OffsetQ, R + OffsetR},
+    NewNeighbours = [Neighbour | Neighbours],
+
+    neighbours(Rest, Q, R, NewNeighbours).

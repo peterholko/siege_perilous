@@ -100,7 +100,8 @@ do(Q) ->
 %% Testing data
 
 test_tables() ->
-    [{connection, 1, none},
+    [
+     {connection, 1, none},
      {connection, 2, none},
      {connection, 3, none},
      {connection, 4, none},     
@@ -109,7 +110,25 @@ test_tables() ->
      {player, 2, <<"test2">>, <<"123123">>, 0, false},
      {player, 3, <<"test3">>, <<"123123">>, 0, false},
      {player, 4, <<"peter">>, <<"123123">>, 0, false},
-     {player, 99, <<"test99">>, <<"123123">>, 0, false}].
+     {player, 99, <<"test99">>, <<"123123">>, 0, false},
+     {tile, {0,0}, 1},   
+     {tile, {1,0}, 1},   
+     {tile, {2,0}, 3},   
+     {tile, {3,0}, 3},   
+     {tile, {0,1}, 1},   
+     {tile, {1,1}, 1},   
+     {tile, {2,1}, 3},   
+     {tile, {3,1}, 2},   
+     {tile, {0,2}, 0},   
+     {tile, {1,2}, 0},   
+     {tile, {2,2}, 2},   
+     {tile, {3,2}, 2},   
+     {tile, {0,3}, 0},   
+     {tile, {1,3}, 0},   
+     {tile, {2,3}, 2},   
+     {tile, {3,3}, 2}
+    
+    ].
 
 reset_tables() ->
 

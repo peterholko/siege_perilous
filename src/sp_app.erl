@@ -25,9 +25,7 @@ start(_Type, _Args) ->
     db:reset_tables(),
     
     mdb:start(),
-
     map:start(),
-    map:load(),
 
     spawn(fun() -> game_loop:loop(util:get_time(), global:whereis_name(game_pid)) end),
 
