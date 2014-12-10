@@ -15,7 +15,8 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load/0, get_tile/2, get_explored_map/1, get_neighbours/2]).
+-export([load/0, get_tile/2, get_explored_map/1, get_neighbours/2,
+         get_nearby_objs/2]).
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -35,6 +36,9 @@ get_explored_map(TilesList) ->
 
 get_neighbours(X, Y) ->
     neighbours(X,Y).   
+
+get_nearby_objs(X, Y) ->
+    gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
 
 %% ====================================================================
 %% Server functions
@@ -74,6 +78,12 @@ handle_call({get_tile, TileIndex}, _From, Data) ->
     Tile = db:dirty_read(tile, TileIndex),
     {reply, Tile, Data};
 
+handle_call({get_nearby_objs, {X,Y}}, _From, Data) ->
+
+    Objects = nearby_objs({X,Y}),
+
+    {reply, Objects, Data};
+
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
                               {line, ?LINE},
@@ -107,7 +117,7 @@ load_tiles(FileRef, false, TileIndex) ->
     EOF = case file:read(FileRef, 1) of
             {ok, Data} ->
                 [TileType] = Data,
-                Tile = #tile {index = TileIndex, type = TileType},
+                Tile = #tile {pos = TileIndex, type = TileType},
                 db:dirty_write(Tile),
                 false;
             eof ->
@@ -122,11 +132,89 @@ get_map_tiles(TileIndexList, MapList) ->
     [TileIndex | Rest] = TileIndexList,
 
     [Tile] = db:dirty_read(tile, TileIndex),
-    NewMapList = [{TileIndex, Tile#tile.type} | MapList],
+    {X,Y} = TileIndex,
+    NewMapList = [{convert_coords(X,Y), Tile#tile.type} | MapList],
 
     get_map_tiles(Rest, NewMapList).
 
-is_valid_coords(X, Y) ->
+cube_to_odd_q({X, _Y, Z}) ->
+    Q = X,
+    R = trunc(Z + (X - (X band 1)) / 2),
+    {Q, R}.
+
+odd_q_to_cube({Q, R}) ->
+    X = Q,
+    Z = trunc(R - (Q - (Q band 1)) / 2),
+    Y = -X-Z,
+    {X, Y, Z}.
+
+%From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
+neighbours(Q, R) ->
+
+    CubeCoords = odd_q_to_cube({Q,R}),
+    ConversionTable = conversion_table(),
+
+    neighbours(ConversionTable, CubeCoords, []).
+
+conversion_table() ->
+    [{1,-1,0}, {1,0,-1}, {0,1,-1}, {-1,1,0}, {-1,0,1}, {0,-1,1}].
+
+neighbours([], _CubeCoords, Neighbours) ->
+    Neighbours;
+
+neighbours([Conversion | Rest], CubeCoords, Neighbours) ->
+
+    %Use Cube coords as it is easier to find neighbours
+    {X, Y, Z} = CubeCoords,
+    {OffsetX, OffsetY, OffsetZ} = Conversion,
+    
+    %Add offsets to find neighbours and convert to back to OddQ
+    NeighbourCube = {X + OffsetX, Y + OffsetY, Z + OffsetZ},
+    NeighbourOddQ = cube_to_odd_q(NeighbourCube),
+   
+    %Check if neighbour is within map
+    ValidCoord = is_valid_coord(NeighbourOddQ),
+    NewNeighbours = add_neighbour(ValidCoord, NeighbourOddQ, Neighbours),
+
+    neighbours(Rest, CubeCoords, NewNeighbours).
+
+add_neighbour(true, NeighbourOddQ, Neighbours) ->
+    [NeighbourOddQ | Neighbours];
+add_neighbour(false, _NeighbourOddQ, Neighbours) ->
+    Neighbours.
+
+nearby_objs(SourcePos) ->
+
+    T = fun() ->
+
+            F = fun(MapObj, Objs) ->
+                    
+                    Dist = distance(SourcePos, MapObj#map_obj.pos),
+                    check_distance(Dist, 2, MapObj, Objs)
+                end,
+
+            mnesia:foldl(F, [], map_obj)
+        end,
+
+    {atomic, Result} = mnesia:transaction(T),
+    Result.
+
+check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
+    [MapObj#map_obj.id | Objs];
+check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
+    Objs.
+                              
+distance(SourcePos, TargetPos) ->
+    lager:info("Source: ~p Target: ~p", [SourcePos, TargetPos]),
+    SourceCube = odd_q_to_cube(SourcePos),
+    TargetCube = odd_q_to_cube(TargetPos),
+    
+    {SX, SY, SZ} = SourceCube,
+    {TX, TY, TZ} = TargetCube,
+
+    abs(SX - TX) + abs(SY - TY) + abs(SZ - TZ).
+
+is_valid_coord({X, Y}) ->
     GuardX = (X >= 0) and (X < ?MAP_WIDTH),
     GuardY = (Y >= 0) and (Y < ?MAP_HEIGHT),
     
@@ -139,26 +227,12 @@ is_valid_coords(X, Y) ->
     
     Result.
 
-%From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
-neighbours(Q, R) ->
+convert_coords(X, Y) ->
+        Y * ?MAP_HEIGHT + X.
 
-    Parity = Q band 1,
-    ConversionList = conversion_list(Parity),
+convert_coords(TileIndex) ->
+        TileX = TileIndex rem ?MAP_WIDTH,
+            TileY = TileIndex div ?MAP_HEIGHT,
+                {TileX , TileY}.
 
-    neighbours(ConversionList, Q, R, []).
 
-conversion_list(0) ->
-    [{1,0}, {1,-1}, {0,-1}, {-1,-1}, {-1,0}, {0,1}];
-conversion_list(1) ->
-     [{1,1}, {1,0}, {0,-1}, {-1,0}, {-1,1}, {0,1}].
-
-neighbours([], _Q, _R, Neighbours) ->
-    Neighbours;
-
-neighbours([Conversion | Rest], Q, R, Neighbours) ->
-
-    {OffsetQ, OffsetR} = Conversion,
-    Neighbour = {Q + OffsetQ, R + OffsetR},
-    NewNeighbours = [Neighbour | Neighbours],
-
-    neighbours(Rest, Q, R, NewNeighbours).

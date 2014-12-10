@@ -5,14 +5,19 @@
 
 -export([get_perception/1]).
 
-
-
 get_perception(PlayerId) ->
 
+    %Get armies
     Armies = get_armies(PlayerId),
+
+    %Get explored tiles
     TileIds = get_explored_tiles(Armies, []),
     Tiles = map:get_explored_map(TileIds),
-    Tiles.
+
+    %Get visible objs
+    Objs = get_visible_objs(Armies, []),
+
+    [{<<"tiles">>, Tiles}, {<<"objs">>, Objs}].
 
 get_armies(PlayerId) ->
 
@@ -37,3 +42,19 @@ get_explored_tiles([Army | Rest], ExploredTiles) ->
     NewExploredTiles = Neighbours ++ ExploredTiles,
 
     get_explored_tiles(Rest, NewExploredTiles).
+
+get_visible_objs([], Objs) ->
+    Objs;
+
+get_visible_objs([Army | Rest], Objs) ->
+
+    {X} = bson:lookup(x, Army),
+    {Y} = bson:lookup(y, Army),
+
+    NearbyObjs = map:get_nearby_objs(X, Y),
+    NewObjs = NearbyObjs ++ Objs,
+
+    get_visible_objs(Rest, NewObjs).
+
+    
+

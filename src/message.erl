@@ -42,7 +42,9 @@ message_handle(<<"login">>, Message) ->
     end;
 
 message_handle(_Cmd, Message) ->
-    lager:info("Unrecognized message: ~p~n", [Message]).
+    Error = "Unrecognized message", 
+    lager:info("~p: ~p~n", [Error, Message]),
+    list_to_binary(Error).
 
 json_decode(Data) ->
     try jsx:decode(Data, [return_maps])

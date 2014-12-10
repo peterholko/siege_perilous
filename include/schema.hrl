@@ -10,15 +10,15 @@
 -record(connection, {player_id,
                      socket = none}).
 
--record(tile, {index,
+-record(tile, {pos,
                type}).
 
--record(kingdom, {id, 
-                 player_id,
-                 name,
-                 gold = 0,
-                 armies = [],
-                 cities = []}).
+-record(map_obj, {id, 
+                  pos}).
+
+
+-record(explored_map, {player,
+                       tiles}).
 
 -record(reputation, {id,
                      player_id,
