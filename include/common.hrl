@@ -144,3 +144,11 @@
 -define(INFO(MSG1, DATA1, MSG2, DATA2), log4erl:info("{~w} ~s ~w ~s ~w", [?MODULE, MSG1, DATA1, MSG2, DATA2])).
 -define(ERROR(MSG), log4erl:error("{~w:~w} ~s", [?MODULE, ?LINE, MSG])).
 -define(ERROR(MSG, DATA), log4erl:error("{~w:~w} ~s: ~w", [?MODULE, ?LINE, MSG, DATA])).
+
+-define(record_to_list(Record),
+    fun(Val) ->
+        Fields = record_info(fields, Record),
+        [_Tag| Values] = tuple_to_list(Val),
+        lists:zip(Fields, Values)
+    end
+).

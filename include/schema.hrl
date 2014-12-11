@@ -14,8 +14,8 @@
                type}).
 
 -record(map_obj, {id, 
-                  pos}).
-
+                  pos,
+                  player}).
 
 -record(explored_map, {player,
                        tiles}).

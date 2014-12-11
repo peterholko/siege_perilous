@@ -23,7 +23,7 @@ map_get(Key, Map) ->
     end.
 
 message_handle(<<"login">>, Message) -> 
-    lager:info("Login"),
+    lager:info("message: login"),
     Username = map_get(<<"username">>, Message),
     Password = map_get(<<"password">>, Message),
 
@@ -38,8 +38,16 @@ message_handle(<<"login">>, Message) ->
             ExploredTiles = player:get_perception(PlayerId),
             lager:info("Tiles: ~p", [ExploredTiles]),
             jsx:encode(ExploredTiles)
-            
     end;
+
+message_handle(<<"info">>, Message) ->
+    lager:info("message: info"),
+    Id = map_get(<<"id">>, Message),
+    BinaryId = list_to_binary(Id),
+
+    Obj = player:get_info(BinaryId),
+    lager:info("Obj: ~p", [Obj]),
+    jsx:encode(bson:fields(Obj));
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

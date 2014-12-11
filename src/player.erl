@@ -3,7 +3,7 @@
 % %% Description: Player module
 -module(player).
 
--export([get_perception/1]).
+-export([get_perception/1, get_info/1]).
 
 get_perception(PlayerId) ->
 
@@ -16,8 +16,16 @@ get_perception(PlayerId) ->
 
     %Get visible objs
     Objs = get_visible_objs(Armies, []),
+    lager:info("Objs: ~p", [Objs]),
 
     [{<<"tiles">>, Tiles}, {<<"objs">>, Objs}].
+
+get_info(Id) ->
+    %Must have { } tuple around Id, mongo convention
+    Cursor = mongo:find(mdb:get_conn(), <<"army">>, {'_id', {Id}}),
+    [Obj] = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Obj.
 
 get_armies(PlayerId) ->
 

@@ -132,8 +132,7 @@ get_map_tiles(TileIndexList, MapList) ->
     [TileIndex | Rest] = TileIndexList,
 
     [Tile] = db:dirty_read(tile, TileIndex),
-    {X,Y} = TileIndex,
-    NewMapList = [{convert_coords(X,Y), Tile#tile.type} | MapList],
+    NewMapList = [{convert_coords(TileIndex), Tile#tile.type} | MapList],
 
     get_map_tiles(Rest, NewMapList).
 
@@ -200,7 +199,10 @@ nearby_objs(SourcePos) ->
     Result.
 
 check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
-    [MapObj#map_obj.id | Objs];
+    Coords = convert_coords(MapObj#map_obj.pos),
+    [{id, binary_to_list(MapObj#map_obj.id)}, 
+     {player, MapObj#map_obj.player}, 
+     {pos, Coords} | Objs];
 check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
     Objs.
                               
@@ -227,8 +229,9 @@ is_valid_coord({X, Y}) ->
     
     Result.
 
-convert_coords(X, Y) ->
-        Y * ?MAP_HEIGHT + X.
+convert_coords(TileIndex) when is_tuple(TileIndex) ->
+        {X, Y} = TileIndex,
+        Y * ?MAP_HEIGHT + X;
 
 convert_coords(TileIndex) ->
         TileX = TileIndex rem ?MAP_WIDTH,
