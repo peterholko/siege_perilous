@@ -5,6 +5,16 @@
     <script src="/static/jquery.min.js"></script>
     <script type="text/javascript">
       
+      var tile0 = new Image();
+      var tile1 = new Image();
+      var tile2 = new Image();
+      var tile3 = new Image();
+
+      tile0.src = "/static/green.png";
+      tile1.src = "/static/basic-tile.png";
+      tile2.src = "/static/regular.png";
+      tile3.src = "/static/desert.png";
+
       var websocket;
       $(document).ready(init);
       
@@ -67,8 +77,40 @@
       function onMessage(evt) { 
 
           var test = JSON.parse(evt.data);
+          var tiles = test.tiles;
+          var q;
+          var r;
+          var x;
+          var y;
+          var canvas = document.getElementById('map');
+          var context = canvas.getContext('2d');
+    
+          for(var pos in tiles) {
+              console.log("pos: " + pos + " tile: " + tiles[pos]);
 
-          alert(test);
+              q = pos % 4;
+              r = parseInt(pos / 4, 10);
+
+              console.log("q: " + q + " r: " + r);
+
+              x = 36 * 3/2 * q;
+              y = 36 * Math.sqrt(3) * (r + 0.5 * (q & 1));
+              
+              console.log("x: " + x + " y:" + y); 
+
+              if(tiles[pos] == 0) {
+                 context.drawImage(tile0, x, y);
+              }
+              else if(tiles[pos] == 1) {
+                 context.drawImage(tile1, x, y);
+              }
+              else if(tiles[pos] == 2) {
+                 context.drawImage(tile2, x, y);
+              }
+              else if(tiles[pos] == 3) {
+                 context.drawImage(tile3, x, y);
+              }
+          }
 
           showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
       };  
@@ -113,6 +155,10 @@
 	<div id="output"></div>
       </div>
 
+      
+
     </div>
+    <canvas id="map" width="500" height="500" style="border:1px solid #c3c3c3;">
+    </canvas>
   </body>
 </html> 

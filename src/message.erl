@@ -43,7 +43,7 @@ message_handle(<<"login">>, Message) ->
 message_handle(<<"info">>, Message) ->
     lager:info("message: info"),
     Id = map_get(<<"id">>, Message),
-    BinaryId = list_to_binary(Id),
+    BinaryId = <<Id:96>>,
 
     Obj = player:get_info(BinaryId),
     lager:info("Obj: ~p", [Obj]),

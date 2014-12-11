@@ -6,8 +6,9 @@ ERLC_OPTS= $(ERLC_COMPILE_OPTS)
 TEST_ERLC_OPTS= $(ERLC_COMPILE_OPTS)
 
 PROJECT = sp
-DEPS = lager cowboy jsx
+DEPS = lager cowboy jsx mongodb
 dep_cowboy = git https://github.com/ninenines/cowboy master
 dep_jsx = git https://github.com/talentdeficit/jsx master
+dep_mongodb = git https://github.com/peterholko/mongodb-erlang master
 
 include erlang.mk

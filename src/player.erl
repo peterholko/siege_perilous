@@ -12,6 +12,7 @@ get_perception(PlayerId) ->
 
     %Get explored tiles
     TileIds = get_explored_tiles(Armies, []),
+    lager:info("TileIds: ~p", [TileIds]),
     Tiles = map:get_explored_map(TileIds),
 
     %Get visible objs
