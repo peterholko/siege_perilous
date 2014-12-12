@@ -35,6 +35,9 @@ message_handle(<<"login">>, Message) ->
             Error;
         {success, PlayerId} ->
             lager:info("Successful login"),
+            %Stored player id in process dict for easy access
+            put(player_id, PlayerId),
+
             ExploredTiles = player:get_perception(PlayerId),
             lager:info("Tiles: ~p", [ExploredTiles]),
             jsx:encode(ExploredTiles)
@@ -48,6 +51,16 @@ message_handle(<<"info">>, Message) ->
     Obj = player:get_info(BinaryId),
     lager:info("Obj: ~p", [Obj]),
     jsx:encode(bson:fields(Obj));
+
+message_handle(<<"move">>, Message) ->
+    lager:info("message: move"),
+
+    Id = map_get(<<"id">>, Message),
+    BinaryId = <<Id:96>>,
+    Pos1D = map_get(<<"pos">>, Message),
+
+    player:move_obj(BinaryId, Pos1D);
+    
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

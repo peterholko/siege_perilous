@@ -40,6 +40,9 @@ get_neighbours(X, Y) ->
 get_nearby_objs(X, Y) ->
     gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
 
+
+    
+
 %% ====================================================================
 %% Server functions
 %% ====================================================================

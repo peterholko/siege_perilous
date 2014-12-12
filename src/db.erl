@@ -42,6 +42,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(explored_map, [{ram_copies, [node()]}, {attributes, record_info(fields, explored_map)}]),  
 
     mnesia:add_table_index(player, name),
+    mnesia:add_table_index(connection, socket),
     mnesia:add_table_index(map_obj, pos),
 
     mnesia:stop().

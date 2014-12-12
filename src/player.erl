@@ -3,7 +3,9 @@
 % %% Description: Player module
 -module(player).
 
--export([get_perception/1, get_info/1]).
+-export([get_perception/1, 
+         get_info/1,
+         move_obj/2]).
 
 get_perception(PlayerId) ->
 
@@ -27,6 +29,20 @@ get_info(Id) ->
     [Obj] = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Obj.
+
+move_obj(Id, Pos1D) ->
+
+    %TODO: Add validation
+
+    map:move_obj(Id, map:convert_coords(Pos1D))
+    
+
+
+get_obj(Id) ->
+
+    Cursor = mongo:find(mdb:get_conn(), <<"army">>, {'_id', {Id}, player, PlayerId}),
+    Armies = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
 
 get_armies(PlayerId) ->
 
