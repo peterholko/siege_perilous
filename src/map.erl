@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([load/0, get_tile/2, get_explored_map/1, get_neighbours/2,
-         get_nearby_objs/2]).
+         get_nearby_objs/2, move_obj/2, convert_coords/1]).
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -40,7 +40,8 @@ get_neighbours(X, Y) ->
 get_nearby_objs(X, Y) ->
     gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
 
-
+move_obj(Id, {X, Y}) ->
+    gen_server:cast({global, map}, {move_obj, Id, {X, Y}}).
     
 
 %% ====================================================================
@@ -52,6 +53,10 @@ init([]) ->
     {ok, Data}.
 
 handle_cast(none, Data) ->  
+    {noreply, Data};
+
+handle_cast({move_obj, Id, {X, Y}}, Data) ->
+    add_move_obj(Id, {X, Y}),
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -139,6 +144,10 @@ get_map_tiles(TileIndexList, MapList) ->
     NewMapList = [{convert_coords(TileIndex), Tile#tile.type} | MapList],
 
     get_map_tiles(Rest, NewMapList).
+
+add_move_obj(Id, {X, Y}) ->
+    NumTicks = 8,
+    game:add_event(self(), move_obj, {Id, {X, Y}}, NumTicks).
 
 cube_to_odd_q({X, _Y, Z}) ->
     Q = X,

@@ -58,9 +58,8 @@ message_handle(<<"move">>, Message) ->
     Id = map_get(<<"id">>, Message),
     BinaryId = <<Id:96>>,
     Pos1D = map_get(<<"pos">>, Message),
-
-    player:move_obj(BinaryId, Pos1D);
-    
+    Result = player:move_obj(BinaryId, Pos1D),
+    <<"Move added">>;    
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

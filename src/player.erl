@@ -34,15 +34,9 @@ move_obj(Id, Pos1D) ->
 
     %TODO: Add validation
 
-    map:move_obj(Id, map:convert_coords(Pos1D))
-    
-
-
-get_obj(Id) ->
-
-    Cursor = mongo:find(mdb:get_conn(), <<"army">>, {'_id', {Id}, player, PlayerId}),
-    Armies = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
+    NumTicks = 8,
+    Pos = map:convert_coords(Pos1D), 
+    game:add_event(self(), move_obj, {Id, Pos}, NumTicks).
 
 get_armies(PlayerId) ->
 

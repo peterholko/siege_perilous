@@ -7,8 +7,8 @@
                  login_errors = 0,
                  disabled = false}).
 
--record(connection, {player_id,
-                     socket = none}).
+-record(connection, {player,
+                     process = none}).
 
 -record(tile, {pos,
                type}).
@@ -19,6 +19,12 @@
 
 -record(explored_map, {player,
                        tiles}).
+
+-record(event, {id, 
+                player_process,
+                type,
+                data,
+                tick}).
 
 -record(reputation, {id,
                      player_id,

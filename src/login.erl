@@ -44,11 +44,11 @@ login([PlayerInfo], [_Name, Pass,_] = Args)
                          P;
                      _ ->
                          ok = db:delete(connection, PlayerId),
-                         #connection{ player_id = PlayerId }
+                         #connection{ player = PlayerId }
                  end,    
 
     %% replace dead ids with none
-    PlayerConn1 = PlayerConn#connection {socket = fix_pid(PlayerConn#connection.socket)},
+    PlayerConn1 = PlayerConn#connection {process = fix_pid(PlayerConn#connection.process)},
 
     %% check player state and login
     Condition = check_player(PlayerInfo, PlayerConn1, [Pass], 
@@ -92,8 +92,8 @@ login(PlayerInfo, PlayerConn, player_offline, [Name, _, Socket]) ->
     lager:info("Successful login of user ~p~n", [Name]),
 
     %% update player connection
-    PlayerConn1 = PlayerConn#connection {player_id = PlayerInfo#player.id,
-                                         socket = Socket
+    PlayerConn1 = PlayerConn#connection {player = PlayerInfo#player.id,
+                                         process = Socket
                                         },
     {PlayerInfo, PlayerConn1, {success, PlayerInfo#player.id}}.
 
@@ -113,7 +113,7 @@ is_account_disabled(PlayerInfo, _, _) ->
     {PlayerInfo#player.disabled, account_disabled}.
 
 is_player_online(_, PlayerConn, _) ->
-    SocketAlive = PlayerConn#connection.socket /= none,
+    SocketAlive = PlayerConn#connection.process /= none,
     lager:info("SocketAlive: ~p~n", [SocketAlive]),
     {SocketAlive, player_online}.
 
@@ -123,7 +123,7 @@ is_bad_password(PlayerInfo, _, [Pass]) ->
     {not Match, bad_password}.
 
 is_offline(_, PlayerConn, _) ->
-    SocketDown = PlayerConn#connection.socket =:= none,
+    SocketDown = PlayerConn#connection.process =:= none,
     {SocketDown, player_offline}.    
 
 fix_pid(none) ->
