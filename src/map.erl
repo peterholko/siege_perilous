@@ -40,9 +40,8 @@ get_neighbours(X, Y) ->
 get_nearby_objs(X, Y) ->
     gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
 
-move_obj(Id, {X, Y}) ->
-    gen_server:cast({global, map}, {move_obj, Id, {X, Y}}).
-    
+move_obj(Id, Pos) ->
+   move(Id, Pos). 
 
 %% ====================================================================
 %% Server functions
@@ -53,10 +52,6 @@ init([]) ->
     {ok, Data}.
 
 handle_cast(none, Data) ->  
-    {noreply, Data};
-
-handle_cast({move_obj, Id, {X, Y}}, Data) ->
-    add_move_obj(Id, {X, Y}),
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -145,10 +140,6 @@ get_map_tiles(TileIndexList, MapList) ->
 
     get_map_tiles(Rest, NewMapList).
 
-add_move_obj(Id, {X, Y}) ->
-    NumTicks = 8,
-    game:add_event(self(), move_obj, {Id, {X, Y}}, NumTicks).
-
 cube_to_odd_q({X, _Y, Z}) ->
     Q = X,
     R = trunc(Z + (X - (X band 1)) / 2),
@@ -217,6 +208,7 @@ check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
     [{id, Id}, 
      {player, MapObj#map_obj.player}, 
      {pos, Coords} | Objs];
+
 check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
     Objs.
                               
@@ -252,4 +244,7 @@ convert_coords(TileIndex) ->
     TileY = TileIndex div ?MAP_HEIGHT,
     {TileX , TileY}.
 
-
+move(Id, Pos) ->
+    [Obj] = mnesia:dirty_read(map_obj, Id),
+    NewObj = Obj#map_obj {pos = Pos},
+    mnesia:dirty_write(NewObj).

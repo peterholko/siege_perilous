@@ -8,6 +8,7 @@
 %%
 
 -include("common.hrl").
+-include("schema.hrl").
 
 %%
 %% Exported Functions
@@ -23,10 +24,9 @@ loop(LastTime, GamePID) ->
     CurrentTick = counter:increment(tick),	
     
     %Process events
-    
+    RecalcPerception = process_events(CurrentTick),
     %Build simple perception
-    
-    %Send perceptions
+    perception_recalculate(RecalcPerception),
     
     {NextTime, SleepTime} = calculate_sleep(LastTime),
 
@@ -54,3 +54,40 @@ check_sleep(CalcSleepTime, LastTime) ->
     end,
 
     {NextTime, SleepTime}.
+
+process_events(CurrentTick) ->
+
+    Events = db:dirty_index_read(event, CurrentTick, #event.tick),
+
+    check_events(Events, false).
+
+check_events([], RecalcPerception) ->
+    RecalcPerception;
+    
+check_events([Event | Rest], PrevRecalc) ->
+    
+    Recalc = do_event(Event#event.type,
+                      Event#event.data,
+                      Event#event.player_process),
+
+    check_events(Rest, Recalc or PrevRecalc).
+
+do_event(move_obj, EventData, _PlayerPid) ->
+    lager:info("Processing move_obj event: ~p", [EventData]),
+
+    {Id, {X, Y}} = EventData,
+    Result = map:move_obj(Id, {X, Y}),
+    
+    lager:info("move_obj Result: ~p", [Result]),
+
+    true;
+
+do_event(_Unknown, _Data, _Pid) ->
+    lager:info("Unknown event"),
+    false.
+
+perception_recalculate(false) ->
+    nothing;
+
+perception_recalculate(true) ->
+    perception_manager:recalculate().

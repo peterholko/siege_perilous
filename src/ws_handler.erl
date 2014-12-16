@@ -17,8 +17,10 @@ websocket_handle({text, Msg}, Req, State) ->
 websocket_handle(_Data, Req, State) ->
 	{ok, Req, State}.
 
-websocket_info({timeout, _Ref, Msg}, Req, State) ->
-    %erlang:start_timer(1000, self(), <<"How' you doin'?">>),
-	{reply, {text, Msg}, Req, State};
+websocket_info({perception, Message}, Req, State) ->
+
+    Encoded = jsx:encode(Message),
+
+	{reply, {text, Encoded}, Req, State};
 websocket_info(_Info, Req, State) ->
 	{ok, Req, State}.

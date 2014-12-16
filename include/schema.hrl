@@ -15,7 +15,8 @@
 
 -record(map_obj, {id, 
                   pos,
-                  player}).
+                  player,
+                  type}).
 
 -record(explored_map, {player,
                        tiles}).
@@ -25,6 +26,9 @@
                 type,
                 data,
                 tick}).
+
+-record(perception, {player,
+                     data}).
 
 -record(reputation, {id,
                      player_id,
