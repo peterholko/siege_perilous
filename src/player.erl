@@ -3,25 +3,35 @@
 % %% Description: Player module
 -module(player).
 
--export([get_perception/1, 
+-include("schema.hrl").
+-include("common.hrl").
+
+-export([init_perception/1, 
          get_info/1,
          move_obj/2]).
 
-get_perception(PlayerId) ->
+init_perception(PlayerId) ->
 
     %Get armies
     Armies = get_armies(PlayerId),
 
-    %Get explored tiles
-    TileIds = get_explored_tiles(Armies, []),
-    lager:info("TileIds: ~p", [TileIds]),
-    Tiles = map:get_explored_map(TileIds),
+    %Get explored tile list
+    ExploredTiles = map:get_explored(PlayerId),
+    lager:info("ExploredTiles: ~p", [ExploredTiles]),
+
+    %Get visible map (should be in explored unless first login)
+    VisibleTiles = get_visible_map(Armies, []),
+    lager:info("VisibleTiles: ~p", [VisibleTiles]),
 
     %Get visible objs
     Objs = get_visible_objs(Armies, []),
+
+    AllExplored = util:unique_list(ExploredTiles ++ VisibleTiles),
+
+    lager:info("AllExplored: ~p", [AllExplored]),
     lager:info("Objs: ~p", [Objs]),
 
-    [{<<"tiles">>, Tiles}, {<<"objs">>, Objs}].
+    [{<<"explored">>, AllExplored}, {<<"objs">>, Objs}].
 
 get_info(Id) ->
     %Must have { } tuple around Id, mongo convention
@@ -46,21 +56,25 @@ get_armies(PlayerId) ->
 
     Armies.
 
-get_explored_tiles([], ExploredTiles) ->
-    ExploredTiles;
+get_visible_map([], VisibleMap) ->
+    VisibleMap;
 
-get_explored_tiles([Army | Rest], ExploredTiles) ->
+get_visible_map([Obj | Rest], VisibleMap) ->
+    lager:info("Obj: ~p", [Obj]),
 
-    lager:info("Army: ~p", [Army]),
+    {X} = bson:lookup(x, Obj),
+    {Y} = bson:lookup(y, Obj),
 
-    {X} = bson:lookup(x, Army),
-    {Y} = bson:lookup(y, Army),
+    [CurrentTile] = map:get_tile(X, Y),
+    Type = CurrentTile#tile.type,
+    Pos1D = map:convert_coords({X, Y}),
 
-    Neighbours = map:get_neighbours(X, Y),
+    NeighbourTileIds = map:get_neighbours(X, Y),
+    Neighbours = map:get_tiles(NeighbourTileIds),
 
-    NewExploredTiles = Neighbours ++ ExploredTiles,
+    NewVisibleMap = Neighbours ++ VisibleMap ++ [{Pos1D, Type}],
 
-    get_explored_tiles(Rest, NewExploredTiles).
+    get_visible_map(Rest, NewVisibleMap).
 
 get_visible_objs([], Objs) ->
     Objs;
@@ -74,6 +88,3 @@ get_visible_objs([Army | Rest], Objs) ->
     NewObjs = NearbyObjs ++ Objs,
 
     get_visible_objs(Rest, NewObjs).
-
-    
-

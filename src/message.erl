@@ -38,9 +38,9 @@ message_handle(<<"login">>, Message) ->
             %Stored player id in process dict for easy access
             put(player_id, PlayerId),
 
-            ExploredTiles = player:get_perception(PlayerId),
-            lager:info("Tiles: ~p", [ExploredTiles]),
-            jsx:encode(ExploredTiles)
+            InitPerception = player:init_perception(PlayerId),
+            lager:info("Perception: ~p", [InitPerception]),
+            jsx:encode(InitPerception)
     end;
 
 message_handle(<<"info">>, Message) ->

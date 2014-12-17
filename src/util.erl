@@ -50,10 +50,8 @@ floor(X) ->
     end.
 
 unique_list(L) ->
-    T = ets:new(temp,[set]),
-    L1 = lists:filter(fun(X) -> ets:insert_new(T, {X,1}) end, L),
-    ets:delete(T),
-    L1.
+    Set = sets:from_list(L),
+    sets:to_list(Set).
 
 replace(1, [_|Rest], New) -> [New|Rest];
 replace(I, [E|Rest], New) -> [E|replace(I-1, Rest, New)].
