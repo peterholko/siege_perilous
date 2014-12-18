@@ -67,8 +67,8 @@ handle_cast({add_explored, Player, {X, Y}}, Data) ->
 
     ExploredMap = db:read(explored_map, Player),
     Neighbours = neighbours(X, Y),
-    NewTiles = new_explored_tiles(ExploredMap#explored_map.tiles, Neighbours),
-    NewExploredMap = ExploredMap#explored_map {tiles = NewTiles}, 
+    NewTiles = new_explored_tiles(ExploredMap, Neighbours, [{X, Y}]),
+    NewExploredMap = #explored_map {player = Player, tiles = NewTiles}, 
     db:write(NewExploredMap),
 
     {noreply, Data};
@@ -128,10 +128,11 @@ explored_map([ExploredMap]) ->
     Tiles = tiles_msg_format(TileIds, []),
     Tiles.
 
-new_explored_tiles([], NewExploredTiles) ->
+new_explored_tiles([], NewExploredTiles, _Pos) ->
     NewExploredTiles;
-new_explored_tiles(ExploredMap, NewExploredTiles) ->
-    util:unique_list(ExploredMap#explored_map.tiles ++ NewExploredTiles).
+new_explored_tiles([ExploredMap], NewExploredTiles, CurrPos) ->
+    lager:info("ExploredMap: ~p", [ExploredMap]),
+    util:unique_list(ExploredMap#explored_map.tiles ++ NewExploredTiles ++ CurrPos).
     
 tiles_msg_format([], Tiles) ->
     Tiles;

@@ -70,50 +70,73 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 
 do_recalculate() ->
-    Players = mnesia:dirty_all_keys(player)
+    %Erase process dict
+    erase(),
+
+    %Get all entities
     Entities = db:dirty_index_read(map_obj, entity, #map_obj.type),
 
-    UpdatePlayers = entity_perception(Entities, []),
+    %Calculate each player entity perception and store to process dict
+    entity_perception(Entities),
+
+    %Get all player perceptions from process dict
+    PlayerPerceptions = get(),
+
+    %Compare new to previous perception
+    UpdatePlayers = compare_perception(PlayerPerceptions, []),
+
     lager:info("Players to update: ~p", [UpdatePlayers]),
     send_perception(UpdatePlayers).
 
+entity_perception([]) ->
+    done;
 
-
-player_perception([], AllPerception) ->
-    AllPerception;
+entity_perception([Entity | Rest]) ->
+    %Get current player perception from process dict
+    PlayerPerception = convert_undefined(get(Entity#map_obj.player)),
     
-player_perception([Entity | Rest], Perception) ->
     NearbyObjs = map:get_nearby_objs(Entity#map_obj.pos),
-    NewPerception = Perception ++ NearbyObjs,
-    player_perception(Rest, NewPerception).
 
-entity_perception([], Players) ->
-    Players;
-
-entity_perception([Entity | Rest], Players) ->
+    NewPlayerPerception = util:unique_list(PlayerPerception ++ NearbyObjs),
     
+    %Store new player perception to process dict
+    put(Entity#map_obj.player, NewPlayerPerception),
 
-    PrevPerception = db:dirty_read(perception, Entity#map_obj.player),
-    Result = compare_perception(NearbyObjs, PrevPerception),
-    NewPlayers = store_perception(Players, 
-                                  Entity#map_obj.player, 
-                                  NearbyObjs, 
-                                  Result),
+    entity_perception(Rest).
 
-    entity_perception(Rest, NewPlayers).
+convert_undefined(undefined) ->
+    [];
+convert_undefined(Data) ->
+    Data.
 
-compare_perception(_NewData, []) ->
+compare_perception([], UpdatePlayers) ->
+    UpdatePlayers;
+
+compare_perception([{Player, NewObjPerception} | Rest], UpdatePlayers) ->
+    ExploredTiles = map:get_explored(Player),
+    NewPerception = [{<<"explored">>, ExploredTiles}, 
+                     {<<"obj">>, NewObjPerception}],
+
+    OldPerception = db:dirty_read(perception, Player),
+
+    Result = perception_equal(NewPerception, OldPerception),
+
+    NewUpdatePlayers = store_perception(UpdatePlayers, Player, NewPerception, Result),
+
+    compare_perception(Rest, NewUpdatePlayers).
+
+perception_equal(_NewData, []) ->
     false;
 
-compare_perception(New, [Old]) ->
+perception_equal(New, [Old]) ->
     lager:info("New: ~p Old: ~p", [New, Old]),
     New =:= Old#perception.data.
 
-store_perception(Players, PlayerId, NewPerception, false) ->
-    db:dirty_write(#perception {player=PlayerId, data=NewPerception}),
-    [{PlayerId, NewPerception} | Players];
+store_perception(Players, Player, NewPerception, false) ->
+    db:dirty_write(#perception {player=Player, data=NewPerception}),
+    [{Player, NewPerception} | Players];
 
-store_perception(Players, _PlayerId, _NearbyObjs, _Result) ->
+store_perception(Players, _Player, _Perception, _Result) ->
     Players.
 
 send_perception([]) ->
@@ -127,6 +150,6 @@ send_perception([{PlayerId, NewPerception} | Players]) ->
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
     lager:info("Sending ~p to ~p", [NewPerception, Process]),
-    Process ! {new_perception, {<<"objs">>, NewPerception}};
+    Process ! {new_perception, NewPerception};
 send_to_process(_Process, _NewPerception) ->
     none.
