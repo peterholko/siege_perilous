@@ -75,10 +75,12 @@ check_events([Event | Rest], PrevRecalc) ->
 do_event(move_obj, EventData, _PlayerPid) ->
     lager:info("Processing move_obj event: ~p", [EventData]),
 
-    {Id, {X, Y}} = EventData,
+    {Player, Id, {X, Y}} = EventData,
     Result = map:move_obj(Id, {X, Y}),
-    
+
     lager:info("move_obj Result: ~p", [Result]),
+
+    map:add_explored(Player, {X, Y}),
 
     true;
 

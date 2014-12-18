@@ -43,10 +43,10 @@ get_info(Id) ->
 move_obj(Id, Pos1D) ->
 
     %TODO: Add validation
-
+    Player = get(player_id),
     NumTicks = 8,
     Pos = map:convert_coords(Pos1D), 
-    game:add_event(self(), move_obj, {Id, Pos}, NumTicks).
+    game:add_event(self(), move_obj, {Player, Id, Pos}, NumTicks).
 
 get_armies(PlayerId) ->
 

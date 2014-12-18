@@ -70,20 +70,30 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 
 do_recalculate() ->
-
+    Players = mnesia:dirty_all_keys(player)
     Entities = db:dirty_index_read(map_obj, entity, #map_obj.type),
+
     UpdatePlayers = entity_perception(Entities, []),
     lager:info("Players to update: ~p", [UpdatePlayers]),
     send_perception(UpdatePlayers).
+
+
+
+player_perception([], AllPerception) ->
+    AllPerception;
+    
+player_perception([Entity | Rest], Perception) ->
+    NearbyObjs = map:get_nearby_objs(Entity#map_obj.pos),
+    NewPerception = Perception ++ NearbyObjs,
+    player_perception(Rest, NewPerception).
 
 entity_perception([], Players) ->
     Players;
 
 entity_perception([Entity | Rest], Players) ->
     
-    NearbyObjs = map:get_nearby_objs(Entity#map_obj.pos),
-    PrevPerception = db:dirty_read(perception, Entity#map_obj.player),
 
+    PrevPerception = db:dirty_read(perception, Entity#map_obj.player),
     Result = compare_perception(NearbyObjs, PrevPerception),
     NewPlayers = store_perception(Players, 
                                   Entity#map_obj.player, 

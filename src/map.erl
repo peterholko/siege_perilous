@@ -17,6 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([load/0, get_tile/2, get_explored/1, get_neighbours/2, get_nearby_objs/1, get_tiles/1,
          get_nearby_objs/2, move_obj/2, convert_coords/1]).
+-export([add_explored/2]).
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -46,7 +47,10 @@ get_nearby_objs(X, Y) ->
     gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
 
 move_obj(Id, Pos) ->
-   move(Id, Pos). 
+    move(Id, Pos). 
+
+add_explored(Player, {X, Y}) ->
+    gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
 
 %% ====================================================================
 %% Server functions
@@ -57,6 +61,16 @@ init([]) ->
     {ok, Data}.
 
 handle_cast(none, Data) ->  
+    {noreply, Data};
+
+handle_cast({add_explored, Player, {X, Y}}, Data) ->
+
+    ExploredMap = db:read(explored_map, Player),
+    Neighbours = neighbours(X, Y),
+    NewTiles = new_explored_tiles(ExploredMap#explored_map.tiles, Neighbours),
+    NewExploredMap = ExploredMap#explored_map {tiles = NewTiles}, 
+    db:write(NewExploredMap),
+
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -113,6 +127,11 @@ explored_map([ExploredMap]) ->
     TileIds = ExploredMap#explored_map.tiles,
     Tiles = tiles_msg_format(TileIds, []),
     Tiles.
+
+new_explored_tiles([], NewExploredTiles) ->
+    NewExploredTiles;
+new_explored_tiles(ExploredMap, NewExploredTiles) ->
+    util:unique_list(ExploredMap#explored_map.tiles ++ NewExploredTiles).
     
 tiles_msg_format([], Tiles) ->
     Tiles;
