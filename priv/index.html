@@ -10,10 +10,16 @@
       var tile2 = new Image();
       var tile3 = new Image();
 
+      var obj1 = new Image();
+      var obj2 = new Image();
+
       tile0.src = "/static/green.png";
       tile1.src = "/static/basic-tile.png";
       tile2.src = "/static/regular.png";
       tile3.src = "/static/desert.png";
+
+      obj1.src = "/static/white-mage.png";
+      obj2.src = "/static/zombie.png";
 
       var websocket;
       $(document).ready(init);
@@ -110,6 +116,27 @@
               else if(tiles[pos] == 3) {
                  context.drawImage(tile3, x, y);
               }
+          }
+
+          var objs = test.objs;
+          var i;  
+          console.log("objs: " + objs);
+          for(i = 0; i < objs.length; i++) {
+    
+             q = objs[i].pos % 4;
+             r = parseInt(objs[i].pos / 4, 10);
+
+             x = 36 * 3/2 * q;
+             y = 36 * Math.sqrt(3) * (r + 0.5 * (q & 1));
+             
+             console.log("Player: " + objs[i].player);
+
+             if(objs[i].player == 1) {
+                context.drawImage(obj1, x, y);
+             }
+             else if(objs[i].player == 2) {
+                context.drawImage(obj2, x, y);
+             }
           }
 
           showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 

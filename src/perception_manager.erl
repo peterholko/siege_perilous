@@ -115,7 +115,7 @@ compare_perception([], UpdatePlayers) ->
 compare_perception([{Player, NewObjPerception} | Rest], UpdatePlayers) ->
     ExploredTiles = map:get_explored(Player),
     NewPerception = [{<<"explored">>, ExploredTiles}, 
-                     {<<"obj">>, NewObjPerception}],
+                     {<<"objs">>, NewObjPerception}],
 
     OldPerception = db:dirty_read(perception, Player),
 
