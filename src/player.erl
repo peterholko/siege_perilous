@@ -31,7 +31,7 @@ init_perception(PlayerId) ->
     lager:info("AllExplored: ~p", [AllExplored]),
     lager:info("Objs: ~p", [Objs]),
 
-    [{<<"explored">>, AllExplored}, {<<"objs">>, Objs}].
+    [{<<"player">>, PlayerId}, {<<"explored">>, AllExplored}, {<<"objs">>, Objs}].
 
 get_info(Id) ->
     %Must have { } tuple around Id, mongo convention

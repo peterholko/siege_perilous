@@ -55,7 +55,8 @@ message_handle(<<"info">>, Message) ->
 message_handle(<<"move">>, Message) ->
     lager:info("message: move"),
 
-    Id = map_get(<<"id">>, Message),
+    Id = binary_to_integer(map_get(<<"id">>, Message)),
+    
     BinaryId = <<Id:96>>,
     Pos1D = map_get(<<"pos">>, Message),
     Result = player:move_obj(BinaryId, Pos1D),
