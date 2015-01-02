@@ -42,11 +42,17 @@ get_info(Id) ->
 
 move_obj(Id, Pos1D) ->
 
-    %TODO: Add validation
     Player = get(player_id),
     NumTicks = 8,
     Pos = map:convert_coords(Pos1D), 
-    game:add_event(self(), move_obj, {Player, Id, Pos}, NumTicks).
+    Result = map:is_valid_pos(Pos),
+    add_move(Result, {Player, Id, Pos}, NumTicks).
+
+add_move(false, _EventData, _Ticks) ->
+    lager:info("Invalid position"),
+    none;
+add_move(true, EventData, NumTicks) ->
+    game:add_event(self(), move_obj, EventData, NumTicks).
 
 get_armies(PlayerId) ->
 

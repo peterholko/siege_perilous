@@ -17,7 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([load/0, get_tile/2, get_explored/1, get_neighbours/2, get_nearby_objs/1, get_tiles/1,
          get_nearby_objs/2, move_obj/2, convert_coords/1]).
--export([add_explored/2]).
+-export([add_explored/2, is_valid_pos/1]).
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -51,6 +51,9 @@ move_obj(Id, Pos) ->
 
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
+
+is_valid_pos({X, Y}) ->
+    is_valid_coord({X, Y}).
 
 %% ====================================================================
 %% Server functions
