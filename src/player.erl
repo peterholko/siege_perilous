@@ -44,23 +44,60 @@ move_obj(Id, Pos1D) ->
 
     Player = get(player_id),
     NumTicks = 8,
-    Pos = map:convert_coords(Pos1D), 
-    Result = map:is_valid_pos(Pos),
-    add_move(Result, {Player, Id, Pos}, NumTicks).
+    NewPos = map:convert_coords(Pos1D), 
+
+    %Get Obj
+    Obj = map:get_obj(Id),
+
+    %Validate obj state
+    ValidState = is_valid_state(Obj#map_obj.state),
+
+    %Validate player owned obj
+    ValidPlayer=  is_player_owned(Obj#map_obj.player, Player),
+    
+    %Validate position
+    ValidPos = map:is_valid_pos(NewPos),
+
+    Result = ValidState and ValidPlayer and ValidPos,
+
+    add_move(Result, {Obj, NewPos}, NumTicks).
 
 add_move(false, _EventData, _Ticks) ->
-    lager:info("Invalid position"),
+    lager:info("Move failed"),
     none;
-add_move(true, EventData, NumTicks) ->
+add_move(true, {Obj, NewPos}, NumTicks) ->
+    %Update obj state
+    map:update_obj_state(Obj, moving),
+
+    %Create event data 
+    EventData = {Obj#map_obj.player,
+                 Obj#map_obj.id,
+                 NewPos},
+
     game:add_event(self(), move_obj, EventData, NumTicks).
 
+attack(SourceId, TargetId) ->
+
+    Player = get(player_id),
+    NumTicks = 8,
+
+    %Get objs
+    SourceObj = map:get_obj(SourceId),
+    TargetObj = map:get_obj(TargetId),
+
+    %TODO add validation
+    Result = true,
+
+    add_attack(Result, {SourceObj, TargetObj}, NumTicks}.
+  
+add_attack(false, _EventData, _Ticks) ->
+    lager:info("Attack failed"),
+    none;
+add_attack(true, {SourceObj, TargetObj}, NumTicks) ->
+
+
 get_armies(PlayerId) ->
-
-    Cursor = mongo:find(mdb:get_conn(), <<"army">>, {player, PlayerId}),
-    Armies = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-
-    Armies.
+    db:index_read(map_obj, PlayerId, #map_obj.player).
 
 get_visible_map([], VisibleMap) ->
     VisibleMap;
@@ -68,8 +105,7 @@ get_visible_map([], VisibleMap) ->
 get_visible_map([Obj | Rest], VisibleMap) ->
     lager:info("Obj: ~p", [Obj]),
 
-    {X} = bson:lookup(x, Obj),
-    {Y} = bson:lookup(y, Obj),
+    {X, Y} = Obj#map_obj.pos,
 
     [CurrentTile] = map:get_tile(X, Y),
     Type = CurrentTile#tile.type,
@@ -85,12 +121,20 @@ get_visible_map([Obj | Rest], VisibleMap) ->
 get_visible_objs([], Objs) ->
     Objs;
 
-get_visible_objs([Army | Rest], Objs) ->
+get_visible_objs([Obj | Rest], Objs) ->
 
-    {X} = bson:lookup(x, Army),
-    {Y} = bson:lookup(y, Army),
+    {X, Y} = Obj#map_obj.pos,
 
     NearbyObjs = map:get_nearby_objs(X, Y),
     NewObjs = NearbyObjs ++ Objs,
 
     get_visible_objs(Rest, NewObjs).
+
+is_valid_state(none) ->
+    true;
+is_valid_state(_State) ->
+    false.
+
+is_player_owned(ObjPlayer, Player) ->
+    ObjPlayer == Player.
+    

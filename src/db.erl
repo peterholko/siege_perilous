@@ -47,6 +47,7 @@ create_schema() ->
     mnesia:add_table_index(connection, socket),
     mnesia:add_table_index(map_obj, pos),
     mnesia:add_table_index(map_obj, type),
+    mnesia:add_table_index(map_obj, player),
     mnesia:add_table_index(event, tick),
 
     mnesia:stop().
@@ -135,8 +136,8 @@ test_tables() ->
      {tile, {1,3}, 0},   
      {tile, {2,3}, 2},   
      {tile, {3,3}, 2},
-     {map_obj, <<84,130,44,203,28,147,177,96,56,16,143,37>>, {1,1}, 1, entity},
-     {map_obj, <<84,130,44,203,28,147,177,96,56,16,143,20>>, {1,0}, 2, entity}
+     {map_obj, <<84,130,44,203,28,147,177,96,56,16,143,37>>, {1,1}, 1, entity, none},
+     {map_obj, <<84,130,44,203,28,147,177,96,56,16,143,20>>, {1,0}, 2, entity, none}
     ].
 
 reset_tables() ->

@@ -15,9 +15,9 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load/0, get_tile/2, get_explored/1, get_neighbours/2, get_nearby_objs/1, get_tiles/1,
+-export([load/0, get_tile/2, get_explored/1, get_neighbours/2, get_nearby_objs/1, get_tiles/1, get_obj/1,
          get_nearby_objs/2, move_obj/2, convert_coords/1]).
--export([add_explored/2, is_valid_pos/1]).
+-export([add_explored/2, is_valid_pos/1, update_obj_state/2]).
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -46,8 +46,16 @@ get_nearby_objs({X, Y}) ->
 get_nearby_objs(X, Y) ->
     gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
 
+get_obj(Id) ->
+    [Obj] = db:read(map_obj, Id),
+    Obj.
+
 move_obj(Id, Pos) ->
     move(Id, Pos). 
+
+update_obj_state(Obj, State) ->
+    NewObj = Obj#map_obj { state = State},
+    db:write(NewObj).
 
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
@@ -128,6 +136,7 @@ explored_map([]) ->
 
 explored_map([ExploredMap]) ->
     TileIds = ExploredMap#explored_map.tiles,
+    lager:info("TileIds: ~p", [TileIds]),
     Tiles = tiles_msg_format(TileIds, []),
     Tiles.
 
@@ -242,7 +251,8 @@ convert_coords(TileIndex) ->
 
 move(Id, Pos) ->
     [Obj] = mnesia:dirty_read(map_obj, Id),
-    NewObj = Obj#map_obj {pos = Pos},
+    NewObj = Obj#map_obj {pos = Pos,
+                          state = none},
     mnesia:dirty_write(NewObj).
 
 cube_to_odd_q({X, _Y, Z}) ->

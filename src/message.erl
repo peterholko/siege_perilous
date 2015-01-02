@@ -60,7 +60,19 @@ message_handle(<<"move">>, Message) ->
     BinaryId = <<Id:96>>,
     Pos1D = map_get(<<"pos">>, Message),
     Result = player:move_obj(BinaryId, Pos1D),
-    <<"Move added">>;    
+    <<"Move added">>;   
+
+message_handle(<<"attack">>, Message) ->
+    lager:info("message: attack"),
+
+    SourceId = binary_to_integer(map_get(<<"sourceid">>, Message)),
+    BinSourceId = <<SourceId:96>>,
+
+    TargetId = binary_to_integer(map_get(<<"targetid">>, Message)),
+    BinTargetId = <<TargetId:96>>,
+
+    player:attack(BinSourceId, BinTargetId),
+    <<"Attack added">>;
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 
@@ -73,3 +85,4 @@ json_decode(Data) ->
         _:_ ->
             lager:info("Error json_decode")
     end.
+
