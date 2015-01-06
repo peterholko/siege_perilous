@@ -71,7 +71,7 @@ message_handle(<<"attack">>, Message) ->
     TargetId = binary_to_integer(map_get(<<"targetid">>, Message)),
     BinTargetId = <<TargetId:96>>,
 
-    player:attack(BinSourceId, BinTargetId),
+    player:attack_obj(BinSourceId, BinTargetId),
     <<"Attack added">>;
 
 message_handle(_Cmd, Message) ->

@@ -84,6 +84,16 @@ do_event(move_obj, EventData, _PlayerPid) ->
 
     true;
 
+do_event(attack_obj, EventData, _PlayerPid) ->
+    lager:info("Processing attack_obj event: ~p", [EventData]),
+
+    {SourceObj, TargetObj} = EventData,
+
+    %Create battle with list of source and target
+    battle:create([SourceObj, TargetObj]),
+
+    true;
+
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.

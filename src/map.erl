@@ -212,7 +212,8 @@ check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
     lager:info("Id: ~p", [MapObj#map_obj.id]),
     [[{id, integer_to_binary(Id)}, 
       {player, MapObj#map_obj.player}, 
-      {pos, Coords}] | Objs];
+      {pos, Coords},
+      {state, MapObj#map_obj.state}] | Objs];
 
 check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
     Objs.

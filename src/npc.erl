@@ -1,10 +1,10 @@
 %% -------------------------------------------------------------------
 %% Author  : Peter Holko
-%%% Description : Battle manager
+%%% Description : NPC server
 %%%
-%%% Created : Dec 15, 2014
+%%% Created : Jan 5, 2015
 %%% -------------------------------------------------------------------
--module(battle).
+-module(npc).
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -15,17 +15,13 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/1]).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
 start() ->
-    gen_server:start({global, battle}, battle, [], []).
-
-create(Entities) ->
-    gen_server:cast({global, battle}, {create, Entities}).
+    gen_server:start({global, npc}, npc, [], []).
 
 %% ====================================================================
 %% Server functions
@@ -34,9 +30,7 @@ create(Entities) ->
 init([]) ->
     {ok, []}.
 
-handle_cast({create, Entities}, Data) ->   
-
-    set_combat_state(Entities),
+handle_cast(create, Data) ->   
 
     {noreply, Data};
 
@@ -69,10 +63,3 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-set_combat_state([]) ->
-    done;
-set_combat_state([Entity | Rest]) ->
-
-    map:update_obj_state(Entity, combat),
-
-    set_combat_state(Rest).

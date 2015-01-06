@@ -8,7 +8,8 @@
 
 -export([init_perception/1, 
          get_info/1,
-         move_obj/2]).
+         move_obj/2,
+         attack_obj/2]).
 
 init_perception(PlayerId) ->
 
@@ -76,7 +77,7 @@ add_move(true, {Obj, NewPos}, NumTicks) ->
 
     game:add_event(self(), move_obj, EventData, NumTicks).
 
-attack(SourceId, TargetId) ->
+attack_obj(SourceId, TargetId) ->
 
     Player = get(player_id),
     NumTicks = 8,
@@ -88,13 +89,20 @@ attack(SourceId, TargetId) ->
     %TODO add validation
     Result = true,
 
-    add_attack(Result, {SourceObj, TargetObj}, NumTicks}.
+    add_attack(Result, {SourceObj, TargetObj}, NumTicks).
   
 add_attack(false, _EventData, _Ticks) ->
     lager:info("Attack failed"),
     none;
 add_attack(true, {SourceObj, TargetObj}, NumTicks) ->
+    %Update obj state
+    map:update_obj_state(SourceObj, combat),
+    map:update_obj_state(TargetObj, combat),
 
+    EventData = {SourceObj,
+                 TargetObj},
+
+    game:add_event(self(), attack_obj, EventData, NumTicks).
 
 get_armies(PlayerId) ->
     db:index_read(map_obj, PlayerId, #map_obj.player).
