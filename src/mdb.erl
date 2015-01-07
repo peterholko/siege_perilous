@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([get_conn/0]).
+-export([get_conn/0, create_obj/2]).
 
 %% ====================================================================
 %% External functions
@@ -26,6 +26,9 @@ start() ->
 
 get_conn() ->
     gen_server:call({global, mdb_pid}, {get_conn}).
+
+create_obj(Player, Units) ->
+    gen_server:cast({global, mdb_pid}, {create_obj, Player, Units}).
 
 %% ====================================================================
 %% Server functions
@@ -39,7 +42,13 @@ init([]) ->
     {ok, Connection} = mongo:connect(Host, Port, Database),
     {ok, Connection}.
 
-handle_cast('TEST', Data) ->   
+handle_cast({create_obj, Player, Units}, Data) ->   
+    lager:info("Data: ~p", [Data]),
+    Connection = Data,
+
+    Result = mongo:insert(Connection, <<"obj">>, [{player, Player, units, Units}]),
+    lager:info("Result: ~p", [Result]),
+
     {noreply, Data};
 
 handle_cast(stop, Data) ->

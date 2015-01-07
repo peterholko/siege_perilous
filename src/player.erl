@@ -36,7 +36,7 @@ init_perception(PlayerId) ->
 
 get_info(Id) ->
     %Must have { } tuple around Id, mongo convention
-    Cursor = mongo:find(mdb:get_conn(), <<"army">>, {'_id', {Id}}),
+    Cursor = mongo:find(mdb:get_conn(), <<"obj">>, {'_id', {Id}}),
     [Obj] = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Obj.
