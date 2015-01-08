@@ -26,7 +26,11 @@ start(_Type, _Args) ->
     
     mdb:start(),
     map:start(),
+
     perception_manager:start(),
+
+    npc_manager:start(),
+    npc_manager:start_all_npc(),
 
     spawn(fun() -> game_loop:loop(util:get_time(), global:whereis_name(game_pid)) end),
 

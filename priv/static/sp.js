@@ -251,7 +251,7 @@ function drawObjs() {
         if(objs[i].player == 1) {
             context.drawImage(obj1, x, y);
         }
-        else if(objs[i].player == 2) {
+        else {
             context.drawImage(obj2, x, y);
         }
     }

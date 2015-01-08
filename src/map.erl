@@ -211,12 +211,11 @@ nearby_objs(SourcePos) ->
 
 check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
     Coords = convert_coords(MapObj#map_obj.pos),
-    <<Id:96>> = MapObj#map_obj.id,
     lager:info("Id: ~p", [MapObj#map_obj.id]),
-    [[{id, integer_to_binary(Id)}, 
-      {player, MapObj#map_obj.player}, 
-      {pos, Coords},
-      {state, MapObj#map_obj.state}] | Objs];
+    [ #{<<"id">> => MapObj#map_obj.id, 
+        <<"player">> => MapObj#map_obj.player, 
+        <<"pos">> => Coords,
+        <<"state">> => MapObj#map_obj.state} | Objs];
 
 check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
     Objs.

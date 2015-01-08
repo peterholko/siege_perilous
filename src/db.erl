@@ -44,6 +44,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(event, [{disc_copies, [node()]}, {attributes, record_info(fields, event)}]),    
 
     mnesia:add_table_index(player, name),
+    mnesia:add_table_index(player, npc),
     mnesia:add_table_index(connection, socket),
     mnesia:add_table_index(map_obj, pos),
     mnesia:add_table_index(map_obj, type),
@@ -114,12 +115,14 @@ test_tables() ->
      {connection, 2, none},
      {connection, 3, none},
      {connection, 4, none},     
-     {connection, 99, one},     
-     {player, 1, <<"test1">>, <<"123123">>, 0, false},
-     {player, 2, <<"test2">>, <<"123123">>, 0, false},
-     {player, 3, <<"test3">>, <<"123123">>, 0, false},
-     {player, 4, <<"peter">>, <<"123123">>, 0, false},
-     {player, 99, <<"test99">>, <<"123123">>, 0, false},
+     {connection, 99, none},     
+     {connection, 100, none},     
+     {player, 1, <<"test1">>, <<"123123">>, 0, false, false},
+     {player, 2, <<"test2">>, <<"123123">>, 0, false, false},
+     {player, 3, <<"test3">>, <<"123123">>, 0, false, false},
+     {player, 4, <<"peter">>, <<"123123">>, 0, false, false},
+     {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
+     {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {tile, {0,0}, 1},   
      {tile, {1,0}, 1},   
      {tile, {2,0}, 3},   
@@ -136,8 +139,9 @@ test_tables() ->
      {tile, {1,3}, 0},   
      {tile, {2,3}, 2},   
      {tile, {3,3}, 2},
-     {map_obj, <<84,130,44,203,28,147,177,96,56,16,143,37>>, {1,1}, 1, entity, none},
-     {map_obj, <<84,130,44,203,28,147,177,96,56,16,143,20>>, {1,0}, 2, entity, none}
+     {map_obj, <<"54822CCB1C93B16038108F25">>, {1,1}, 1, entity, none},
+     {map_obj, <<"54822CCB1C93B16038108F14">>, {1,0}, 2, entity, none},
+     {map_obj, <<"54add8ff03c27178c3ebd970">>, {1,3}, 99, entity, none}
     ].
 
 reset_tables() ->

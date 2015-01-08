@@ -5,7 +5,8 @@
                  name,
                  password,
                  login_errors = 0,
-                 disabled = false}).
+                 disabled = false,
+                 npc = false}).
 
 -record(connection, {player,
                      process = none}).

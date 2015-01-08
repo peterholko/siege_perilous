@@ -44,34 +44,24 @@ message_handle(<<"login">>, Message) ->
     end;
 
 message_handle(<<"info">>, Message) ->
-    lager:info("message: info"),
-    Id = map_get(<<"id">>, Message),
-    BinaryId = <<Id:96>>,
-
-    Obj = player:get_info(BinaryId),
-    lager:info("Obj: ~p", [Obj]),
-    jsx:encode(bson:fields(Obj));
+    lager:info("message: info");
 
 message_handle(<<"move">>, Message) ->
     lager:info("message: move"),
 
-    Id = binary_to_integer(map_get(<<"id">>, Message)),
+    Id = map_get(<<"id">>, Message),
     
-    BinaryId = <<Id:96>>,
     Pos1D = map_get(<<"pos">>, Message),
-    Result = player:move_obj(BinaryId, Pos1D),
+    Result = player:move_obj(Id, Pos1D),
     <<"Move added">>;   
 
 message_handle(<<"attack">>, Message) ->
     lager:info("message: attack"),
 
-    SourceId = binary_to_integer(map_get(<<"sourceid">>, Message)),
-    BinSourceId = <<SourceId:96>>,
+    SourceId = map_get(<<"sourceid">>, Message),
+    TargetId = map_get(<<"targetid">>, Message),
 
-    TargetId = binary_to_integer(map_get(<<"targetid">>, Message)),
-    BinTargetId = <<TargetId:96>>,
-
-    player:attack_obj(BinSourceId, BinTargetId),
+    player:attack_obj(SourceId, TargetId),
     <<"Attack added">>;
 
 message_handle(_Cmd, Message) ->

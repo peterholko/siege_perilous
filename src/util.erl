@@ -22,7 +22,9 @@
          unique_list/1,
          replace/3,
          is_process_alive/1,
-         get_app/1
+         get_app/1,
+         bin_to_hex/1,
+         hex_to_bin/1
         ]).
 
 %%
@@ -78,3 +80,6 @@ diff_game_days(StartTime, EndTime) ->
 get_app(Module) ->
     {ok, App} = application:get_application(Module),
     App.
+
+bin_to_hex(Bin) -> list_to_binary([ hd(integer_to_list(I, 16)) || << I:4 >> <= Bin ]).
+hex_to_bin(Str) -> << << (list_to_integer([H], 16)):4 >> || H <- Str >>.
