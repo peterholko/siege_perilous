@@ -2,7 +2,7 @@
 %% Author  : Peter Holko
 %%% Description : NPC Manager server
 %%%
-%%% Created : Jan 5, 2015
+%%% Created : Jan 6, 2015
 %%% -------------------------------------------------------------------
 -module(npc_manager).
 
