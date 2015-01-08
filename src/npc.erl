@@ -136,15 +136,17 @@ determine_action(_Action, false, {NPCId, _NPCPos}, {_Id, Pos}) ->
 determine_action(_Action, true, {NPCId, _NPCPos}, {Id, _Pos}) ->
     {attack, {NPCId, Id}}.
 
-add_action({move, {NPCId, Pos}}) ->
+add_action({move, {NPCId, Pos1D}}) ->
     [Obj] = db:read(map_obj, NPCId),
     map:update_obj_state(Obj, moving),
+    
+    NewPos = map:convert_coords(Pos1D),
 
     NumTicks = 8,
 
     %Create event data 
     EventData = {Obj#map_obj.player,
                  Obj#map_obj.id,
-                 Pos},
+                 NewPos},
     
     game:add_event(self(), move_obj, EventData, NumTicks).
