@@ -60,7 +60,9 @@ handle_info({new_perception, Perception}, Data) ->
 
     {Explored, Objs} = new_perception(Perception),
     {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-    Action = process_action(NPCObjs, Explored, Objs),
+    Action = process_action(NPCObjs, EnemyObjs),
+
+    add_action(Action),
 
     {noreply, Data};
 
@@ -92,42 +94,57 @@ split_objs([Obj | Rest], NPCObjs, EnemyObjs) ->
     ObjPlayer = maps:get(<<"player">>, Obj),
     ComparePlayer = Player =:= ObjPlayer,
 
-    {NewNPCObjs, NewEnemyObjs} = add_npc_obj(Obj, NPCObjs, ComparePlayer),
+    {NewNPCObjs, NewEnemyObjs} = add_npc_obj(Obj, NPCObjs, EnemyObjs, ComparePlayer),
 
-    get_npc_objs(Rest, NewNPCObjs, NewEnemyObjs).
+    split_objs(Rest, NewNPCObjs, NewEnemyObjs).
 
-add_npc_obj(_Obj, NPCObjs, EnemyObjs, false) ->
-    {NPCObjs, [Obj | NPCObjs;
-add_npc_obj(Obj, NPCObjs, true) ->
-    [Obj | NPCObjs].
+add_npc_obj(Obj, NPCObjs, EnemyObjs, true) ->
+    {[Obj | NPCObjs], EnemyObjs};
+add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
+    {NPCObjs, [Obj | EnemyObjs]}.
 
-process_action(NPCObjs, Explored, Objs) ->
+process_action(NPCObjs, EnemyObjs) ->
 
     %Do nothing for now for explored
 
-    Action = none.
-    NewAction = check_objs(NPCObjs, Objs, Action),
+    Action = none,
+    NewAction = check_objs(NPCObjs, EnemyObjs, Action),
+    NewAction.
 
 check_objs(_NPCObjs, [], Action) ->
     Action;
 
-check_objs([NPCObj], [Obj | Rest], Action) ->
+check_objs([NPCObj], [EnemyObj | Rest], Action) ->
 
-    Player = get(player_id),
+    NPCId = maps:get(<<"id">>, NPCObj),
     NPCPos = maps:get(<<"pos">>, NPCObj),
 
-    Id = maps:get(<<"id">>, Obj),
-    ObjPlayer = maps:get(<<"player">>, Obj),
-    Pos = maps:get(<<"pos">>, Obj),
+    Id = maps:get(<<"id">>, EnemyObj),
+    Pos = maps:get(<<"pos">>, EnemyObj),
 
-    CheckPlayer = Player =:= ObjPlayer,
-    CheckPos = NPCPos =:= NPCPos, 
+    CheckPos = NPCPos =:= Pos, 
 
     NewAction = determine_action(Action, 
-                                 CheckPlayer,
                                  CheckPos,
-                                 Id,
-                                 Pos),
+                                 {NPCId, NPCPos},
+                                 {Id, Pos}),
 
-determine_action(none, false, Id, Pos) ->
-    {move, pos}
+    check_objs([NPCObj], Rest, NewAction).
+
+determine_action(_Action, false, {NPCId, _NPCPos}, {_Id, Pos}) ->
+    {move, {NPCId, Pos}};
+determine_action(_Action, true, {NPCId, _NPCPos}, {Id, _Pos}) ->
+    {attack, {NPCId, Id}}.
+
+add_action({move, {NPCId, Pos}}) ->
+    [Obj] = db:read(map_obj, NPCId),
+    map:update_obj_state(Obj, moving),
+
+    NumTicks = 8,
+
+    %Create event data 
+    EventData = {Obj#map_obj.player,
+                 Obj#map_obj.id,
+                 Pos},
+    
+    game:add_event(self(), move_obj, EventData, NumTicks).
