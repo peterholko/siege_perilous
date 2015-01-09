@@ -137,7 +137,8 @@ determine_action(_Action, true, {NPCId, _NPCPos}, {Id, _Pos}) ->
     {attack, {NPCId, Id}}.
 
 add_action({move, {NPCId, Pos1D}}) ->
-    [Obj] = db:read(map_obj, NPCId),
+    lager:info("npc adding move"),
+    Obj = map:get_obj(NPCId),
     map:update_obj_state(Obj, moving),
     
     NewPos = map:convert_coords(Pos1D),
@@ -149,4 +150,14 @@ add_action({move, {NPCId, Pos1D}}) ->
                  Obj#map_obj.id,
                  NewPos},
     
-    game:add_event(self(), move_obj, EventData, NumTicks).
+    game:add_event(self(), move_obj, EventData, NumTicks);
+
+add_action({attack, {NPCId, Id}}) ->
+    lager:info("npc adding attack"),
+    SourceObj = map:get_obj(NPCId), 
+    TargetObj = map:get_obj(Id), 
+
+    NumTicks = 8,
+    EventData = {SourceObj, TargetObj},
+ 
+    game:add_event(self(), attack_obj, EventData, NumTicks).
