@@ -89,6 +89,10 @@ do_event(attack_obj, EventData, _PlayerPid) ->
 
     {SourceObj, TargetObj} = EventData,
 
+    %Update obj state
+    map:update_obj_state(SourceObj, combat),
+    map:update_obj_state(TargetObj, combat),
+
     %Create battle with list of source and target
     battle:create([SourceObj, TargetObj]),
 

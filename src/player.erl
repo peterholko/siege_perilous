@@ -95,9 +95,6 @@ add_attack(false, _EventData, _Ticks) ->
     lager:info("Attack failed"),
     none;
 add_attack(true, {SourceObj, TargetObj}, NumTicks) ->
-    %Update obj state
-    map:update_obj_state(SourceObj, combat),
-    map:update_obj_state(TargetObj, combat),
 
     EventData = {SourceObj,
                  TargetObj},
