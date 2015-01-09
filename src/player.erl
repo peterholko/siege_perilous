@@ -36,7 +36,9 @@ init_perception(PlayerId) ->
 
 get_info(Id) ->
     %Must have { } tuple around Id, mongo convention
-    Cursor = mongo:find(mdb:get_conn(), <<"obj">>, {'_id', {Id}}),
+    BinId = util:hex_to_bin(binary_to_list(Id)),
+
+    Cursor = mongo:find(mdb:get_conn(), <<"obj">>, {'_id', {BinId}}),
     [Obj] = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Obj.

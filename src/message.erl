@@ -44,7 +44,12 @@ message_handle(<<"login">>, Message) ->
     end;
 
 message_handle(<<"info">>, Message) ->
-    lager:info("message: info");
+    lager:info("message: info"),
+    Id = map_get(<<"id">>, Message),
+
+    Fields = jsx:encode(fields(player:get_info(Id))),
+    lager:info("Fields: ~p", [Fields]),
+    Fields;
 
 message_handle(<<"move">>, Message) ->
     lager:info("message: move"),
@@ -76,3 +81,31 @@ json_decode(Data) ->
             lager:info("Error json_decode")
     end.
 
+doc_foldr (Fun, Acc, Doc) -> doc_foldrN (Fun, Acc, Doc, 0, tuple_size (Doc) div 2).
+
+doc_foldrN (_, Acc, _, Low, Low) -> Acc;
+doc_foldrN (Fun, Acc, Doc, Low, High) ->
+    Acc1 = Fun (element (High * 2 - 1, Doc), element (High * 2, Doc), Acc),
+    doc_foldrN (Fun, Acc1, Doc, Low, High - 1).
+  
+%  Convert document to a list of all its fields
+fields (Doc) -> doc_foldr (fun (Label, Value, List) -> [{Label, convert_id(Value)} | List] end, [], Doc).
+
+convert_id(Value) when is_tuple(Value) ->
+    convert_bin_id(Value);
+convert_id(Value) when is_list(Value) ->
+    F = fun(V, Rest) -> [ convert_bin_id(V) | Rest] end,
+    lists:foldl(F, [], Value);
+convert_id(Value) ->
+    Value.
+
+convert_bin_id({Value}) when is_binary(Value) ->
+    to_hex(Value, Value);
+convert_bin_id(Value) ->
+    Value.
+    
+to_hex(<<_:96>>, Value) ->
+    util:bin_to_hex(Value);
+to_hex(Value, Value) ->
+    Value.
+    
