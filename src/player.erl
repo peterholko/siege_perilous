@@ -39,9 +39,10 @@ get_info(Id) ->
     BinId = util:hex_to_bin(binary_to_list(Id)),
 
     Cursor = mongo:find(mdb:get_conn(), <<"obj">>, {'_id', {BinId}}),
-    [Obj] = mc_cursor:rest(Cursor),
+    Data = mc_cursor:rest(Cursor),
+    lager:info("Data: ~p", [Data]),
     mc_cursor:close(Cursor),
-    Obj.
+    Data.
 
 move_obj(Id, Pos1D) ->
 
@@ -56,7 +57,7 @@ move_obj(Id, Pos1D) ->
     ValidState = is_valid_state(Obj#map_obj.state),
 
     %Validate player owned obj
-    ValidPlayer=  is_player_owned(Obj#map_obj.player, Player),
+    ValidPlayer = is_player_owned(Obj#map_obj.player, Player),
     
     %Validate position
     ValidPos = map:is_valid_pos(NewPos),
@@ -91,15 +92,15 @@ attack_obj(SourceId, TargetId) ->
     %TODO add validation
     Result = true,
 
-    add_attack(Result, {SourceObj, TargetObj}, NumTicks).
+    add_attack(Result, {SourceId, TargetId}, NumTicks).
   
 add_attack(false, _EventData, _Ticks) ->
     lager:info("Attack failed"),
     none;
-add_attack(true, {SourceObj, TargetObj}, NumTicks) ->
+add_attack(true, {SourceId, TargetId}, NumTicks) ->
 
-    EventData = {SourceObj,
-                 TargetObj},
+    EventData = {SourceId,
+                 TargetId},
 
     game:add_event(self(), attack_obj, EventData, NumTicks).
 

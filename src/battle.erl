@@ -70,9 +70,11 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 
 set_combat_state([]) ->
+    lager:info("Done updating combat state"),
     done;
-set_combat_state([Entity | Rest]) ->
-
+set_combat_state([EntityId | Rest]) ->
+    lager:info("Updating entity ~p to combat state", [EntityId]),
+    Entity = map:get_obj(EntityId),
     map:update_obj_state(Entity, combat),
 
     set_combat_state(Rest).

@@ -132,8 +132,10 @@ check_objs([NPCObj], [EnemyObj | Rest], Action) ->
     check_objs([NPCObj], Rest, NewAction).
 
 determine_action(_Action, false, {NPCId, _NPCPos}, {_Id, Pos}) ->
+    lager:info("determine_action move npcid: ~p pos: ~p", [NPCId, Pos]),
     {move, {NPCId, Pos}};
 determine_action(_Action, true, {NPCId, _NPCPos}, {Id, _Pos}) ->
+    lager:info("determine_action attack npcid: ~p id: ~p", [NPCId, Id]),
     {attack, {NPCId, Id}}.
 
 add_action({move, {NPCId, Pos1D}}) ->
@@ -154,10 +156,8 @@ add_action({move, {NPCId, Pos1D}}) ->
 
 add_action({attack, {NPCId, Id}}) ->
     lager:info("npc adding attack"),
-    SourceObj = map:get_obj(NPCId), 
-    TargetObj = map:get_obj(Id), 
 
     NumTicks = 8,
-    EventData = {SourceObj, TargetObj},
+    EventData = {NPCId, Id},
  
     game:add_event(self(), attack_obj, EventData, NumTicks).

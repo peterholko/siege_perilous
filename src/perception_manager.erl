@@ -85,7 +85,7 @@ do_recalculate() ->
     %Compare new to previous perception
     UpdatePlayers = compare_perception(PlayerPerceptions, []),
 
-    lager:info("Players to update: ~p", [UpdatePlayers]),
+    lager:debug("Players to update: ~p", [UpdatePlayers]),
     send_perception(UpdatePlayers).
 
 entity_perception([]) ->
@@ -129,7 +129,6 @@ perception_equal(_NewData, []) ->
     false;
 
 perception_equal(New, [Old]) ->
-    lager:info("New: ~p Old: ~p", [New, Old]),
     New =:= Old#perception.data.
 
 store_perception(Players, Player, NewPerception, false) ->
@@ -144,12 +143,11 @@ send_perception([]) ->
 
 send_perception([{PlayerId, NewPerception} | Players]) ->
     [Conn] = db:dirty_read(connection, PlayerId),
-    lager:info("Connection: ~p", [Conn]),
     send_to_process(Conn#connection.process, NewPerception),
     send_perception(Players).
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
-    lager:info("Sending ~p to ~p", [NewPerception, Process]),
+    lager:debug("Sending ~p to ~p", [NewPerception, Process]),
     Process ! {new_perception, NewPerception};
 send_to_process(_Process, _NewPerception) ->
     none.

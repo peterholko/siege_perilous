@@ -87,14 +87,10 @@ do_event(move_obj, EventData, _PlayerPid) ->
 do_event(attack_obj, EventData, _PlayerPid) ->
     lager:info("Processing attack_obj event: ~p", [EventData]),
 
-    {SourceObj, TargetObj} = EventData,
-
-    %Update obj state
-    map:update_obj_state(SourceObj, combat),
-    map:update_obj_state(TargetObj, combat),
+    {SourceId, TargetId} = EventData,
 
     %Create battle with list of source and target
-    battle:create([SourceObj, TargetObj]),
+    battle:create([SourceId, TargetId]),
 
     true;
 

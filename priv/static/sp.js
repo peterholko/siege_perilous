@@ -189,11 +189,14 @@ function setPlayerPos() {
 
 function drawMap() {
 
-    var q;
-    var r;
-    var canvas = document.getElementById('map');
-    var context = canvas.getContext('2d');
-    context.clearRect ( 0 , 0 , canvas.width, canvas.height );
+    var q, r;
+    var canvas, stage, bitmap;
+
+    canvas = document.getElementById('map');
+    stage = new createjs.Stage(canvas);
+
+    var container = new createjs.Container();
+    stage.addChild(container);
 
     var playerQ = playerPos % 4;
     var playerR = parseInt(playerPos / 4, 10);
@@ -213,25 +216,34 @@ function drawMap() {
         console.log("x: " + x + " y:" + y); 
 
         if(explored[pos] == 0) {
-           context.drawImage(tile0, x, y);
+            bitmap = new createjs.Bitmap(tile0);
         }
         else if(explored[pos] == 1) {
-           context.drawImage(tile1, x, y);
+            bitmap = new createjs.Bitmap(tile1);
         }
         else if(explored[pos] == 2) {
-           context.drawImage(tile2, x, y);
+            bitmap = new createjs.Bitmap(tile2);
         }
         else if(explored[pos] == 3) {
-           context.drawImage(tile3, x, y);
+            bitmap = new createjs.Bitmap(tile3);
         }
+
+        bitmap.x = x;
+        bitmap.y = y;
+        container.addChild(bitmap);
 
         if(pos != playerPos) {
             if(!isNeighbour(q, r, neighbours)) {
                 
-                context.drawImage(shroud, x, y);
+                bitmap = new createjs.Bitmap(shroud);
+                bitmap.x = x;
+                bitmap.y = y;
+                container.addChild(bitmap);
             }
         }
     }
+
+    stage.update();
 };
 
 function drawObjs() {

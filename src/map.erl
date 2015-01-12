@@ -211,7 +211,6 @@ nearby_objs(SourcePos) ->
 
 check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
     Coords = convert_coords(MapObj#map_obj.pos),
-    lager:info("Id: ~p", [MapObj#map_obj.id]),
     [ #{<<"id">> => MapObj#map_obj.id, 
         <<"player">> => MapObj#map_obj.player, 
         <<"pos">> => Coords,
@@ -221,7 +220,6 @@ check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
     Objs.
                               
 distance(SourcePos, TargetPos) ->
-    lager:info("Source: ~p Target: ~p", [SourcePos, TargetPos]),
     SourceCube = odd_q_to_cube(SourcePos),
     TargetCube = odd_q_to_cube(TargetPos),
     

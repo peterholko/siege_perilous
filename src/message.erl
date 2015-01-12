@@ -4,6 +4,7 @@
 -module(message).
 
 -export([decode/1]).
+-export([fields/1]).
 
 decode(Message) ->
     lager:info("Message: ~p~n", [Message]),
@@ -89,7 +90,12 @@ doc_foldrN (Fun, Acc, Doc, Low, High) ->
     doc_foldrN (Fun, Acc1, Doc, Low, High - 1).
   
 %  Convert document to a list of all its fields
-fields (Doc) -> doc_foldr (fun (Label, Value, List) -> [{Label, convert_id(Value)} | List] end, [], Doc).
+fields([]) ->
+    [];
+fields(Doc) when is_list(Doc) ->
+    [D] = Doc, 
+    fields(D);
+fields(Doc) -> doc_foldr (fun (Label, Value, List) -> [{Label, convert_id(Value)} | List] end, [], Doc).
 
 convert_id(Value) when is_tuple(Value) ->
     convert_bin_id(Value);
