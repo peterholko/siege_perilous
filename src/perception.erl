@@ -4,7 +4,7 @@
 %%%
 %%% Created : Dec 15, 2014
 %%% -------------------------------------------------------------------
--module(perception_manager).
+-module(perception).
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -22,7 +22,7 @@
 %% ====================================================================
 
 start() ->
-    gen_server:start({global, perception_pid}, perception_manager, [], []).
+    gen_server:start({global, perception_pid}, perception, [], []).
 
 recalculate() ->
     gen_server:cast({global, perception_pid}, recalculate).

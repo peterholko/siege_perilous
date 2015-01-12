@@ -4,7 +4,7 @@
 %%%
 %%% Created : Jan 6, 2015
 %%% -------------------------------------------------------------------
--module(npc_manager).
+-module(npc_mgr).
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -22,10 +22,10 @@
 %% ====================================================================
 
 start() ->
-    gen_server:start({global, npc_manager}, npc_manager, [], []).
+    gen_server:start({global, npc_mgr}, npc_mgr, [], []).
 
 start_all_npc() ->
-    gen_server:cast({global, npc_manager}, start_all_npc).
+    gen_server:cast({global, npc_mgr}, start_all_npc).
 
 %% ====================================================================
 %% Server functions

@@ -102,4 +102,4 @@ perception_recalculate(false) ->
     nothing;
 
 perception_recalculate(true) ->
-    perception_manager:recalculate().
+    perception:recalculate().
