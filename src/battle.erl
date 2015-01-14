@@ -45,9 +45,12 @@ handle_cast({create, AtkId, DefId}, Data) ->
     create_battle(AtkObj, DefObj),
     set_combat_state([AtkObj, DefObj]),
 
-    AtkPerception = perception(AtkObj, DefObj),
-    DefPerception = perception(DefObj, AtkObj),
+    AtkPerception = perception(AtkObj#map_obj.id, DefObj#map_obj.id),
+    DefPerception = AtkPerception,
 
+    send_perception([{AtkObj#map_obj.player, AtkPerception}, 
+                     {DefObj#map_obj.player, DefPerception}]),
+    
     {noreply, Data};
 
 handle_cast({add_target, SrcUnitId, TgtUnitId}, Data) ->
@@ -106,10 +109,18 @@ set_combat_state([Entity | Rest]) ->
     map:update_obj_state(Entity, combat),
     set_combat_state(Rest).
 
-perception(AtkObj, DefObj) ->
+perception(AtkId, DefId) ->
 
-    AtkUnits = units_perception(AtkObj#map_obj.units, []),
-    DefUnits = units_perception(DefObj#map_obj.units, []),
+    AtkObj = obj:get_obj(AtkId),
+    DefObj = obj:get_obj(DefId),
+
+    {AtkUnitIds} = bson:lookup(units, AtkObj),
+    {DefUnitIds} = bson:lookup(units, DefObj),
+
+    lager:info("Units: ~p ~p", [AtkUnitIds, DefUnitIds]),
+
+    AtkUnits = units_perception(AtkUnitIds, []),
+    DefUnits = units_perception(DefUnitIds, []),
 
     {AtkUnits, DefUnits}.
 
@@ -117,6 +128,16 @@ units_perception([], Units) ->
     Units;
 units_perception([UnitId | Rest], Units) ->
     Unit = unit:get_unit_and_type(UnitId),
-    units_perception(Rest, [Unit | Units]).
+    lager:info("Unit ~p", [Unit]),
+    units_perception(Rest, [bson:fields(Unit) | Units]).
 
+send_perception([{PlayerId, NewPerception} | Players]) ->
+    [Conn] = db:dirty_read(connection, PlayerId),
+    send_to_process(Conn#connection.process, NewPerception),
+    send_perception(Players).
 
+send_to_process(Process, NewPerception) when is_pid(Process) ->
+    lager:debug("Sending ~p to ~p", [NewPerception, Process]),
+    Process ! {new_perception, NewPerception};
+send_to_process(_Process, _NewPerception) ->
+    none.
