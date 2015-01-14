@@ -95,7 +95,11 @@ fields([]) ->
 fields(Doc) when is_list(Doc) ->
     [D] = Doc, 
     fields(D);
-fields(Doc) -> doc_foldr (fun (Label, Value, List) -> [{Label, convert_id(Value)} | List] end, [], Doc).
+fields(Doc) -> doc_foldr (fun (Label, Value, List) -> 
+                               maps:put(atom_to_binary(Label, latin1), convert_id(Value), List)
+                          end, 
+                          maps:new(), 
+                          Doc).
 
 convert_id(Value) when is_tuple(Value) ->
     convert_bin_id(Value);

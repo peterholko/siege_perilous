@@ -129,7 +129,7 @@ units_perception([], Units) ->
 units_perception([UnitId | Rest], Units) ->
     Unit = unit:get_unit_and_type(UnitId),
     lager:info("Unit ~p", [Unit]),
-    units_perception(Rest, [bson:fields(Unit) | Units]).
+    units_perception(Rest, [message:fields(Unit) | Units]).
 
 send_perception([{PlayerId, NewPerception} | Players]) ->
     [Conn] = db:dirty_read(connection, PlayerId),
@@ -138,6 +138,6 @@ send_perception([{PlayerId, NewPerception} | Players]) ->
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
     lager:info("Sending ~p to ~p", [NewPerception, Process]),
-    Process ! {new_perception, NewPerception};
+    Process ! {new_perception, [NewPerception]};
 send_to_process(_Process, _NewPerception) ->
     none.
