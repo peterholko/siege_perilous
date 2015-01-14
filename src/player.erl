@@ -85,10 +85,6 @@ attack_obj(SourceId, TargetId) ->
     Player = get(player_id),
     NumTicks = 8,
 
-    %Get objs
-    SourceObj = map:get_obj(SourceId),
-    TargetObj = map:get_obj(TargetId),
-
     %TODO add validation
     Result = true,
 

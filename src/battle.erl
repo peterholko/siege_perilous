@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/1]).
+-export([create/2, add_target/2]).
 
 %% ====================================================================
 %% External functions
@@ -24,8 +24,11 @@
 start() ->
     gen_server:start({global, battle}, battle, [], []).
 
-create(Entities) ->
-    gen_server:cast({global, battle}, {create, Entities}).
+create(AtkId, DefId) ->
+    gen_server:cast({global, battle}, {create, AtkId, DefId}).
+
+add_target(SrcUnitId, TgtUnitId) ->
+    gen_server:cast({global, battle}, {add_target, SrcUnitId, TgtUnitId}).
 
 %% ====================================================================
 %% Server functions
@@ -34,11 +37,27 @@ create(Entities) ->
 init([]) ->
     {ok, []}.
 
-handle_cast({create, Entities}, Data) ->   
+handle_cast({create, AtkId, DefId}, Data) ->   
 
-    create_battle(Entities),
-    set_combat_state(Entities),
-    set_events(Entities),
+    AtkObj = map:get_obj(AtkId), 
+    DefObj = map:get_obj(DefId), 
+
+    create_battle(AtkObj, DefObj),
+    set_combat_state([AtkObj, DefObj]),
+
+    AtkPerception = perception(AtkObj, DefObj),
+    DefPerception = perception(DefObj, AtkObj),
+
+    {noreply, Data};
+
+handle_cast({add_target, SrcUnitId, TgtUnitId}, Data) ->
+
+    db:dirty_delete(target, SrcUnitId), 
+
+    Target = #target {src_unit_id = SrcUnitId,
+                      tgt_unit_id = TgtUnitId},
+
+    db:dirty_write(Target),
 
     {noreply, Data};
 
@@ -71,61 +90,33 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-create_battle(Entities) ->
+create_battle(AtkObj, DefObj) ->
     Id = counter:increment(battle),
     Battle = #battle {id = Id,
-                      entities = Entities},
+                      attacker = {AtkObj#map_obj.player, AtkObj#map_obj.id},
+                      defender = {DefObj#map_obj.player, DefObj#map_obj.id}},
 
-    db:write(Battle).
+    db:write(Battle),
+    Id.
 
 set_combat_state([]) ->
     lager:info("Done updating combat state"),
     done;
-set_combat_state([EntityId | Rest]) ->
-    lager:info("Updating entity ~p to combat state", [EntityId]),
-    Entity = map:get_obj(EntityId),
+set_combat_state([Entity | Rest]) ->
     map:update_obj_state(Entity, combat),
-
     set_combat_state(Rest).
 
-set_events([]) ->
-    lager:info("Done adding battle events");
-set_events([EntityId | Rest]) ->
-    Entity = get_entity(EntityId),
-    {Units} = bson:lookup(units, Entity),
+perception(AtkObj, DefObj) ->
 
-    set_unit_events(Units),
+    AtkUnits = units_perception(AtkObj#map_obj.units, []),
+    DefUnits = units_perception(DefObj#map_obj.units, []),
 
-    set_events(Rest).
+    {AtkUnits, DefUnits}.
 
-set_unit_events([]) ->
-    lager:info("Done adding unit events");
-set_unit_events([UnitId | Rest]) ->
+units_perception([], Units) ->
+    Units;
+units_perception([UnitId | Rest], Units) ->
+    Unit = unit:get_unit_and_type(UnitId),
+    units_perception(Rest, [Unit | Units]).
 
-    Unit = get_unit(UnitId),
-    {UnitTypeId} = bson:lookup(type, Unit),
-    
-    UnitType = get_unit_type(UnitTypeId),
-    lager:info("UnitType: ~p", [UnitType]),
-
-    set_unit_events(Rest).
-
-get_entity(Id) ->
-    BinId = util:hex_to_bin(binary_to_list(Id)),
-    Cursor = mongo:find(mdb:get_conn(), <<"obj">>, {'_id', {BinId}}),
-    [Entity] = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Entity.
-
-get_unit(Id) -> 
-    Cursor = mongo:find(mdb:get_conn(), <<"unit">>, {'_id', Id}),
-    [Unit] = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Unit.
-
-get_unit_type(Id) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"unit_type">>, {'_id', Id}),
-    [UnitType] = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    UnitType.
 

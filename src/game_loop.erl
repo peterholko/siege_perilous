@@ -90,9 +90,17 @@ do_event(attack_obj, EventData, _PlayerPid) ->
     {SourceId, TargetId} = EventData,
 
     %Create battle with list of source and target
-    battle:create([SourceId, TargetId]),
+    battle:create(SourceId, TargetId),
 
     true;
+
+do_event(attack_unit, EventData, _Pid) ->
+    
+    {BattleId, SourceId, TargetId} = EventData,
+
+    battle:unit_attack(BattleId, SourceId, TargetId),
+
+    false;
 
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),

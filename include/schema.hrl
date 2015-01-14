@@ -33,5 +33,10 @@
                      data}).
 
 -record(battle, {id,
-                 entities}).
+                 attacker,
+                 defender}).
+
+-record(target, {src_unit_id,
+                 tgt_unit_id}).
+
 
