@@ -148,6 +148,6 @@ send_perception([{PlayerId, NewPerception} | Players]) ->
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
     lager:info("Sending ~p to ~p", [NewPerception, Process]),
-    Process ! {new_perception, NewPerception};
+    Process ! {map_perception, NewPerception};
 send_to_process(_Process, _NewPerception) ->
     none.

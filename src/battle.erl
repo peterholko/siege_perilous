@@ -117,8 +117,6 @@ perception(AtkId, DefId) ->
     {AtkUnitIds} = bson:lookup(units, AtkObj),
     {DefUnitIds} = bson:lookup(units, DefObj),
 
-    lager:info("Units: ~p ~p", [AtkUnitIds, DefUnitIds]),
-
     AtkUnits = units_perception(AtkUnitIds, []),
     DefUnits = units_perception(DefUnitIds, []),
 
@@ -128,8 +126,10 @@ units_perception([], Units) ->
     Units;
 units_perception([UnitId | Rest], Units) ->
     Unit = unit:get_unit_and_type(UnitId),
-    lager:info("Unit ~p", [Unit]),
     units_perception(Rest, [message:fields(Unit) | Units]).
+
+send_perception([]) ->
+    lager:info("Done sending battle perception");
 
 send_perception([{PlayerId, NewPerception} | Players]) ->
     [Conn] = db:dirty_read(connection, PlayerId),
@@ -137,7 +137,7 @@ send_perception([{PlayerId, NewPerception} | Players]) ->
     send_perception(Players).
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
-    lager:info("Sending ~p to ~p", [NewPerception, Process]),
-    Process ! {new_perception, [NewPerception]};
+    lager:debug("Sending ~p to ~p", [NewPerception, Process]),
+    Process ! {battle_perception, [NewPerception]};
 send_to_process(_Process, _NewPerception) ->
     none.

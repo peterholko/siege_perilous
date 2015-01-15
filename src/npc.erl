@@ -54,7 +54,7 @@ handle_call(Event, From, Data) ->
                              ]),
     {noreply, Data}.
 
-handle_info({new_perception, Perception}, Data) ->
+handle_info({map_perception, Perception}, Data) ->
 
     lager:info("NPC perception: ~p", [Perception]),
 

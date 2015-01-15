@@ -17,9 +17,11 @@ websocket_handle({text, Msg}, Req, State) ->
 websocket_handle(_Data, Req, State) ->
 	{ok, Req, State}.
 
-websocket_info({new_perception, Message}, Req, State) ->
+websocket_info({battle_perception, Message}, Req, State) ->
     Encoded = jsx:encode(Message),
-
+	{reply, {text, Encoded}, Req, State};
+websocket_info({map_perception, Message}, Req, State) ->
+    Encoded = jsx:encode(Message),
 	{reply, {text, Encoded}, Req, State};
 websocket_info(_Info, Req, State) ->
 	{ok, Req, State}.

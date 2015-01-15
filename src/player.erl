@@ -141,4 +141,7 @@ is_valid_state(_State) ->
 
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.
-    
+   
+add_target(SourceId, TargetId) ->
+        
+    battle:add_target(SourceId, TargetId). 
