@@ -9,7 +9,8 @@
 -export([init_perception/1, 
          get_info/1,
          move_obj/2,
-         attack_obj/2]).
+         attack_obj/2,
+         attack_unit/2]).
 
 init_perception(PlayerId) ->
 
@@ -88,12 +89,12 @@ attack_obj(SourceId, TargetId) ->
     %TODO add validation
     Result = true,
 
-    add_attack(Result, {SourceId, TargetId}, NumTicks).
+    add_attack_obj_event(Result, {SourceId, TargetId}, NumTicks).
   
-add_attack(false, _EventData, _Ticks) ->
+add_attack_obj_event(false, _EventData, _Ticks) ->
     lager:info("Attack failed"),
     none;
-add_attack(true, {SourceId, TargetId}, NumTicks) ->
+add_attack_obj_event(true, {SourceId, TargetId}, NumTicks) ->
 
     EventData = {SourceId,
                  TargetId},
@@ -142,6 +143,5 @@ is_valid_state(_State) ->
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.
    
-add_target(SourceId, TargetId) ->
-        
-    battle:add_target(SourceId, TargetId). 
+attack_unit(SourceId, TargetId) ->
+    battle:attack_unit(SourceId, TargetId). 

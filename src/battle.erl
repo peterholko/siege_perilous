@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/2, add_target/2]).
+-export([create/2, add_event_attack/2, do_attack/2]).
 
 %% ====================================================================
 %% External functions
@@ -27,8 +27,11 @@ start() ->
 create(AtkId, DefId) ->
     gen_server:cast({global, battle}, {create, AtkId, DefId}).
 
-add_target(SrcUnitId, TgtUnitId) ->
-    gen_server:cast({global, battle}, {add_target, SrcUnitId, TgtUnitId}).
+add_event_attack(SrcUnitId, TgtUnitId) ->
+    gen_server:cast({global, battle}, {add_event_attack, SrcUnitId, TgtUnitId}).
+
+do_attack(SrcUnitId, TgtUnitId) ->
+    gen_server:cast({global, battle}, {do_attack, SrcUnitId, TgtUnitId}).
 
 %% ====================================================================
 %% Server functions
@@ -45,22 +48,34 @@ handle_cast({create, AtkId, DefId}, Data) ->
     create_battle(AtkObj, DefObj),
     set_combat_state([AtkObj, DefObj]),
 
-    AtkPerception = perception(AtkObj#map_obj.id, DefObj#map_obj.id),
-    DefPerception = AtkPerception,
+    AtkUnits = obj:get_units(AtkObj),
+    DefUnits = obj:get_units(DefObj),
 
-    send_perception([{AtkObj#map_obj.player, {<<"units">>, AtkPerception}}, 
-                     {DefObj#map_obj.player, {<<"units">>, DefPerception}}]),
-    
+    BattlePerception = AtkUnits ++ DefUnits,
+
+    send_perception([{AtkObj#map_obj.player, {<<"units">>, BattlePerception}}, 
+                     {DefObj#map_obj.player, {<<"units">>, BattlePerception}}]),
+
     {noreply, Data};
 
-handle_cast({add_target, SrcUnitId, TgtUnitId}, Data) ->
+handle_cast({add_event_attack, SrcUnitId, TgtUnitId}, Data) ->
+    
+    Unit = unit:get_unit(SrcUnitId),
+    Speed = maps:get(<<"speed">>, Unit),
+    NumTicks = Speed * 4,
 
-    db:dirty_delete(target, SrcUnitId), 
+    EventData = {SrcUnitId, TgtUnitId},
 
-    Target = #target {src_unit_id = SrcUnitId,
-                      tgt_unit_id = TgtUnitId},
+    game:add_event(self(), attack_unit, EventData, NumTicks),
 
-    db:dirty_write(Target),
+    {noreply, Data};
+
+handle_cast({do_attack, SrcUnitId, TgtUnitId}, Data) ->
+
+    AtkUnit = unit:get_unit(SrcUnitId),
+    DefUnit = unit:get_unit(TgtUnitId),
+
+    calc_attack(AtkUnit, DefUnit),   
 
     {noreply, Data};
 
@@ -109,25 +124,6 @@ set_combat_state([Entity | Rest]) ->
     map:update_obj_state(Entity, combat),
     set_combat_state(Rest).
 
-perception(AtkId, DefId) ->
-
-    AtkObj = obj:get_obj(AtkId),
-    DefObj = obj:get_obj(DefId),
-
-    {AtkUnitIds} = bson:lookup(units, AtkObj),
-    {DefUnitIds} = bson:lookup(units, DefObj),
-
-    AtkUnits = units_perception(AtkUnitIds, []),
-    DefUnits = units_perception(DefUnitIds, []),
-
-    AtkUnits ++ DefUnits.
-
-units_perception([], Units) ->
-    Units;
-units_perception([UnitId | Rest], Units) ->
-    Unit = unit:get_unit_and_type(UnitId),
-    units_perception(Rest, [message:fields(Unit) | Units]).
-
 send_perception([]) ->
     lager:info("Done sending battle perception");
 
@@ -141,3 +137,21 @@ send_to_process(Process, NewPerception) when is_pid(Process) ->
     Process ! {battle_perception, [NewPerception]};
 send_to_process(_Process, _NewPerception) ->
     none.
+
+calc_attack(AtkUnit, DefUnit) ->
+
+    DmgBase = maps:get(<<"dmg_base">>, AtkUnit),
+    DmgRange = maps:get(<<"dmg_range">>, AtkUnit),
+    DefArmor = maps:get(<<"def">>, DefUnit),
+    DefHp = maps:get(<<"hp">>, DefUnit),
+    DefId = maps:get(<<"_id">>, DefUnit),
+
+    DmgRoll = random:uniform(DmgRange) + DmgBase,
+    
+    DmgReduction = DefArmor / (DefArmor + 50),
+
+    Dmg = round(DmgRoll * (1 - DmgReduction)),
+    NewHp = DefHp - Dmg,
+
+
+

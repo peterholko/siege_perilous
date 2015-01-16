@@ -96,9 +96,9 @@ do_event(attack_obj, EventData, _PlayerPid) ->
 
 do_event(attack_unit, EventData, _Pid) ->
     
-    {BattleId, SourceId, TargetId} = EventData,
+    {SourceId, TargetId} = EventData,
 
-    battle:unit_attack(BattleId, SourceId, TargetId),
+    battle:do_unit_attack(SourceId, TargetId),
 
     false;
 
