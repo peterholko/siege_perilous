@@ -21,7 +21,6 @@
 %%
 
 add_event(PlayerProcess, EventType, EventData, EventTick) ->
-    
     [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
 
     Event = #event { id = counter:increment(event),

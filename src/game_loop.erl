@@ -25,9 +25,14 @@ loop(LastTime, GamePID) ->
     
     %Process events
     RecalcPerception = process_events(CurrentTick),
+
     %Build simple perception
     perception_recalculate(RecalcPerception),
     
+    %Update charge times
+    BattleUnits = ets:tab2list(battle_unit),
+    update_charge_times(BattleUnits),
+
     {NextTime, SleepTime} = calculate_sleep(LastTime),
 
     timer:sleep(SleepTime),
@@ -111,3 +116,27 @@ perception_recalculate(false) ->
 
 perception_recalculate(true) ->
     perception:recalculate().
+
+update_charge_times([]) ->
+    done;
+update_charge_times([BattleUnit | Rest]) ->
+    UnitId = BattleUnit#battle_unit.unit_id,
+    Speed = BattleUnit#battle_unit.speed,
+
+    NewChargeTime = charge_time:increment(UnitId, Speed),
+    ActiveTurn = is_active_turn(NewChargeTime),
+    process_active_turn(ActiveTurn, UnitId),
+
+    update_charge_times(Rest).
+
+is_active_turn(ChargeTime) when ChargeTime < 100 ->
+    false;
+is_active_turn(ChargeTime) when ChargeTime >= 100 ->
+    true.
+
+process_active_turn(true, UnitId) ->
+    charge_time:reset(UnitId),
+    lager:info("Active turn: ~p", [UnitId]),
+    battle:active_turn(UnitId);
+process_active_turn(false, _UnitId) ->
+    none. 

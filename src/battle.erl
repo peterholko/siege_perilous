@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/2, add_event_attack/2, do_attack/2]).
+-export([create/2, active_turn/1]).
 
 %% ====================================================================
 %% External functions
@@ -27,11 +27,8 @@ start() ->
 create(AtkId, DefId) ->
     gen_server:cast({global, battle}, {create, AtkId, DefId}).
 
-add_event_attack(SrcUnitId, TgtUnitId) ->
-    gen_server:cast({global, battle}, {add_event_attack, SrcUnitId, TgtUnitId}).
-
-do_attack(SrcUnitId, TgtUnitId) ->
-    gen_server:cast({global, battle}, {do_attack, SrcUnitId, TgtUnitId}).
+active_turn(UnitId) ->
+    gen_server:cast({global, battle}, {active_turn, UnitId}).
 
 %% ====================================================================
 %% Server functions
@@ -48,32 +45,24 @@ handle_cast({create, AtkId, DefId}, Data) ->
     create_battle(AtkObj, DefObj),
     set_combat_state([AtkObj, DefObj]),
 
-    AtkUnits = obj:get_units(AtkObj),
-    DefUnits = obj:get_units(DefObj),
+    lager:info("AtkId: ~p, DefId: ~p", [AtkId, DefId]),
+    AtkUnits = obj:get_units(AtkId),
+    DefUnits = obj:get_units(DefId),
 
     BattlePerception = AtkUnits ++ DefUnits,
+    lager:info("BattlePerception: ~p", [BattlePerception]),
 
     send_perception([{AtkObj#map_obj.player, {<<"units">>, BattlePerception}}, 
                      {DefObj#map_obj.player, {<<"units">>, BattlePerception}}]),
 
-    {noreply, Data};
-
-handle_cast({add_event_attack, SrcUnitId, TgtUnitId}, Data) ->
-    
-    Unit = unit:get_unit(SrcUnitId),
-    Speed = maps:get(<<"speed">>, Unit),
-    NumTicks = Speed * 4,
-
-    EventData = {SrcUnitId, TgtUnitId},
-
-    game:add_event(self(), attack_unit, EventData, NumTicks),
+    add_battle_units(BattlePerception),
 
     {noreply, Data};
 
-handle_cast({do_attack, SrcUnitId, TgtUnitId}, Data) ->
-
-    AtkUnit = unit:get_unit(SrcUnitId),
-    DefUnit = unit:get_unit(TgtUnitId),
+handle_cast({active_turn, UnitId}, Data) ->
+    lager:info("Active Turn: ~p", [UnitId]),
+    AtkUnit = unit:get_unit(UnitId),
+    DefUnit = unit:get_unit(UnitId),
 
     calc_attack(AtkUnit, DefUnit),   
 
@@ -139,9 +128,8 @@ send_to_process(_Process, _NewPerception) ->
     none.
 
 calc_attack(AtkUnit, DefUnit) ->
-
-    DmgBase = maps:get(<<"dmg_base">>, AtkUnit),
-    DmgRange = maps:get(<<"dmg_range">>, AtkUnit),
+    DmgBase = bson:lookup(dmg_base, AtkUnit),
+    DmgRange = bson:lookup(dmg_range, AtkUnit),
     DefArmor = maps:get(<<"def">>, DefUnit),
     DefHp = maps:get(<<"hp">>, DefUnit),
     DefId = maps:get(<<"_id">>, DefUnit),
@@ -151,7 +139,19 @@ calc_attack(AtkUnit, DefUnit) ->
     DmgReduction = DefArmor / (DefArmor + 50),
 
     Dmg = round(DmgRoll * (1 - DmgReduction)),
-    NewHp = DefHp - Dmg,
+    NewHp = DefHp - Dmg.
 
+add_battle_units([]) ->
+    lager:info("Done adding battle units");
 
+add_battle_units([Unit | Rest]) ->
+    lager:info("Adding battle_unit: ~p", [Unit]),
+    Id = maps:get(<<"_id">>, Unit), 
+    Speed = maps:get(<<"speed">>, Unit),
 
+    BattleUnit = #battle_unit {unit_id = Id,
+                               speed = Speed},
+
+    db:write(BattleUnit),
+
+    add_battle_units(Rest).

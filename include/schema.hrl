@@ -36,6 +36,12 @@
                  attacker,
                  defender}).
 
+-record(battle_unit, {unit_id,
+                      speed}).
+
+-record(charge_time, {unit_id,
+                      charge_time}).
+
 -record(target, {src_unit_id,
                  tgt_unit_id}).
 

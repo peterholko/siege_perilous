@@ -9,8 +9,7 @@
 -export([init_perception/1, 
          get_info/1,
          move_obj/2,
-         attack_obj/2,
-         attack_unit/2]).
+         attack_obj/2]).
 
 init_perception(PlayerId) ->
 
@@ -142,6 +141,3 @@ is_valid_state(_State) ->
 
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.
-   
-attack_unit(SourceId, TargetId) ->
-    battle:attack_unit(SourceId, TargetId). 
