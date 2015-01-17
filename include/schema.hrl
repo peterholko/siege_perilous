@@ -42,7 +42,8 @@
 -record(charge_time, {unit_id,
                       charge_time}).
 
--record(target, {src_unit_id,
-                 tgt_unit_id}).
+-record(action, {source_id,
+                 type,
+                 data}).
 
 

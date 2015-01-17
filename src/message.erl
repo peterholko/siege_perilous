@@ -70,14 +70,14 @@ message_handle(<<"attack">>, Message) ->
     player:attack_obj(SourceId, TargetId),
     <<"Attack added">>;
 
-message_handle(<<"target">>, Message) ->
-    lager:info("message: target"),
+message_handle(<<"attack_unit">>, Message) ->
+    lager:info("message: attack_unit"),
 
     SourceId = map_get(<<"sourceid">>, Message),
     TargetId = map_get(<<"targetid">>, Message),
 
-    player:add_target(SourceId, TargetId),
-    <<"Target added">>;
+    player:attack_unit(SourceId, TargetId),
+    <<"Attack unit added">>;
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

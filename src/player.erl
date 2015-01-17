@@ -9,7 +9,8 @@
 -export([init_perception/1, 
          get_info/1,
          move_obj/2,
-         attack_obj/2]).
+         attack_obj/2,
+         attack_unit/2]).
 
 init_perception(PlayerId) ->
 
@@ -81,7 +82,6 @@ add_move(true, {Obj, NewPos}, NumTicks) ->
     game:add_event(self(), move_obj, EventData, NumTicks).
 
 attack_obj(SourceId, TargetId) ->
-
     Player = get(player_id),
     NumTicks = 8,
 
@@ -99,6 +99,9 @@ add_attack_obj_event(true, {SourceId, TargetId}, NumTicks) ->
                  TargetId},
 
     game:add_event(self(), attack_obj, EventData, NumTicks).
+
+attack_unit(SourceId, TargetId) ->
+    battle:attack_unit(SourceId, TargetId).
 
 get_armies(PlayerId) ->
     db:index_read(map_obj, PlayerId, #map_obj.player).

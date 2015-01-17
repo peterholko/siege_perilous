@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/2, active_turn/1]).
+-export([create/2, active_turn/1, attack_unit/2]).
 
 %% ====================================================================
 %% External functions
@@ -29,6 +29,9 @@ create(AtkId, DefId) ->
 
 active_turn(UnitId) ->
     gen_server:cast({global, battle}, {active_turn, UnitId}).
+
+attack_unit(SourceId, TargetId) ->
+    gen_server:cast({global, battle}, {attack_unit, SourceId, TargetId}).
 
 %% ====================================================================
 %% Server functions
@@ -60,11 +63,19 @@ handle_cast({create, AtkId, DefId}, Data) ->
     {noreply, Data};
 
 handle_cast({active_turn, UnitId}, Data) ->
-    lager:info("Active Turn: ~p", [UnitId]),
-    AtkUnit = unit:get_unit(UnitId),
-    DefUnit = unit:get_unit(UnitId),
+    
+    Action = db:read(action, UnitId),
+    process_action(Action),
 
-    calc_attack(AtkUnit, DefUnit),   
+    {noreply, Data};
+
+handle_cast({attack_unit, SourceId, TargetId}, Data) ->
+    
+    Action = #action {source_id = SourceId,
+                      type = attack,
+                      data = TargetId},
+  
+    db:write(Action),
 
     {noreply, Data};
 
@@ -127,27 +138,57 @@ send_to_process(Process, NewPerception) when is_pid(Process) ->
 send_to_process(_Process, _NewPerception) ->
     none.
 
+process_action([Action]) ->
+
+    case Action#action.type of
+        attack ->
+            process_attack(Action);
+        _ ->
+            lager:info("Unknown action type: ~p", [Action#action.type]) 
+    end;
+
+process_action(_Action) ->
+    lager:info("No action defined.").
+
+process_attack(Action) ->
+    SourceId = Action#action.source_id,
+    TargetId = Action#action.data,
+
+    AtkUnit = unit:get_unit_and_type(SourceId),
+    DefUnit = unit:get_unit_and_type(TargetId),
+
+    calc_attack(AtkUnit, DefUnit).
+
 calc_attack(AtkUnit, DefUnit) ->
-    DmgBase = bson:lookup(dmg_base, AtkUnit),
-    DmgRange = bson:lookup(dmg_range, AtkUnit),
-    DefArmor = maps:get(<<"def">>, DefUnit),
-    DefHp = maps:get(<<"hp">>, DefUnit),
-    DefId = maps:get(<<"_id">>, DefUnit),
+    DmgBase = mdb:lookup(base_dmg, AtkUnit),
+    DmgRange = mdb:lookup(dmg_range, AtkUnit),
+    DefArmor = mdb:lookup(base_def, DefUnit),
+    DefHp = mdb:lookup(hp, DefUnit),
+    DefId = mdb:lookup('_id', DefUnit),
 
     DmgRoll = random:uniform(DmgRange) + DmgBase,
     
     DmgReduction = DefArmor / (DefArmor + 50),
 
     Dmg = round(DmgRoll * (1 - DmgReduction)),
-    NewHp = DefHp - Dmg.
+    NewHp = DefHp - Dmg,
+    lager:info("NewHp: ~p", [NewHp]),
+
+    set_new_hp(DefId, NewHp).
+
+set_new_hp(DefId, NewHp) when NewHp > 0 ->
+    mdb:update(<<"unit">>, DefId, {hp, NewHp});
+
+set_new_hp(DefId, _NewHp) ->
+    mdb:delete(<<"unit">>, DefId).
 
 add_battle_units([]) ->
     lager:info("Done adding battle units");
 
 add_battle_units([Unit | Rest]) ->
     lager:info("Adding battle_unit: ~p", [Unit]),
-    Id = maps:get(<<"_id">>, Unit), 
-    Speed = maps:get(<<"speed">>, Unit),
+    Id = mdb:lookup('_id', Unit), 
+    Speed = mdb:lookup(base_speed, Unit),
 
     BattleUnit = #battle_unit {unit_id = Id,
                                speed = Speed},

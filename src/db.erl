@@ -45,6 +45,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(battle, [{disc_copies, [node()]}, {attributes, record_info(fields, battle)}]),    
     {atomic, ok} = mnesia:create_table(battle_unit, [{disc_copies, [node()]}, {attributes, record_info(fields, battle_unit)}]),    
     {atomic, ok} = mnesia:create_table(charge_time, [{disc_copies, [node()]}, {attributes, record_info(fields, charge_time)}]),    
+    {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
