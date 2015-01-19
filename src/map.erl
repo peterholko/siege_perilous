@@ -56,9 +56,13 @@ get_obj(Id) ->
 move_obj(Id, Pos) ->
     move(Id, Pos). 
 
-update_obj_state(Obj, State) ->
+update_obj_state(Obj, State) when is_record(Obj, map_obj) ->
     NewObj = Obj#map_obj { state = State},
-    db:write(NewObj).
+    db:write(NewObj);
+
+update_obj_state(ObjId, State) ->
+    Obj = get_obj(ObjId),
+    update_obj_state(Obj, State).
 
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).

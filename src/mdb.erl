@@ -73,18 +73,15 @@ handle_cast({create_obj, Player, Units}, Data) ->
 
 handle_cast({update, Collection, Id, Value}, Data) ->
     Connection = Data,
-    BinId = to_bin_id(Id),
     Cmd = {'$set', Value},
     
-    mongo:update(Connection, Collection, {'_id', BinId}, Cmd),
+    mongo:update(Connection, Collection, {'_id', Id}, Cmd),
 
     {noreply, Data};
 
 handle_cast({delete, Collection, Id}, Data) ->
     Connection = Data,
-    BinId = to_bin_id(Id),
-    
-    mongo:delete(Connection, Collection, {'_id', BinId}),
+    mongo:delete(Connection, Collection, {'_id', Id}),
 
     {noreply, Data};
 

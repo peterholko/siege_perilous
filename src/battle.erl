@@ -155,8 +155,8 @@ process_attack(Action) ->
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
-    AtkUnit = unit:get_unit_and_type(SourceId),
-    DefUnit = unit:get_unit_and_type(TargetId),
+    AtkUnit = unit:get_stats(SourceId),
+    DefUnit = unit:get_stats(TargetId),
 
     is_attack_valid(SourceId, AtkUnit),
     is_attack_valid(SourceId, DefUnit),
@@ -177,11 +177,11 @@ calc_attack(_AtkUnit, false) ->
     lager:info("Target no longer avalalble");
 
 calc_attack(AtkUnit, DefUnit) ->
-    DmgBase = mdb:lookup(base_dmg, AtkUnit),
-    DmgRange = mdb:lookup(dmg_range, AtkUnit),
-    DefArmor = mdb:lookup(base_def, DefUnit),
-    DefHp = mdb:lookup(hp, DefUnit),
-    DefId = mdb:lookup('_id', DefUnit),
+    {DmgBase} = bson:lookup(base_dmg, AtkUnit),
+    {DmgRange} = bson:lookup(dmg_range, AtkUnit),
+    {DefArmor} = bson:lookup(base_def, DefUnit),
+    {DefHp} = bson:lookup(hp, DefUnit),
+    {DefId} = bson:lookup('_id', DefUnit),
 
     DmgRoll = random:uniform(DmgRange) + DmgBase,
     
@@ -198,23 +198,18 @@ set_new_hp(DefId, NewHp) when NewHp > 0 ->
 
 set_new_hp(DefId, _NewHp) ->
     lager:info("Unit ~p died.", [DefId]),
-    %TODO fix ID handling
-    {BinId} = DefId,
-    Id = util:bin_to_hex(BinId),
 
-    db:delete(battle_unit, Id),
+    db:delete(battle_unit, DefId),
     mdb:delete(<<"unit">>, DefId),
+    obj:unit_removed(DefId).
      
-    Obj = obj:get_obj_from_unit(DefId).
-    
-
 add_battle_units([]) ->
     lager:info("Done adding battle units");
 
 add_battle_units([Unit | Rest]) ->
     lager:info("Adding battle_unit: ~p", [Unit]),
-    Id = mdb:lookup('_id', Unit), 
-    Speed = mdb:lookup(base_speed, Unit),
+    {Id} = bson:lookup('_id', Unit), 
+    {Speed} = bson:lookup(base_speed, Unit),
 
     BattleUnit = #battle_unit {unit_id = Id,
                                speed = Speed},
