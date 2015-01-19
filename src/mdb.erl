@@ -17,6 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([get_conn/0, create_obj/2]).
 -export([update/3, delete/2, lookup/2, to_bin_id/1]).
+-export([to_map/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -122,3 +123,40 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
+doc_foldr (Fun, Acc, Doc) -> doc_foldrN (Fun, Acc, Doc, 0, tuple_size (Doc) div 2).
+
+doc_foldrN (_, Acc, _, Low, Low) -> Acc;
+doc_foldrN (Fun, Acc, Doc, Low, High) ->
+    Acc1 = Fun (element (High * 2 - 1, Doc), element (High * 2, Doc), Acc),
+    doc_foldrN (Fun, Acc1, Doc, Low, High - 1).
+  
+%  Convert bson document to a map and converts BSON id to hex id
+to_map([]) ->
+    [];
+to_map(Doc) when is_list(Doc) ->
+    [D] = Doc, 
+    to_map(D);
+to_map(Doc) -> doc_foldr (fun (Label, Value, List) -> 
+                               maps:put(atom_to_binary(Label, latin1), convert_id(Value), List)
+                          end, 
+                          maps:new(), 
+                          Doc).
+
+convert_id(Value) when is_tuple(Value) ->
+    convert_bin_id(Value);
+convert_id(Value) when is_list(Value) ->
+    F = fun(V, Rest) -> [ convert_bin_id(V) | Rest] end,
+    lists:foldl(F, [], Value);
+convert_id(Value) ->
+    Value.
+
+convert_bin_id({Value}) when is_binary(Value) ->
+    to_hex(Value, Value);
+convert_bin_id(Value) ->
+    Value.
+    
+to_hex(<<_:96>>, Value) ->
+    util:bin_to_hex(Value);
+to_hex(Value, Value) ->
+    Value.
+ 

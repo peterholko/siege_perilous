@@ -25,15 +25,14 @@ init_perception(PlayerId) ->
     VisibleTiles = get_visible_map(Armies, []),
     lager:info("VisibleTiles: ~p", [VisibleTiles]),
 
-    %Get visible objs
+    %Get visible obj and convert Binary IDs to Hex Str IDs
     Objs = get_visible_objs(Armies, []),
-
     AllExplored = util:unique_list(ExploredTiles ++ VisibleTiles),
 
     lager:info("AllExplored: ~p", [AllExplored]),
     lager:info("Objs: ~p", [Objs]),
 
-    [{<<"player">>, PlayerId}, {<<"explored">>, AllExplored}, {<<"objs">>, Objs}].
+    {PlayerId, AllExplored, Objs}.
 
 get_info(Id) ->
     %Must have { } tuple around Id, mongo convention
@@ -144,3 +143,4 @@ is_valid_state(_State) ->
 
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.
+

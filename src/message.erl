@@ -3,8 +3,7 @@
 %% Description: Handles messages from client
 -module(message).
 
--export([decode/1]).
--export([fields/1]).
+-export([decode/1, prepare/2]).
 
 decode(Message) ->
     lager:info("Message: ~p~n", [Message]),
@@ -39,26 +38,30 @@ message_handle(<<"login">>, Message) ->
             %Stored player id in process dict for easy access
             put(player_id, PlayerId),
 
-            InitPerception = player:init_perception(PlayerId),
-            lager:info("Perception: ~p", [InitPerception]),
-            jsx:encode(InitPerception)
+            {PlayerId, Explored, Objs} = player:init_perception(PlayerId),
+            Perception = [{<<"player">>, PlayerId},
+                          {<<"explored">>, Explored},
+                          {<<"objs">>, convert_id(Objs, [])}],
+            jsx:encode(Perception)
     end;
 
 message_handle(<<"info">>, Message) ->
     lager:info("message: info"),
-    Id = map_get(<<"id">>, Message),
+    HexId = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(HexId),
 
-    Fields = jsx:encode(fields(player:get_info(Id))),
+    Fields = jsx:encode(mdb:to_maps(player:get_info(BinId))),
     lager:info("Fields: ~p", [Fields]),
     Fields;
 
 message_handle(<<"move">>, Message) ->
     lager:info("message: move"),
 
-    Id = map_get(<<"id">>, Message),
+    HexId = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(HexId),
     
     Pos1D = map_get(<<"pos">>, Message),
-    Result = player:move_obj(Id, Pos1D),
+    Result = player:move_obj(BinId, Pos1D),
     <<"Move added">>;   
 
 message_handle(<<"attack">>, Message) ->
@@ -75,8 +78,10 @@ message_handle(<<"attack_unit">>, Message) ->
 
     SourceId = map_get(<<"sourceid">>, Message),
     TargetId = map_get(<<"targetid">>, Message),
+    SourceBinId = util:hex_to_bin(SourceId), 
+    TargetBinId = util:hex_to_bin(TargetId), 
 
-    player:attack_unit(SourceId, TargetId),
+    player:attack_unit(SourceBinId, TargetBinId),
     <<"Attack unit added">>;
 
 message_handle(_Cmd, Message) ->
@@ -84,47 +89,36 @@ message_handle(_Cmd, Message) ->
     lager:info("~p: ~p~n", [Error, Message]),
     list_to_binary(Error).
 
+prepare(map_perception, Message) ->
+    [ExploredTuple, {<<"objs">>, Objs}] = Message,
+    NewObjs = convert_id(Objs, []),
+    [ExploredTuple, {<<"objs">>, NewObjs}];
+
+prepare(battle_perception, Message) ->
+    BattlePerception = battle_perception(Message, []),
+    [{<<"units">>, BattlePerception}].
+
 json_decode(Data) ->
     try jsx:decode(Data, [return_maps])
     catch
         _:_ ->
             lager:info("Error json_decode")
     end.
-
-doc_foldr (Fun, Acc, Doc) -> doc_foldrN (Fun, Acc, Doc, 0, tuple_size (Doc) div 2).
-
-doc_foldrN (_, Acc, _, Low, Low) -> Acc;
-doc_foldrN (Fun, Acc, Doc, Low, High) ->
-    Acc1 = Fun (element (High * 2 - 1, Doc), element (High * 2, Doc), Acc),
-    doc_foldrN (Fun, Acc1, Doc, Low, High - 1).
-  
-%  Convert document to a list of all its fields
-fields([]) ->
-    [];
-fields(Doc) when is_list(Doc) ->
-    [D] = Doc, 
-    fields(D);
-fields(Doc) -> doc_foldr (fun (Label, Value, List) -> 
-                               maps:put(atom_to_binary(Label, latin1), convert_id(Value), List)
-                          end, 
-                          maps:new(), 
-                          Doc).
-
-convert_id(Value) when is_tuple(Value) ->
-    convert_bin_id(Value);
-convert_id(Value) when is_list(Value) ->
-    F = fun(V, Rest) -> [ convert_bin_id(V) | Rest] end,
-    lists:foldl(F, [], Value);
-convert_id(Value) ->
-    Value.
-
-convert_bin_id({Value}) when is_binary(Value) ->
-    to_hex(Value, Value);
-convert_bin_id(Value) ->
-    Value.
+ 
+convert_id([], ConvertedIds) ->
+    ConvertedIds;
+convert_id([Obj | Rest], ConvertedIds) ->
     
-to_hex(<<_:96>>, Value) ->
-    util:bin_to_hex(Value);
-to_hex(Value, Value) ->
-    Value.
-    
+    BinId = maps:get(<<"id">>, Obj),
+    HexId = util:bin_to_hex(BinId),
+    NewObj = maps:update(<<"id">>, HexId, Obj),
+    NewConvertedIds = [NewObj | ConvertedIds],
+
+    convert_id(Rest, NewConvertedIds).
+
+battle_perception([], NewPerception) ->
+    NewPerception;
+
+battle_perception([Unit | Rest], NewPerception) ->
+    NewUnit = mdb:to_map(Unit),
+    battle_perception(Rest, [NewUnit | NewPerception]).

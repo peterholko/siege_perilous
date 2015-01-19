@@ -81,5 +81,13 @@ get_app(Module) ->
     {ok, App} = application:get_application(Module),
     App.
 
-bin_to_hex(Bin) -> list_to_binary([ hd(integer_to_list(I, 16)) || << I:4 >> <= Bin ]).
-hex_to_bin(Str) -> << << (list_to_integer([H], 16)):4 >> || H <- Str >>.
+bin_to_hex(BsonId) when is_tuple(BsonId) ->
+    {Bin} = BsonId,
+    bin_to_hex(Bin);
+bin_to_hex(Bin) -> 
+    list_to_binary([ hd(integer_to_list(I, 16)) || << I:4 >> <= Bin ]).
+
+hex_to_bin(BinStr) when is_binary(BinStr) ->
+    hex_to_bin(binary_to_list(BinStr));
+hex_to_bin(Str) -> 
+    {<< << (list_to_integer([H], 16)):4 >> || H <- Str >>}.

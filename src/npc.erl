@@ -139,8 +139,9 @@ determine_action(_Action, true, {NPCId, _NPCPos}, {Id, _Pos}) ->
     {attack, {NPCId, Id}}.
 
 add_action({move, {NPCId, Pos1D}}) ->
-    lager:info("npc adding move"),
+    lager:info("npc ~p adding move", [NPCId]),
     Obj = map:get_obj(NPCId),
+
     map:update_obj_state(Obj, moving),
     
     NewPos = map:convert_coords(Pos1D),

@@ -135,7 +135,7 @@ is_active_turn(ChargeTime) when ChargeTime >= 100 ->
 
 process_active_turn(true, UnitId) ->
     charge_time:reset(UnitId),
-    lager:info("Active turn: ~p", [UnitId]),
+    %lager:info("Active turn: ~p", [UnitId]),
     battle:active_turn(UnitId);
 process_active_turn(false, _UnitId) ->
     none. 

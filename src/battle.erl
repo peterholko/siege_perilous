@@ -55,8 +55,8 @@ handle_cast({create, AtkId, DefId}, Data) ->
     BattlePerception = AtkUnits ++ DefUnits,
     lager:info("BattlePerception: ~p", [BattlePerception]),
 
-    send_perception([{AtkObj#map_obj.player, {<<"units">>, BattlePerception}}, 
-                     {DefObj#map_obj.player, {<<"units">>, BattlePerception}}]),
+    send_perception([{AtkObj#map_obj.player, BattlePerception}, 
+                     {DefObj#map_obj.player, BattlePerception}]),
 
     add_battle_units(BattlePerception),
 
@@ -134,7 +134,7 @@ send_perception([{PlayerId, NewPerception} | Players]) ->
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [NewPerception, Process]),
-    Process ! {battle_perception, [NewPerception]};
+    Process ! {battle_perception, NewPerception};
 send_to_process(_Process, _NewPerception) ->
     none.
 
@@ -148,7 +148,8 @@ process_action([Action]) ->
     end;
 
 process_action(_Action) ->
-    lager:info("No action defined.").
+    %lager:info("No action defined.").
+    none.
 
 process_attack(Action) ->
     SourceId = Action#action.source_id,
@@ -157,7 +158,23 @@ process_attack(Action) ->
     AtkUnit = unit:get_unit_and_type(SourceId),
     DefUnit = unit:get_unit_and_type(TargetId),
 
+    is_attack_valid(SourceId, AtkUnit),
+    is_attack_valid(SourceId, DefUnit),
+
     calc_attack(AtkUnit, DefUnit).
+
+is_attack_valid(SourceId, false) ->
+    %Invalid unit, remove action
+    db:delete(action, SourceId);
+
+is_attack_valid(_SourceId, _Unit) ->
+    valid.
+
+calc_attack(false, _DefUnit) ->
+    lager:info("Source no longer available");
+
+calc_attack(_AtkUnit, false) ->
+    lager:info("Target no longer avalalble");
 
 calc_attack(AtkUnit, DefUnit) ->
     DmgBase = mdb:lookup(base_dmg, AtkUnit),
@@ -180,7 +197,16 @@ set_new_hp(DefId, NewHp) when NewHp > 0 ->
     mdb:update(<<"unit">>, DefId, {hp, NewHp});
 
 set_new_hp(DefId, _NewHp) ->
-    mdb:delete(<<"unit">>, DefId).
+    lager:info("Unit ~p died.", [DefId]),
+    %TODO fix ID handling
+    {BinId} = DefId,
+    Id = util:bin_to_hex(BinId),
+
+    db:delete(battle_unit, Id),
+    mdb:delete(<<"unit">>, DefId),
+     
+    Obj = obj:get_obj_from_unit(DefId).
+    
 
 add_battle_units([]) ->
     lager:info("Done adding battle units");
