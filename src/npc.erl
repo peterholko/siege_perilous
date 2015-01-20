@@ -108,6 +108,7 @@ process_action(NPCObjs, EnemyObjs) ->
     %Do nothing for now for explored
 
     Action = none,
+    lager:info("NPCObjs: ~p EnemyObjs: ~p Action: ~p", [NPCObjs, EnemyObjs, Action]),
     NewAction = check_objs(NPCObjs, EnemyObjs, Action),
     NewAction.
 
@@ -118,25 +119,30 @@ check_objs([NPCObj], [EnemyObj | Rest], Action) ->
 
     NPCId = maps:get(<<"id">>, NPCObj),
     NPCPos = maps:get(<<"pos">>, NPCObj),
+    NPCState = maps:get(<<"state">>, NPCObj),
 
     Id = maps:get(<<"id">>, EnemyObj),
     Pos = maps:get(<<"pos">>, EnemyObj),
+    State = maps:get(<<"state">>, EnemyObj),
 
     CheckPos = NPCPos =:= Pos, 
 
+    lager:info("Action: ~p CheckPos: ~p NPC: ~p Enemy: ~p", [Action, CheckPos, {NPCId, NPCPos, NPCState}, {Id, Pos, State}]),
     NewAction = determine_action(Action, 
                                  CheckPos,
-                                 {NPCId, NPCPos},
-                                 {Id, Pos}),
-
+                                 {NPCId, NPCPos, NPCState},
+                                 {Id, Pos, State}),
+    lager:info("NewAction: ~p", [NewAction]),
     check_objs([NPCObj], Rest, NewAction).
 
-determine_action(_Action, false, {NPCId, _NPCPos}, {_Id, Pos}) ->
+determine_action(_Action, false, {NPCId, _NPCPos, none}, {_Id, Pos, none}) ->
     lager:info("determine_action move npcid: ~p pos: ~p", [NPCId, Pos]),
     {move, {NPCId, Pos}};
-determine_action(_Action, true, {NPCId, _NPCPos}, {Id, _Pos}) ->
+determine_action(_Action, true, {NPCId, _NPCPos, none}, {Id, _Pos, none}) ->
     lager:info("determine_action attack npcid: ~p id: ~p", [NPCId, Id]),
-    {attack, {NPCId, Id}}.
+    {attack, {NPCId, Id}};
+determine_action(_Action, _Pos, NPC, _Enemy) ->
+    {none, {NPC}}.
 
 add_action({move, {NPCId, Pos1D}}) ->
     lager:info("npc ~p adding move", [NPCId]),
@@ -161,4 +167,7 @@ add_action({attack, {NPCId, Id}}) ->
     NumTicks = 8,
     EventData = {NPCId, Id},
  
-    game:add_event(self(), attack_obj, EventData, NumTicks).
+    game:add_event(self(), attack_obj, EventData, NumTicks);
+
+add_action({none, {NPC}}) ->
+    lager:info("NPC ~p doing nothing", [NPC]).

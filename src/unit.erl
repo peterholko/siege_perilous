@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get/1, get_type/1, get_stats/1]).
+-export([get/1, get_type/1, get_stats/1, create/2]).
 
 get(Id) ->
     Unit = find(Id),
@@ -18,6 +18,10 @@ get_type(Id) ->
 get_stats(Id) ->
     Unit = find(Id),
     stats(Unit).
+
+create(TypeName, Size) ->
+    {UnitType} = find_type_by_name(TypeName),
+    insert(UnitType, Size).
     
 %%Internal function
 %%
@@ -33,6 +37,15 @@ find_type(Id) ->
     UnitType = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     UnitType.
+
+find_type_by_name(Name) ->
+    mongo:find_one(mdb:get_conn(), <<"unit_type">>, {'name', Name}).
+
+insert(Type, Size) ->
+    {TypeId} = bson:lookup('_id', Type),
+    {BaseHp} = bson:lookup(base_hp, Type),
+    Unit = {hp, BaseHp, size, Size, type, TypeId},
+    mongo:insert(mdb:get_conn(), <<"unit">>, [Unit]).
 
 stats([]) ->
     false;
