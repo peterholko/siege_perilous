@@ -60,9 +60,7 @@ handle_info({map_perception, Perception}, Data) ->
 
     {Explored, Objs} = new_perception(Perception),
     {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-    Action = process_action(NPCObjs, EnemyObjs),
-
-    add_action(Action),
+    process_action(NPCObjs, EnemyObjs),
 
     {noreply, Data};
 
@@ -104,18 +102,20 @@ add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
     {NPCObjs, [Obj | EnemyObjs]}.
 
 process_action(NPCObjs, EnemyObjs) ->
-
     %Do nothing for now for explored
 
-    Action = none,
-    lager:info("NPCObjs: ~p EnemyObjs: ~p Action: ~p", [NPCObjs, EnemyObjs, Action]),
-    NewAction = check_objs(NPCObjs, EnemyObjs, Action),
-    NewAction.
+    F = fun(NPCObj) ->
+            Action = none,
+            NewAction = check_objs(NPCObj, EnemyObjs, Action),
+            add_action(NewAction)
+        end,
+
+    lists:foreach(F, NPCObjs).
 
 check_objs(_NPCObjs, [], Action) ->
     Action;
 
-check_objs([NPCObj], [EnemyObj | Rest], Action) ->
+check_objs(NPCObj, [EnemyObj | Rest], Action) ->
 
     NPCId = maps:get(<<"id">>, NPCObj),
     NPCPos = maps:get(<<"pos">>, NPCObj),
@@ -133,7 +133,7 @@ check_objs([NPCObj], [EnemyObj | Rest], Action) ->
                                  {NPCId, NPCPos, NPCState},
                                  {Id, Pos, State}),
     lager:info("NewAction: ~p", [NewAction]),
-    check_objs([NPCObj], Rest, NewAction).
+    check_objs(NPCObj, Rest, NewAction).
 
 determine_action(_Action, false, {NPCId, _NPCPos, none}, {_Id, Pos, none}) ->
     lager:info("determine_action move npcid: ~p pos: ~p", [NPCId, Pos]),

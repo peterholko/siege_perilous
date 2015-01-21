@@ -33,8 +33,7 @@ unit_removed(UnitId) ->
     NewUnits = lists:delete(UnitId, Units),
     NewObj = bson:update(units, NewUnits, Obj),
     mongo:update(mdb:get_conn(), <<"obj">>, {'_id', ObjId}, NewObj),
-
-    is_dead(ObjId, NewUnits).
+    {ObjId, NewUnits}.
     
 %%% Internal only 
 

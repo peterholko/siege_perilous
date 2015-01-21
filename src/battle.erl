@@ -198,11 +198,15 @@ set_new_hp(DefId, NewHp) when NewHp > 0 ->
 
 set_new_hp(DefId, _NewHp) ->
     lager:info("Unit ~p died.", [DefId]),
-
+    
+    %Remove battle unit and unit
     db:delete(battle_unit, DefId),
     mdb:delete(<<"unit">>, DefId),
+
     obj:unit_removed(DefId).
-     
+    
+
+
 add_battle_units([]) ->
     lager:info("Done adding battle units");
 
