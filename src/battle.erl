@@ -49,8 +49,8 @@ handle_cast({create, AtkId, DefId}, Data) ->
     set_combat_state([AtkObj, DefObj]),
 
     lager:info("AtkId: ~p, DefId: ~p", [AtkId, DefId]),
-    AtkUnits = obj:get_units(AtkId),
-    DefUnits = obj:get_units(DefId),
+    AtkUnits = unit:get_units(AtkId),
+    DefUnits = unit:get_units(DefId),
 
     BattlePerception = AtkUnits ++ DefUnits,
     lager:info("BattlePerception: ~p", [BattlePerception]),

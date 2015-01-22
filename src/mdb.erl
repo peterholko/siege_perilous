@@ -142,6 +142,7 @@ to_map(Doc) -> doc_foldr (fun (Label, Value, List) ->
 convert_id(Value) when is_tuple(Value) ->
     convert_bin_id(Value);
 convert_id(Value) when is_list(Value) ->
+    lager:info("convert_id: ~p", [Value]),
     F = fun(V, Rest) -> [ convert_bin_id(V) | Rest] end,
     lists:foldl(F, [], Value);
 convert_id(Value) ->
