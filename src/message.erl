@@ -96,7 +96,18 @@ prepare(map_perception, Message) ->
 
 prepare(battle_perception, Message) ->
     BattlePerception = battle_perception(Message, []),
-    [{<<"units">>, BattlePerception}].
+    [{<<"units">>, BattlePerception}];
+
+prepare(battle, Message) ->
+    SourceId = maps:get(<<"sourceid">>, Message),
+    TargetId = maps:get(<<"targetid">>, Message),
+
+    SourceHexId = util:bin_to_hex(SourceId),
+    TargetHexId = util:bin_to_hex(TargetId),
+
+    NewMessage1 = maps:put(<<"sourceid">>, SourceHexId, Message),
+    NewMessage2 = maps:put(<<"targetid">>, TargetHexId, NewMessage1),
+    NewMessage2.
 
 json_decode(Data) ->
     try jsx:decode(Data, [return_maps])

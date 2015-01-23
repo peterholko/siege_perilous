@@ -99,14 +99,6 @@ do_event(attack_obj, EventData, _PlayerPid) ->
 
     true;
 
-do_event(attack_unit, EventData, _Pid) ->
-    
-    {SourceId, TargetId} = EventData,
-
-    battle:do_unit_attack(SourceId, TargetId),
-
-    false;
-
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.
@@ -122,9 +114,11 @@ update_charge_times([]) ->
 update_charge_times([BattleUnit | Rest]) ->
     UnitId = BattleUnit#battle_unit.unit_id,
     Speed = BattleUnit#battle_unit.speed,
+    Battle = BattleUnit#battle_unit.battle,
+
     NewChargeTime = charge_time:increment(UnitId, Speed),
     ActiveTurn = is_active_turn(NewChargeTime),
-    process_active_turn(ActiveTurn, UnitId),
+    process_active_turn(ActiveTurn, UnitId, Battle),
 
     update_charge_times(Rest).
 
@@ -133,9 +127,9 @@ is_active_turn(ChargeTime) when ChargeTime < 100 ->
 is_active_turn(ChargeTime) when ChargeTime >= 100 ->
     true.
 
-process_active_turn(true, UnitId) ->
+process_active_turn(true, UnitId, Battle) ->
     charge_time:reset(UnitId),
     %lager:info("Active turn: ~p", [UnitId]),
-    battle:active_turn(UnitId);
-process_active_turn(false, _UnitId) ->
+    battle:active_turn(Battle, UnitId);
+process_active_turn(false, _UnitId, _Battle) ->
     none. 

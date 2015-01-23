@@ -18,21 +18,13 @@ init_perception(PlayerId) ->
     Armies = get_armies(PlayerId),
 
     %Get explored tile list
-    ExploredTiles = map:get_explored(PlayerId),
-    lager:info("ExploredTiles: ~p", [ExploredTiles]),
-
-    %Get visible map (should be in explored unless first login)
-    VisibleTiles = get_visible_map(Armies, []),
-    lager:info("VisibleTiles: ~p", [VisibleTiles]),
-
-    %Get visible obj and convert Binary IDs to Hex Str IDs
+    Explored = map:get_explored(PlayerId),
     Objs = get_visible_objs(Armies, []),
-    AllExplored = util:unique_list(ExploredTiles ++ VisibleTiles),
 
-    lager:info("AllExplored: ~p", [AllExplored]),
+    lager:info("Explored: ~p", [Explored]),
     lager:info("Objs: ~p", [Objs]),
 
-    {PlayerId, AllExplored, Objs}.
+    {PlayerId, Explored, Objs}.
 
 get_info(Id) ->
     %Must have { } tuple around Id, mongo convention

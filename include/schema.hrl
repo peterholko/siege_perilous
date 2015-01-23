@@ -33,11 +33,12 @@
                      data}).
 
 -record(battle, {id,
-                 attacker,
-                 defender}).
+                 player,
+                 obj}).
 
 -record(battle_unit, {unit_id,
-                      speed}).
+                      speed,
+                      battle}).
 
 -record(charge_time, {unit_id,
                       charge_time}).

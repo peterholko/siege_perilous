@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/2, active_turn/1, attack_unit/2]).
+-export([create/2, active_turn/2, attack_unit/2]).
 
 %% ====================================================================
 %% External functions
@@ -27,8 +27,8 @@ start() ->
 create(AtkId, DefId) ->
     gen_server:cast({global, battle}, {create, AtkId, DefId}).
 
-active_turn(UnitId) ->
-    gen_server:cast({global, battle}, {active_turn, UnitId}).
+active_turn(BattleId, UnitId) ->
+    gen_server:cast({global, battle}, {active_turn, BattleId, UnitId}).
 
 attack_unit(SourceId, TargetId) ->
     gen_server:cast({global, battle}, {attack_unit, SourceId, TargetId}).
@@ -44,13 +44,14 @@ handle_cast({create, AtkId, DefId}, Data) ->
 
     AtkObj = map:get_obj(AtkId), 
     DefObj = map:get_obj(DefId), 
+    BattleId = create_battle(AtkObj, DefObj),
 
-    create_battle(AtkObj, DefObj),
+    %Set state to combat
     set_combat_state([AtkObj, DefObj]),
 
     lager:info("AtkId: ~p, DefId: ~p", [AtkId, DefId]),
-    AtkUnits = unit:get_units(AtkId),
-    DefUnits = unit:get_units(DefId),
+    AtkUnits = unit:get_units_and_stats(AtkId),
+    DefUnits = unit:get_units_and_stats(DefId),
 
     BattlePerception = AtkUnits ++ DefUnits,
     lager:info("BattlePerception: ~p", [BattlePerception]),
@@ -58,14 +59,14 @@ handle_cast({create, AtkId, DefId}, Data) ->
     send_perception([{AtkObj#map_obj.player, BattlePerception}, 
                      {DefObj#map_obj.player, BattlePerception}]),
 
-    add_battle_units(BattlePerception),
+    add_battle_units(BattleId, BattlePerception),
 
     {noreply, Data};
 
-handle_cast({active_turn, UnitId}, Data) ->
+handle_cast({active_turn, BattleId, UnitId}, Data) ->
     
     Action = db:read(action, UnitId),
-    process_action(Action),
+    process_action(BattleId, Action),
 
     {noreply, Data};
 
@@ -110,11 +111,17 @@ terminate(_Reason, _) ->
 
 create_battle(AtkObj, DefObj) ->
     Id = counter:increment(battle),
-    Battle = #battle {id = Id,
-                      attacker = {AtkObj#map_obj.player, AtkObj#map_obj.id},
-                      defender = {DefObj#map_obj.player, DefObj#map_obj.id}},
+    
+    Battle1 = #battle {id = Id,
+                       player = AtkObj#map_obj.player,
+                       obj =  AtkObj#map_obj.id},
+    db:write(Battle1),
 
-    db:write(Battle),
+    Battle2 = #battle {id = Id,
+                       player = DefObj#map_obj.player,
+                       obj =  DefObj#map_obj.id},
+    db:write(Battle2),
+
     Id.
 
 set_combat_state([]) ->
@@ -129,29 +136,23 @@ send_perception([]) ->
 
 send_perception([{PlayerId, NewPerception} | Players]) ->
     [Conn] = db:dirty_read(connection, PlayerId),
-    send_to_process(Conn#connection.process, NewPerception),
+    send_to_process(Conn#connection.process, battle_perception, NewPerception),
     send_perception(Players).
 
-send_to_process(Process, NewPerception) when is_pid(Process) ->
-    lager:debug("Sending ~p to ~p", [NewPerception, Process]),
-    Process ! {battle_perception, NewPerception};
-send_to_process(_Process, _NewPerception) ->
-    none.
-
-process_action([Action]) ->
+process_action(BattleId, [Action]) ->
 
     case Action#action.type of
         attack ->
-            process_attack(Action);
+            process_attack(BattleId, Action);
         _ ->
             lager:info("Unknown action type: ~p", [Action#action.type]) 
     end;
 
-process_action(_Action) ->
+process_action(_Battle, _Action) ->
     %lager:info("No action defined.").
     none.
 
-process_attack(Action) ->
+process_attack(BattleId, Action) ->
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
@@ -161,7 +162,23 @@ process_attack(Action) ->
     is_attack_valid(SourceId, AtkUnit),
     is_attack_valid(SourceId, DefUnit),
 
-    calc_attack(AtkUnit, DefUnit).
+    Dmg = calc_attack(AtkUnit, DefUnit),
+
+    broadcast_dmg(BattleId, SourceId, TargetId, Dmg).
+
+broadcast_dmg(BattleId, SourceId, TargetId, Dmg) ->
+    BattleObjs = db:read(battle, BattleId), 
+
+    F = fun(BattleObj) ->
+                Message = #{<<"battle">> => BattleId, 
+                            <<"sourceid">> => SourceId,
+                            <<"targetid">> => TargetId,
+                            <<"dmg">> => Dmg},
+                [Conn] = db:dirty_read(connection, BattleObj#battle.player),
+                send_to_process(Conn#connection.process, battle, Message)
+        end,
+
+    lists:foreach(F, BattleObjs).
 
 is_attack_valid(SourceId, false) ->
     %Invalid unit, remove action
@@ -179,9 +196,11 @@ calc_attack(_AtkUnit, false) ->
 calc_attack(AtkUnit, DefUnit) ->
     {DmgBase} = bson:lookup(base_dmg, AtkUnit),
     {DmgRange} = bson:lookup(dmg_range, AtkUnit),
+
+    {DefId} = bson:lookup('_id', DefUnit),
+    {DefObjId} = bson:lookup(obj_id, DefUnit),
     {DefArmor} = bson:lookup(base_def, DefUnit),
     {DefHp} = bson:lookup(hp, DefUnit),
-    {DefId} = bson:lookup('_id', DefUnit),
 
     DmgRoll = random:uniform(DmgRange) + DmgBase,
     
@@ -189,35 +208,49 @@ calc_attack(AtkUnit, DefUnit) ->
 
     Dmg = round(DmgRoll * (1 - DmgReduction)),
     NewHp = DefHp - Dmg,
-    lager:info("NewHp: ~p", [NewHp]),
 
-    set_new_hp(DefId, NewHp).
+    %Set new hp
+    set_new_hp(DefId, DefObjId, NewHp),
 
-set_new_hp(DefId, NewHp) when NewHp > 0 ->
+    Dmg.
+
+set_new_hp(DefId, _DefObjId, NewHp) when NewHp > 0 ->
     mdb:update(<<"unit">>, DefId, {hp, NewHp});
 
-set_new_hp(DefId, _NewHp) ->
+set_new_hp(DefId, DefObjId, _NewHp) ->
     lager:info("Unit ~p died.", [DefId]),
     
     %Remove battle unit and unit
     db:delete(battle_unit, DefId),
-    mdb:delete(<<"unit">>, DefId),
+    unit:delete(DefId),
 
-    obj:unit_removed(DefId).
-    
+    Units = unit:get_units(DefObjId),
+    set_dead_state(DefObjId, Units).
 
+set_dead_state(DefObjId, []) ->
+    lager:info("Obj contains zero units, setting state to dead"),
+    map:update_obj_state(DefObjId, dead);
+set_dead_state(_DefObjId, Units) ->
+    lager:info("Obj contains units: ~p", [Units]).
 
-add_battle_units([]) ->
+add_battle_units(_BattleId, []) ->
     lager:info("Done adding battle units");
 
-add_battle_units([Unit | Rest]) ->
+add_battle_units(BattleId, [Unit | Rest]) ->
     lager:info("Adding battle_unit: ~p", [Unit]),
     {Id} = bson:lookup('_id', Unit), 
     {Speed} = bson:lookup(base_speed, Unit),
 
     BattleUnit = #battle_unit {unit_id = Id,
-                               speed = Speed},
+                               speed = Speed,
+                               battle = BattleId},
 
     db:write(BattleUnit),
 
-    add_battle_units(Rest).
+    add_battle_units(BattleId, Rest).
+
+send_to_process(Process, MessageType, Message) when is_pid(Process) ->
+    lager:debug("Sending ~p to ~p", [Message, Process]),
+    Process ! {MessageType, Message};
+send_to_process(_Process, _MessageType, _Message) ->
+    none.
