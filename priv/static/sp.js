@@ -1,7 +1,13 @@
 var websocket;
+var stage_map;
+var stage_battle;
+var canvas_map;
+var canvas_battle;
+
 
 var explored = {};
 var objs = {};
+var units = {};
 var playerId;
 var playerPos;
 
@@ -13,6 +19,9 @@ var shroud = new Image();
 
 var obj1 = new Image();
 var obj2 = new Image();
+
+var unit1;
+var unit2;
 
 tile0.src = "/static/green.png";
 tile1.src = "/static/basic-tile.png";
@@ -27,19 +36,28 @@ $(document).ready(init);
 
 function init() {
   
-  $("#map").hide();
-  $("#navigation").hide();
+    $("#map").hide();
+    $("#battle").hide();
+    $("#navigation").hide();
 
-  $('#server').val("ws://" + window.location.host + "/websocket");
-  if(!("WebSocket" in window)){  
-      $('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
-      $("#ui").hide();  
-  } else {
-      $('#status').append('<p><span style="color: green;">websockets are supported </span></p>');
-      connect();
-  };
-      $("#connected").hide(); 	
-      $("#content").hide(); 	
+    canvas_battle = document.getElementById("battle");
+    stage_battle = new createjs.Stage(canvas_battle);
+    stage_battle.autoClear = true;
+    
+    createjs.Ticker.setFPS(60);
+    createjs.Ticker.addEventListener("tick", stage_battle);
+
+    $('#server').val("ws://" + window.location.host + "/websocket");
+    if(!("WebSocket" in window)){  
+        $('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
+        $("#ui").hide();  
+    } else {
+        $('#status').append('<p><span style="color: green;">websockets are supported </span></p>');
+        connect();
+    }
+    
+    $("#connected").hide(); 	
+    $("#content").hide(); 	
 };
 
 function connect()
@@ -167,10 +185,19 @@ function onMessage(evt) {
         objs = jsonData.objs; 
     }
 
+    if(jsonData.hasOwnProperty("units")) {
+        $("#battle").fadeIn('slow');
+        units = jsonData.units; 
+        drawUnits();
+    }
+
+    if(jsonData.hasOwnProperty("battle")) {
+        drawDmg(jsonData.dmg);
+    }
+
     setPlayerPos();
 
     drawMap();
-
     drawObjs();
 
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
@@ -269,6 +296,33 @@ function drawObjs() {
     }
 };
 
+function drawUnits() {
+
+    for(i = 0; i < units.length; i++) {
+        
+        var obj = getObj(units[i].obj_id);
+        console.log("Unit obj.player: " + obj.player);
+        if(obj.player == playerId) {
+            unit1 = new createjs.Bitmap(obj1);
+            unit1.x = 25;
+            unit1.y = 200;
+            stage_battle.addChild(unit1);
+        }
+        else {
+            unit2 = new createjs.Bitmap(obj2);
+            unit2.x = 425;
+            unit2.y = 200;
+            stage_battle.addChild(unit2);
+        }
+        
+    }
+};
+
+function drawDmg() {
+    console.log("stage_battle numChildren: " + stage_battle.numChildren);
+    createjs.Tween.get(unit1).to({x: 425}, 1000, createjs.Ease.getPowInOut(4)).to({x: 25}, 1000, createjs.Ease.getPowInOut(2));
+};
+
 function isNeighbour(q, r, neighbours) {
     var i;
 
@@ -338,5 +392,13 @@ function getObjByPlayer(playerId) {
         if(objs[i].player == playerId) {
             return objs[i];
         }
+    }
+};
+
+function getObj(objId) {
+    for(var i = 0; i < objs.length; i++) {
+        if(objs[i].id == objId) {
+            return objs[i];
+        } 
     }
 };

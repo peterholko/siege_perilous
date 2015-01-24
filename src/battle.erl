@@ -263,7 +263,7 @@ add_battle_units(BattleId, [Unit | Rest]) ->
     add_battle_units(BattleId, Rest).
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
-    lager:debug("Sending ~p to ~p", [Message, Process]),
+    lager:info("Sending ~p to ~p", [Message, Process]),
     Process ! {MessageType, Message};
 send_to_process(_Process, _MessageType, _Message) ->
     none.
