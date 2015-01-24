@@ -5,19 +5,39 @@
 
 -include("schema.hrl").
 
--export([get_obj/1, create/5]).
+-export([get_obj/1, create/3, create/5]).
 
 get_obj(Id) ->
     Obj = find(Id),
     Obj.
 
-create(Player, Pos, Type, State, Units) ->
-    lager:info("create_obj"),
+create(Player, Pos, Type) ->
+    lager:info("Create: ~p ~p ~p", [Player, Pos, Type]),
+    Id = insert(Player),
 
-    Id = insert(Player, Units),
+    map:create_obj(Id, Player, Pos, Type, none),
+
+    perception:recalculate(),
+
+    %Return ID
+    Id.
+
+create(Player, Pos, Type, State, Units) ->
+    lager:info("Create: ~p ~p ~p ~p", [Player, Pos, Type, Units]),
+
+    %Insert obj
+    Id = insert(Player),
+
+    %Insert units
+    insert_units(Id, Units),
+
+    %Create map obj
     map:create_obj(Id, Player, Pos, Type, State),
 
-    perception:recalculate().
+    perception:recalculate(),
+
+    %Return ID
+    Id.
 
 %%% Internal only 
 
@@ -27,14 +47,10 @@ find(Id) ->
     mc_cursor:close(Cursor),
     Obj.
 
-insert(Player, Units) ->
+insert(Player) ->
     Obj = {player, Player},
     [NewObj] = mongo:insert(mdb:get_conn(), <<"obj">>, [Obj]),
     {ObjId} = bson:lookup('_id', NewObj),
-
-    %Insert units
-    insert_units(ObjId, Units),
-
     ObjId.
 
 insert_units(_ObjId, []) ->

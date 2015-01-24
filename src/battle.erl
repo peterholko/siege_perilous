@@ -110,7 +110,9 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 
 create_battle(AtkObj, DefObj) ->
-    Id = counter:increment(battle),
+
+    %Id =  obj:create(0, AtkObj#map_obj.pos, battle),
+    Id = 1,
     
     Battle1 = #battle {id = Id,
                        player = AtkObj#map_obj.player,
@@ -162,7 +164,7 @@ process_attack(BattleId, Action) ->
     is_attack_valid(SourceId, AtkUnit),
     is_attack_valid(SourceId, DefUnit),
 
-    Dmg = calc_attack(AtkUnit, DefUnit),
+    Dmg = calc_attack(BattleId, AtkUnit, DefUnit),
 
     broadcast_dmg(BattleId, SourceId, TargetId, Dmg).
 
@@ -187,13 +189,14 @@ is_attack_valid(SourceId, false) ->
 is_attack_valid(_SourceId, _Unit) ->
     valid.
 
-calc_attack(false, _DefUnit) ->
+calc_attack(_BattleId, false, _DefUnit) ->
     lager:info("Source no longer available");
 
-calc_attack(_AtkUnit, false) ->
+calc_attack(_BattleId, _AtkUnit, false) ->
     lager:info("Target no longer avalalble");
 
-calc_attack(AtkUnit, DefUnit) ->
+calc_attack(BattleId, AtkUnit, DefUnit) ->
+    {AtkObjId} = bson:lookup(obj_id, AtkUnit),
     {DmgBase} = bson:lookup(base_dmg, AtkUnit),
     {DmgRange} = bson:lookup(dmg_range, AtkUnit),
 
@@ -210,19 +213,22 @@ calc_attack(AtkUnit, DefUnit) ->
     NewHp = DefHp - Dmg,
 
     %Set new hp
-    set_new_hp(DefId, DefObjId, NewHp),
+    set_new_hp(AtkObjId, DefId, DefObjId, NewHp),
 
     Dmg.
 
-set_new_hp(DefId, _DefObjId, NewHp) when NewHp > 0 ->
+set_new_hp(_BattleId, DefId, _DefObjId, NewHp) when NewHp > 0 ->
     mdb:update(<<"unit">>, DefId, {hp, NewHp});
 
-set_new_hp(DefId, DefObjId, _NewHp) ->
+set_new_hp(BattleId, DefId, DefObjId, _NewHp) ->
     lager:info("Unit ~p died.", [DefId]),
     
+    Items = item:get_by_owner(DefId),
+    drop_items(BattleId, Items),
+
     %Remove battle unit and unit
     db:delete(battle_unit, DefId),
-    unit:delete(DefId),
+    unit:killed(DefId),
 
     Units = unit:get_units(DefObjId),
     set_dead_state(DefObjId, Units).
@@ -232,6 +238,13 @@ set_dead_state(DefObjId, []) ->
     map:update_obj_state(DefObjId, dead);
 set_dead_state(_DefObjId, Units) ->
     lager:info("Obj contains units: ~p", [Units]).
+
+drop_items(_BattleId, []) ->
+    lager:info("Completed dropping items");
+drop_items(BattleId, [Item | Rest]) ->
+    item:transfer(Item, BattleId),
+
+    drop_items(BattleId, Rest).
 
 add_battle_units(_BattleId, []) ->
     lager:info("Done adding battle units");

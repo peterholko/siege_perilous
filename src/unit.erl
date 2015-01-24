@@ -6,7 +6,7 @@
 -include("schema.hrl").
 
 -export([get/1, get_type/1, get_stats/1, get_units/1, get_units_and_stats/1]).
--export([create/3, delete/1]).
+-export([create/3, killed/1]).
 
 get(Id) ->
     Unit = find(Id),
@@ -37,7 +37,7 @@ create(ObjId, TypeName, Size) ->
     {UnitType} = find_type_by_name(TypeName),
     insert(ObjId, UnitType, Size).
 
-delete(UnitId) ->
+killed(UnitId) ->
     mdb:delete(<<"unit">>, UnitId).
 
 %%Internal function
@@ -80,5 +80,6 @@ stats(Unit) ->
     {UnitTypeId} = bson:lookup(type, Unit),
     [UnitType] = find_type(UnitTypeId),
     bson:merge(Unit, UnitType).
+
 
 
