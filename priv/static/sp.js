@@ -4,12 +4,12 @@ var stage_battle;
 var canvas_map;
 var canvas_battle;
 
-
 var explored = {};
 var objs = {};
 var units = {};
 var playerId;
 var playerPos;
+var selectedUnit;
 
 var tile0 = new Image();
 var tile1 = new Image();
@@ -187,8 +187,7 @@ function onMessage(evt) {
 
     if(jsonData.hasOwnProperty("units")) {
         $("#battle").fadeIn('slow');
-        units = jsonData.units; 
-        drawUnits();
+        drawUnits(jsonData.units);
     }
 
     if(jsonData.hasOwnProperty("battle")) {
@@ -296,22 +295,30 @@ function drawObjs() {
     }
 };
 
-function drawUnits() {
+function drawUnits(unit_data) {
 
-    for(i = 0; i < units.length; i++) {
+    for(i = 0; i < unit_data.length; i++) {
         
-        var obj = getObj(units[i].obj_id);
+        var obj = getObj(unit_data[i].obj_id);
         console.log("Unit obj.player: " + obj.player);
+
         if(obj.player == playerId) {
             unit1 = new createjs.Bitmap(obj1);
             unit1.x = 25;
             unit1.y = 200;
+            unit1.on("mousedown", function(evt) {
+                selectedUnit = unit_data[0]._id;    
+            });
             stage_battle.addChild(unit1);
         }
         else {
             unit2 = new createjs.Bitmap(obj2);
             unit2.x = 425;
             unit2.y = 200;
+            unit2.on("mousedown", function(evt) {
+                var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + unit_data[1]._id + '"}';
+                websocket.send(attack_unit);
+            });
             stage_battle.addChild(unit2);
         }
         

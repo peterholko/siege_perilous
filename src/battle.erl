@@ -164,9 +164,7 @@ process_attack(BattleId, Action) ->
     is_attack_valid(SourceId, AtkUnit),
     is_attack_valid(SourceId, DefUnit),
 
-    Dmg = calc_attack(BattleId, AtkUnit, DefUnit),
-
-    broadcast_dmg(BattleId, SourceId, TargetId, Dmg).
+    process_dmg(BattleId, AtkUnit, DefUnit).
 
 broadcast_dmg(BattleId, SourceId, TargetId, Dmg) ->
     BattleObjs = db:read(battle, BattleId), 
@@ -189,13 +187,14 @@ is_attack_valid(SourceId, false) ->
 is_attack_valid(_SourceId, _Unit) ->
     valid.
 
-calc_attack(_BattleId, false, _DefUnit) ->
+process_dmg(_BattleId, false, _DefUnit) ->
     lager:info("Source no longer available");
 
-calc_attack(_BattleId, _AtkUnit, false) ->
+process_dmg(_BattleId, _AtkUnit, false) ->
     lager:info("Target no longer avalalble");
 
-calc_attack(BattleId, AtkUnit, DefUnit) ->
+process_dmg(BattleId, AtkUnit, DefUnit) ->
+    {AtkId} = bson:lookup('_id', AtkUnit),
     {AtkObjId} = bson:lookup(obj_id, AtkUnit),
     {DmgBase} = bson:lookup(base_dmg, AtkUnit),
     {DmgRange} = bson:lookup(dmg_range, AtkUnit),
@@ -212,39 +211,61 @@ calc_attack(BattleId, AtkUnit, DefUnit) ->
     Dmg = round(DmgRoll * (1 - DmgReduction)),
     NewHp = DefHp - Dmg,
 
-    %Set new hp
-    set_new_hp(AtkObjId, DefId, DefObjId, NewHp),
+    case is_unit_dead(NewHp) of
+        alive ->
+            update_hp(DefId, NewHp);
+        dead ->
+            process_unit_dead(BattleId, AtkObjId, DefObjId, DefId)
+    end,    
 
-    Dmg.
+    broadcast_dmg(BattleId, AtkId, DefId, Dmg).
 
-set_new_hp(_BattleId, DefId, _DefObjId, NewHp) when NewHp > 0 ->
-    mdb:update(<<"unit">>, DefId, {hp, NewHp});
+is_unit_dead(Hp) when Hp =< 0 ->
+    dead;
+is_unit_dead(_Hp) ->
+    alive.
 
-set_new_hp(BattleId, DefId, DefObjId, _NewHp) ->
+is_army_dead([]) ->
+    dead;
+is_army_dead(_Units) ->
+    alive.
+
+update_hp(DefId, NewHp) ->
+    mdb:update(<<"unit">>, DefId, {hp, NewHp}).
+
+process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
     lager:info("Unit ~p died.", [DefId]),
     
-    Items = item:get_by_owner(DefId),
-    drop_items(BattleId, Items),
+    %Transfer items 
+    transfer_items(AtkObjId, item:get_by_owner(DefId)),
 
-    %Remove battle unit and unit
-    db:delete(battle_unit, DefId),
+    %Remove unit from collection
     unit:killed(DefId),
 
-    Units = unit:get_units(DefObjId),
-    set_dead_state(DefObjId, Units).
+    %Remove unit from battle
+    db:delete(battle_unit, DefId),
 
-set_dead_state(DefObjId, []) ->
-    lager:info("Obj contains zero units, setting state to dead"),
-    map:update_obj_state(DefObjId, dead);
-set_dead_state(_DefObjId, Units) ->
-    lager:info("Obj contains units: ~p", [Units]).
+    case is_army_dead(unit:get_units(DefObjId)) of
+        dead ->
+            %Transfer any army items
+            transfer_items(AtkObjId, item:get_by_owner(DefObjId)),
 
-drop_items(_BattleId, []) ->
-    lager:info("Completed dropping items");
-drop_items(BattleId, [Item | Rest]) ->
-    item:transfer(Item, BattleId),
+            %Update map obj state of attacker and defender
+            map:update_obj_state(AtkObjId, none),
+            map:update_obj_state(DefObjId, dead),
 
-    drop_items(BattleId, Rest).
+            %Remove battle unit and battle entries
+            db:delete(battle, BattleId),
+            delete_battle_units(BattleId);
+        alive ->
+            none
+    end.
+
+transfer_items(_TargetId, []) ->
+    lager:info("Transferring items completed.");
+transfer_items(TargetId, [Item | Rest]) ->
+    item:transfer(Item, TargetId),
+    transfer_items(TargetId, Rest).
 
 add_battle_units(_BattleId, []) ->
     lager:info("Done adding battle units");
@@ -261,6 +282,15 @@ add_battle_units(BattleId, [Unit | Rest]) ->
     db:write(BattleUnit),
 
     add_battle_units(BattleId, Rest).
+
+delete_battle_units(BattleId) ->
+    BattleUnits = db:index_read(battle_unit, BattleId, #battle_unit.battle),
+    
+    F = fun(BattleUnit) ->
+            db:delete(BattleUnit#battle_unit.unit_id)
+        end,
+
+    lists:foreach(F, BattleUnits).
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:info("Sending ~p to ~p", [Message, Process]),
