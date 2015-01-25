@@ -287,7 +287,7 @@ delete_battle_units(BattleId) ->
     BattleUnits = db:index_read(battle_unit, BattleId, #battle_unit.battle),
     
     F = fun(BattleUnit) ->
-            db:delete(BattleUnit#battle_unit.unit_id)
+            db:delete(battle_unit, BattleUnit#battle_unit.unit_id)
         end,
 
     lists:foreach(F, BattleUnits).

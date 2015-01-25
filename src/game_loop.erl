@@ -115,7 +115,7 @@ update_charge_times([BattleUnit | Rest]) ->
     UnitId = BattleUnit#battle_unit.unit_id,
     Speed = BattleUnit#battle_unit.speed,
     Battle = BattleUnit#battle_unit.battle,
-
+    
     NewChargeTime = charge_time:increment(UnitId, Speed),
     ActiveTurn = is_active_turn(NewChargeTime),
     process_active_turn(ActiveTurn, UnitId, Battle),
