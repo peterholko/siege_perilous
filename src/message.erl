@@ -49,8 +49,9 @@ message_handle(<<"info">>, Message) ->
     lager:info("message: info"),
     HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
+    Type = map_get(<<"type">>, Message),
 
-    Fields = jsx:encode(mdb:to_maps(player:get_info(BinId))),
+    Fields = jsx:encode(mdb:to_map(player:get_info(BinId, Type))),
     lager:info("Fields: ~p", [Fields]),
     Fields;
 

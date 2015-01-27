@@ -7,7 +7,7 @@
 -include("common.hrl").
 
 -export([init_perception/1, 
-         get_info/1,
+         get_info/2,
          move_obj/2,
          attack_obj/2,
          attack_unit/2]).
@@ -26,14 +26,21 @@ init_perception(PlayerId) ->
 
     {PlayerId, Explored, Objs}.
 
-get_info(Id) ->
-    %Must have { } tuple around Id, mongo convention
-    BinId = util:hex_to_bin(binary_to_list(Id)),
+get_info(Id, Type) ->
 
-    Cursor = mongo:find(mdb:get_conn(), <<"obj">>, {'_id', {BinId}}),
-    Data = mc_cursor:rest(Cursor),
+    Player = get(player_id),
+
+    Data = case Type of
+               <<"obj">> ->
+                   obj:get_info(Player, Id);
+               <<"unit">> ->
+                   unit:get_info(Id);
+               _ ->
+                   lager:info("Unrecognized info type"),
+                   none
+           end,
+
     lager:info("Data: ~p", [Data]),
-    mc_cursor:close(Cursor),
     Data.
 
 move_obj(Id, Pos1D) ->

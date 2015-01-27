@@ -54,6 +54,7 @@ create_schema() ->
     mnesia:add_table_index(map_obj, type),
     mnesia:add_table_index(map_obj, player),
     mnesia:add_table_index(event, tick),
+    mnesia:add_table_index(battle_unit, battle),
 
     mnesia:stop().
 

@@ -5,11 +5,22 @@
 
 -include("schema.hrl").
 
--export([get_obj/1, create/3, create/5]).
+-export([get_obj/1, get_info/2, create/3, create/5]).
 
 get_obj(Id) ->
     Obj = find(Id),
     Obj.
+
+get_info(Requester, Id) ->
+    ObjInfo = case find(Id) of
+                  [Obj] ->
+                      {PlayerId} = bson:lookup(player, Obj),
+                      info(Requester == PlayerId, Obj);
+                  _ ->
+                      none
+              end,
+    lager:info("ObjInfo: ~p", [ObjInfo]),
+    ObjInfo.
 
 create(Player, Pos, Type) ->
     lager:info("Create: ~p ~p ~p", [Player, Pos, Type]),
@@ -46,6 +57,15 @@ find(Id) ->
     Obj = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Obj.
+
+
+info(_IsPlayers = false, Obj) ->
+    Obj;
+info(_IsPlayers = true, Obj) ->
+    {ObjId} = bson:lookup('_id', Obj),
+    Units = unit:get_units_and_stats(ObjId),
+    lager:info("Units: ~p", [Units]),
+    bson:update(units, Units, Obj).
 
 insert(Player) ->
     Obj = {player, Player},

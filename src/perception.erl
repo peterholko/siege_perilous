@@ -74,7 +74,10 @@ do_recalculate() ->
     erase(),
 
     %Get all entities
-    Entities = db:dirty_index_read(map_obj, entity, #map_obj.type),
+    AllEntities = db:dirty_index_read(map_obj, entity, #map_obj.type),
+
+    %Remove dead entities
+    Entities = remove_dead(AllEntities, []),
 
     %Calculate each player entity perception and store to process dict
     entity_perception(Entities),
@@ -87,6 +90,18 @@ do_recalculate() ->
 
     lager:debug("Players to update: ~p", [UpdatePlayers]),
     send_perception(UpdatePlayers).
+
+remove_dead([], Entities) ->
+    Entities;
+remove_dead([Entity | Rest] , Entities) ->
+
+    NewEntities = is_dead(Entities, Entity, Entity#map_obj.state),
+    remove_dead(Rest, NewEntities).
+
+is_dead(Entities, _Entity, dead) ->
+    Entities;
+is_dead(Entities, Entity, _State) ->
+    [Entity | Entities].
 
 entity_perception([]) ->
     done;
