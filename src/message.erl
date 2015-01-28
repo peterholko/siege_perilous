@@ -85,6 +85,16 @@ message_handle(<<"attack_unit">>, Message) ->
     player:attack_unit(SourceBinId, TargetBinId),
     <<"Attack unit added">>;
 
+message_handle(<<"harvest">>, Message) ->
+    lager:info("message: harvest"),
+
+    Id = map_get(<<"id">>, Message),
+    Resource = map_get(<<"resource">>, Message),
+   
+    player:harvest(Id, Resource),
+
+    <<"Harvest added">>; 
+
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 
     lager:info("~p: ~p~n", [Error, Message]),

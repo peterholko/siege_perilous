@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get/1, get_by_owner/1, transfer/2]).
+-export([get/1, get_by_owner/1, transfer/2, create/3]).
 
 get(Id) ->
     Item = find(Id),
@@ -18,6 +18,9 @@ get_by_owner(OwnerId) ->
 transfer(Item, TargetId) ->
     ItemId = bson:lookup('_id', Item),
     mdb:update(<<"item">>, ItemId, {owner, TargetId}).
+
+create(Owner, Type, Quantity) ->
+    mongo:insert(mdb:get_conn(), <<"item">>, {owner, Owner, type, Type, quantity, Quantity}).
 
 % Internal
 

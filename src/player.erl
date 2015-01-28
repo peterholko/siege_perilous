@@ -10,7 +10,8 @@
          get_info/2,
          move_obj/2,
          attack_obj/2,
-         attack_unit/2]).
+         attack_unit/2,
+         harvest/2]).
 
 init_perception(PlayerId) ->
 
@@ -65,6 +66,34 @@ move_obj(Id, Pos1D) ->
 
     add_move(Result, {Obj, NewPos}, NumTicks).
 
+attack_obj(SourceId, TargetId) ->
+    Player = get(player_id),
+    NumTicks = 8,
+
+    %TODO add validation
+    Result = true,
+
+    add_attack_obj_event(Result, {SourceId, TargetId}, NumTicks).
+  
+attack_unit(SourceId, TargetId) ->
+    battle:attack_unit(SourceId, TargetId).
+
+harvest(Id, Resource) ->
+
+    Obj = map:get_obj(Id).
+%
+%Internal functions
+%
+add_attack_obj_event(false, _EventData, _Ticks) ->
+    lager:info("Attack failed"),
+    none;
+add_attack_obj_event(true, {SourceId, TargetId}, NumTicks) ->
+
+    EventData = {SourceId,
+                 TargetId},
+
+    game:add_event(self(), attack_obj, EventData, NumTicks).
+
 add_move(false, _EventData, _Ticks) ->
     lager:info("Move failed"),
     none;
@@ -79,49 +108,8 @@ add_move(true, {Obj, NewPos}, NumTicks) ->
 
     game:add_event(self(), move_obj, EventData, NumTicks).
 
-attack_obj(SourceId, TargetId) ->
-    Player = get(player_id),
-    NumTicks = 8,
-
-    %TODO add validation
-    Result = true,
-
-    add_attack_obj_event(Result, {SourceId, TargetId}, NumTicks).
-  
-add_attack_obj_event(false, _EventData, _Ticks) ->
-    lager:info("Attack failed"),
-    none;
-add_attack_obj_event(true, {SourceId, TargetId}, NumTicks) ->
-
-    EventData = {SourceId,
-                 TargetId},
-
-    game:add_event(self(), attack_obj, EventData, NumTicks).
-
-attack_unit(SourceId, TargetId) ->
-    battle:attack_unit(SourceId, TargetId).
-
 get_armies(PlayerId) ->
     db:index_read(map_obj, PlayerId, #map_obj.player).
-
-get_visible_map([], VisibleMap) ->
-    VisibleMap;
-
-get_visible_map([Obj | Rest], VisibleMap) ->
-    lager:info("Obj: ~p", [Obj]),
-
-    {X, Y} = Obj#map_obj.pos,
-
-    [CurrentTile] = map:get_tile(X, Y),
-    Type = CurrentTile#tile.type,
-    Pos1D = map:convert_coords({X, Y}),
-
-    NeighbourTileIds = map:get_neighbours(X, Y),
-    Neighbours = map:get_tiles(NeighbourTileIds),
-
-    NewVisibleMap = Neighbours ++ VisibleMap ++ [{Pos1D, Type}],
-
-    get_visible_map(Rest, NewVisibleMap).
 
 get_visible_objs([], Objs) ->
     Objs;

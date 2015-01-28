@@ -126,7 +126,7 @@ doc_foldrN (_, Acc, _, Low, Low) -> Acc;
 doc_foldrN (Fun, Acc, Doc, Low, High) ->
     Acc1 = Fun (element (High * 2 - 1, Doc), element (High * 2, Doc), Acc),
     doc_foldrN (Fun, Acc1, Doc, Low, High - 1).
-  
+
 %  Convert bson document to a map and converts BSON id to hex id
 to_map([]) ->
     [];
@@ -142,7 +142,6 @@ to_map(Doc) -> doc_foldr (fun (Label, Value, List) ->
 convert_id(Value) when is_tuple(Value) ->
     convert_bin_id(Value);
 convert_id(ValueList) when is_list(ValueList) ->
-    lager:info("convert_id: ~p", [ValueList]),
 
     F = fun(V, Acc) ->
         FF = fun(Label, Val, List) -> 
