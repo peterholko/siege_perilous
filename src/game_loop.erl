@@ -99,6 +99,14 @@ do_event(attack_obj, EventData, _PlayerPid) ->
 
     true;
 
+do_event(harvest, EventData, _PlayerPid) ->
+    lager:info("Processing harvest event: ~p", [EventData]),
+
+    {Id, Resource} = EventData,
+    resource:harvest(Id, Resource),
+
+    false;
+
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.

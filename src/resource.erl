@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([harvest/3]).
+-export([harvest/2]).
 
-harvest(Obj, Pos, Type) ->
+harvest(Obj, Type) ->
     item:create(Obj, Type, 1).

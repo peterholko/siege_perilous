@@ -80,18 +80,31 @@ attack_unit(SourceId, TargetId) ->
 
 harvest(Id, Resource) ->
 
-    Obj = map:get_obj(Id).
+    Obj = map:get_obj(Id),
+    NumTicks = 40,
+    
+    %TODO add validation
+    Result = true,
+
+    add_harvest_event(Result, {Id, Resource}, NumTicks).
+    
 %
 %Internal functions
 %
+
+add_harvest_event(false, _EventData, _Ticks) ->
+    lager:info("Harvest failed"),
+    none;
+add_harvest_event(true, {Id, Resource}, NumTicks) ->
+    EventData = {Id, Resource},
+    game:add_event(self(), harvest, EventData, NumTicks).
+
 add_attack_obj_event(false, _EventData, _Ticks) ->
     lager:info("Attack failed"),
     none;
 add_attack_obj_event(true, {SourceId, TargetId}, NumTicks) ->
 
-    EventData = {SourceId,
-                 TargetId},
-
+    EventData = {SourceId, TargetId},
     game:add_event(self(), attack_obj, EventData, NumTicks).
 
 add_move(false, _EventData, _Ticks) ->
