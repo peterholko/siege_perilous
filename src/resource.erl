@@ -7,5 +7,9 @@
 
 -export([harvest/2]).
 
-harvest(Obj, Type) ->
-    item:create(Obj, Type, 1).
+has_resource(Pos, Type) ->
+    {X, Y} = Pos,
+    Tile = map:get_tile(X, Y).
+
+harvest(ObjId, Type) ->
+    item:create(ObjId, Type, 1).
