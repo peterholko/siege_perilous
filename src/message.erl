@@ -90,8 +90,9 @@ message_handle(<<"harvest">>, Message) ->
 
     Id = map_get(<<"id">>, Message),
     Resource = map_get(<<"resource">>, Message),
+    BinId = util:hex_to_bin(Id),
    
-    player:harvest(Id, Resource),
+    player:harvest(BinId, Resource),
 
     <<"Harvest added">>; 
 
@@ -108,6 +109,10 @@ prepare(map_perception, Message) ->
 prepare(battle_perception, Message) ->
     BattlePerception = battle_perception(Message, []),
     [{<<"units">>, BattlePerception}];
+
+prepare(item_perception, Message) ->
+    ItemPerception = item_perception(Message, []),
+    [{<<"items">>, ItemPerception}]; 
 
 prepare(battle, Message) ->
     SourceId = maps:get(<<"sourceid">>, Message),
@@ -130,7 +135,6 @@ json_decode(Data) ->
 convert_id([], ConvertedIds) ->
     ConvertedIds;
 convert_id([Obj | Rest], ConvertedIds) ->
-    
     BinId = maps:get(<<"id">>, Obj),
     HexId = util:bin_to_hex(BinId),
     NewObj = maps:update(<<"id">>, HexId, Obj),
@@ -140,7 +144,13 @@ convert_id([Obj | Rest], ConvertedIds) ->
 
 battle_perception([], NewPerception) ->
     NewPerception;
-
 battle_perception([Unit | Rest], NewPerception) ->
     NewUnit = mdb:to_map(Unit),
     battle_perception(Rest, [NewUnit | NewPerception]).
+
+item_perception([], ItemPerception) ->
+    ItemPerception;
+item_perception([Item | Rest] , ItemPerception) ->
+    NewItem = mdb:to_map(Item),
+    item_perception(Rest, [NewItem | ItemPerception]).
+

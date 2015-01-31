@@ -79,12 +79,15 @@ attack_unit(SourceId, TargetId) ->
     battle:attack_unit(SourceId, TargetId).
 
 harvest(Id, Resource) ->
-
+    Player = get(player_id),
     Obj = map:get_obj(Id),
     NumTicks = 40,
-    
-    %TODO add validation
-    Result = true,
+
+    ValidState = is_valid_state(Obj#map_obj.state),
+    ValidPlayer = is_player_owned(Obj#map_obj.player, Player),
+    ValidResource = resource:contains(Resource, Obj#map_obj.pos),
+
+    Result = ValidState and ValidPlayer and ValidResource,
 
     add_harvest_event(Result, {Id, Resource}, NumTicks).
     
@@ -95,8 +98,11 @@ harvest(Id, Resource) ->
 add_harvest_event(false, _EventData, _Ticks) ->
     lager:info("Harvest failed"),
     none;
-add_harvest_event(true, {Id, Resource}, NumTicks) ->
-    EventData = {Id, Resource},
+add_harvest_event(true, {ObjId, Resource}, NumTicks) ->
+    %Update obj state
+    map:update_obj_state(ObjId, harvesting),
+
+    EventData = {ObjId, Resource},
     game:add_event(self(), harvest, EventData, NumTicks).
 
 add_attack_obj_event(false, _EventData, _Ticks) ->

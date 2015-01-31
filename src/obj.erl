@@ -64,8 +64,10 @@ info(_IsPlayers = false, Obj) ->
 info(_IsPlayers = true, Obj) ->
     {ObjId} = bson:lookup('_id', Obj),
     Units = unit:get_units_and_stats(ObjId),
-    lager:info("Units: ~p", [Units]),
-    bson:update(units, Units, Obj).
+    Items = item:get_by_owner(ObjId),
+    ObjUnits = bson:update(units, Units, Obj),
+    ObjUnitsItems = bson:update(items, Items, ObjUnits),
+    ObjUnitsItems.
 
 insert(Player) ->
     Obj = {player, Player},

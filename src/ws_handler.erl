@@ -19,11 +19,14 @@ websocket_handle(_Data, Req, State) ->
 
 websocket_info({battle_perception, Message}, Req, State) ->
     PrepMessage = message:prepare(battle_perception, Message),
-    lager:info("PrepMessage: ~p", [PrepMessage]),
     Encoded = jsx:encode(PrepMessage),
 	{reply, {text, Encoded}, Req, State};
 websocket_info({map_perception, Message}, Req, State) ->
     PrepMessage = message:prepare(map_perception, Message),
+    Encoded = jsx:encode(PrepMessage),
+	{reply, {text, Encoded}, Req, State};
+websocket_info({item_perception, Message}, Req, State) ->
+    PrepMessage = message:prepare(item_perception, Message),
     Encoded = jsx:encode(PrepMessage),
 	{reply, {text, Encoded}, Req, State};
 websocket_info({battle, Message}, Req, State) ->

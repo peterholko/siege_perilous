@@ -14,6 +14,9 @@
 -record(tile, {pos,
                type}).
 
+-record(resource, {resource_type,
+                   tile_type}).
+
 -record(map_obj, {id, 
                   pos,
                   player,

@@ -3,13 +3,21 @@
 %% Description: Resource module
 -module(resource).
 
+-include("common.hrl").
 -include("schema.hrl").
 
--export([harvest/2]).
+-export([harvest/2, contains/2]).
 
-has_resource(Pos, Type) ->
-    {X, Y} = Pos,
-    Tile = map:get_tile(X, Y).
+harvest(ObjId, ResourceType) ->
+    item:create(ObjId, ResourceType, 1).
 
-harvest(ObjId, Type) ->
-    item:create(ObjId, Type, 1).
+contains(ResourceType, Pos) ->
+    [Tile] = map:get_tile(Pos),
+    TileType = Tile#tile.type,
+    
+    Resources = db:dirty_read(resource, ResourceType),
+    lists:keymember(TileType, #resource.tile_type, Resources).
+%
+% Internal functions
+%
+

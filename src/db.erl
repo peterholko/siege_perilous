@@ -46,6 +46,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(battle_unit, [{disc_copies, [node()]}, {attributes, record_info(fields, battle_unit)}]),    
     {atomic, ok} = mnesia:create_table(charge_time, [{disc_copies, [node()]}, {attributes, record_info(fields, charge_time)}]),    
     {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
+    {atomic, ok} = mnesia:create_table(resource, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, resource)}]),    
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
@@ -146,7 +147,9 @@ test_tables() ->
      {tile, {3,3}, 2},
      {explored_map, 1, [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}]},
      {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, 1, entity, none},
-     {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, none}
+     {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, none},
+     {resource, <<"Copper Ore">>, ?MOUNTAINS},
+     {resource, <<"Copper Ore">>, ?HILLS}
     ].
 
 reset_tables() ->

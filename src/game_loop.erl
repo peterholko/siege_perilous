@@ -99,12 +99,19 @@ do_event(attack_obj, EventData, _PlayerPid) ->
 
     true;
 
-do_event(harvest, EventData, _PlayerPid) ->
+do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
+    {ObjId, Resource} = EventData,
 
-    {Id, Resource} = EventData,
-    resource:harvest(Id, Resource),
+    %Update obj state
+    map:update_obj_state(ObjId, none),
 
+    %Create/update item
+    resource:harvest(ObjId, Resource),
+
+    %Send item perception to player pid
+    send_to_process(PlayerPid, item_perception, item:get_by_owner(ObjId)), 
+    
     false;
 
 do_event(_Unknown, _Data, _Pid) ->
@@ -141,3 +148,7 @@ process_active_turn(true, UnitId, Battle) ->
     battle:active_turn(Battle, UnitId);
 process_active_turn(false, _UnitId, _Battle) ->
     none. 
+
+send_to_process(Process, MessageType, Message) when is_pid(Process) ->
+    lager:info("Sending ~p to ~p", [Message, Process]),
+    Process ! {MessageType, Message}.
