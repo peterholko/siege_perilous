@@ -112,7 +112,7 @@ terminate(_Reason, _) ->
 create_battle(AtkObj, DefObj) ->
 
     %Id =  obj:create(0, AtkObj#map_obj.pos, battle),
-    Id = 1,
+    Id = counter:increment(battle),
     
     Battle1 = #battle {id = Id,
                        player = AtkObj#map_obj.player,
@@ -236,8 +236,8 @@ update_hp(DefId, NewHp) ->
 process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
     lager:info("Unit ~p died.", [DefId]),
     
-    %Transfer items 
-    transfer_items(AtkObjId, item:get_by_owner(DefId)),
+    %Transfer items to the battle
+    transfer_items(BattleId, item:get_by_owner(DefId)),
 
     %Remove unit from collection
     unit:killed(DefId),
@@ -247,12 +247,19 @@ process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
 
     case is_army_dead(unit:get_units(DefObjId)) of
         dead ->
-            %Transfer any army items
+            %Transfer any defender army items to attacker and battle items
             transfer_items(AtkObjId, item:get_by_owner(DefObjId)),
+            transfer_items(AtkObjId, item:get_by_owner(BattleId)),
+
+            %Send item perception
+            send_item_perception(BattleId, AtkObjId),
 
             %Update map obj state of attacker and defender
             map:update_obj_state(AtkObjId, none),
             map:update_obj_state(DefObjId, dead),
+
+            %Reprocess perception
+            game:set_perception(true),
 
             %Remove battle unit and battle entries
             db:delete(battle, BattleId),
@@ -266,6 +273,14 @@ transfer_items(_TargetId, []) ->
 transfer_items(TargetId, [Item | Rest]) ->
     item:transfer(Item, TargetId),
     transfer_items(TargetId, Rest).
+
+send_item_perception(BattleId, ObjId) ->
+    Battles = db:read(battle, BattleId),
+    Battle = lists:keyfind(ObjId, #battle.obj, Battles),
+    [Conn] = db:read(connection, Battle#battle.player),
+    PlayerPid = Conn#connection.process,
+
+    send_to_process(PlayerPid, item_perception, item:get_by_owner(ObjId)).
 
 add_battle_units(_BattleId, []) ->
     lager:info("Done adding battle units");

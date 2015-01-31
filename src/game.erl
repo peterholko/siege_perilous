@@ -14,11 +14,14 @@
 %%
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([add_event/4]).
+-export([add_event/4, set_perception/1, get_perception/0]).
 
 %%
 %% API Functions
 %%
+
+start() ->
+    gen_server:start({global, game_pid}, game, [], []).
 
 add_event(PlayerProcess, EventType, EventData, EventTick) ->
     [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
@@ -31,22 +34,32 @@ add_event(PlayerProcess, EventType, EventData, EventTick) ->
 
     db:write(Event).
 
-start() ->
-    gen_server:start({global, game_pid}, game, [], []).
+set_perception(State) ->
+    gen_server:cast({global, game_pid}, {set_perception, State}).
+
+get_perception() ->
+    gen_server:call({global, game_pid}, get_perception).
+
+%% ====================================================================
+%% %% Server functions
+%% ====================================================================
+
 
 init([]) ->    
-    {ok, []}.
+    Perception = false,
+    {ok, Perception}.
 
 terminate(_Reason, _) ->
     ok.
 
+handle_cast({set_perception, State}, _Data) ->
+    NewData = State,
+    {noreply, NewData};
+
 handle_cast(stop, Data) ->
-    {stop, normal, Data};
+    {stop, normal, Data}.
 
-handle_cast(cast, Data) ->
-    {noreply, Data}.
-
-handle_call(call, _From, Data) ->
+handle_call(get_perception, _From, Data) ->
     {reply, Data, Data};
 
 handle_call(Event, From, Data) ->

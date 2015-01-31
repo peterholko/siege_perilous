@@ -24,11 +24,17 @@ loop(LastTime, GamePID) ->
     CurrentTick = counter:increment(tick),	
     
     %Process events
-    RecalcPerception = process_events(CurrentTick),
+    EventTriggered = process_events(CurrentTick),
+    DirectTriggered = game:get_perception(),
 
+    RecalcPerception = EventTriggered or DirectTriggered,
+    
     %Build simple perception
     perception_recalculate(RecalcPerception),
-    
+   
+    %Toggle off perception
+    game:set_perception(false),
+ 
     %Update charge times
     BattleUnits = ets:tab2list(battle_unit),
     update_charge_times(BattleUnits),

@@ -27,8 +27,7 @@ create(Player, Pos, Type) ->
     Id = insert(Player),
 
     map:create_obj(Id, Player, Pos, Type, none),
-
-    perception:recalculate(),
+    game:set_perception(true),
 
     %Return ID
     Id.
@@ -44,8 +43,7 @@ create(Player, Pos, Type, State, Units) ->
 
     %Create map obj
     map:create_obj(Id, Player, Pos, Type, State),
-
-    perception:recalculate(),
+    game:set_perception(true),
 
     %Return ID
     Id.
