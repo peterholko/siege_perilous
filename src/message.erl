@@ -39,7 +39,8 @@ message_handle(<<"login">>, Message) ->
             put(player_id, PlayerId),
 
             {PlayerId, Explored, Objs} = player:init_perception(PlayerId),
-            Perception = [{<<"player">>, PlayerId},
+            Perception = [{<<"packet">>, <<"login">>},
+                          {<<"player">>, PlayerId},
                           {<<"explored">>, Explored},
                           {<<"objs">>, convert_id(Objs, [])}],
             jsx:encode(Perception)
@@ -51,9 +52,9 @@ message_handle(<<"info">>, Message) ->
     BinId = util:hex_to_bin(HexId),
     Type = map_get(<<"type">>, Message),
 
-    Fields = jsx:encode(mdb:to_map(player:get_info(BinId, Type))),
-    lager:info("Fields: ~p", [Fields]),
-    Fields;
+    InfoMaps = mdb:to_map(player:get_info(BinId, Type)),
+    ReturnMsg = maps:put(<<"packet">>, <<"info">>, InfoMaps),
+    jsx:encode(ReturnMsg);
 
 message_handle(<<"move">>, Message) ->
     lager:info("message: move"),
@@ -104,15 +105,19 @@ message_handle(_Cmd, Message) ->
 prepare(map_perception, Message) ->
     [ExploredTuple, {<<"objs">>, Objs}] = Message,
     NewObjs = convert_id(Objs, []),
-    [ExploredTuple, {<<"objs">>, NewObjs}];
+    [{<<"packet">>, <<"map_perception">>},
+     {<<"objs">>, NewObjs},
+     ExploredTuple];
 
 prepare(battle_perception, Message) ->
     BattlePerception = battle_perception(Message, []),
-    [{<<"units">>, BattlePerception}];
+    [{<<"packet">>, <<"battle_perception">>},
+     {<<"units">>, BattlePerception}];
 
 prepare(item_perception, Message) ->
     ItemPerception = item_perception(Message, []),
-    [{<<"items">>, ItemPerception}]; 
+    [{<<"packet">>, <<"item_perception">>},
+     {<<"items">>, ItemPerception}]; 
 
 prepare(battle, Message) ->
     SourceId = maps:get(<<"sourceid">>, Message),
@@ -121,7 +126,8 @@ prepare(battle, Message) ->
     SourceHexId = util:bin_to_hex(SourceId),
     TargetHexId = util:bin_to_hex(TargetId),
 
-    NewMessage1 = maps:put(<<"sourceid">>, SourceHexId, Message),
+    NewMessage0 = maps:put(<<"packet">>, <<"battle_event">>, Message),
+    NewMessage1 = maps:put(<<"sourceid">>, SourceHexId, NewMessage0),
     NewMessage2 = maps:put(<<"targetid">>, TargetHexId, NewMessage1),
     NewMessage2.
 

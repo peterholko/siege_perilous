@@ -3,6 +3,7 @@ var stage_map;
 var stage_battle;
 var canvas_map;
 var canvas_battle;
+var container_map;
 
 var explored = {};
 var objs = {};
@@ -35,17 +36,25 @@ obj2.src = "/static/zombie.png";
 $(document).ready(init);
 
 function init() {
-  
+    $('#map').css('background-color', 'rgba(0, 0, 0, 1)');
     $("#map").hide();
     $("#battle").hide();
     $("#navigation").hide();
+
+    canvas_map = document.getElementById("map");
+    stage_map = new createjs.Stage(canvas_map);
+    stage_map.autoClear = true;
 
     canvas_battle = document.getElementById("battle");
     stage_battle = new createjs.Stage(canvas_battle);
     stage_battle.autoClear = true;
     
     createjs.Ticker.setFPS(60);
+    createjs.Ticker.addEventListener("tick", stage_map);
     createjs.Ticker.addEventListener("tick", stage_battle);
+
+    container_map = new createjs.Container();
+    stage_map.addChild(container_map)
 
     $('#server').val("ws://" + window.location.host + "/websocket");
     if(!("WebSocket" in window)){  
@@ -154,6 +163,11 @@ function sendMove(direction) {
     websocket.send(move);
 };
 
+function sendInfo(id, type) {
+    var info = '{"cmd": "info", "id": "' + id + '", "type": "' + type + '"}';
+    websocket.send(info);
+};
+
 function onOpen(evt) { 
   showScreen('<span style="color: green;">CONNECTED </span>'); 
   $("#connected").fadeIn('slow');
@@ -166,38 +180,39 @@ function onClose(evt) {
 };  
 
 function onMessage(evt) { 
-
     var jsonData = JSON.parse(evt.data);
 
-    $("#login").hide();        
-    $("#navigation").fadeIn('slow');
-    $("#map").fadeIn('slow');
+    if(jsonData.hasOwnProperty("packet")) {
+        
+        if(jsonData.packet == "login") {
+            $("#login").hide();        
+            $("#navigation").fadeIn('slow');
+            $("#map").fadeIn('slow');
 
-    if(jsonData.hasOwnProperty("player")) {
-        playerId = jsonData.player;
+            playerId = jsonData.player;
+            explored = jsonData.explored;
+            objs = jsonData.objs;
+
+            setPlayerPos();
+            drawMap();
+            drawObjs();
+        }
+        else if(jsonData.packet == "map_perception") {
+            explored = jsonData.explored;
+            objs = jsonData.objs;
+
+            setPlayerPos();
+            drawMap();
+            drawObjs();
+        }
+        else if(jsonData.packet == "battle_perception") {
+            $("#battle").fadeIn('slow');
+            drawUnits(jsonData.units);
+        }
+        else if(jsonData.packet == "battle_event") {
+            drawDmg(jsonData.dmg);
+        }
     }
-
-    if(jsonData.hasOwnProperty("explored")) {
-        explored = jsonData.explored;
-    }
-
-    if(jsonData.hasOwnProperty("objs")) {
-        objs = jsonData.objs; 
-    }
-
-    if(jsonData.hasOwnProperty("units")) {
-        $("#battle").fadeIn('slow');
-        drawUnits(jsonData.units);
-    }
-
-    if(jsonData.hasOwnProperty("battle")) {
-        drawDmg(jsonData.dmg);
-    }
-
-    setPlayerPos();
-
-    drawMap();
-    drawObjs();
 
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
 };
@@ -214,15 +229,8 @@ function setPlayerPos() {
 };
 
 function drawMap() {
-
     var q, r;
-    var canvas, stage, bitmap;
-
-    canvas = document.getElementById('map');
-    stage = new createjs.Stage(canvas);
-
-    var container = new createjs.Container();
-    stage.addChild(container);
+    var bitmap;
 
     var playerQ = playerPos % 4;
     var playerR = parseInt(playerPos / 4, 10);
@@ -256,7 +264,7 @@ function drawMap() {
 
         bitmap.x = x;
         bitmap.y = y;
-        container.addChild(bitmap);
+        container_map.addChild(bitmap);
 
         if(pos != playerPos) {
             if(!isNeighbour(q, r, neighbours)) {
@@ -264,18 +272,18 @@ function drawMap() {
                 bitmap = new createjs.Bitmap(shroud);
                 bitmap.x = x;
                 bitmap.y = y;
-                container.addChild(bitmap);
+                container_map.addChild(bitmap);
             }
         }
     }
 
-    stage.update();
+    //stage.update();
 };
 
 function drawObjs() {
-
-    var canvas = document.getElementById('map');
-    var context = canvas.getContext('2d');
+    var bitmap;
+    var c_x;
+    var c_y;
 
     for(i = 0; i < objs.length; i++) {
         q = objs[i].pos % 4;
@@ -283,15 +291,28 @@ function drawObjs() {
 
         x = 36 * 3/2 * q;
         y = 36 * Math.sqrt(3) * (r + 0.5 * (q & 1));
-     
-        console.log("Player: " + objs[i].player);
+
+        console.log("(x,y): " + x + "," + y);     
 
         if(objs[i].player == 1) {
-            context.drawImage(obj1, x, y);
+            bitmap = new createjs.Bitmap(obj1);
+            c_x = 250 - 36 - x;
+            c_y = 250 - 36 - y;
+            container_map.x = c_x;
+            container_map.y = c_y;        
         }
         else {
-            context.drawImage(obj2, x, y);
+            bitmap = new createjs.Bitmap(obj2);
         }
+
+        bitmap.obj_id = objs[i].id;
+        bitmap.on("mousedown", function(evt) {
+            sendInfo(this.obj_id, "obj"); 
+        });
+        bitmap.x = x;
+        bitmap.y = y;
+        
+        container_map.addChild(bitmap);
     }
 };
 
