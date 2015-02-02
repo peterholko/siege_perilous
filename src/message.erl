@@ -51,9 +51,11 @@ message_handle(<<"info">>, Message) ->
     HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
     Type = map_get(<<"type">>, Message),
+    TypeList = binary_to_list(Type),
+    InfoType = list_to_binary("info_" ++ TypeList),
 
     InfoMaps = mdb:to_map(player:get_info(BinId, Type)),
-    ReturnMsg = maps:put(<<"packet">>, <<"info">>, InfoMaps),
+    ReturnMsg = maps:put(<<"packet">>, InfoType, InfoMaps),
     jsx:encode(ReturnMsg);
 
 message_handle(<<"move">>, Message) ->

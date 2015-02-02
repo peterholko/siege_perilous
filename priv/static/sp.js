@@ -212,6 +212,10 @@ function onMessage(evt) {
         else if(jsonData.packet == "battle_event") {
             drawDmg(jsonData.dmg);
         }
+        else if(jsonData.packet == "info_obj") {
+            $("#battle").fadeIn('slow');
+            drawInfoObj(jsonData);
+        }
     }
 
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
@@ -349,6 +353,65 @@ function drawUnits(unit_data) {
 function drawDmg() {
     console.log("stage_battle numChildren: " + stage_battle.numChildren);
     createjs.Tween.get(unit1).to({x: 425}, 1000, createjs.Ease.getPowInOut(4)).to({x: 25}, 1000, createjs.Ease.getPowInOut(2));
+};
+
+function drawInfoObj(jsonData) {
+    stage_battle.removeAllChildren();
+    stage_battle.update();
+
+    var infoText = new createjs.Text("Info", "16px Arial", "#000000");
+    infoText.x = 20;
+    infoText.y = 20;
+    
+    stage_battle.addChild(infoText);
+
+    var bitmap = new createjs.Bitmap(obj1);
+    bitmap.x = 20;
+    bitmap.y = 40;
+    
+    stage_battle.addChild(bitmap);
+
+    var unitText = new createjs.Text("Units", "14px Arial", "#000000");
+    unitText.x = 20;
+    unitText.y = 125;
+
+    stage_battle.addChild(unitText);
+
+    for(var i = 0; i < jsonData.units.length; i++) {
+        var unitName = jsonData.units[i].name;
+        unitName = unitName.toLowerCase().replace(/ /g, '');
+        
+        var imagePath =  "/static/" + unitName + ".png";
+
+        var bitmap = new createjs.Bitmap(imagePath);
+
+        bitmap._id = jsonData.units[i]._id;
+        bitmap.x = 20;
+        bitmap.y = 145;
+        bitmap.on("mousedown", function(evt) {
+            sendInfo(this._id, "unit"); 
+        });
+
+        stage_battle.addChild(bitmap);
+    }
+
+    var itemText = new createjs.Text("Items", "14px Arial", "#000000");
+    itemText.x = 20;
+    itemText.y = 225;
+
+    stage_battle.addChild(itemText);
+
+    for(var i = 0; i < jsonData.items.length; i++) {
+        var itemName = jsonData.items[i].type;
+        itemName = itemName.toLowerCase().replace(/ /g,'');
+        var imagePath = "/static/" + itemName + ".png";
+
+        var bitmap = new createjs.Bitmap(imagePath);
+        bitmap.x = 20;
+        bitmap.y = 245;
+        
+        stage_battle.addChild(bitmap);
+    }
 };
 
 function isNeighbour(q, r, neighbours) {

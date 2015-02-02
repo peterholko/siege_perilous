@@ -13,8 +13,14 @@ get(Id) ->
     Unit.
 
 get_info(Id) ->
-    Unit = find(Id),
-    Unit.
+    UnitInfo = case find(Id) of
+                [Unit] ->
+                    %TODO compare requester id to unit player id
+                    info(Unit);
+                _ ->
+                    none
+               end,
+    UnitInfo.
 
 get_units(ObjId) ->
     find_units(ObjId).
@@ -85,5 +91,9 @@ stats(Unit) ->
     [UnitType] = find_type(UnitTypeId),
     bson:merge(Unit, UnitType).
 
-
+info(Unit) ->
+    {UnitId} = bson:lookup('_id', Unit),
+    Items = item:get_by_owner(UnitId),
+    UnitItems = bson:update(items, Items, Unit),
+    UnitItems.
 
