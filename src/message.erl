@@ -45,19 +45,6 @@ message_handle(<<"login">>, Message) ->
                           {<<"objs">>, convert_id(Objs, [])}],
             jsx:encode(Perception)
     end;
-
-message_handle(<<"info">>, Message) ->
-    lager:info("message: info"),
-    HexId = map_get(<<"id">>, Message),
-    BinId = util:hex_to_bin(HexId),
-    Type = map_get(<<"type">>, Message),
-    TypeList = binary_to_list(Type),
-    InfoType = list_to_binary("info_" ++ TypeList),
-
-    InfoMaps = mdb:to_map(player:get_info(BinId, Type)),
-    ReturnMsg = maps:put(<<"packet">>, InfoType, InfoMaps),
-    jsx:encode(ReturnMsg);
-
 message_handle(<<"move">>, Message) ->
     lager:info("message: move"),
 
@@ -98,6 +85,29 @@ message_handle(<<"harvest">>, Message) ->
     player:harvest(BinId, Resource),
 
     <<"Harvest added">>; 
+
+message_handle(<<"info_tile">>, Message) ->
+    lager:info("message: info_tile"),
+    Pos = map_get(<<"pos">>, Message),
+    InfoMaps = player:get_info_tile(Pos),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_tile">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
+message_handle(<<"info_obj">>, Message) ->
+    lager:info("message: info_obj"),
+    HexId = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(HexId),
+    InfoMaps = mdb:to_map(player:get_info(BinId)),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_obj">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
+message_handle(<<"info_unit">>, Message) ->
+    lager:info("message: info_unit"),
+    HexId = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(HexId),
+    InfoMaps = mdb:to_map(player:get_info_unit(BinId)),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_unit">>, InfoMaps),
+    jsx:encode(ReturnMsg);
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

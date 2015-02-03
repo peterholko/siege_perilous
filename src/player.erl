@@ -7,7 +7,9 @@
 -include("common.hrl").
 
 -export([init_perception/1, 
-         get_info/2,
+         get_info_tile/1,
+         get_info_obj/1,
+         get_info_unit/1,
          move_obj/2,
          attack_obj/2,
          attack_unit/2,
@@ -27,22 +29,16 @@ init_perception(PlayerId) ->
 
     {PlayerId, Explored, Objs}.
 
-get_info(Id, Type) ->
+get_info_tile(Pos) ->
+    %TODO check if player can see Pos
+    lager:info("info_tile").
 
+get_info_obj(Id) ->
     Player = get(player_id),
+    obj:get_info(Player, Id).
 
-    Data = case Type of
-               <<"obj">> ->
-                   obj:get_info(Player, Id);
-               <<"unit">> ->
-                   unit:get_info(Id);
-               _ ->
-                   lager:info("Unrecognized info type"),
-                   none
-           end,
-
-    lager:info("Data: ~p", [Data]),
-    Data.
+get_info_unit(Id) ->
+    unit:get_info(Id).
 
 move_obj(Id, Pos1D) ->
 

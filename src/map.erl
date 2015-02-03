@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([load/0, get_tile/1, get_tile/2, get_explored/1, get_neighbours/2, get_nearby_objs/1, get_tiles/1, get_obj/1,
-         get_nearby_objs/2, create_obj/5, move_obj/2, convert_coords/1]).
+         get_nearby_objs/2, get_obj_by_tile/1, create_obj/5, move_obj/2, convert_coords/1]).
 -export([add_explored/2, is_valid_pos/1, update_obj_state/2]).
 -record(module_data, {}).
 %% ====================================================================
@@ -48,6 +48,9 @@ get_nearby_objs({X, Y}) ->
     get_nearby_objs(X, Y).
 get_nearby_objs(X, Y) ->
     gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
+
+get_obj_by_tile(Pos) ->
+    db:index_read(map_obj, Pos, #map_obj.pos).
 
 create_obj(Id, Player, Pos, Type, State) ->
     NewObj = #map_obj {id = Id,

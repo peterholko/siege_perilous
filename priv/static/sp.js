@@ -1,8 +1,10 @@
 var websocket;
 var stage_map;
 var stage_battle;
+var stage_ui;
 var canvas_map;
 var canvas_battle;
+var canvas_ui;
 var container_map;
 
 var explored = {};
@@ -39,6 +41,9 @@ function init() {
     $('#map').css('background-color', 'rgba(0, 0, 0, 1)');
     $("#map").hide();
     $("#battle").hide();
+    $('#battle').css('background-color', 'rgba(0, 0, 0, 1)');
+    $("#ui").hide();
+    $('#ui').css('background-color', 'rgba(0, 0, 0, 1)');
     $("#navigation").hide();
 
     canvas_map = document.getElementById("map");
@@ -48,10 +53,15 @@ function init() {
     canvas_battle = document.getElementById("battle");
     stage_battle = new createjs.Stage(canvas_battle);
     stage_battle.autoClear = true;
+
+    canvas_ui = document.getElementById("ui");
+    stage_ui = new createjs.Stage(canvas_ui);
+    stage_ui.autoClear = true;
     
     createjs.Ticker.setFPS(60);
     createjs.Ticker.addEventListener("tick", stage_map);
     createjs.Ticker.addEventListener("tick", stage_battle);
+    createjs.Ticker.addEventListener("tick", stage_ui);
 
     container_map = new createjs.Container();
     stage_map.addChild(container_map)
@@ -59,7 +69,7 @@ function init() {
     $('#server').val("ws://" + window.location.host + "/websocket");
     if(!("WebSocket" in window)){  
         $('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
-        $("#ui").hide();  
+        $("#actions").hide();  
     } else {
         $('#status').append('<p><span style="color: green;">websockets are supported </span></p>');
         connect();
@@ -213,8 +223,11 @@ function onMessage(evt) {
             drawDmg(jsonData.dmg);
         }
         else if(jsonData.packet == "info_obj") {
-            $("#battle").fadeIn('slow');
+            $("#ui").fadeIn('slow');
             drawInfoObj(jsonData);
+        }
+        else if(jsonData.packet == "info_unit") {
+            drawInfoUnit(jsonData);
         }
     }
 
@@ -266,8 +279,12 @@ function drawMap() {
             bitmap = new createjs.Bitmap(tile3);
         }
 
+        bitmap.pos = pos;
         bitmap.x = x;
         bitmap.y = y;
+        bitmap.on("mousedown", function(evt) {
+            sendInfo(this.pos, "tile");
+        });
         container_map.addChild(bitmap);
 
         if(pos != playerPos) {
@@ -281,13 +298,14 @@ function drawMap() {
         }
     }
 
-    //stage.update();
 };
 
 function drawObjs() {
     var bitmap;
     var c_x;
     var c_y;
+    var halfwidth = $("#map").width() / 2;
+    var halfheight = $("#map").height() / 2;
 
     for(i = 0; i < objs.length; i++) {
         q = objs[i].pos % 4;
@@ -300,8 +318,8 @@ function drawObjs() {
 
         if(objs[i].player == 1) {
             bitmap = new createjs.Bitmap(obj1);
-            c_x = 250 - 36 - x;
-            c_y = 250 - 36 - y;
+            c_x = halfwidth - 36 - x;
+            c_y = halfheight - 36 - y;
             container_map.x = c_x;
             container_map.y = c_y;        
         }
@@ -309,10 +327,7 @@ function drawObjs() {
             bitmap = new createjs.Bitmap(obj2);
         }
 
-        bitmap.obj_id = objs[i].id;
-        bitmap.on("mousedown", function(evt) {
-            sendInfo(this.obj_id, "obj"); 
-        });
+        bitmap.mouseEnabled = false;
         bitmap.x = x;
         bitmap.y = y;
         
@@ -356,26 +371,26 @@ function drawDmg() {
 };
 
 function drawInfoObj(jsonData) {
-    stage_battle.removeAllChildren();
-    stage_battle.update();
+    stage_ui.removeAllChildren();
+    stage_ui.update();
 
     var infoText = new createjs.Text("Info", "16px Arial", "#000000");
     infoText.x = 20;
     infoText.y = 20;
     
-    stage_battle.addChild(infoText);
+    stage_ui.addChild(infoText);
 
     var bitmap = new createjs.Bitmap(obj1);
     bitmap.x = 20;
     bitmap.y = 40;
     
-    stage_battle.addChild(bitmap);
+    stage_ui.addChild(bitmap);
 
     var unitText = new createjs.Text("Units", "14px Arial", "#000000");
     unitText.x = 20;
     unitText.y = 125;
 
-    stage_battle.addChild(unitText);
+    stage_ui.addChild(unitText);
 
     for(var i = 0; i < jsonData.units.length; i++) {
         var unitName = jsonData.units[i].name;
@@ -392,14 +407,14 @@ function drawInfoObj(jsonData) {
             sendInfo(this._id, "unit"); 
         });
 
-        stage_battle.addChild(bitmap);
+        stage_ui.addChild(bitmap);
     }
 
     var itemText = new createjs.Text("Items", "14px Arial", "#000000");
     itemText.x = 20;
     itemText.y = 225;
 
-    stage_battle.addChild(itemText);
+    stage_ui.addChild(itemText);
 
     for(var i = 0; i < jsonData.items.length; i++) {
         var itemName = jsonData.items[i].type;
@@ -410,8 +425,12 @@ function drawInfoObj(jsonData) {
         bitmap.x = 20;
         bitmap.y = 245;
         
-        stage_battle.addChild(bitmap);
+        stage_ui.addChild(bitmap);
     }
+};
+
+function drawInfoUnit(jsonData) {
+    console.log("drawInfoUnit");
 };
 
 function isNeighbour(q, r, neighbours) {
