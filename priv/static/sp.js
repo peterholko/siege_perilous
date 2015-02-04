@@ -14,6 +14,10 @@ var playerId;
 var playerPos;
 var selectedUnit;
 
+var mapWidth = 4;
+var mapHeight = 4;
+var hexSize = 72;
+
 var tile0 = new Image();
 var tile1 = new Image();
 var tile2 = new Image();
@@ -246,7 +250,6 @@ function setPlayerPos() {
 };
 
 function drawMap() {
-    var q, r;
     var bitmap;
 
     var playerQ = playerPos % 4;
@@ -254,17 +257,8 @@ function drawMap() {
     var neighbours = getNeighbours(playerQ, playerR);
 
     for(var pos in explored) {
-        console.log("pos: " + pos + " tile: " + explored[pos]);
-
-        q = pos % 4;
-        r = parseInt(pos / 4, 10);
-
-        console.log("q: " + q + " r: " + r);
-
-        x = 36 * 3/2 * q;
-        y = 36 * Math.sqrt(3) * (r + 0.5 * (q & 1));
-      
-        console.log("x: " + x + " y:" + y); 
+        var hex = pos_to_hex(pos);
+        var pixel = hex_to_pixel(hex.q, hex.r);
 
         if(explored[pos] == 0) {
             bitmap = new createjs.Bitmap(tile0);
@@ -280,19 +274,19 @@ function drawMap() {
         }
 
         bitmap.pos = pos;
-        bitmap.x = x;
-        bitmap.y = y;
+        bitmap.x = pixel.x;
+        bitmap.y = pixel.y;
         bitmap.on("mousedown", function(evt) {
             sendInfo(this.pos, "tile");
         });
         container_map.addChild(bitmap);
 
         if(pos != playerPos) {
-            if(!isNeighbour(q, r, neighbours)) {
+            if(!isNeighbour(hex.q, hex.r, neighbours)) {
                 
                 bitmap = new createjs.Bitmap(shroud);
-                bitmap.x = x;
-                bitmap.y = y;
+                bitmap.x = pixel.x;
+                bitmap.y = pixel.y;
                 container_map.addChild(bitmap);
             }
         }
@@ -308,18 +302,13 @@ function drawObjs() {
     var halfheight = $("#map").height() / 2;
 
     for(i = 0; i < objs.length; i++) {
-        q = objs[i].pos % 4;
-        r = parseInt(objs[i].pos / 4, 10);
-
-        x = 36 * 3/2 * q;
-        y = 36 * Math.sqrt(3) * (r + 0.5 * (q & 1));
-
-        console.log("(x,y): " + x + "," + y);     
+        var hex = pos_to_hex(objs[i].pos);
+        var pixel = hex_to_pixel(hex.q, hex.r);
 
         if(objs[i].player == 1) {
             bitmap = new createjs.Bitmap(obj1);
-            c_x = halfwidth - 36 - x;
-            c_y = halfheight - 36 - y;
+            c_x = halfwidth - 36 - pixel.x;
+            c_y = halfheight - 36 - pixel.y;
             container_map.x = c_x;
             container_map.y = c_y;        
         }
@@ -328,8 +317,8 @@ function drawObjs() {
         }
 
         bitmap.mouseEnabled = false;
-        bitmap.x = x;
-        bitmap.y = y;
+        bitmap.x = pixel.x;
+        bitmap.y = pixel.y;
         
         container_map.addChild(bitmap);
     }
@@ -511,4 +500,18 @@ function getObj(objId) {
             return objs[i];
         } 
     }
+};
+
+function pos_to_hex(pos) {
+    var q = pos % mapWidth;
+    var r = parseInt(pos / mapHeight, 10);
+
+    return {q: q, r: r};
+};
+
+function hex_to_pixel(q, r) {
+    var x = hexSize * 0.75 * q;
+    var y = hexSize * (r + 0.5 * (q & 1));
+
+    return {x: x, y: y};
 };
