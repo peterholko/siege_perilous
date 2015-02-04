@@ -97,7 +97,7 @@ message_handle(<<"info_obj">>, Message) ->
     lager:info("message: info_obj"),
     HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
-    InfoMaps = mdb:to_map(player:get_info(BinId)),
+    InfoMaps = mdb:to_map(player:get_info_obj(BinId)),
     ReturnMsg = maps:put(<<"packet">>, <<"info_obj">>, InfoMaps),
     jsx:encode(ReturnMsg);
 

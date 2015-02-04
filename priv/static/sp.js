@@ -18,23 +18,20 @@ var mapWidth = 4;
 var mapHeight = 4;
 var hexSize = 72;
 
-var tile0 = new Image();
-var tile1 = new Image();
-var tile2 = new Image();
-var tile3 = new Image();
-var shroud = new Image();
-
 var obj1 = new Image();
 var obj2 = new Image();
 
 var unit1;
 var unit2;
 
-tile0.src = "/static/green.png";
-tile1.src = "/static/basic-tile.png";
-tile2.src = "/static/regular.png";
-tile3.src = "/static/desert.png";
-shroud.src = "/static/shroud.png";
+var tileImages = [];
+
+tileImages[0] = "/static/green.png";
+tileImages[1] = "/static/basic-tile.png";
+tileImages[2] = "/static/regular.png";
+tileImages[3] = "/static/desert.png";
+
+var shroud = "/static/shroud.png";
 
 obj1.src = "/static/white-mage.png";
 obj2.src = "/static/zombie.png";
@@ -177,8 +174,13 @@ function sendMove(direction) {
     websocket.send(move);
 };
 
-function sendInfo(id, type) {
-    var info = '{"cmd": "info", "id": "' + id + '", "type": "' + type + '"}';
+function sendInfoObj(id) {
+    var info = '{"cmd": "info_obj", "id": "' + id + '"}';
+    websocket.send(info);
+};
+
+function sendInfoTile(type, pos) {
+    var info = '{"cmd": "info_tile", "type": ' + type + ', "pos": ' + pos + '}';
     websocket.send(info);
 };
 
@@ -259,26 +261,20 @@ function drawMap() {
     for(var pos in explored) {
         var hex = pos_to_hex(pos);
         var pixel = hex_to_pixel(hex.q, hex.r);
+        var tileType = explored[pos];
 
-        if(explored[pos] == 0) {
-            bitmap = new createjs.Bitmap(tile0);
-        }
-        else if(explored[pos] == 1) {
-            bitmap = new createjs.Bitmap(tile1);
-        }
-        else if(explored[pos] == 2) {
-            bitmap = new createjs.Bitmap(tile2);
-        }
-        else if(explored[pos] == 3) {
-            bitmap = new createjs.Bitmap(tile3);
-        }
-
+        bitmap = new createjs.Bitmap(tileImages[tileType]);
+        bitmap.tile = tileType;
         bitmap.pos = pos;
         bitmap.x = pixel.x;
         bitmap.y = pixel.y;
         bitmap.on("mousedown", function(evt) {
-            sendInfo(this.pos, "tile");
+            $("#ui").fadeIn('slow');
+
+            var objList = getObjOnTile(this.pos);
+            drawInfoOnTile(this.tile, this.pos, objList);
         });
+
         container_map.addChild(bitmap);
 
         if(pos != playerPos) {
@@ -358,6 +354,44 @@ function drawDmg() {
     console.log("stage_battle numChildren: " + stage_battle.numChildren);
     createjs.Tween.get(unit1).to({x: 425}, 1000, createjs.Ease.getPowInOut(4)).to({x: 25}, 1000, createjs.Ease.getPowInOut(2));
 };
+
+function drawInfoOnTile(tileType, tilePos, objsOnTile) {
+    stage_ui.removeAllChildren();
+    stage_ui.update();
+
+    var tile = new createjs.Bitmap(tileImages[tileType]);
+    
+    tile.type = tileType;
+    tile.pos = tilePos;
+    tile.on("mousedown", function(evt) {
+        sendInfoTile(this.type, this.pos);
+    });
+
+    tile.x = 25;
+    tile.y = 25;
+
+    stage_ui.addChild(tile);
+
+    for(var i = 0; i < objsOnTile.length; i++) {
+        if(objsOnTile[i].player == 1) {
+            var obj = new createjs.Bitmap(obj1);
+        } else {
+            var obj = new createjs.Bitmap(obj2);
+        }
+    
+        obj.obj_id = objsOnTile[i].id;
+        obj.on("mousedown", function(evt) {
+            sendInfoObj(this.obj_id);
+        });
+    
+        obj.x = i * 72 + 20
+        obj.y = 100;
+ 
+        stage_ui.addChild(obj);
+    }
+
+};
+
 
 function drawInfoObj(jsonData) {
     stage_ui.removeAllChildren();
@@ -500,6 +534,33 @@ function getObj(objId) {
             return objs[i];
         } 
     }
+};
+
+function getObjOnTile(pos) {
+    var objsOnTile = [];
+
+    for(var i = 0; i < objs.length; i++) {
+        if(objs[i].pos == pos) {
+            objsOnTile.push(objs[i]);
+        }
+    }
+
+    return objsOnTile;
+};
+
+function getTileImage(tileType) {
+
+    switch(tileType) {
+        case 0:
+            return tile0;
+        case 1: 
+            return tile1;
+        case 2:
+            return tile2;
+        case 3:
+            return tile3;
+    }
+
 };
 
 function pos_to_hex(pos) {
