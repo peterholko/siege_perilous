@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get/1, get_by_owner/1, transfer/2, create/3]).
+-export([get/1, get_by_owner/1, transfer/2, create/3, equip/1]).
 -export([obj_perception/1]).
 
 get(Id) ->
@@ -19,6 +19,9 @@ get_by_owner(OwnerId) ->
 transfer(Item, TargetId) ->
     ItemId = bson:lookup('_id', Item),
     mdb:update(<<"item">>, ItemId, {owner, TargetId}).
+
+equip(ItemId) ->
+    mdb:update(<<"item">>, ItemId, {equip, <<"true">>}).
 
 create(Owner, Type, Quantity) ->
     % Find existing item type in owner

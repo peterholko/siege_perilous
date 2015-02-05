@@ -44,7 +44,7 @@ function init() {
     $("#battle").hide();
     $('#battle').css('background-color', 'rgba(0, 0, 0, 1)');
     $("#ui").hide();
-    $('#ui').css('background-color', 'rgba(0, 0, 0, 1)');
+    $('#ui').css('background-color', 'rgba(0, 0, 0, 0)');
     $("#navigation").hide();
 
     canvas_map = document.getElementById("map");
@@ -176,6 +176,11 @@ function sendMove(direction) {
 
 function sendInfoObj(id) {
     var info = '{"cmd": "info_obj", "id": "' + id + '"}';
+    websocket.send(info);
+};
+
+function sendInfoUnit(id) {
+    var info = '{"cmd": "info_unit", "id": "' + id + '"}';
     websocket.send(info);
 };
 

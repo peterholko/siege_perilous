@@ -84,7 +84,17 @@ message_handle(<<"harvest">>, Message) ->
    
     player:harvest(BinId, Resource),
 
-    <<"Harvest added">>; 
+    <<"Harvest added">>;
+
+message_handle(<<"equip">>, Message) ->
+    lager:info("message: equip"),
+
+    Id = util:hex_to_bin(map_get(<<"id">>, Message)),
+    ItemId = util:hex_to_bin(map_get(<<"item">>, Message)),
+
+    player:equip(Id, ItemId),
+
+    <<"Item Equiped">>;
 
 message_handle(<<"info_tile">>, Message) ->
     lager:info("message: info_tile"),
