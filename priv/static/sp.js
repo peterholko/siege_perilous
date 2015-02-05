@@ -183,6 +183,11 @@ function sendInfoObj(id) {
     websocket.send(info);
 };
 
+function sendInfoUnit(id) {
+    var info = '{"cmd": "info_unit", "id": "' + id + '"}';
+    websocket.send(info);
+};
+
 function sendInfoTile(type, pos) {
     var info = '{"cmd": "info_tile", "type": ' + type + ', "pos": ' + pos + '}';
     websocket.send(info);

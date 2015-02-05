@@ -13,7 +13,8 @@
          move_obj/2,
          attack_obj/2,
          attack_unit/2,
-         harvest/2]).
+         harvest/2,
+         equip/2]).
 
 init_perception(PlayerId) ->
 
@@ -86,7 +87,28 @@ harvest(Id, Resource) ->
     Result = ValidState and ValidPlayer and ValidResource,
 
     add_harvest_event(Result, {Id, Resource}, NumTicks).
-    
+
+equip(Id, ItemId) ->
+    Player = get(player_id),
+
+    [Unit] = unit:get(Id),
+    [Item] = item:get(ItemId),
+
+    lager:info("Unit: ~p Item: ~p", [Unit, Item]),
+
+    {ObjId} = bson:lookup(obj_id, Unit),
+    Obj = map:get_obj(ObjId),
+
+    {ItemOwner} = bson:lookup(owner, Item),
+
+    ValidItem = Id == ItemOwner,
+    ValidState = is_valid_state(Obj#map_obj.state),
+    ValidPlayer = is_player_owned(Obj#map_obj.player, Player),
+
+    Result = ValidItem and ValidState and ValidPlayer,
+
+    ReturnMsg = add_equip(Result, ItemId),
+    ReturnMsg.
 %
 %Internal functions
 %
@@ -122,6 +144,12 @@ add_move(true, {Obj, NewPos}, NumTicks) ->
                  NewPos},
 
     game:add_event(self(), move_obj, EventData, NumTicks).
+
+add_equip(false, _EventData) ->
+    lager:info("Equip failed"),
+    none;
+add_equip(true, ItemId) ->
+    item:equip(ItemId).
 
 get_armies(PlayerId) ->
     db:index_read(map_obj, PlayerId, #map_obj.player).
