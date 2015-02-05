@@ -6,6 +6,7 @@ var canvas_map;
 var canvas_battle;
 var canvas_ui;
 var container_map;
+var container_ui;
 
 var explored = {};
 var objs = {};
@@ -20,6 +21,8 @@ var hexSize = 72;
 
 var obj1 = new Image();
 var obj2 = new Image();
+var ui_image = new Image();
+  
 
 var unit1;
 var unit2;
@@ -35,6 +38,7 @@ var shroud = "/static/shroud.png";
 
 obj1.src = "/static/white-mage.png";
 obj2.src = "/static/zombie.png";
+ui_image.src = '/static/ui_pane.png';
 
 $(document).ready(init);
 
@@ -44,7 +48,7 @@ function init() {
     $("#battle").hide();
     $('#battle').css('background-color', 'rgba(0, 0, 0, 1)');
     $("#ui").hide();
-    $('#ui').css('background-color', 'rgba(0, 0, 0, 1)');
+    $('#ui').css('background-color', 'rgba(0, 0, 0, 0)');
     $("#navigation").hide();
 
     canvas_map = document.getElementById("map");
@@ -359,6 +363,15 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     stage_ui.removeAllChildren();
     stage_ui.update();
 
+    container_ui = new createjs.Container();
+
+
+    var ui_pane = new createjs.Bitmap(ui_image);
+    ui_pane.x = 0;
+    ui_pane.y = 0;
+    
+    container_ui.addChild(ui_pane);
+
     var tile = new createjs.Bitmap(tileImages[tileType]);
     
     tile.type = tileType;
@@ -367,10 +380,11 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
         sendInfoTile(this.type, this.pos);
     });
 
-    tile.x = 25;
-    tile.y = 25;
 
-    stage_ui.addChild(tile);
+    tile.x = (ui_image.width / 2) - 36;
+    tile.y = 52;
+
+    container_ui.addChild(tile);
 
     for(var i = 0; i < objsOnTile.length; i++) {
         if(objsOnTile[i].player == 1) {
@@ -384,11 +398,13 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
             sendInfoObj(this.obj_id);
         });
     
-        obj.x = i * 72 + 20
-        obj.y = 100;
+        obj.x = i * 72
+        obj.y = 130;
  
-        stage_ui.addChild(obj);
+        container_ui.addChild(obj);
     }
+
+    stage_ui.addChild(container_ui);
 
 };
 
@@ -397,6 +413,7 @@ function drawInfoObj(jsonData) {
     stage_ui.removeAllChildren();
     stage_ui.update();
 
+    
     var infoText = new createjs.Text("Info", "16px Arial", "#000000");
     infoText.x = 20;
     infoText.y = 20;
