@@ -6,7 +6,7 @@ var canvas_map;
 var canvas_battle;
 var canvas_ui;
 var container_map;
-var container_ui;
+var container_ui = [];
 
 var explored = {};
 var objs = {};
@@ -51,6 +51,7 @@ function init() {
     $('#ui').css('background-color', 'rgba(0, 0, 0, 0)');
     $("#navigation").hide();
 
+
     canvas_map = document.getElementById("map");
     stage_map = new createjs.Stage(canvas_map);
     stage_map.autoClear = true;
@@ -62,7 +63,9 @@ function init() {
     canvas_ui = document.getElementById("ui");
     stage_ui = new createjs.Stage(canvas_ui);
     stage_ui.autoClear = true;
-    
+
+    initUI();
+
     createjs.Ticker.setFPS(60);
     createjs.Ticker.addEventListener("tick", stage_map);
     createjs.Ticker.addEventListener("tick", stage_battle);
@@ -365,17 +368,12 @@ function drawDmg() {
 };
 
 function drawInfoOnTile(tileType, tilePos, objsOnTile) {
-    stage_ui.removeAllChildren();
-    stage_ui.update();
-
-    container_ui = new createjs.Container();
-
 
     var ui_pane = new createjs.Bitmap(ui_image);
     ui_pane.x = 0;
     ui_pane.y = 0;
-    
-    container_ui.addChild(ui_pane);
+
+    container_ui[0].addChild(ui_pane);
 
     var tile = new createjs.Bitmap(tileImages[tileType]);
     
@@ -389,7 +387,7 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     tile.x = (ui_image.width / 2) - 36;
     tile.y = 52;
 
-    container_ui.addChild(tile);
+    container_ui[0].addChild(tile);
 
     for(var i = 0; i < objsOnTile.length; i++) {
         if(objsOnTile[i].player == 1) {
@@ -406,36 +404,34 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
         obj.x = i * 72
         obj.y = 130;
  
-        container_ui.addChild(obj);
+        container_ui[0].addChild(obj);
     }
-
-    stage_ui.addChild(container_ui);
 
 };
 
 
 function drawInfoObj(jsonData) {
-    stage_ui.removeAllChildren();
-    stage_ui.update();
 
-    
+    container_ui[1].x = 250;
+    container_ui[1].y = 0;
+
     var infoText = new createjs.Text("Info", "16px Arial", "#000000");
     infoText.x = 20;
     infoText.y = 20;
     
-    stage_ui.addChild(infoText);
+    container_ui[1].addChild(infoText);
 
     var bitmap = new createjs.Bitmap(obj1);
     bitmap.x = 20;
     bitmap.y = 40;
     
-    stage_ui.addChild(bitmap);
+    container_ui[1].addChild(bitmap);
 
     var unitText = new createjs.Text("Units", "14px Arial", "#000000");
     unitText.x = 20;
     unitText.y = 125;
 
-    stage_ui.addChild(unitText);
+    container_ui[1].addChild(unitText);
 
     for(var i = 0; i < jsonData.units.length; i++) {
         var unitName = jsonData.units[i].name;
@@ -452,14 +448,14 @@ function drawInfoObj(jsonData) {
             sendInfo(this._id, "unit"); 
         });
 
-        stage_ui.addChild(bitmap);
+        container_ui[1].addChild(bitmap);
     }
 
     var itemText = new createjs.Text("Items", "14px Arial", "#000000");
     itemText.x = 20;
     itemText.y = 225;
 
-    stage_ui.addChild(itemText);
+    container_ui[1].addChild(itemText);
 
     for(var i = 0; i < jsonData.items.length; i++) {
         var itemName = jsonData.items[i].type;
@@ -470,12 +466,26 @@ function drawInfoObj(jsonData) {
         bitmap.x = 20;
         bitmap.y = 245;
         
-        stage_ui.addChild(bitmap);
+        container_ui[1].addChild(bitmap);
     }
+
+    stage_ui.update();
+
 };
 
 function drawInfoUnit(jsonData) {
     console.log("drawInfoUnit");
+};
+
+function initUI() {
+
+    for(var i = 0; i < 3; i++) {
+        var container = new createjs.Container();
+
+        stage_ui.addChild(container);
+
+        container_ui.push(container);
+    }
 };
 
 function isNeighbour(q, r, neighbours) {
