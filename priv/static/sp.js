@@ -21,8 +21,8 @@ var hexSize = 72;
 
 var obj1 = new Image();
 var obj2 = new Image();
-var ui_image = new Image();
-  
+var ui_bg = new Image();
+var close_rest = new Image();
 
 var unit1;
 var unit2;
@@ -38,7 +38,8 @@ var shroud = "/static/shroud.png";
 
 obj1.src = "/static/white-mage.png";
 obj2.src = "/static/zombie.png";
-ui_image.src = '/static/ui_pane.png';
+ui_bg.src = '/static/ui_pane.png';
+close_rest.src = '/static/close_rest.png';
 
 $(document).ready(init);
 
@@ -368,12 +369,7 @@ function drawDmg() {
 };
 
 function drawInfoOnTile(tileType, tilePos, objsOnTile) {
-
-    var ui_pane = new createjs.Bitmap(ui_image);
-    ui_pane.x = 0;
-    ui_pane.y = 0;
-
-    container_ui[0].addChild(ui_pane);
+    container_ui[0].visible = true;
 
     var tile = new createjs.Bitmap(tileImages[tileType]);
     
@@ -384,7 +380,7 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     });
 
 
-    tile.x = (ui_image.width / 2) - 36;
+    tile.x = (ui_bg.width / 2) - 36;
     tile.y = 52;
 
     container_ui[0].addChild(tile);
@@ -411,15 +407,13 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
 
 
 function drawInfoObj(jsonData) {
-
-    container_ui[1].x = 250;
+    container_ui[1].x = 0;
     container_ui[1].y = 0;
+    container_ui[1].visible = true;
 
-    var infoText = new createjs.Text("Info", "16px Arial", "#000000");
-    infoText.x = 20;
-    infoText.y = 20;
-    
-    container_ui[1].addChild(infoText);
+    stage_ui.swapChildren(container_ui[0], container_ui[1]);
+
+    createjs.Tween.get(container_ui[1]).to({x: 333}, 500, createjs.Ease.getPowInOut(4));
 
     var bitmap = new createjs.Bitmap(obj1);
     bitmap.x = 20;
@@ -427,7 +421,7 @@ function drawInfoObj(jsonData) {
     
     container_ui[1].addChild(bitmap);
 
-    var unitText = new createjs.Text("Units", "14px Arial", "#000000");
+    var unitText = new createjs.Text("Units", "14px Arial", "#FFFFFF");
     unitText.x = 20;
     unitText.y = 125;
 
@@ -445,7 +439,7 @@ function drawInfoObj(jsonData) {
         bitmap.x = 20;
         bitmap.y = 145;
         bitmap.on("mousedown", function(evt) {
-            sendInfo(this._id, "unit"); 
+            sendInfoUnit(this._id); 
         });
 
         container_ui[1].addChild(bitmap);
@@ -468,9 +462,6 @@ function drawInfoObj(jsonData) {
         
         container_ui[1].addChild(bitmap);
     }
-
-    stage_ui.update();
-
 };
 
 function drawInfoUnit(jsonData) {
@@ -481,6 +472,27 @@ function initUI() {
 
     for(var i = 0; i < 3; i++) {
         var container = new createjs.Container();
+        var bg = new createjs.Bitmap(ui_bg);
+        var close = new createjs.Bitmap(close_rest);
+
+        container.x = 0;
+        container.y = 0;
+        container.visible = false;
+
+        bg.x = 0;
+        bg.y = 0;
+
+        close.x = 300;
+        close.y = 10;
+
+        close.on("mousedown", function(evt) {
+            this.visible = false;
+            this.parent.visible = false;
+            $("#ui").fadeOut('slow');
+        });
+
+        container.addChild(bg);
+        container.addChild(close);
 
         stage_ui.addChild(container);
 
