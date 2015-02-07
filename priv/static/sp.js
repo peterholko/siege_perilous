@@ -1,10 +1,6 @@
 var websocket;
-var stage_map;
-var stage_battle;
-var stage_ui;
+var stage;
 var canvas_map;
-var canvas_battle;
-var canvas_ui;
 var container_map;
 var container_ui = [];
 
@@ -46,34 +42,19 @@ $(document).ready(init);
 function init() {
     $('#map').css('background-color', 'rgba(0, 0, 0, 1)');
     $("#map").hide();
-    $("#battle").hide();
-    $('#battle').css('background-color', 'rgba(0, 0, 0, 1)');
-    $("#ui").hide();
-    $('#ui').css('background-color', 'rgba(0, 0, 0, 0)');
     $("#navigation").hide();
 
-
-    canvas_map = document.getElementById("map");
-    stage_map = new createjs.Stage(canvas_map);
-    stage_map.autoClear = true;
-
-    canvas_battle = document.getElementById("battle");
-    stage_battle = new createjs.Stage(canvas_battle);
-    stage_battle.autoClear = true;
-
-    canvas_ui = document.getElementById("ui");
-    stage_ui = new createjs.Stage(canvas_ui);
-    stage_ui.autoClear = true;
+    canvas = document.getElementById("map");
+    stage = new createjs.Stage(canvas);
+    stage.autoClear = true;
 
     initUI();
 
     createjs.Ticker.setFPS(60);
-    createjs.Ticker.addEventListener("tick", stage_map);
-    createjs.Ticker.addEventListener("tick", stage_battle);
-    createjs.Ticker.addEventListener("tick", stage_ui);
+    createjs.Ticker.addEventListener("tick", stage);
 
     container_map = new createjs.Container();
-    stage_map.addChild(container_map)
+    stage.addChild(container_map)
 
     $('#server').val("ws://" + window.location.host + "/websocket");
     if(!("WebSocket" in window)){  
@@ -242,7 +223,6 @@ function onMessage(evt) {
             drawDmg(jsonData.dmg);
         }
         else if(jsonData.packet == "info_obj") {
-            $("#ui").fadeIn('slow');
             drawInfoObj(jsonData);
         }
         else if(jsonData.packet == "info_unit") {
@@ -282,7 +262,6 @@ function drawMap() {
         bitmap.x = pixel.x;
         bitmap.y = pixel.y;
         bitmap.on("mousedown", function(evt) {
-            $("#ui").fadeIn('slow');
 
             var objList = getObjOnTile(this.pos);
             drawInfoOnTile(this.tile, this.pos, objList);
@@ -411,8 +390,7 @@ function drawInfoObj(jsonData) {
     container_ui[1].y = 0;
     container_ui[1].visible = true;
 
-    stage_ui.swapChildren(container_ui[0], container_ui[1]);
-
+    stage.swapChildren(container_ui[0], container_ui[1]);
     createjs.Tween.get(container_ui[1]).to({x: 333}, 500, createjs.Ease.getPowInOut(4));
 
     var bitmap = new createjs.Bitmap(obj1);
@@ -488,13 +466,12 @@ function initUI() {
         close.on("mousedown", function(evt) {
             this.visible = false;
             this.parent.visible = false;
-            $("#ui").fadeOut('slow');
         });
 
         container.addChild(bg);
         container.addChild(close);
 
-        stage_ui.addChild(container);
+        stage.addChild(container);
 
         container_ui.push(container);
     }
