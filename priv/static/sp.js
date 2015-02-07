@@ -48,13 +48,13 @@ function init() {
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
 
+    container_map = new createjs.Container();
+    stage.addChild(container_map)
+
     initUI();
 
     createjs.Ticker.setFPS(60);
     createjs.Ticker.addEventListener("tick", stage);
-
-    container_map = new createjs.Container();
-    stage.addChild(container_map)
 
     $('#server').val("ws://" + window.location.host + "/websocket");
     if(!("WebSocket" in window)){  
@@ -386,15 +386,14 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
 
 
 function drawInfoObj(jsonData) {
-    container_ui[1].x = 0;
+    container_ui[1].x = -333;
     container_ui[1].y = 0;
     container_ui[1].visible = true;
 
-    stage.swapChildren(container_ui[0], container_ui[1]);
-    createjs.Tween.get(container_ui[1]).to({x: 333}, 500, createjs.Ease.getPowInOut(4));
+    createjs.Tween.get(container_ui[1]).to({x: 0}, 500, createjs.Ease.getPowInOut(4));
 
     var bitmap = new createjs.Bitmap(obj1);
-    bitmap.x = 20;
+    bitmap.x = 333/2 - obj1.width/2;
     bitmap.y = 40;
     
     container_ui[1].addChild(bitmap);
@@ -423,7 +422,7 @@ function drawInfoObj(jsonData) {
         container_ui[1].addChild(bitmap);
     }
 
-    var itemText = new createjs.Text("Items", "14px Arial", "#000000");
+    var itemText = new createjs.Text("Items", "14px Arial", "#FFFFFF");
     itemText.x = 20;
     itemText.y = 225;
 
@@ -444,11 +443,15 @@ function drawInfoObj(jsonData) {
 
 function drawInfoUnit(jsonData) {
     console.log("drawInfoUnit");
+    container_ui[2].x = 0;
+    container_ui[2].y = 0;
+    container_ui[2].visible = true;
+
+    createjs.Tween.get(container_ui[2]).to({x: 333}, 500, createjs.Ease.getPowInOut(4));
 };
 
 function initUI() {
-
-    for(var i = 0; i < 3; i++) {
+    for(var i = 0; i < 4; i++) {
         var container = new createjs.Container();
         var bg = new createjs.Bitmap(ui_bg);
         var close = new createjs.Bitmap(close_rest);
@@ -464,7 +467,6 @@ function initUI() {
         close.y = 10;
 
         close.on("mousedown", function(evt) {
-            this.visible = false;
             this.parent.visible = false;
         });
 
