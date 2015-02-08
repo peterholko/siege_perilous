@@ -92,8 +92,9 @@ stats(Unit) ->
     bson:merge(Unit, UnitType).
 
 info(Unit) ->
-    {UnitId} = bson:lookup('_id', Unit),
+    UnitStats = stats(Unit),
+    {UnitId} = bson:lookup('_id', UnitStats),
     Items = item:get_by_owner(UnitId),
-    UnitItems = bson:update(items, Items, Unit),
+    UnitItems = bson:update(items, Items, UnitStats),
     UnitItems.
 

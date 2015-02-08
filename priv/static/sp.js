@@ -1,5 +1,6 @@
 var websocket;
 var stage;
+var queue;
 var canvas_map;
 var container_map;
 var container_ui = [];
@@ -25,17 +26,17 @@ var unit2;
 
 var tileImages = [];
 
-tileImages[0] = "/static/green.png";
-tileImages[1] = "/static/basic-tile.png";
-tileImages[2] = "/static/regular.png";
-tileImages[3] = "/static/desert.png";
+tileImages[0] = "/static/art/green.png";
+tileImages[1] = "/static/art/basic-tile.png";
+tileImages[2] = "/static/art/regular.png";
+tileImages[3] = "/static/art/desert.png";
 
-var shroud = "/static/shroud.png";
+var shroud = "/static/art/shroud.png";
 
-obj1.src = "/static/white-mage.png";
-obj2.src = "/static/zombie.png";
-ui_bg.src = '/static/ui_pane.png';
-close_rest.src = '/static/close_rest.png';
+obj1.src = "/static/art/white-mage.png";
+obj2.src = "/static/art/zombie.png";
+ui_bg.src = '/static/art/ui_pane.png';
+close_rest.src = '/static/art/close_rest.png';
 
 $(document).ready(init);
 
@@ -50,7 +51,8 @@ function init() {
 
     container_map = new createjs.Container();
     stage.addChild(container_map)
-
+    
+    initImages();
     initUI();
 
     createjs.Ticker.setFPS(60);
@@ -67,6 +69,30 @@ function init() {
     
     $("#connected").hide(); 	
     $("#content").hide(); 	
+};
+
+function initImages() {
+    var manifest = [{src: "shroud.png", id: "shroud",
+                     src: "white-mage.png", id: "white-mage",
+                     src: "ui_pane.png", id: "ui_pane",
+                     src: "close_rest.png" , id: "close_rest"}];
+                
+    queue = new createjs.LoadQueue(false);
+    queue.addEventListener("complete", handleQueueComplete);
+    queue.loadManifest(manifest, true, "/static/art/");
+};
+
+function handleQueueComplete()
+{
+    console.log("Queue complete");
+    var human = queue.getResult("humanskirmisher");
+
+    if(human) {
+    var test = new createjs.Bitmap(queue.getResult("humanskirmisher"));
+    test.x = 500;
+    test.y = 250;
+    stage.addChild(test);
+    }
 };
 
 function connect()
@@ -386,6 +412,9 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
 
 
 function drawInfoObj(jsonData) {
+    queue.loadFile({id: "humanskirmisher", src: "/static/art/humanskirmisher.png"});
+    
+
     container_ui[1].x = -333;
     container_ui[1].y = 0;
     container_ui[1].visible = true;
@@ -393,7 +422,7 @@ function drawInfoObj(jsonData) {
     createjs.Tween.get(container_ui[1]).to({x: 0}, 500, createjs.Ease.getPowInOut(4));
 
     var bitmap = new createjs.Bitmap(obj1);
-    bitmap.x = 333/2 - obj1.width/2;
+    bitmap.x = 166 - obj1.width/2;
     bitmap.y = 40;
     
     container_ui[1].addChild(bitmap);
@@ -408,7 +437,7 @@ function drawInfoObj(jsonData) {
         var unitName = jsonData.units[i].name;
         unitName = unitName.toLowerCase().replace(/ /g, '');
         
-        var imagePath =  "/static/" + unitName + ".png";
+        var imagePath =  "/static/art/" + unitName + ".png";
 
         var bitmap = new createjs.Bitmap(imagePath);
 
@@ -431,7 +460,7 @@ function drawInfoObj(jsonData) {
     for(var i = 0; i < jsonData.items.length; i++) {
         var itemName = jsonData.items[i].type;
         itemName = itemName.toLowerCase().replace(/ /g,'');
-        var imagePath = "/static/" + itemName + ".png";
+        var imagePath = "/static/art/" + itemName + ".png";
 
         var bitmap = new createjs.Bitmap(imagePath);
         bitmap.x = 20;
@@ -448,6 +477,54 @@ function drawInfoUnit(jsonData) {
     container_ui[2].visible = true;
 
     createjs.Tween.get(container_ui[2]).to({x: 333}, 500, createjs.Ease.getPowInOut(4));
+
+    var unitName = jsonData.name
+    var nameText = new createjs.Text(unitName, "14px Verdana", "#FFFFFF");
+    var nameBounds = nameText.getBounds();
+    nameText.x =  166 - nameBounds.width / 2;
+    nameText.y = 12;
+
+    container_ui[2].addChild(nameText);
+
+    unitName = unitName.toLowerCase().replace(/ /g, '');
+    var imagePath =  "/static/art/" + unitName + ".png";
+    var unitImage = new createjs.Bitmap(imagePath);
+
+    unitImage.x = 166 - 24;
+    unitImage.y = 50;
+
+    container_ui[2].addChild(unitImage);
+
+    var hp = "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
+           + "Damage: " + jsonData.base_dmg + " - " + jsonData.dmg_range + "\n" 
+           + "Defense: " + jsonData.base_def + "\n"
+           + "Speed: " + jsonData.base_speed + "\n";
+           
+    var statsText = new createjs.Text(hp, "14px Verdana", "#FFFFFF");
+    statsText.lineHeight = 20;
+    
+    statsText.x = 10;
+    statsText.y = 125;
+    
+    container_ui[2].addChild(statsText);
+
+    var itemText = new createjs.Text("Items: ", "14px Verdana", "#FFFFFF");
+    itemText.x = 10;
+    itemText.y = 250;
+    
+    container_ui[2].addChild(itemText);
+
+    for(var i = 0; i < jsonData.items.length; i++) {
+        var itemName = jsonData.items[i].type;
+        itemName = itemName.toLowerCase().replace(/ /g,'');
+        var imagePath = "/static/art/" + itemName + ".png";
+
+        var bitmap = new createjs.Bitmap(imagePath);
+        bitmap.x = 20;
+        bitmap.y = 275;
+        
+        container_ui[2].addChild(bitmap);
+    }
 };
 
 function initUI() {
