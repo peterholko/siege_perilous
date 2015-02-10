@@ -1,9 +1,11 @@
 var websocket;
 var stage;
-var queue;
-var canvas_map;
-var container_map;
-var container_ui = [];
+var loaderQueue;
+var imagesQueue = [];
+var canvas;
+var map;
+var infoPanels = [];
+var lastActivePanel = 0;
 
 var explored = {};
 var objs = {};
@@ -49,8 +51,8 @@ function init() {
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
 
-    container_map = new createjs.Container();
-    stage.addChild(container_map)
+    map = new createjs.Container();
+    stage.addChild(map)
     
     initImages();
     initUI();
@@ -77,22 +79,29 @@ function initImages() {
                      src: "ui_pane.png", id: "ui_pane",
                      src: "close_rest.png" , id: "close_rest"}];
                 
-    queue = new createjs.LoadQueue(false);
-    queue.addEventListener("complete", handleQueueComplete);
-    queue.loadManifest(manifest, true, "/static/art/");
+    loaderQueue = new createjs.LoadQueue(false);
+    loaderQueue.addEventListener("complete", handleQueueComplete);
+    loaderQueue.loadManifest(manifest, true, "/static/art/");
 };
 
 function handleQueueComplete()
 {
     console.log("Queue complete");
-    var human = queue.getResult("humanskirmisher");
 
-    if(human) {
-    var test = new createjs.Bitmap(queue.getResult("humanskirmisher"));
-    test.x = 500;
-    test.y = 250;
-    stage.addChild(test);
+    while(imagesQueue.length > 0) {
+        var imageTask = imagesQueue.shift();
+        var image = loaderQueue.getResult(imageTask.id)
+
+        if(image) {
+            var bitmap = new createjs.Bitmap(image);
+
+            bitmap.x = imageTask.x;
+            bitmap.y = imageTask.y;
+
+            imageTask.target.addChild(bitmap);
+        }
     }
+
 };
 
 function connect()
@@ -249,6 +258,7 @@ function onMessage(evt) {
             drawDmg(jsonData.dmg);
         }
         else if(jsonData.packet == "info_obj") {
+            lastActivePanel += 1;
             drawInfoObj(jsonData);
         }
         else if(jsonData.packet == "info_unit") {
@@ -293,7 +303,7 @@ function drawMap() {
             drawInfoOnTile(this.tile, this.pos, objList);
         });
 
-        container_map.addChild(bitmap);
+        map.addChild(bitmap);
 
         if(pos != playerPos) {
             if(!isNeighbour(hex.q, hex.r, neighbours)) {
@@ -301,7 +311,7 @@ function drawMap() {
                 bitmap = new createjs.Bitmap(shroud);
                 bitmap.x = pixel.x;
                 bitmap.y = pixel.y;
-                container_map.addChild(bitmap);
+                map.addChild(bitmap);
             }
         }
     }
@@ -323,8 +333,8 @@ function drawObjs() {
             bitmap = new createjs.Bitmap(obj1);
             c_x = halfwidth - 36 - pixel.x;
             c_y = halfheight - 36 - pixel.y;
-            container_map.x = c_x;
-            container_map.y = c_y;        
+            map.x = c_x;
+            map.y = c_y;
         }
         else {
             bitmap = new createjs.Bitmap(obj2);
@@ -334,7 +344,7 @@ function drawObjs() {
         bitmap.x = pixel.x;
         bitmap.y = pixel.y;
         
-        container_map.addChild(bitmap);
+        map.addChild(bitmap);
     }
 };
 
@@ -374,7 +384,7 @@ function drawDmg() {
 };
 
 function drawInfoOnTile(tileType, tilePos, objsOnTile) {
-    container_ui[0].visible = true;
+    showInfoPanel();
 
     var tile = new createjs.Bitmap(tileImages[tileType]);
     
@@ -388,7 +398,7 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     tile.x = (ui_bg.width / 2) - 36;
     tile.y = 52;
 
-    container_ui[0].addChild(tile);
+    infoPanels[lastActivePanel].addChild(tile);
 
     for(var i = 0; i < objsOnTile.length; i++) {
         if(objsOnTile[i].player == 1) {
@@ -405,57 +415,49 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
         obj.x = i * 72
         obj.y = 130;
  
-        container_ui[0].addChild(obj);
+        infoPanels[lastActivePanel].addChild(obj);
     }
 
 };
 
 
 function drawInfoObj(jsonData) {
-    queue.loadFile({id: "humanskirmisher", src: "/static/art/humanskirmisher.png"});
-    
+    showInfoPanel();
 
-    container_ui[1].x = -333;
-    container_ui[1].y = 0;
-    container_ui[1].visible = true;
+    infoPanels[lastActivePanel].x = -333;
+    infoPanels[lastActivePanel].y = 0;
 
-    createjs.Tween.get(container_ui[1]).to({x: 0}, 500, createjs.Ease.getPowInOut(4));
+    createjs.Tween.get(infoPanels[lastActivePanel]).to({x: 0}, 500, createjs.Ease.getPowInOut(4));
 
     var bitmap = new createjs.Bitmap(obj1);
     bitmap.x = 166 - obj1.width/2;
     bitmap.y = 40;
     
-    container_ui[1].addChild(bitmap);
+    infoPanels[lastActivePanel].addChild(bitmap);
 
     var unitText = new createjs.Text("Units", "14px Arial", "#FFFFFF");
     unitText.x = 20;
     unitText.y = 125;
 
-    container_ui[1].addChild(unitText);
+    infoPanels[lastActivePanel].addChild(unitText);
 
     for(var i = 0; i < jsonData.units.length; i++) {
         var unitName = jsonData.units[i].name;
         unitName = unitName.toLowerCase().replace(/ /g, '');
         
         var imagePath =  "/static/art/" + unitName + ".png";
+        var target = infoPanels[lastActivePanel].getChildByName('content')
 
-        var bitmap = new createjs.Bitmap(imagePath);
+        imagesQueue.push({id: unitName, x: 20, y: 145, target: target});
+        loaderQueue.loadFile({id: unitName, src: imagePath});
 
-        bitmap._id = jsonData.units[i]._id;
-        bitmap.x = 20;
-        bitmap.y = 145;
-        bitmap.on("mousedown", function(evt) {
-            sendInfoUnit(this._id); 
-        });
-
-        container_ui[1].addChild(bitmap);
     }
 
     var itemText = new createjs.Text("Items", "14px Arial", "#FFFFFF");
     itemText.x = 20;
     itemText.y = 225;
 
-    container_ui[1].addChild(itemText);
+    infoPanels[lastActivePanel].addChild(itemText);
 
     for(var i = 0; i < jsonData.items.length; i++) {
         var itemName = jsonData.items[i].type;
@@ -466,7 +468,7 @@ function drawInfoObj(jsonData) {
         bitmap.x = 20;
         bitmap.y = 245;
         
-        container_ui[1].addChild(bitmap);
+        infoPanels[lastActivePanel].addChild(bitmap);
     }
 };
 
@@ -529,31 +531,37 @@ function drawInfoUnit(jsonData) {
 
 function initUI() {
     for(var i = 0; i < 4; i++) {
-        var container = new createjs.Container();
+        var panel = new createjs.Container();
         var bg = new createjs.Bitmap(ui_bg);
         var close = new createjs.Bitmap(close_rest);
+        var content = new createjs.Container();
 
-        container.x = 0;
-        container.y = 0;
-        container.visible = false;
-
-        bg.x = 0;
-        bg.y = 0;
+        panel.visible = false;
 
         close.x = 300;
         close.y = 10;
+
+        content.name = 'content'
 
         close.on("mousedown", function(evt) {
             this.parent.visible = false;
         });
 
-        container.addChild(bg);
-        container.addChild(close);
+        panel.addChild(bg);
+        panel.addChild(close);
+        panel.addChild(content)
 
-        stage.addChild(container);
+        stage.addChild(panel);
 
-        container_ui.push(container);
+        infoPanels.push(panel);
     }
+};
+
+function showInfoPanel() {
+    var content = infoPanels[lastActivePanel].getChildByName('content');
+    content.removeAllChildren();
+
+    infoPanels[lastActivePanel].visible = true;
 };
 
 function isNeighbour(q, r, neighbours) {
