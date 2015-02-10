@@ -5,7 +5,7 @@ var imagesQueue = [];
 var canvas;
 var map;
 var infoPanels = [];
-var lastActivePanel = 0;
+var activeInfoPanel;
 
 var explored = {};
 var objs = {};
@@ -558,10 +558,36 @@ function initUI() {
 };
 
 function showInfoPanel() {
-    var content = infoPanels[lastActivePanel].getChildByName('content');
+    
+    for(var i = 0; i < infoPanels.length; i++) {
+        if(infoPanels[i].visible == false) {
+            activeInfoPanel = infoPanels[i]; 
+        }
+    }
+
+    var content = activeInfoPanel.getChildByName('content');
     content.removeAllChildren();
 
-    infoPanels[lastActivePanel].visible = true;
+    activeInfoPanel.visible = true;
+};
+
+function reorderInfoPanels() {
+    var xCoords = [];
+
+    for(var i = 0; i < infoPanels.length; i++) {
+        if(infoPanels[i].visible == true) {
+            xCoords.push({index: i, x: infoPanels[i].x});
+        }
+    }
+
+    xCoords.sort(function(a, b) {
+        return a.x - b.x;
+    });
+
+    for(var i = 0; i < xCoords.length; i++) { 
+        
+    }
+
 };
 
 function isNeighbour(q, r, neighbours) {
