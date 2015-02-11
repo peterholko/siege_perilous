@@ -330,23 +330,18 @@ function drawObjs() {
     for(i = 0; i < objs.length; i++) {
         var hex = pos_to_hex(objs[i].pos);
         var pixel = hex_to_pixel(hex.q, hex.r);
+        var objName = objs[i].type;
+        var imagePath =  "/static/art/" + objName + ".png";
 
         if(objs[i].player == 1) {
-            bitmap = new createjs.Bitmap(obj1);
             c_x = halfwidth - 36 - pixel.x;
             c_y = halfheight - 36 - pixel.y;
             map.x = c_x;
             map.y = c_y;
         }
-        else {
-            bitmap = new createjs.Bitmap(obj2);
-        }
 
-        bitmap.mouseEnabled = false;
-        bitmap.x = pixel.x;
-        bitmap.y = pixel.y;
-        
-        map.addChild(bitmap);
+        imagesQueue.push({id: objName, x: pixel.x, y: pixel.y, target: map});
+        loaderQueue.loadFile({id: objName, src: imagePath});
     }
 };
 

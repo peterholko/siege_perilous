@@ -74,7 +74,7 @@ do_recalculate() ->
     erase(),
 
     %Get all entities
-    AllEntities = db:dirty_index_read(map_obj, entity, #map_obj.type),
+    AllEntities = db:dirty_index_read(map_obj, entity, #map_obj.class),
 
     %Remove dead entities
     Entities = remove_dead(AllEntities, []),

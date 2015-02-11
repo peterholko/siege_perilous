@@ -52,7 +52,7 @@ create_schema() ->
     mnesia:add_table_index(player, npc),
     mnesia:add_table_index(connection, socket),
     mnesia:add_table_index(map_obj, pos),
-    mnesia:add_table_index(map_obj, type),
+    mnesia:add_table_index(map_obj, class),
     mnesia:add_table_index(map_obj, player),
     mnesia:add_table_index(event, tick),
     mnesia:add_table_index(battle_unit, battle),
@@ -147,8 +147,8 @@ test_tables() ->
      {tile, {2,3}, 2},   
      {tile, {3,3}, 2},
      {explored_map, 1, [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}]},
-     {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, 1, entity, none},
-     {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, none},
+     {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, 1, entity, <<"heromage">>, none},
+     {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, <<"zombie">>, none},
      {resource, <<"Copper Ore">>, ?MOUNTAINS},
      {resource, <<"Copper Ore">>, ?HILLS}
     ].

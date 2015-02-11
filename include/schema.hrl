@@ -20,6 +20,7 @@
 -record(map_obj, {id, 
                   pos,
                   player,
+                  class,
                   type,
                   state}).
 

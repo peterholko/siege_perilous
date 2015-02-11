@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get_obj/1, get_info/2, create/3, create/5]).
+-export([get_obj/1, get_info/2, create/4, create/6]).
 
 get_obj(Id) ->
     Obj = find(Id),
@@ -22,17 +22,17 @@ get_info(Requester, Id) ->
     lager:info("ObjInfo: ~p", [ObjInfo]),
     ObjInfo.
 
-create(Player, Pos, Type) ->
+create(Player, Pos, Class, Type) ->
     lager:info("Create: ~p ~p ~p", [Player, Pos, Type]),
     Id = insert(Player),
 
-    map:create_obj(Id, Player, Pos, Type, none),
+    map:create_obj(Id, Player, Pos, Class, Type, none),
     game:set_perception(true),
 
     %Return ID
     Id.
 
-create(Player, Pos, Type, State, Units) ->
+create(Player, Pos, Class, Type, State, Units) ->
     lager:info("Create: ~p ~p ~p ~p", [Player, Pos, Type, Units]),
 
     %Insert obj
@@ -42,7 +42,7 @@ create(Player, Pos, Type, State, Units) ->
     insert_units(Id, Units),
 
     %Create map obj
-    map:create_obj(Id, Player, Pos, Type, State),
+    map:create_obj(Id, Player, Pos, Class, Type, State),
     game:set_perception(true),
 
     %Return ID
