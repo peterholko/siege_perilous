@@ -20,11 +20,14 @@ var hexSize = 72;
 
 var obj1 = new Image();
 var obj2 = new Image();
-var ui_bg = new Image();
+var infoPanelBg = new Image();
 var close_rest = new Image();
 
 var unit1;
 var unit2;
+
+var h1Font = "14px Verdana"
+var textColor = "#FFFFFF";
 
 var tileImages = [];
 
@@ -37,7 +40,7 @@ var shroud = "/static/art/shroud.png";
 
 obj1.src = "/static/art/white-mage.png";
 obj2.src = "/static/art/zombie.png";
-ui_bg.src = '/static/art/ui_pane.png';
+infoPanelBg.src = '/static/art/ui_pane.png';
 close_rest.src = '/static/art/close_rest.png';
 
 $(document).ready(init);
@@ -393,8 +396,7 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
         sendInfoTile(this.type, this.pos);
     });
 
-
-    tile.x = (ui_bg.width / 2) - 36;
+    tile.x = (infoPanelBg.width / 2) - 36;
     tile.y = 52;
 
     addChildInfoPanel(tile);
@@ -416,20 +418,16 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
  
         addChildInfoPanel(obj);
     }
-
 };
-
 
 function drawInfoObj(jsonData) {
     showInfoPanel();
 
-    //createjs.Tween.get(infoPanels[lastActivePanel]).to({x: 0}, 500, createjs.Ease.getPowInOut(4));
-
     var bitmap = new createjs.Bitmap(obj1);
-    bitmap.x = 166 - obj1.width/2;
+    bitmap.x = Math.floor(infoPanelBg.width / 2) - obj1.width/2;
     bitmap.y = 40;
     
-    var unitText = new createjs.Text("Units", "14px Verdana", "#FFFFFF");
+    var unitText = new createjs.Text("Units", h1Font, textColor);
     unitText.x = 20;
     unitText.y = 125;
 
@@ -441,12 +439,22 @@ function drawInfoObj(jsonData) {
         unitName = unitName.toLowerCase().replace(/ /g, '');
         
         var imagePath =  "/static/art/" + unitName + ".png";
+        var icon = new createjs.Container();
 
-        imagesQueue.push({id: unitName, x: 20, y: 145, target: getInfoPanelContent()});
+        icon._id = jsonData.units[i]._id;
+        icon.x = 20;
+        icon.y = 145;
+        icon.on("mousedown", function(evt) {
+            sendInfoUnit(this._id); 
+        });
+
+        addChildInfoPanel(icon);
+
+        imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
         loaderQueue.loadFile({id: unitName, src: imagePath});
     }
 
-    var itemText = new createjs.Text("Items", "14px Verdana", "#FFFFFF");
+    var itemText = new createjs.Text("Items", h1Font, textColor);
     itemText.x = 20;
     itemText.y = 225;
 
@@ -463,66 +471,58 @@ function drawInfoObj(jsonData) {
 };
 
 function drawInfoUnit(jsonData) {
-    console.log("drawInfoUnit");
-    container_ui[2].x = 0;
-    container_ui[2].y = 0;
-    container_ui[2].visible = true;
-
-    createjs.Tween.get(container_ui[2]).to({x: 333}, 500, createjs.Ease.getPowInOut(4));
+    showInfoPanel();
 
     var unitName = jsonData.name
-    var nameText = new createjs.Text(unitName, "14px Verdana", "#FFFFFF");
+    var nameText = new createjs.Text(unitName, h1Font, textColor);
+
     var nameBounds = nameText.getBounds();
-    nameText.x =  166 - nameBounds.width / 2;
+    nameText.x =  Math.floor(infoPanelBg.width / 2) - nameBounds.width / 2;
     nameText.y = 12;
 
-    container_ui[2].addChild(nameText);
+    addChildInfoPanel(nameText);
 
     unitName = unitName.toLowerCase().replace(/ /g, '');
     var imagePath =  "/static/art/" + unitName + ".png";
-    var unitImage = new createjs.Bitmap(imagePath);
 
-    unitImage.x = 166 - 24;
-    unitImage.y = 50;
+    imagesQueue.push({id: unitName, 
+                      x: Math.floor(infoPanelBg.width / 2) - 24, 
+                      y: 50, target: getInfoPanelContent()});
+    loaderQueue.loadFile({id: unitName, src: imagePath});
 
-    container_ui[2].addChild(unitImage);
-
-    var hp = "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
-           + "Damage: " + jsonData.base_dmg + " - " + jsonData.dmg_range + "\n" 
-           + "Defense: " + jsonData.base_def + "\n"
-           + "Speed: " + jsonData.base_speed + "\n";
+    var stats = "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
+              + "Damage: " + jsonData.base_dmg + " - " + jsonData.dmg_range + "\n" 
+              + "Defense: " + jsonData.base_def + "\n"
+              + "Speed: " + jsonData.base_speed + "\n";
            
-    var statsText = new createjs.Text(hp, "14px Verdana", "#FFFFFF");
+    var statsText = new createjs.Text(stats, h1Font, textColor);
+
     statsText.lineHeight = 20;
-    
     statsText.x = 10;
     statsText.y = 125;
     
-    container_ui[2].addChild(statsText);
+    addChildInfoPanel(statsText);
 
-    var itemText = new createjs.Text("Items: ", "14px Verdana", "#FFFFFF");
+    var itemText = new createjs.Text("Items: ", h1Font, textColor);
     itemText.x = 10;
     itemText.y = 250;
     
-    container_ui[2].addChild(itemText);
+    addChildInfoPanel(itemText);
 
     for(var i = 0; i < jsonData.items.length; i++) {
-        var itemName = jsonData.items[i].type;
+        var itemName = jsonData.items[i].name;
         itemName = itemName.toLowerCase().replace(/ /g,'');
         var imagePath = "/static/art/" + itemName + ".png";
 
-        var bitmap = new createjs.Bitmap(imagePath);
-        bitmap.x = 20;
-        bitmap.y = 275;
-        
-        container_ui[2].addChild(bitmap);
+        imagesQueue.push({id: itemName, x: 20, y: 276, target: getInfoPanelContent()});
+        loaderQueue.loadFile({id: itemName, src: imagePath});
     }
 };
 
 function initUI() {
     for(var i = 0; i < 4; i++) {
         var panel = new createjs.Container();
-        var bg = new createjs.Bitmap(ui_bg);
+        var bg = new createjs.Bitmap(infoPanelBg);
         var close = new createjs.Bitmap(close_rest);
         var content = new createjs.Container();
 
@@ -534,6 +534,7 @@ function initUI() {
         content.name = 'content'
 
         close.on("mousedown", function(evt) {
+            console.log('Close mousedown')
             this.parent.visible = false;
         });
 
@@ -548,8 +549,7 @@ function initUI() {
 };
 
 function showInfoPanel() {
-    
-    var xCoords = [0, 333, 666];
+    var xCoords = [0, infoPanelBg.width, infoPanelBg.width * 2];
 
     for(var i = 0; i < infoPanels.length; i++) {
         if(infoPanels[i].visible == false) {
@@ -564,7 +564,13 @@ function showInfoPanel() {
     var content = activeInfoPanel.getChildByName('content');
     content.removeAllChildren();
 
-    activeInfoPanel.x = xCoords[0];
+    if(xCoords.length > 0) {
+        activeInfoPanel.x = xCoords[0];
+    } 
+    else {
+        activeInfoPanel.x = 0;
+    }
+
     activeInfoPanel.visible = true;    
 };
 
