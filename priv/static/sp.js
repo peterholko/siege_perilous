@@ -258,7 +258,6 @@ function onMessage(evt) {
             drawDmg(jsonData.dmg);
         }
         else if(jsonData.packet == "info_obj") {
-            lastActivePanel += 1;
             drawInfoObj(jsonData);
         }
         else if(jsonData.packet == "info_unit") {
@@ -398,7 +397,7 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     tile.x = (ui_bg.width / 2) - 36;
     tile.y = 52;
 
-    infoPanels[lastActivePanel].addChild(tile);
+    addChildInfoPanel(tile);
 
     for(var i = 0; i < objsOnTile.length; i++) {
         if(objsOnTile[i].player == 1) {
@@ -415,7 +414,7 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
         obj.x = i * 72
         obj.y = 130;
  
-        infoPanels[lastActivePanel].addChild(obj);
+        addChildInfoPanel(obj);
     }
 
 };
@@ -424,51 +423,42 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
 function drawInfoObj(jsonData) {
     showInfoPanel();
 
-    infoPanels[lastActivePanel].x = -333;
-    infoPanels[lastActivePanel].y = 0;
-
-    createjs.Tween.get(infoPanels[lastActivePanel]).to({x: 0}, 500, createjs.Ease.getPowInOut(4));
+    //createjs.Tween.get(infoPanels[lastActivePanel]).to({x: 0}, 500, createjs.Ease.getPowInOut(4));
 
     var bitmap = new createjs.Bitmap(obj1);
     bitmap.x = 166 - obj1.width/2;
     bitmap.y = 40;
     
-    infoPanels[lastActivePanel].addChild(bitmap);
-
-    var unitText = new createjs.Text("Units", "14px Arial", "#FFFFFF");
+    var unitText = new createjs.Text("Units", "14px Verdana", "#FFFFFF");
     unitText.x = 20;
     unitText.y = 125;
 
-    infoPanels[lastActivePanel].addChild(unitText);
+    addChildInfoPanel(bitmap);
+    addChildInfoPanel(unitText);
 
     for(var i = 0; i < jsonData.units.length; i++) {
         var unitName = jsonData.units[i].name;
         unitName = unitName.toLowerCase().replace(/ /g, '');
         
         var imagePath =  "/static/art/" + unitName + ".png";
-        var target = infoPanels[lastActivePanel].getChildByName('content')
 
-        imagesQueue.push({id: unitName, x: 20, y: 145, target: target});
+        imagesQueue.push({id: unitName, x: 20, y: 145, target: getInfoPanelContent()});
         loaderQueue.loadFile({id: unitName, src: imagePath});
-
     }
 
-    var itemText = new createjs.Text("Items", "14px Arial", "#FFFFFF");
+    var itemText = new createjs.Text("Items", "14px Verdana", "#FFFFFF");
     itemText.x = 20;
     itemText.y = 225;
 
-    infoPanels[lastActivePanel].addChild(itemText);
+    addChildInfoPanel(itemText);
 
     for(var i = 0; i < jsonData.items.length; i++) {
         var itemName = jsonData.items[i].type;
         itemName = itemName.toLowerCase().replace(/ /g,'');
         var imagePath = "/static/art/" + itemName + ".png";
 
-        var bitmap = new createjs.Bitmap(imagePath);
-        bitmap.x = 20;
-        bitmap.y = 245;
-        
-        infoPanels[lastActivePanel].addChild(bitmap);
+        imagesQueue.push({id: itemName, x: 20, y: 245, target: getInfoPanelContent()});
+        loaderQueue.loadFile({id: itemName, src: imagePath});
     }
 };
 
@@ -559,36 +549,33 @@ function initUI() {
 
 function showInfoPanel() {
     
+    var xCoords = [0, 333, 666];
+
     for(var i = 0; i < infoPanels.length; i++) {
         if(infoPanels[i].visible == false) {
             activeInfoPanel = infoPanels[i]; 
+        }
+        else {
+            var index = xCoords.indexOf(infoPanels[i].x);
+            xCoords.splice(index, 1);    
         }
     }
 
     var content = activeInfoPanel.getChildByName('content');
     content.removeAllChildren();
 
-    activeInfoPanel.visible = true;
+    activeInfoPanel.x = xCoords[0];
+    activeInfoPanel.visible = true;    
 };
 
-function reorderInfoPanels() {
-    var xCoords = [];
+function addChildInfoPanel(item) {
+    var content = activeInfoPanel.getChildByName('content');
+    content.addChild(item);
+}
 
-    for(var i = 0; i < infoPanels.length; i++) {
-        if(infoPanels[i].visible == true) {
-            xCoords.push({index: i, x: infoPanels[i].x});
-        }
-    }
-
-    xCoords.sort(function(a, b) {
-        return a.x - b.x;
-    });
-
-    for(var i = 0; i < xCoords.length; i++) { 
-        
-    }
-
-};
+function getInfoPanelContent() {
+    return activeInfoPanel.getChildByName('content');
+}
 
 function isNeighbour(q, r, neighbours) {
     var i;
