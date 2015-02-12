@@ -505,7 +505,7 @@ function drawInfoUnit(jsonData) {
     addChildInfoPanel(itemText);
 
     for(var i = 0; i < jsonData.items.length; i++) {
-        var itemName = jsonData.items[i].name;
+        var itemName = jsonData.items[i].type;
         itemName = itemName.toLowerCase().replace(/ /g,'');
         var imagePath = "/static/art/" + itemName + ".png";
 
