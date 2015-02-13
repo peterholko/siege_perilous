@@ -211,14 +211,16 @@ process_dmg(BattleId, AtkUnit, DefUnit) ->
     Dmg = round(DmgRoll * (1 - DmgReduction)),
     NewHp = DefHp - Dmg,
 
+    %Broadcast damage
+    broadcast_dmg(BattleId, AtkId, DefId, Dmg),
+
+    %Check if unit is dead 
     case is_unit_dead(NewHp) of
         alive ->
             update_hp(DefId, NewHp);
         dead ->
             process_unit_dead(BattleId, AtkObjId, DefObjId, DefId)
-    end,    
-
-    broadcast_dmg(BattleId, AtkId, DefId, Dmg).
+    end.
 
 is_unit_dead(Hp) when Hp =< 0 ->
     dead;

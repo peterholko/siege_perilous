@@ -13,7 +13,7 @@ var objs = {};
 var units = {};
 var playerId;
 var playerPos;
-var selectedUnit;
+var selectedUnit = false;
 
 var mapWidth = 4;
 var mapHeight = 4;
@@ -231,7 +231,9 @@ function onClose(evt) {
 };  
 
 function onMessage(evt) { 
+    console.log("Before JSON Parse: "+ evt.data);
     var jsonData = JSON.parse(evt.data);
+    console.log("After JSON Parse");
 
     if(jsonData.hasOwnProperty("packet")) {
         
@@ -260,7 +262,8 @@ function onMessage(evt) {
             drawBattle(jsonData.units);
         }
         else if(jsonData.packet == "battle_event") {
-            drawDmg(jsonData.dmg);
+            console.log("dmg: " + jsonData.dmg);
+            //drawDmg(jsonData.dmg);
         }
         else if(jsonData.packet == "info_obj") {
             drawInfoObj(jsonData);
@@ -319,7 +322,6 @@ function drawMap() {
             }
         }
     }
-
 };
 
 function drawObjs() {
@@ -349,6 +351,7 @@ function drawObjs() {
 
 function drawBattle(unit_data) {
     showBattlePanel();
+    selectedUnit = false;
 
     for(i = 0; i < unit_data.length; i++) {
         
@@ -362,6 +365,7 @@ function drawBattle(unit_data) {
         var icon = new createjs.Container();
 
         icon._id = unit_data[i]._id;
+        icon.player = obj.player;
 
         if(obj.player == playerId) {
             icon.x = 25;
@@ -372,25 +376,29 @@ function drawBattle(unit_data) {
         }
 
         icon.on("mousedown", function(evt) {
-            sendInfoUnit(this._id);
+            if(selectedUnit == false) {
+                if(this.player == playerId) {
+                    selectedUnit = this._id;
+                } 
+            } else {
+                if(this.player != playerId) {
+                    var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + this._id + '"}';    
+                    websocket.send(attack_unit);
+                }
+            }
+            
         });
 
         addChildBattlePanel(icon);
 
         imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
         loaderQueue.loadFile({id: unitName, src: imagePath});
-
-        /*
-            unit2.on("mousedown", function(evt) {
-            var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + unit_data[1]._id + '"}';
-        */
     }
-
 };
 
-function drawDmg() {
-    createjs.Tween.get(unit1).to({x: 425}, 1000, createjs.Ease.getPowInOut(4)).to({x: 25}, 1000, createjs.Ease.getPowInOut(2));
-};
+//function drawDmg() {
+    //createjs.Tween.get(unit1).to({x: 425}, 1000, createjs.Ease.getPowInOut(4)).to({x: 25}, 1000, createjs.Ease.getPowInOut(2));
+//};
 
 function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     showInfoPanel();
