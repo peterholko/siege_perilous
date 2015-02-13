@@ -4,6 +4,7 @@ var loaderQueue;
 var imagesQueue = [];
 var canvas;
 var map;
+var battlePanel;
 var infoPanels = [];
 var activeInfoPanel;
 
@@ -17,6 +18,8 @@ var selectedUnit;
 var mapWidth = 4;
 var mapHeight = 4;
 var hexSize = 72;
+var stageWidth = 1000;
+var stageHeight = 500;
 
 var obj1 = new Image();
 var obj2 = new Image();
@@ -60,7 +63,7 @@ function init() {
     initImages();
     initUI();
 
-    createjs.Ticker.setFPS(60);
+    createjs.Ticker.setFPS(30);
     createjs.Ticker.addEventListener("tick", stage);
 
     $('#server').val("ws://" + window.location.host + "/websocket");
@@ -254,8 +257,7 @@ function onMessage(evt) {
             drawObjs();
         }
         else if(jsonData.packet == "battle_perception") {
-            $("#battle").fadeIn('slow');
-            drawUnits(jsonData.units);
+            drawBattle(jsonData.units);
         }
         else if(jsonData.packet == "battle_event") {
             drawDmg(jsonData.dmg);
@@ -345,38 +347,48 @@ function drawObjs() {
     }
 };
 
-function drawUnits(unit_data) {
+function drawBattle(unit_data) {
+    showBattlePanel();
 
     for(i = 0; i < unit_data.length; i++) {
         
         var obj = getObj(unit_data[i].obj_id);
         console.log("Unit obj.player: " + obj.player);
 
+        var unitName = unit_data[i].name;
+        unitName = unitName.toLowerCase().replace(/ /g, '');
+
+        var imagePath =  "/static/art/" + unitName + ".png";
+        var icon = new createjs.Container();
+
+        icon._id = unit_data[i]._id;
+
         if(obj.player == playerId) {
-            unit1 = new createjs.Bitmap(obj1);
-            unit1.x = 25;
-            unit1.y = 200;
-            unit1.on("mousedown", function(evt) {
-                selectedUnit = unit_data[0]._id;    
-            });
-            stage_battle.addChild(unit1);
+            icon.x = 25;
+            icon.y = 150;
+        } else {
+            icon.x = 425;
+            icon.y = 150;
         }
-        else {
-            unit2 = new createjs.Bitmap(obj2);
-            unit2.x = 425;
-            unit2.y = 200;
+
+        icon.on("mousedown", function(evt) {
+            sendInfoUnit(this._id);
+        });
+
+        addChildBattlePanel(icon);
+
+        imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
+        loaderQueue.loadFile({id: unitName, src: imagePath});
+
+        /*
             unit2.on("mousedown", function(evt) {
-                var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + unit_data[1]._id + '"}';
-                websocket.send(attack_unit);
-            });
-            stage_battle.addChild(unit2);
-        }
-        
+            var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + unit_data[1]._id + '"}';
+        */
     }
+
 };
 
 function drawDmg() {
-    console.log("stage_battle numChildren: " + stage_battle.numChildren);
     createjs.Tween.get(unit1).to({x: 425}, 1000, createjs.Ease.getPowInOut(4)).to({x: 25}, 1000, createjs.Ease.getPowInOut(2));
 };
 
@@ -397,36 +409,32 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     addChildInfoPanel(tile);
 
     for(var i = 0; i < objsOnTile.length; i++) {
-        if(objsOnTile[i].player == 1) {
-            var obj = new createjs.Bitmap(obj1);
-        } else {
-            var obj = new createjs.Bitmap(obj2);
-        }
     
-        obj.obj_id = objsOnTile[i].id;
-        obj.on("mousedown", function(evt) {
+        var objName = objsOnTile[i].type;
+        var imagePath =  "/static/art/" + objName + ".png";
+        var icon = new createjs.Container();
+
+        icon.obj_id = objsOnTile[i].id;
+        icon.x = i * hexSize;
+        icon.y = 130;
+        icon.on("mousedown", function(evt) {
             sendInfoObj(this.obj_id);
         });
-    
-        obj.x = i * 72
-        obj.y = 130;
- 
-        addChildInfoPanel(obj);
+
+        addChildInfoPanel(icon);
+
+        imagesQueue.push({id: objName, x: 0, y: 0, target: icon});
+        loaderQueue.loadFile({id: objName, src: imagePath});
     }
 };
 
 function drawInfoObj(jsonData) {
     showInfoPanel();
 
-    var bitmap = new createjs.Bitmap(obj1);
-    bitmap.x = Math.floor(infoPanelBg.width / 2) - obj1.width/2;
-    bitmap.y = 40;
-    
     var unitText = new createjs.Text("Units", h1Font, textColor);
     unitText.x = 20;
     unitText.y = 125;
 
-    addChildInfoPanel(bitmap);
     addChildInfoPanel(unitText);
 
     for(var i = 0; i < jsonData.units.length; i++) {
@@ -437,10 +445,17 @@ function drawInfoObj(jsonData) {
         var icon = new createjs.Container();
 
         icon._id = jsonData.units[i]._id;
-        icon.x = 20;
-        icon.y = 145;
+
+        if(jsonData.units[i].hero == true) {
+            icon.x = Math.floor(infoPanelBg.width / 2) - hexSize/2;
+            icon.y = 40;
+        } else {
+            icon.x = 20 + i * 50;
+            icon.y = 145;
+        }
+
         icon.on("mousedown", function(evt) {
-            sendInfoUnit(this._id); 
+            sendInfoUnit(this._id);
         });
 
         addChildInfoPanel(icon);
@@ -509,12 +524,41 @@ function drawInfoUnit(jsonData) {
         itemName = itemName.toLowerCase().replace(/ /g,'');
         var imagePath = "/static/art/" + itemName + ".png";
 
-        imagesQueue.push({id: itemName, x: 20, y: 276, target: getInfoPanelContent()});
-        loaderQueue.loadFile({id: itemName, src: imagePath});
+        //imagesQueue.push({id: itemName, x: 20, y: 276, target: getInfoPanelContent()});
+        //loaderQueue.loadFile({id: itemName, src: imagePath});
     }
 };
 
 function initUI() {
+
+    //Initialize battle panel
+    battlePanel = new createjs.Container();
+    battlePanel.visible = false;
+    battlePanel.x = stageWidth / 2 - 500 / 2;
+    battlePanel.y = stageHeight / 2 - 460 / 2;
+
+    var bg = new createjs.Shape();
+    var close = new createjs.Bitmap(close_rest);
+    var content = new createjs.Container();
+
+    bg.graphics.beginFill("#808080").drawRect(0,0,500,460);
+
+    close.x = 500;
+    close.y = 10;
+    close.on("mousedown", function(evt) {
+        console.log('Close mousedown')
+        this.parent.visible = false;
+    });
+
+    content.name = 'content'
+
+    battlePanel.addChild(bg)
+    battlePanel.addChild(close)
+    battlePanel.addChild(content)
+
+    stage.addChild(battlePanel)
+
+    //Initialize infoPanels
     for(var i = 0; i < 4; i++) {
         var panel = new createjs.Container();
         var bg = new createjs.Bitmap(infoPanelBg);
@@ -541,6 +585,13 @@ function initUI() {
 
         infoPanels.push(panel);
     }
+};
+
+function showBattlePanel() {
+    var content = battlePanel.getChildByName('content');
+    content.removeAllChildren();
+
+    battlePanel.visible = true;
 };
 
 function showInfoPanel() {
@@ -577,6 +628,12 @@ function addChildInfoPanel(item) {
 function getInfoPanelContent() {
     return activeInfoPanel.getChildByName('content');
 }
+
+function addChildBattlePanel(item) {
+    var content = battlePanel.getChildByName('content');
+    content.addChild(item);
+}
+
 
 function isNeighbour(q, r, neighbours) {
     var i;
