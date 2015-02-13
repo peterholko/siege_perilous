@@ -11,6 +11,7 @@ var activeInfoPanel;
 var explored = {};
 var objs = {};
 var units = {};
+
 var playerId;
 var playerPos;
 var selectedUnit = false;
@@ -21,13 +22,8 @@ var hexSize = 72;
 var stageWidth = 1000;
 var stageHeight = 500;
 
-var obj1 = new Image();
-var obj2 = new Image();
 var infoPanelBg = new Image();
 var close_rest = new Image();
-
-var unit1;
-var unit2;
 
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
@@ -41,8 +37,6 @@ tileImages[3] = "/static/art/desert.png";
 
 var shroud = "/static/art/shroud.png";
 
-obj1.src = "/static/art/white-mage.png";
-obj2.src = "/static/art/zombie.png";
 infoPanelBg.src = '/static/art/ui_pane.png';
 close_rest.src = '/static/art/close_rest.png';
 
@@ -262,8 +256,7 @@ function onMessage(evt) {
             drawBattle(jsonData.units);
         }
         else if(jsonData.packet == "battle_event") {
-            console.log("dmg: " + jsonData.dmg);
-            //drawDmg(jsonData.dmg);
+            drawDmg(jsonData);
         }
         else if(jsonData.packet == "info_obj") {
             drawInfoObj(jsonData);
@@ -340,8 +333,9 @@ function drawObjs() {
         if(objs[i].player == 1) {
             c_x = halfwidth - 36 - pixel.x;
             c_y = halfheight - 36 - pixel.y;
-            map.x = c_x;
-            map.y = c_y;
+            //map.x = c_x;
+            //map.y = c_y;
+            createjs.Tween.get(map).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
         }
 
         imagesQueue.push({id: objName, x: pixel.x, y: pixel.y, target: map});
@@ -352,6 +346,7 @@ function drawObjs() {
 function drawBattle(unit_data) {
     showBattlePanel();
     selectedUnit = false;
+    battleUnits = [];
 
     for(i = 0; i < unit_data.length; i++) {
         
@@ -369,10 +364,10 @@ function drawBattle(unit_data) {
 
         if(obj.player == playerId) {
             icon.x = 25;
-            icon.y = 150;
+            icon.y = 100 + i * 75;
         } else {
             icon.x = 425;
-            icon.y = 150;
+            icon.y = 100 + i * 75;
         }
 
         icon.on("mousedown", function(evt) {
@@ -396,9 +391,19 @@ function drawBattle(unit_data) {
     }
 };
 
-//function drawDmg() {
-    //createjs.Tween.get(unit1).to({x: 425}, 1000, createjs.Ease.getPowInOut(4)).to({x: 25}, 1000, createjs.Ease.getPowInOut(2));
-//};
+function drawDmg(dmgData) {
+    if(battlePanel.visible) {
+        var source = getBattleUnit(dmgData.sourceid);
+        var target = getBattleUnit(dmgData.targetid);
+        var origX = source.x;
+        var origY = source.y;
+
+        if(source && target) {
+            createjs.Tween.get(source).to({x: target.x, y: target.y}, 1000, createjs.Ease.getPowInOut(4))
+                                      .to({x: origX, y: origY}, 1000, createjs.Ease.getPowInOut(2));
+        }
+    }
+};
 
 function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     showInfoPanel();
@@ -631,17 +636,20 @@ function showInfoPanel() {
 function addChildInfoPanel(item) {
     var content = activeInfoPanel.getChildByName('content');
     content.addChild(item);
-}
+};
 
 function getInfoPanelContent() {
     return activeInfoPanel.getChildByName('content');
-}
+};
 
 function addChildBattlePanel(item) {
     var content = battlePanel.getChildByName('content');
     content.addChild(item);
-}
+};
 
+function getBattlePanelContent() {
+    return battlePanel.getChildByName('content');
+};
 
 function isNeighbour(q, r, neighbours) {
     var i;
@@ -748,6 +756,19 @@ function getTileImage(tileType) {
             return tile3;
     }
 
+};
+
+function getBattleUnit(objId) {
+    var battleContent = getBattlePanelContent();
+
+    for(var i = 0; i < battleContent.numChildren; i++) {
+        var unit = battleContent.getChildAt(i);
+        if(objId == unit._id) {
+            return unit;
+        }
+    }
+
+    return false;
 };
 
 function pos_to_hex(pos) {

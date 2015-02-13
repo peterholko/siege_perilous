@@ -1,0 +1,1 @@
+{ "options" : { "create" : "obj_copy" }, "indexes" : [ { "v" : 1, "key" : { "_id" : 1 }, "ns" : "sp.obj_copy", "name" : "_id_" } ] }

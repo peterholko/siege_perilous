@@ -1,2 +1,0 @@
-{ "_id" : { "$oid" : "54cacdd30f4c2ae71f72630a" }, "name" : "Copper Sword", "class" : "weapon", "atk" : 1 }
-{ "_id" : { "$oid" : "54cace170f4c2ae71f72630b" }, "name" : "Copper Ore", "class" : "resource", "weight" : 1 }
