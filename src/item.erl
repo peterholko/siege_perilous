@@ -17,7 +17,7 @@ get_by_owner(OwnerId) ->
     Items.
 
 transfer(Item, TargetId) ->
-    ItemId = bson:lookup('_id', Item),
+    {ItemId} = bson:lookup('_id', Item),
     mdb:update(<<"item">>, ItemId, {owner, TargetId}).
 
 equip(ItemId) ->

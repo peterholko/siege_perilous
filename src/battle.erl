@@ -212,6 +212,7 @@ process_dmg(BattleId, AtkUnit, DefUnit) ->
     NewHp = DefHp - Dmg,
 
     %Broadcast damage
+    lager:info("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
     broadcast_dmg(BattleId, AtkId, DefId, Dmg),
 
     %Check if unit is dead 
@@ -241,9 +242,11 @@ process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
     %Transfer items to the battle
     transfer_items(BattleId, item:get_by_owner(DefId)),
 
+    lager:info("Removing unit..."),
     %Remove unit from collection
     unit:killed(DefId),
 
+    lager:info("Removing unit from battle..."),
     %Remove unit from battle
     db:delete(battle_unit, DefId),
 

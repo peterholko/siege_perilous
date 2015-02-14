@@ -55,7 +55,6 @@ handle_call(Event, From, Data) ->
     {noreply, Data}.
 
 handle_info({map_perception, Perception}, Data) ->
-
     lager:info("NPC perception: ~p", [Perception]),
 
     {Explored, Objs} = new_perception(Perception),
@@ -63,6 +62,13 @@ handle_info({map_perception, Perception}, Data) ->
     process_action(NPCObjs, EnemyObjs),
 
     {noreply, Data};
+
+handle_info({battle_perception, Perception}, Data) ->
+    lager:info("NPC perception: ~p", [Perception]),
+    {NPCUnits, EnemyUnits} = split_units(Perception, [], []),
+    process_battle_action(NPCUnits, EnemyUnits),
+
+    {noreply, Data};    
 
 handle_info(Info, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
@@ -171,3 +177,53 @@ add_action({attack, {NPCId, Id}}) ->
 
 add_action(none) ->
     lager:info("NPC doing nothing").
+
+split_units([], NPCUnits, EnemyUnits) ->
+    {NPCUnits, EnemyUnits};
+split_units([Unit | Units], NPCUnits, EnemyUnits) ->
+    PlayerId = get(player_id),
+    {ObjId} = bson:lookup(obj_id, Unit),
+    [Obj] = obj:get_obj(ObjId),
+    {UnitPlayerId} = bson:lookup(player, Obj),
+
+    {NewNPCUnits, NewEnemyUnits} = add_unit(PlayerId =:= UnitPlayerId, 
+                                            Unit,
+                                            NPCUnits, 
+                                            EnemyUnits),
+
+    split_units(Units, NewNPCUnits, NewEnemyUnits).
+
+add_unit(true, Unit, NPCUnits, EnemyUnits) ->
+    {[Unit | NPCUnits], EnemyUnits};
+add_unit(false, Unit, NPCUnits, EnemyUnits) ->
+    {NPCUnits, [Unit, EnemyUnits]}.
+
+process_battle_action(NPCUnits, EnemyUnits) ->
+    
+    F = fun(NPCUnit) ->
+            Action = none,
+            NewAction = check_units(NPCUnit, EnemyUnits, Action),
+            add_battle_action(NewAction)
+        end,
+
+    lists:foreach(F, NPCUnits).
+
+check_units(_NPCUnit, [], Action) ->
+    Action;
+check_units(NPCUnit, [EnemyUnit | EnemyUnits], Action) ->
+
+    NewAction = determine_battle_action(NPCUnit, EnemyUnit, Action), 
+
+    check_units(NPCUnit, EnemyUnits, NewAction).
+
+determine_battle_action(NPCUnit, EnemyUnit, none) ->
+    {SourceId} = bson:lookup('_id', NPCUnit),
+    {TargetId} = bson:lookup('_id', EnemyUnit),
+    {attack, SourceId, TargetId};
+determine_battle_action(_NPCUnit, _EnemyUnit, Action) ->
+    Action.
+
+add_battle_action({attack, SourceId, TargetId}) ->
+    battle:attack_unit(SourceId, TargetId);
+add_battle_action(none) ->
+    lager:info("NPC Unit doing nothing.").

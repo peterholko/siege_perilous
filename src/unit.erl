@@ -68,10 +68,12 @@ find_type(Id) ->
 find_type_by_name(Name) ->
     mongo:find_one(mdb:get_conn(), <<"unit_type">>, {'name', Name}).
 
-find_units(ObjId) -> 
+find_units(ObjId) ->
+    lager:info("ObjId: ~p", [ObjId]), 
     Cursor = mongo:find(mdb:get_conn(), <<"unit">>, {'obj_id', ObjId}),
     Units = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
+    lager:info("find_units: ~p", [Units]),
     Units.
 
 insert(ObjId, Type, Size) ->
