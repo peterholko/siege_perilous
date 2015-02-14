@@ -175,6 +175,9 @@ add_action({attack, {NPCId, Id}}) ->
  
     game:add_event(self(), attack_obj, EventData, NumTicks);
 
+add_action({none, _Data}) ->
+    lager:info("NPC doing nothing");
+
 add_action(none) ->
     lager:info("NPC doing nothing").
 
