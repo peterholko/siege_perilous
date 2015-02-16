@@ -119,6 +119,14 @@ message_handle(<<"info_unit">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_unit">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_item">>, Message) ->
+    lager:info("message: info_item"),
+    HexId = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(HexId),
+    InfoMaps = mdb:to_map(player:get_info_item(BinId)),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 
     lager:info("~p: ~p~n", [Error, Message]),
@@ -142,16 +150,19 @@ prepare(item_perception, Message) ->
      {<<"items">>, ItemPerception}]; 
 
 prepare(battle, Message) ->
+    BattleId = maps:get(<<"battle">>, Message),
     SourceId = maps:get(<<"sourceid">>, Message),
     TargetId = maps:get(<<"targetid">>, Message),
 
+    BattleHexId = util:bin_to_hex(BattleId),
     SourceHexId = util:bin_to_hex(SourceId),
     TargetHexId = util:bin_to_hex(TargetId),
 
     NewMessage0 = maps:put(<<"packet">>, <<"battle_event">>, Message),
-    NewMessage1 = maps:put(<<"sourceid">>, SourceHexId, NewMessage0),
-    NewMessage2 = maps:put(<<"targetid">>, TargetHexId, NewMessage1),
-    NewMessage2.
+    NewMessage1 = maps:put(<<"battle">>, BattleHexId, NewMessage0),
+    NewMessage2 = maps:put(<<"sourceid">>, SourceHexId, NewMessage1),
+    NewMessage3 = maps:put(<<"targetid">>, TargetHexId, NewMessage2),
+    NewMessage3.
 
 json_decode(Data) ->
     try jsx:decode(Data, [return_maps])

@@ -111,8 +111,7 @@ terminate(_Reason, _) ->
 
 create_battle(AtkObj, DefObj) ->
 
-    %Id =  obj:create(0, AtkObj#map_obj.pos, battle),
-    Id = counter:increment(battle),
+    Id =  obj:create(0, AtkObj#map_obj.pos, misc, <<"battle">>),
     
     Battle1 = #battle {id = Id,
                        player = AtkObj#map_obj.player,
@@ -166,14 +165,15 @@ process_attack(BattleId, Action) ->
 
     process_dmg(BattleId, AtkUnit, DefUnit).
 
-broadcast_dmg(BattleId, SourceId, TargetId, Dmg) ->
+broadcast_dmg(BattleId, SourceId, TargetId, Dmg, State) ->
     BattleObjs = db:read(battle, BattleId), 
 
     F = fun(BattleObj) ->
                 Message = #{<<"battle">> => BattleId, 
                             <<"sourceid">> => SourceId,
                             <<"targetid">> => TargetId,
-                            <<"dmg">> => Dmg},
+                            <<"dmg">> => Dmg,
+                            <<"state">> => State},
                 [Conn] = db:dirty_read(connection, BattleObj#battle.player),
                 send_to_process(Conn#connection.process, battle, Message)
         end,
@@ -213,20 +213,24 @@ process_dmg(BattleId, AtkUnit, DefUnit) ->
 
     %Broadcast damage
     lager:info("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
-    broadcast_dmg(BattleId, AtkId, DefId, Dmg),
+    
+    %Check if unit is alive
+    UnitState = is_unit_dead(NewHp),
+
+    broadcast_dmg(BattleId, AtkId, DefId, Dmg, UnitState),
 
     %Check if unit is dead 
-    case is_unit_dead(NewHp) of
-        alive ->
+    case UnitState of
+        <<"alive">> ->
             update_hp(DefId, NewHp);
-        dead ->
+        <<"dead">> ->
             process_unit_dead(BattleId, AtkObjId, DefObjId, DefId)
     end.
 
 is_unit_dead(Hp) when Hp =< 0 ->
-    dead;
+    <<"dead">>;
 is_unit_dead(_Hp) ->
-    alive.
+    <<"alive">>.
 
 is_army_dead([]) ->
     dead;

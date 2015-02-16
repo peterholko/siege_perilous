@@ -10,6 +10,7 @@
          get_info_tile/1,
          get_info_obj/1,
          get_info_unit/1,
+         get_info_item/1,
          move_obj/2,
          attack_obj/2,
          attack_unit/2,
@@ -40,6 +41,11 @@ get_info_obj(Id) ->
 
 get_info_unit(Id) ->
     unit:get_info(Id).
+
+get_info_item(Id) ->
+    Info = item:get_info(Id),
+    lager:info("Item Info: ~p", [Info]),
+    Info.
 
 move_obj(Id, Pos1D) ->
 

@@ -11,6 +11,8 @@ var activeInfoPanel;
 var explored = {};
 var objs = {};
 var units = {};
+var battles = [];
+var battleUnits = {};
 
 var playerId;
 var playerPos;
@@ -40,6 +42,18 @@ var shroud = "/static/art/shroud.png";
 infoPanelBg.src = '/static/art/ui_pane.png';
 close_rest.src = '/static/art/close_rest.png';
 
+var zombie = {
+    images: ['/static/art/zombie_ss.png'],
+    frames: {width:72, height:72},
+    animations: {
+        die:[0,3,"dead", 0.05],
+        dead:[3],
+        stand:[4]
+    }
+};
+
+var zombieSS;
+
 $(document).ready(init);
 
 function init() {
@@ -53,7 +67,9 @@ function init() {
 
     map = new createjs.Container();
     stage.addChild(map)
-    
+
+    zombieSS = new createjs.SpriteSheet(zombie);
+ 
     initImages();
     initUI();
 
@@ -198,6 +214,10 @@ function sendMove(direction) {
     websocket.send(move);
 };
 
+function sendEquip() {
+    console.log("sendEquip");
+};
+
 function sendInfoObj(id) {
     var info = '{"cmd": "info_obj", "id": "' + id + '"}';
     websocket.send(info);
@@ -205,6 +225,11 @@ function sendInfoObj(id) {
 
 function sendInfoUnit(id) {
     var info = '{"cmd": "info_unit", "id": "' + id + '"}';
+    websocket.send(info);
+};
+
+function sendInfoItem(id) {
+    var info = '{"cmd": "info_item", "id": "' + id + '"}';
     websocket.send(info);
 };
 
@@ -263,6 +288,9 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "info_unit") {
             drawInfoUnit(jsonData);
+        }
+        else if(jsonData.packet == "info_item") {
+            drawInfoItem(jsonData);
         }
     }
 
@@ -328,25 +356,31 @@ function drawObjs() {
         var hex = pos_to_hex(objs[i].pos);
         var pixel = hex_to_pixel(hex.q, hex.r);
         var objName = objs[i].type;
-        var imagePath =  "/static/art/" + objName + ".png";
+        if(objs[i].state != "dead") {
+            var imagePath =  "/static/art/" + objName + ".png";
+            var imageContainer = new createjs.Container();
 
-        if(objs[i].player == 1) {
-            c_x = halfwidth - 36 - pixel.x;
-            c_y = halfheight - 36 - pixel.y;
-            //map.x = c_x;
-            //map.y = c_y;
-            createjs.Tween.get(map).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
+            imageContainer.x = pixel.x;
+            imageContainer.y = pixel.y;
+
+            map.addChild(imageContainer);
+
+            imagesQueue.push({id: objName, x: 0, y: 0, target: imageContainer});
+            loaderQueue.loadFile({id: objName, src: imagePath});
         }
 
-        imagesQueue.push({id: objName, x: pixel.x, y: pixel.y, target: map});
-        loaderQueue.loadFile({id: objName, src: imagePath});
+        if(objs[i].player == playerId) {
+            c_x = halfwidth - 36 - pixel.x;
+            c_y = halfheight - 36 - pixel.y;
+            createjs.Tween.get(map).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
+        }
     }
 };
 
 function drawBattle(unit_data) {
     showBattlePanel();
     selectedUnit = false;
-    battleUnits = [];
+    battleUnits = unit_data;
 
     for(i = 0; i < unit_data.length; i++) {
         
@@ -399,14 +433,29 @@ function drawDmg(dmgData) {
         var origY = source.y;
 
         if(source && target) {
-            createjs.Tween.get(source).to({x: target.x, y: target.y}, 1000, createjs.Ease.getPowInOut(4))
-                                      .to({x: origX, y: origY}, 1000, createjs.Ease.getPowInOut(2));
+            createjs.Tween.get(source).to({x: target.x, y: target.y}, 500, createjs.Ease.getPowInOut(4))
+                                      .to({x: origX, y: origY}, 100, createjs.Ease.getPowInOut(2));
+        }
+
+        if(dmgData.state == "dead") {
+            target.removeAllChildren();
+            var die = new createjs.Sprite(zombieSS, "die");
+            target.addChild(die);
         }
     }
 };
 
 function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     showInfoPanel();
+
+    var hex = pos_to_hex(tilePos);
+
+    var bandText = new createjs.Text("(" + hex.q + ", " + hex.r + ")", h1Font, textColor);
+    bandText.x = Math.floor(infoPanelBg.width / 2);
+    bandText.y = 10;
+    bandText.textAlign = "center";
+
+    addChildInfoPanel(bandText);
 
     var tile = new createjs.Bitmap(tileImages[tileType]);
     
@@ -444,52 +493,78 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
 function drawInfoObj(jsonData) {
     showInfoPanel();
 
+    var bandText = new createjs.Text(jsonData.name, h1Font, textColor);
+    bandText.x = Math.floor(infoPanelBg.width / 2);
+    bandText.y = 10;
+    bandText.textAlign = "center";
+
     var unitText = new createjs.Text("Units", h1Font, textColor);
     unitText.x = 20;
     unitText.y = 125;
 
+    addChildInfoPanel(bandText);
     addChildInfoPanel(unitText);
 
-    for(var i = 0; i < jsonData.units.length; i++) {
-        var unitName = jsonData.units[i].name;
-        unitName = unitName.toLowerCase().replace(/ /g, '');
-        
-        var imagePath =  "/static/art/" + unitName + ".png";
-        var icon = new createjs.Container();
+    if(jsonData.units.length > 0) {
+        for(var i = 0; i < jsonData.units.length; i++) {
+            var unitName = jsonData.units[i].name;
+            unitName = unitName.toLowerCase().replace(/ /g, '');
+            
+            var imagePath =  "/static/art/" + unitName + ".png";
+            var icon = new createjs.Container();
 
-        icon._id = jsonData.units[i]._id;
+            icon._id = jsonData.units[i]._id;
 
-        if(jsonData.units[i].hero == true) {
-            icon.x = Math.floor(infoPanelBg.width / 2) - hexSize/2;
-            icon.y = 40;
-        } else {
-            icon.x = 20 + i * 50;
-            icon.y = 145;
+            if(jsonData.units[i].hero == true) {
+                icon.x = Math.floor(infoPanelBg.width / 2) - hexSize/2;
+                icon.y = 40;
+            } else {
+                icon.x = 20 + i * 50;
+                icon.y = 145;
+            }
+
+            icon.on("mousedown", function(evt) {
+                sendInfoUnit(this._id);
+            });
+
+            addChildInfoPanel(icon);
+
+            imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
+            loaderQueue.loadFile({id: unitName, src: imagePath});
         }
 
-        icon.on("mousedown", function(evt) {
-            sendInfoUnit(this._id);
-        });
+        var itemText = new createjs.Text("Items", h1Font, textColor);
+        itemText.x = 20;
+        itemText.y = 225;
 
-        addChildInfoPanel(icon);
+        addChildInfoPanel(itemText);
 
-        imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
-        loaderQueue.loadFile({id: unitName, src: imagePath});
+        for(var i = 0; i < jsonData.items.length; i++) {
+            var itemName = jsonData.items[i].name;
+            itemName = itemName.toLowerCase().replace(/ /g,'');
+            var imagePath = "/static/art/" + itemName + ".png";
+            var icon = new createjs.Container();
+            
+            icon._id = jsonData.items[i]._id;
+            icon.on("mousedown", function(evt) {
+                sendInfoItem(this._id);
+            });
+
+            icon.x = 20 + i * 50;
+            icon.y = 250;
+
+            addChildInfoPanel(icon);
+
+            imagesQueue.push({id: itemName, x: 0, y: 0, target: icon});
+            loaderQueue.loadFile({id: itemName, src: imagePath});
+        }
     }
+    else {
+        var unitText = new createjs.Text("Unknown", h1Font, textColor);
+        unitText.x = 20;
+        unitText.y = 145;
 
-    var itemText = new createjs.Text("Items", h1Font, textColor);
-    itemText.x = 20;
-    itemText.y = 225;
-
-    addChildInfoPanel(itemText);
-
-    for(var i = 0; i < jsonData.items.length; i++) {
-        var itemName = jsonData.items[i].type;
-        itemName = itemName.toLowerCase().replace(/ /g,'');
-        var imagePath = "/static/art/" + itemName + ".png";
-
-        imagesQueue.push({id: itemName, x: 20, y: 245, target: getInfoPanelContent()});
-        loaderQueue.loadFile({id: itemName, src: imagePath});
+        addChildInfoPanel(unitText);    
     }
 };
 
@@ -542,6 +617,45 @@ function drawInfoUnit(jsonData) {
     }
 };
 
+function drawInfoItem(jsonData) {
+    showInfoPanel();
+
+    var itemName = jsonData.name;
+
+    var nameText = new createjs.Text(itemName, h1Font, textColor);
+    nameText.x = Math.floor(infoPanelBg.width / 2);
+    nameText.y = 10;
+    nameText.textAlign = "center";
+  
+    addChildInfoPanel(nameText);
+
+    itemName = itemName.toLowerCase().replace(/ /g, '');
+    var imagePath =  "/static/art/" + itemName + ".png";
+
+    imagesQueue.push({id: itemName, 
+                      x: Math.floor(infoPanelBg.width / 2) - 24, 
+                      y: 50, target: getInfoPanelContent()});
+    loaderQueue.loadFile({id: itemName, src: imagePath});
+
+    var stats = "";
+
+    for(attr in jsonData) {
+        if(attr != "_id" && attr != "owner" && attr != "packet") {
+            var stat = attr + ": " + jsonData[attr] + "\n";
+            stats += stat;
+        }
+    }
+
+    var statsText = new createjs.Text(stats, h1Font, textColor);
+
+    statsText.lineHeight = 20;
+    statsText.x = 10;
+    statsText.y = 125;
+    
+    addChildInfoPanel(statsText);
+     
+};
+
 function initUI() {
 
     //Initialize battle panel
@@ -554,7 +668,7 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
 
-    bg.graphics.beginFill("#808080").drawRect(0,0,500,460);
+    bg.graphics.beginFill("#1c1c1c").drawRect(0,0,500,460);
 
     close.x = 500;
     close.y = 10;

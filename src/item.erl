@@ -5,12 +5,22 @@
 
 -include("schema.hrl").
 
--export([get/1, get_by_owner/1, transfer/2, create/3, equip/1]).
+-export([get/1, get_info/1, get_by_owner/1, transfer/2, create/3, equip/1]).
 -export([obj_perception/1]).
 
 get(Id) ->
     Item = find('_id', Id),
     Item.
+
+get_info(Id) ->
+    ItemInfo = case find('_id', Id) of
+                [Item] ->
+                    %TODO compare requester id to owner id
+                    info(Item);
+                _ ->
+                    none
+               end,
+    ItemInfo.
 
 get_by_owner(OwnerId) ->
     Items = find(owner, OwnerId),
@@ -49,3 +59,24 @@ find(Key, Value) ->
     Items = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Items.
+
+find_type(Key, Value) ->
+    Cursor = mongo:find(mdb:get_conn(), <<"item_type">>, {Key, Value}),
+    ItemTypes = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    ItemTypes.
+
+stats([]) ->
+    false;
+
+stats([Item]) ->
+    stats(Item);
+
+stats(Item) ->
+    {ItemName} = bson:lookup(name, Item),
+    [ItemType] = find_type(name, ItemName),
+    bson:merge(Item, ItemType).
+
+info(Item) ->
+    ItemStats = stats(Item),
+    ItemStats.
