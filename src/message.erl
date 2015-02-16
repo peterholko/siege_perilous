@@ -127,6 +127,21 @@ message_handle(<<"info_item">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_battle">>, Message) ->
+    lager:info("message: info_battle"),
+    HexId = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(HexId),
+    
+    ReturnMsg = case player:get_info_battle(BinId) of
+                    {battle_perception, BattlePerception} ->
+                        prepare(battle_perception, BattlePerception);
+                    {obj_info, ObjInfo} ->
+                        InfoMaps = mdb:to_map(ObjInfo),
+                        maps:put(<<"packet">>, <<"info_obj">>, InfoMaps)
+                end,
+
+    jsx:encode(ReturnMsg);
+
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 
     lager:info("~p: ~p~n", [Error, Message]),

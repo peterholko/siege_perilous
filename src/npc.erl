@@ -71,10 +71,10 @@ handle_info({battle_perception, Perception}, Data) ->
     {noreply, Data};    
 
 handle_info(Info, Data) ->
-    error_logger:info_report([{module, ?MODULE}, 
-                              {line, ?LINE},
-                              {self, self()}, 
-                              {message, Info}]),
+    %error_logger:info_report([{module, ?MODULE}, 
+    %                          {line, ?LINE},
+    %                          {self, self()}, 
+    %                          {message, Info}]),
     {noreply, Data}.
 
 code_change(_OldVsn, Data, _Extra) ->

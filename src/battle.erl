@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/2, active_turn/2, attack_unit/2]).
+-export([create/2, info/1, check_player/2, active_turn/2, attack_unit/2]).
 
 %% ====================================================================
 %% External functions
@@ -26,6 +26,12 @@ start() ->
 
 create(AtkId, DefId) ->
     gen_server:cast({global, battle}, {create, AtkId, DefId}).
+
+info(Battle) ->
+    gen_server:call({global, battle}, {info, Battle}).
+
+check_player(Player, Battle) ->
+    gen_server:call({global, battle}, {check_player, Player, Battle}).
 
 active_turn(BattleId, UnitId) ->
     gen_server:cast({global, battle}, {active_turn, BattleId, UnitId}).
@@ -41,6 +47,7 @@ init([]) ->
     {ok, []}.
 
 handle_cast({create, AtkId, DefId}, Data) ->   
+    lager:info("AtkId: ~p, DefId: ~p", [AtkId, DefId]),
 
     AtkObj = map:get_obj(AtkId), 
     DefObj = map:get_obj(DefId), 
@@ -49,11 +56,7 @@ handle_cast({create, AtkId, DefId}, Data) ->
     %Set state to combat
     set_combat_state([AtkObj, DefObj]),
 
-    lager:info("AtkId: ~p, DefId: ~p", [AtkId, DefId]),
-    AtkUnits = unit:get_units_and_stats(AtkId),
-    DefUnits = unit:get_units_and_stats(DefId),
-
-    BattlePerception = AtkUnits ++ DefUnits,
+    BattlePerception = build_perception([AtkId, DefId], []),
     lager:info("BattlePerception: ~p", [BattlePerception]),
 
     send_perception([{AtkObj#map_obj.player, BattlePerception}, 
@@ -82,6 +85,18 @@ handle_cast({attack_unit, SourceId, TargetId}, Data) ->
 
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
+
+handle_call({info, Battle}, _From, Data) ->
+    CombatantList = get_combatants(Battle),
+    BattlePerception = build_perception(CombatantList, []),
+
+    {reply, BattlePerception, Data};
+
+handle_call({check_player, Player, Battle}, _From, Data) ->
+    BattleList = db:read(battle, Battle),
+    Result = lists:keymember(Player, #battle.player, BattleList),
+    lager:info("Battle check_player: ~p", [Result]), 
+    {reply, Result, Data};
 
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
@@ -124,6 +139,23 @@ create_battle(AtkObj, DefObj) ->
     db:write(Battle2),
 
     Id.
+
+get_combatants(BattleId) ->
+    BattleList = db:read(battle, BattleId),
+    
+    F = fun(Battle, CombatantList) ->
+            [Battle#battle.obj | CombatantList]
+        end,
+
+    lists:foldl(F, [], BattleList).
+
+build_perception([], Perception) ->
+    Perception;
+
+build_perception([ObjId | ObjList], Perception) ->    
+    Units = unit:get_units_and_stats(ObjId),
+    NewPerception = Perception ++ Units,
+    build_perception(ObjList, NewPerception).
 
 set_combat_state([]) ->
     lager:info("Done updating combat state"),
@@ -211,12 +243,11 @@ process_dmg(BattleId, AtkUnit, DefUnit) ->
     Dmg = round(DmgRoll * (1 - DmgReduction)),
     NewHp = DefHp - Dmg,
 
-    %Broadcast damage
-    lager:info("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
-    
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
 
+    %Broadcast damage
+    lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
     broadcast_dmg(BattleId, AtkId, DefId, Dmg, UnitState),
 
     %Check if unit is dead 
@@ -317,7 +348,7 @@ delete_battle_units(BattleId) ->
     lists:foreach(F, BattleUnits).
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
-    lager:info("Sending ~p to ~p", [Message, Process]),
+    lager:debug("Sending ~p to ~p", [Message, Process]),
     Process ! {MessageType, Message};
 send_to_process(_Process, _MessageType, _Message) ->
     none.

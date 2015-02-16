@@ -11,6 +11,7 @@
          get_info_obj/1,
          get_info_unit/1,
          get_info_item/1,
+         get_info_battle/1,
          move_obj/2,
          attack_obj/2,
          attack_unit/2,
@@ -31,7 +32,7 @@ init_perception(PlayerId) ->
 
     {PlayerId, Explored, Objs}.
 
-get_info_tile(Pos) ->
+get_info_tile(_Pos) ->
     %TODO check if player can see Pos
     lager:info("info_tile").
 
@@ -45,6 +46,18 @@ get_info_unit(Id) ->
 get_info_item(Id) ->
     Info = item:get_info(Id),
     lager:info("Item Info: ~p", [Info]),
+    Info.
+
+get_info_battle(Id) ->
+    Player = get(player_id),
+    Info = case battle:check_player(Player, Id) of
+                true ->
+                    BattlePerception = battle:info(Id),
+                    {battle_perception, BattlePerception};
+                false ->
+                    ObjInfo = obj:get_info(Player, Id),
+                    {obj_info, ObjInfo} 
+           end,
     Info.
 
 move_obj(Id, Pos1D) ->

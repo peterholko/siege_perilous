@@ -238,6 +238,11 @@ function sendInfoTile(type, pos) {
     websocket.send(info);
 };
 
+function sendInfoBattle(id) {
+    var info = '{"cmd": "info_battle", "id": "' + id + '"}';
+    websocket.send(info);
+};
+
 function onOpen(evt) { 
   showScreen('<span style="color: green;">CONNECTED </span>'); 
   $("#connected").fadeIn('slow');
@@ -476,11 +481,16 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
         var imagePath =  "/static/art/" + objName + ".png";
         var icon = new createjs.Container();
 
+        icon.type = objsOnTile[i].type;
         icon.obj_id = objsOnTile[i].id;
         icon.x = i * hexSize;
         icon.y = 130;
         icon.on("mousedown", function(evt) {
-            sendInfoObj(this.obj_id);
+            if(this.type == "battle") {
+                sendInfoBattle(this.obj_id);
+            } else { 
+                sendInfoObj(this.obj_id);
+            }
         });
 
         addChildInfoPanel(icon);
