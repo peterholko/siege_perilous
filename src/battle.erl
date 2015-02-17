@@ -288,8 +288,8 @@ process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
     case is_army_dead(unit:get_units(DefObjId)) of
         dead ->
             %Transfer any defender army items to attacker and battle items
-            transfer_items(AtkObjId, item:get_by_owner(DefObjId)),
-            transfer_items(AtkObjId, item:get_by_owner(BattleId)),
+            transfer_items(BattleId, item:get_by_owner(DefObjId)),
+            transfer_items(BattleId, item:get_by_owner(BattleId)),
 
             %Send item perception
             send_item_perception(BattleId, AtkObjId),
@@ -320,7 +320,7 @@ send_item_perception(BattleId, ObjId) ->
     [Conn] = db:read(connection, Battle#battle.player),
     PlayerPid = Conn#connection.process,
 
-    send_to_process(PlayerPid, item_perception, item:get_by_owner(ObjId)).
+    send_to_process(PlayerPid, item_perception, item:get_by_owner(BattleId)).
 
 add_battle_units(_BattleId, []) ->
     lager:info("Done adding battle units");

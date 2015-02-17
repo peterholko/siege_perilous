@@ -7,6 +7,7 @@ var map;
 var battlePanel;
 var infoPanels = [];
 var activeInfoPanel;
+var dialogPanel;
 
 var explored = {};
 var objs = {};
@@ -25,6 +26,7 @@ var stageWidth = 1000;
 var stageHeight = 500;
 
 var infoPanelBg = new Image();
+var dialogPanelBg = new Image();
 var close_rest = new Image();
 
 var h1Font = "14px Verdana"
@@ -40,6 +42,7 @@ tileImages[3] = "/static/art/desert.png";
 var shroud = "/static/art/shroud.png";
 
 infoPanelBg.src = '/static/art/ui_pane.png';
+dialogPanelBg.src = '/static/art/dialog.png';
 close_rest.src = '/static/art/close_rest.png';
 
 var zombie = {
@@ -678,9 +681,14 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
 
+    var battleText = new createjs.Text("Battle", h1Font, textColor);
+    battleText.x = 500 / 2;
+    battleText.y = 10;
+    battleText.textAlign = "center";
+
     bg.graphics.beginFill("#1c1c1c").drawRect(0,0,500,460);
 
-    close.x = 500;
+    close.x = 480;
     close.y = 10;
     close.on("mousedown", function(evt) {
         console.log('Close mousedown')
@@ -689,11 +697,12 @@ function initUI() {
 
     content.name = 'content'
 
-    battlePanel.addChild(bg)
-    battlePanel.addChild(close)
-    battlePanel.addChild(content)
+    battlePanel.addChild(bg);
+    battlePanel.addChild(battleText);
+    battlePanel.addChild(close);
+    battlePanel.addChild(content);
 
-    stage.addChild(battlePanel)
+    stage.addChild(battlePanel);
 
     //Initialize infoPanels
     for(var i = 0; i < 4; i++) {
@@ -707,7 +716,7 @@ function initUI() {
         close.x = 300;
         close.y = 10;
 
-        content.name = 'content'
+        content.name = 'content';
 
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
@@ -716,12 +725,29 @@ function initUI() {
 
         panel.addChild(bg);
         panel.addChild(close);
-        panel.addChild(content)
+        panel.addChild(content);
 
         stage.addChild(panel);
 
         infoPanels.push(panel);
     }
+
+    //Initialize dialogPanel
+    dialogPanel = new createjs.Container();
+    dialogPanel.x = stageWidth / 2 - 124;
+    dialogPanel.y = stageHeight / 2 - 95; 
+
+    var bg = new createjs.Bitmap(dialogPanelBg);
+    var close = new createjs.Bitmap(close_rest);
+    var content = new createjs.Container();
+
+    close.x = 228;
+    close.y = 10;
+
+    dialogPanel.addChild(bg); 
+    dialogPanel.addChild(close);
+
+    stage.addChild(dialogPanel);
 };
 
 function showBattlePanel() {
