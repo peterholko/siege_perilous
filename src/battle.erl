@@ -127,18 +127,21 @@ terminate(_Reason, _) ->
 create_battle(AtkObj, DefObj) ->
 
     Id =  obj:create(0, AtkObj#map_obj.pos, misc, <<"battle">>),
-    
-    Battle1 = #battle {id = Id,
-                       player = AtkObj#map_obj.player,
-                       obj =  AtkObj#map_obj.id},
-    db:write(Battle1),
 
-    Battle2 = #battle {id = Id,
-                       player = DefObj#map_obj.player,
-                       obj =  DefObj#map_obj.id},
-    db:write(Battle2),
+    Battle = #battle {id = Id,
+                      tiles = []},
+    db:write(Battle),
+
+    create_battle_obj(Id, AtkObj#map_obj.player, AtkObj#map_obj.id),
+    create_battle_obj(Id, DefObj#map_obj.player, DefObj#map_obj.id),
 
     Id.
+
+create_battle_obj(Battle, Player, Obj) ->
+    BattleObj = #battle_obj {battle = Battle,
+                             player = Player,
+                             obj =  Obj},
+    db:write(BattleObj).
 
 get_combatants(BattleId) ->
     BattleList = db:read(battle, BattleId),

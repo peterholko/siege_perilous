@@ -37,10 +37,16 @@
                      data}).
 
 -record(battle, {id,
-                 player,
-                 obj}).
+                 tiles}).
 
--record(battle_unit, {unit_id,
+-record(battle_obj, {battle,
+                     player,
+                     obj}).
+
+-record(battle_unit, {unit,
+                      pos,
+                      player,
+                      state,
                       speed,
                       battle}).
 
