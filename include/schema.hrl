@@ -50,6 +50,9 @@
                       speed,
                       battle}).
 
+-record(battle_map, {type, 
+                     tiles}).
+
 -record(charge_time, {unit_id,
                       charge_time}).
 

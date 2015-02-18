@@ -43,8 +43,9 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(perception, [{ram_copies, [node()]}, {attributes, record_info(fields, perception)}]),  
     {atomic, ok} = mnesia:create_table(event, [{disc_copies, [node()]}, {attributes, record_info(fields, event)}]),    
     {atomic, ok} = mnesia:create_table(battle, [{disc_copies, [node()]}, {attributes, record_info(fields, battle)}]),    
-    {atomic, ok} = mnesia:create_table(battle_obj, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, battle)}]),    
+    {atomic, ok} = mnesia:create_table(battle_obj, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, battle_obj)}]),    
     {atomic, ok} = mnesia:create_table(battle_unit, [{disc_copies, [node()]}, {attributes, record_info(fields, battle_unit)}]),    
+    {atomic, ok} = mnesia:create_table(battle_map, [{disc_copies, [node()]}, {attributes, record_info(fields, battle_map)}]),    
     {atomic, ok} = mnesia:create_table(charge_time, [{disc_copies, [node()]}, {attributes, record_info(fields, charge_time)}]),    
     {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, resource)}]),    
@@ -57,6 +58,7 @@ create_schema() ->
     mnesia:add_table_index(map_obj, player),
     mnesia:add_table_index(event, tick),
     mnesia:add_table_index(battle_unit, battle),
+    mnesia:add_table_index(battle_unit, pos),
 
     mnesia:stop().
 
@@ -151,7 +153,11 @@ test_tables() ->
      {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, 1, entity, <<"heromage">>, none},
      {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, <<"zombie">>, none},
      {resource, <<"Copper Ore">>, ?MOUNTAINS},
-     {resource, <<"Copper Ore">>, ?HILLS}
+     {resource, <<"Copper Ore">>, ?HILLS},
+     {battle_map, ?PLAINS, [{{0,0}, 0}, {{1,0}, 0}, {{2,0}, 0}, {{3,0}, 0}, 
+                            {{0,1}, 0}, {{1,1}, 0}, {{2,1}, 0}, {{3,1}, 0}, 
+                            {{0,2}, 0}, {{1,2}, 0}, {{2,2}, 0}, {{3,2}, 0},
+                            {{0,3}, 0}, {{1,3}, 0}, {{2,3}, 0}, {{3,3}, 0}]}
     ].
 
 reset_tables() ->

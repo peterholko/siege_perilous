@@ -133,7 +133,7 @@ perception_recalculate(true) ->
 update_charge_times([]) ->
     done;
 update_charge_times([BattleUnit | Rest]) ->
-    UnitId = BattleUnit#battle_unit.unit_id,
+    UnitId = BattleUnit#battle_unit.unit,
     Speed = BattleUnit#battle_unit.speed,
     Battle = BattleUnit#battle_unit.battle,
     

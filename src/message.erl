@@ -155,8 +155,10 @@ prepare(map_perception, Message) ->
      ExploredTuple];
 
 prepare(battle_perception, Message) ->
-    BattlePerception = battle_perception(Message, []),
+    {BattleUnits, BattleMap} = Message,
+    BattlePerception = battle_perception(BattleUnits, []),
     [{<<"packet">>, <<"battle_perception">>},
+     {<<"map">>, BattleMap},
      {<<"units">>, BattlePerception}];
 
 prepare(item_perception, Message) ->

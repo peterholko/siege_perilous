@@ -60,17 +60,24 @@ handle_cast({create, AtkId, DefId}, Data) ->
     add_battle_obj(BattleId, AtkObj#map_obj.player, AtkObj#map_obj.id),
     add_battle_obj(BattleId, DefObj#map_obj.player, DefObj#map_obj.id),
 
+    AtkUnits = unit:get_units_and_stats(AtkId),
+    DefUnits = unit:get_units_and_stats(AtkId),
+
+    %Add battle units
+    add_battle_units(BattleId, AtkUnits, true, 0),
+    add_battle_units(BattleId, DefUnits, false, 0),
+
     %Set state to combat
     set_combat_state([AtkObj, DefObj]),
 
     %Build battle perception
-    BattlePerception = build_perception([AtkId, DefId], []),
+    BattlePerception = get_perception([AtkId, DefId], []),
+    BattleMap = get_battle_map(BattleId),
 
-    add_battle_units(BattleId, BattlePerception),
+    add_battle_units(BattleId, AtkObj, DefObj, BattlePerception),
 
-    send_perception([{AtkObj#map_obj.player, BattlePerception}, 
-                     {DefObj#map_obj.player, BattlePerception}]),
-
+    send_perception([{AtkObj#map_obj.player, {BattlePerception, BattleMap}}, 
+                     {DefObj#map_obj.player, {BattlePerception, BattleMap}}]),
 
     {noreply, Data};
 
@@ -96,9 +103,10 @@ handle_cast(stop, Data) ->
 
 handle_call({info, Battle}, _From, Data) ->
     CombatantList = get_combatants(Battle),
-    BattlePerception = build_perception(CombatantList, []),
+    BattlePerception = get_perception(CombatantList, []),
+    BattleMap = get_battle_map(Battle),
 
-    {reply, BattlePerception, Data};
+    {reply, {BattlePerception, BattleMap}, Data};
 
 handle_call({check_player, Player, Battle}, _From, Data) ->
     BattleList = db:read(battle, Battle),
@@ -134,9 +142,10 @@ terminate(_Reason, _) ->
 
 create_battle(Pos) ->
     Id =  obj:create(0, Pos, misc, <<"battle">>),
+    [BattleMap] = db:read(battle_map, ?PLAINS),
 
     Battle = #battle {id = Id,
-                      tiles = []},
+                      tiles = BattleMap#battle_map.tiles},
     db:write(Battle),
     Id.
 
@@ -155,13 +164,23 @@ get_combatants(BattleId) ->
 
     lists:foldl(F, [], BattleList).
 
-build_perception([], Perception) ->
+get_perception([], Perception) ->
     Perception;
 
-build_perception([ObjId | ObjList], Perception) ->    
+get_perception([ObjId | ObjList], Perception) ->    
     Units = unit:get_units_and_stats(ObjId),
     NewPerception = Perception ++ Units,
-    build_perception(ObjList, NewPerception).
+    get_perception(ObjList, NewPerception).
+
+get_battle_map(BattleId) ->
+    [Battle] = db:read(battle, BattleId),
+   
+    F = fun(TileData, MsgTiles) ->
+            {Pos, Type} = TileData,
+            [{map:convert_coords(Pos), Type} | MsgTiles]
+        end,
+
+    lists:foldl(F, [], Battle#battle.tiles). 
 
 set_combat_state([]) ->
     lager:info("Done updating combat state"),
@@ -173,9 +192,9 @@ set_combat_state([Entity | Rest]) ->
 send_perception([]) ->
     lager:info("Done sending battle perception");
 
-send_perception([{PlayerId, NewPerception} | Players]) ->
+send_perception([{PlayerId, Perception} | Players]) ->
     [Conn] = db:dirty_read(connection, PlayerId),
-    send_to_process(Conn#connection.process, battle_perception, NewPerception),
+    send_to_process(Conn#connection.process, battle_perception, Perception),
     send_perception(Players).
 
 process_action(BattleId, [Action]) ->
@@ -328,21 +347,32 @@ send_item_perception(BattleId, ObjId) ->
 
     send_to_process(PlayerPid, item_perception, item:get_by_owner(BattleId)).
 
-add_battle_units(_BattleId, []) ->
+add_battle_units(_BattleId, [], _Attacker, _Num) ->
     lager:info("Done adding battle units");
 
-add_battle_units(BattleId, [Unit | Rest]) ->
-    lager:info("Adding battle_unit: ~p", [Unit]),
+add_battle_units(BattleId, [Unit | Rest], Attacker, UnitIndex) ->
+    lager:info("Adding battle_unit"),
+    set_battle_unit(BattleId, Unit, Attacker, UnitIndex),
+
+    add_battle_units(BattleId, Rest, Attacker, UnitIndex + 1).
+
+set_battle_unit(BattleId, Unit, Attacker, UnitIndex) ->
     {Id} = bson:lookup('_id', Unit), 
+    {ObjId} = bson:lookup(obj_id, Unit),
     {Speed} = bson:lookup(base_speed, Unit),
 
+    Pos = get_unit_pos(Attacker, UnitIndex),
+
     BattleUnit = #battle_unit {unit = Id,
+                               pos = Pos,
                                speed = Speed,
                                battle = BattleId},
-
     db:write(BattleUnit),
 
-    add_battle_units(BattleId, Rest).
+get_unit_pos(true, UnitIndex) ->
+    {0, UnitIndex};
+get_unit_pos(false, UnitIndex) ->
+    {3, UnitIndex}.
 
 delete_battle_units(BattleId) ->
     BattleUnits = db:index_read(battle_unit, BattleId, #battle_unit.battle),

@@ -736,6 +736,7 @@ function initUI() {
     dialogPanel = new createjs.Container();
     dialogPanel.x = stageWidth / 2 - 124;
     dialogPanel.y = stageHeight / 2 - 95; 
+    dialogPanel.visible = false;
 
     var bg = new createjs.Bitmap(dialogPanelBg);
     var close = new createjs.Bitmap(close_rest);
