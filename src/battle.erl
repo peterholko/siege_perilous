@@ -48,21 +48,29 @@ init([]) ->
 
 handle_cast({create, AtkId, DefId}, Data) ->   
     lager:info("AtkId: ~p, DefId: ~p", [AtkId, DefId]),
-
     AtkObj = map:get_obj(AtkId), 
     DefObj = map:get_obj(DefId), 
-    BattleId = create_battle(AtkObj, DefObj),
+
+    Pos = AtkObj#map_obj.pos,
+
+    %Create battle
+    BattleId = create_battle(Pos),
+
+    %Add battle objs
+    add_battle_obj(BattleId, AtkObj#map_obj.player, AtkObj#map_obj.id),
+    add_battle_obj(BattleId, DefObj#map_obj.player, DefObj#map_obj.id),
 
     %Set state to combat
     set_combat_state([AtkObj, DefObj]),
 
+    %Build battle perception
     BattlePerception = build_perception([AtkId, DefId], []),
-    lager:info("BattlePerception: ~p", [BattlePerception]),
+
+    add_battle_units(BattleId, BattlePerception),
 
     send_perception([{AtkObj#map_obj.player, BattlePerception}, 
                      {DefObj#map_obj.player, BattlePerception}]),
 
-    add_battle_units(BattleId, BattlePerception),
 
     {noreply, Data};
 
@@ -94,7 +102,7 @@ handle_call({info, Battle}, _From, Data) ->
 
 handle_call({check_player, Player, Battle}, _From, Data) ->
     BattleList = db:read(battle, Battle),
-    Result = lists:keymember(Player, #battle.player, BattleList),
+    Result = lists:keymember(Player, #battle_obj.player, BattleList),
     lager:info("Battle check_player: ~p", [Result]), 
     {reply, Result, Data};
 
@@ -124,30 +132,25 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-create_battle(AtkObj, DefObj) ->
-
-    Id =  obj:create(0, AtkObj#map_obj.pos, misc, <<"battle">>),
+create_battle(Pos) ->
+    Id =  obj:create(0, Pos, misc, <<"battle">>),
 
     Battle = #battle {id = Id,
                       tiles = []},
     db:write(Battle),
-
-    create_battle_obj(Id, AtkObj#map_obj.player, AtkObj#map_obj.id),
-    create_battle_obj(Id, DefObj#map_obj.player, DefObj#map_obj.id),
-
     Id.
 
-create_battle_obj(Battle, Player, Obj) ->
+add_battle_obj(Battle, Player, Obj) ->
     BattleObj = #battle_obj {battle = Battle,
                              player = Player,
                              obj =  Obj},
     db:write(BattleObj).
 
 get_combatants(BattleId) ->
-    BattleList = db:read(battle, BattleId),
+    BattleList = db:read(battle_obj, BattleId),
     
     F = fun(Battle, CombatantList) ->
-            [Battle#battle.obj | CombatantList]
+            [Battle#battle_obj.obj | CombatantList]
         end,
 
     lists:foldl(F, [], BattleList).
@@ -201,7 +204,7 @@ process_attack(BattleId, Action) ->
     process_dmg(BattleId, AtkUnit, DefUnit).
 
 broadcast_dmg(BattleId, SourceId, TargetId, Dmg, State) ->
-    BattleObjs = db:read(battle, BattleId), 
+    BattleObjs = db:read(battle_obj, BattleId), 
 
     F = fun(BattleObj) ->
                 Message = #{<<"battle">> => BattleId, 
@@ -209,7 +212,7 @@ broadcast_dmg(BattleId, SourceId, TargetId, Dmg, State) ->
                             <<"targetid">> => TargetId,
                             <<"dmg">> => Dmg,
                             <<"state">> => State},
-                [Conn] = db:dirty_read(connection, BattleObj#battle.player),
+                [Conn] = db:dirty_read(connection, BattleObj#battle_obj.player),
                 send_to_process(Conn#connection.process, battle, Message)
         end,
 
@@ -319,8 +322,8 @@ transfer_items(TargetId, [Item | Rest]) ->
 
 send_item_perception(BattleId, ObjId) ->
     Battles = db:read(battle, BattleId),
-    Battle = lists:keyfind(ObjId, #battle.obj, Battles),
-    [Conn] = db:read(connection, Battle#battle.player),
+    Battle = lists:keyfind(ObjId, #battle_obj.obj, Battles),
+    [Conn] = db:read(connection, Battle#battle_obj.player),
     PlayerPid = Conn#connection.process,
 
     send_to_process(PlayerPid, item_perception, item:get_by_owner(BattleId)).
@@ -333,7 +336,7 @@ add_battle_units(BattleId, [Unit | Rest]) ->
     {Id} = bson:lookup('_id', Unit), 
     {Speed} = bson:lookup(base_speed, Unit),
 
-    BattleUnit = #battle_unit {unit_id = Id,
+    BattleUnit = #battle_unit {unit = Id,
                                speed = Speed,
                                battle = BattleId},
 
@@ -345,7 +348,7 @@ delete_battle_units(BattleId) ->
     BattleUnits = db:index_read(battle_unit, BattleId, #battle_unit.battle),
     
     F = fun(BattleUnit) ->
-            db:delete(battle_unit, BattleUnit#battle_unit.unit_id)
+            db:delete(battle_unit, BattleUnit#battle_unit.unit)
         end,
 
     lists:foreach(F, BattleUnits).
