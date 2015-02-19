@@ -47,21 +47,24 @@ init([]) ->
     {ok, []}.
 
 handle_cast({create, AtkId, DefId}, Data) ->   
-    lager:info("AtkId: ~p, DefId: ~p", [AtkId, DefId]),
     AtkObj = map:get_obj(AtkId), 
     DefObj = map:get_obj(DefId), 
-
     Pos = AtkObj#map_obj.pos,
 
+    lager:info("Creating battle..."),
     %Create battle
     BattleId = create_battle(Pos),
+
+    lager:info("Adding battle objs..."),
 
     %Add battle objs
     add_battle_obj(BattleId, AtkObj#map_obj.player, AtkObj#map_obj.id),
     add_battle_obj(BattleId, DefObj#map_obj.player, DefObj#map_obj.id),
 
     AtkUnits = unit:get_units_and_stats(AtkId),
-    DefUnits = unit:get_units_and_stats(AtkId),
+    DefUnits = unit:get_units_and_stats(DefId),
+
+    lager:info("Adding battle units..."),
 
     %Add battle units
     add_battle_units(BattleId, AtkUnits, true, 0),
@@ -70,11 +73,15 @@ handle_cast({create, AtkId, DefId}, Data) ->
     %Set state to combat
     set_combat_state([AtkObj, DefObj]),
 
+    %Get battle units
+    BattleUnits = get_battle_units(BattleId),
+    lager:info("BattleUnits: ~p", [BattleUnits]),
+
     %Build battle perception
-    BattlePerception = get_perception([AtkId, DefId], []),
+    BattlePerception = get_perception(BattleUnits, []),
     BattleMap = get_battle_map(BattleId),
 
-    add_battle_units(BattleId, AtkObj, DefObj, BattlePerception),
+    lager:info("BattlePerception: ~p", [BattlePerception]),
 
     send_perception([{AtkObj#map_obj.player, {BattlePerception, BattleMap}}, 
                      {DefObj#map_obj.player, {BattlePerception, BattleMap}}]),
@@ -102,9 +109,10 @@ handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
 handle_call({info, Battle}, _From, Data) ->
-    CombatantList = get_combatants(Battle),
-    BattlePerception = get_perception(CombatantList, []),
+    BattleUnits = get_battle_units(Battle),
     BattleMap = get_battle_map(Battle),
+
+    BattlePerception = get_perception(BattleUnits, []),
 
     {reply, {BattlePerception, BattleMap}, Data};
 
@@ -155,22 +163,53 @@ add_battle_obj(Battle, Player, Obj) ->
                              obj =  Obj},
     db:write(BattleObj).
 
-get_combatants(BattleId) ->
-    BattleList = db:read(battle_obj, BattleId),
-    
-    F = fun(Battle, CombatantList) ->
-            [Battle#battle_obj.obj | CombatantList]
-        end,
+add_battle_units(_BattleId, [], _Attacker, _Num) ->
+    lager:info("Done adding battle units");
 
-    lists:foldl(F, [], BattleList).
+add_battle_units(BattleId, [Unit | Rest], Attacker, UnitIndex) ->
+    lager:info("Adding battle_unit"),
+    set_battle_unit(BattleId, Unit, Attacker, UnitIndex),
+
+    add_battle_units(BattleId, Rest, Attacker, UnitIndex + 1).
+
+set_battle_unit(BattleId, Unit, Attacker, UnitIndex) ->
+    {Id} = bson:lookup('_id', Unit),
+    {ObjId} = bson:lookup(obj_id, Unit), 
+    {Speed} = bson:lookup(base_speed, Unit),
+    {Name} = bson:lookup(name, Unit),
+
+    Pos = get_unit_pos(Attacker, UnitIndex),
+
+    BattleUnit = #battle_unit {unit = Id,
+                               obj = ObjId,
+                               pos = Pos,
+                               type = Name,
+                               state = none,
+                               speed = Speed,
+                               battle = BattleId},
+    lager:info("BattleUnit: ~p", [BattleUnit]),
+    db:write(BattleUnit).
+
+get_unit_pos(true, UnitIndex) ->
+    {0, UnitIndex};
+get_unit_pos(false, UnitIndex) ->
+    {3, UnitIndex}.
+
+get_battle_units(BattleId) ->
+    db:index_read(battle_unit, BattleId, #battle_unit.battle).
 
 get_perception([], Perception) ->
     Perception;
 
-get_perception([ObjId | ObjList], Perception) ->    
-    Units = unit:get_units_and_stats(ObjId),
-    NewPerception = Perception ++ Units,
-    get_perception(ObjList, NewPerception).
+get_perception([BattleUnit | Rest], Perception) ->
+    Coords = map:convert_coords(BattleUnit#battle_unit.pos),
+    NewPerception = [ #{<<"unit">> => BattleUnit#battle_unit.unit,
+                        <<"obj">> => BattleUnit#battle_unit.obj,
+                        <<"pos">> => Coords,
+                        <<"type">> => BattleUnit#battle_unit.type,
+                        <<"state">> => BattleUnit#battle_unit.state} | Perception],
+
+    get_perception(Rest, NewPerception).
 
 get_battle_map(BattleId) ->
     [Battle] = db:read(battle, BattleId),
@@ -346,33 +385,6 @@ send_item_perception(BattleId, ObjId) ->
     PlayerPid = Conn#connection.process,
 
     send_to_process(PlayerPid, item_perception, item:get_by_owner(BattleId)).
-
-add_battle_units(_BattleId, [], _Attacker, _Num) ->
-    lager:info("Done adding battle units");
-
-add_battle_units(BattleId, [Unit | Rest], Attacker, UnitIndex) ->
-    lager:info("Adding battle_unit"),
-    set_battle_unit(BattleId, Unit, Attacker, UnitIndex),
-
-    add_battle_units(BattleId, Rest, Attacker, UnitIndex + 1).
-
-set_battle_unit(BattleId, Unit, Attacker, UnitIndex) ->
-    {Id} = bson:lookup('_id', Unit), 
-    {ObjId} = bson:lookup(obj_id, Unit),
-    {Speed} = bson:lookup(base_speed, Unit),
-
-    Pos = get_unit_pos(Attacker, UnitIndex),
-
-    BattleUnit = #battle_unit {unit = Id,
-                               pos = Pos,
-                               speed = Speed,
-                               battle = BattleId},
-    db:write(BattleUnit),
-
-get_unit_pos(true, UnitIndex) ->
-    {0, UnitIndex};
-get_unit_pos(false, UnitIndex) ->
-    {3, UnitIndex}.
 
 delete_battle_units(BattleId) ->
     BattleUnits = db:index_read(battle_unit, BattleId, #battle_unit.battle),

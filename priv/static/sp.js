@@ -390,7 +390,7 @@ function drawBattle(unit_data) {
     selectedUnit = false;
     battleUnits = unit_data;
 
-    for(i = 0; i < unit_data.length; i++) {
+    /*for(i = 0; i < unit_data.length; i++) {
         
         var obj = getObj(unit_data[i].obj_id);
         console.log("Unit obj.player: " + obj.player);
@@ -430,7 +430,7 @@ function drawBattle(unit_data) {
 
         imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
         loaderQueue.loadFile({id: unitName, src: imagePath});
-    }
+    }*/
 };
 
 function drawDmg(dmgData) {

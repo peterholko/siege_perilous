@@ -44,8 +44,9 @@
                      obj}).
 
 -record(battle_unit, {unit,
+                      obj,
                       pos,
-                      player,
+                      type,
                       state,
                       speed,
                       battle}).
