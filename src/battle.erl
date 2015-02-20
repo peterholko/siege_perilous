@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/2, info/1, check_player/2, active_turn/2, attack_unit/2]).
+-export([create/2, info/1, check_player/2, active_turn/2, attack_unit/2, move_unit/2]).
 
 %% ====================================================================
 %% External functions
@@ -38,6 +38,9 @@ active_turn(BattleId, UnitId) ->
 
 attack_unit(SourceId, TargetId) ->
     gen_server:cast({global, battle}, {attack_unit, SourceId, TargetId}).
+
+move_unit(UnitId, Pos1D) ->
+    gen_server:cast({global, battle}, {move_unit, UnitId, Pos1D}).
 
 %% ====================================================================
 %% Server functions
@@ -105,6 +108,16 @@ handle_cast({attack_unit, SourceId, TargetId}, Data) ->
 
     {noreply, Data};
 
+handle_cast({move_unit, UnitId, Pos1D}, Data) ->
+    
+    Action = #action {source_id = UnitId,
+                      type = move,
+                      data = Pos1D},
+  
+    db:write(Action),
+
+    {noreply, Data};
+ 
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
@@ -202,10 +215,11 @@ get_perception([], Perception) ->
     Perception;
 
 get_perception([BattleUnit | Rest], Perception) ->
-    Coords = map:convert_coords(BattleUnit#battle_unit.pos),
+    {X, Y} = BattleUnit#battle_unit.pos,
     NewPerception = [ #{<<"unit">> => BattleUnit#battle_unit.unit,
                         <<"obj">> => BattleUnit#battle_unit.obj,
-                        <<"pos">> => Coords,
+                        <<"x">> => X,
+                        <<"y">> => Y,
                         <<"type">> => BattleUnit#battle_unit.type,
                         <<"state">> => BattleUnit#battle_unit.state} | Perception],
 
@@ -216,7 +230,10 @@ get_battle_map(BattleId) ->
    
     F = fun(TileData, MsgTiles) ->
             {Pos, Type} = TileData,
-            [{map:convert_coords(Pos), Type} | MsgTiles]
+            {X, Y} = Pos,
+            [#{<<"x">> => X,
+               <<"y">> => Y,
+               <<"t">> => Type} | MsgTiles]
         end,
 
     lists:foldl(F, [], Battle#battle.tiles). 
@@ -241,6 +258,8 @@ process_action(BattleId, [Action]) ->
     case Action#action.type of
         attack ->
             process_attack(BattleId, Action);
+        move ->
+            process_move(BattleId, Action);
         _ ->
             lager:info("Unknown action type: ~p", [Action#action.type]) 
     end;
@@ -260,6 +279,14 @@ process_attack(BattleId, Action) ->
     is_attack_valid(SourceId, DefUnit),
 
     process_dmg(BattleId, AtkUnit, DefUnit).
+
+process_move(_BattleId, Action) ->
+    UnitId = Action#action.source_id,
+    Pos = Action#action.data,
+
+    BattleUnit = db:read(battle_unit, UnitId),
+    NewBattleUnit = BattleUnit#battle_unit{pos = Pos},
+    db:write(NewBattleUnit).
 
 broadcast_dmg(BattleId, SourceId, TargetId, Dmg, State) ->
     BattleObjs = db:read(battle_obj, BattleId), 

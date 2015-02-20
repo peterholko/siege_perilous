@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([load/0, get_tile/1, get_tile/2, get_explored/1, get_neighbours/2, get_nearby_objs/1, get_tiles/1, get_obj/1,
-         get_nearby_objs/2, get_obj_by_tile/1, create_obj/6, move_obj/2, convert_coords/1]).
+         get_nearby_objs/2, get_obj_by_tile/1, create_obj/6, move_obj/2]).
 -export([add_explored/2, is_valid_pos/1, update_obj_state/2]).
 -record(module_data, {}).
 %% ====================================================================
@@ -156,7 +156,6 @@ explored_map([]) ->
 
 explored_map([ExploredMap]) ->
     TileIds = ExploredMap#explored_map.tiles,
-    lager:info("TileIds: ~p", [TileIds]),
     Tiles = tiles_msg_format(TileIds, []),
     Tiles.
 
@@ -171,7 +170,10 @@ tiles_msg_format([], Tiles) ->
 
 tiles_msg_format([TileId | Rest], Tiles) ->
     [Tile] = db:dirty_read(tile, TileId),
-    NewTiles = [{convert_coords(TileId), Tile#tile.type} | Tiles],
+    {X, Y} = TileId,
+    NewTiles = [#{<<"x">> => X, 
+                  <<"y">> => Y,
+                  <<"t">> => Tile#tile.type} | Tiles],
 
     tiles_msg_format(Rest, NewTiles).
 
@@ -227,10 +229,11 @@ nearby_objs(SourcePos) ->
     Result.
 
 check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
-    Coords = convert_coords(MapObj#map_obj.pos),
+    {X, Y} = MapObj#map_obj.pos,
     [ #{<<"id">> => MapObj#map_obj.id, 
         <<"player">> => MapObj#map_obj.player, 
-        <<"pos">> => Coords,
+        <<"x">> => X,
+        <<"y">> => Y,
         <<"type">> => MapObj#map_obj.type,
         <<"state">> => MapObj#map_obj.state} | Objs];
 
@@ -258,15 +261,6 @@ is_valid_coord({X, Y}) ->
     end,
     
     Result.
-
-convert_coords(TileIndex) when is_tuple(TileIndex) ->
-    {X, Y} = TileIndex,
-    Y * ?MAP_HEIGHT + X;
-
-convert_coords(TileIndex) ->
-    TileX = TileIndex rem ?MAP_WIDTH,
-    TileY = TileIndex div ?MAP_HEIGHT,
-    {TileX , TileY}.
 
 move(Id, Pos) ->
     [Obj] = mnesia:dirty_read(map_obj, Id),

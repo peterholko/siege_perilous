@@ -13,6 +13,7 @@
          get_info_item/1,
          get_info_battle/1,
          move_obj/2,
+         move_unit/2,
          attack_obj/2,
          attack_unit/2,
          harvest/2,
@@ -60,11 +61,9 @@ get_info_battle(Id) ->
            end,
     Info.
 
-move_obj(Id, Pos1D) ->
-
+move_obj(Id, Pos) ->
     Player = get(player_id),
     NumTicks = 8,
-    NewPos = map:convert_coords(Pos1D), 
 
     %Get Obj
     Obj = map:get_obj(Id),
@@ -76,11 +75,11 @@ move_obj(Id, Pos1D) ->
     ValidPlayer = is_player_owned(Obj#map_obj.player, Player),
     
     %Validate position
-    ValidPos = map:is_valid_pos(NewPos),
+    ValidPos = map:is_valid_pos(Pos),
 
     Result = ValidState and ValidPlayer and ValidPos,
 
-    add_move(Result, {Obj, NewPos}, NumTicks).
+    add_move(Result, {Obj, Pos}, NumTicks).
 
 attack_obj(SourceId, TargetId) ->
     Player = get(player_id),
@@ -93,6 +92,11 @@ attack_obj(SourceId, TargetId) ->
   
 attack_unit(SourceId, TargetId) ->
     battle:attack_unit(SourceId, TargetId).
+
+move_unit(UnitId, Pos1D) ->
+
+    %TODO add validation
+    battle:move_unit(UnitId, Pos1D).
 
 harvest(Id, Resource) ->
     Player = get(player_id),

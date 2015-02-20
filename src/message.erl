@@ -51,9 +51,19 @@ message_handle(<<"move">>, Message) ->
     HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
     
+    X = map_get(<<"x">>, Message),
+    Y = map_get(<<"y">>, Message),
+    Result = player:move_obj(BinId, {X, Y}),
+    <<"Move added">>;
+
+message_handle(<<"move_unit">>, Message) ->
+    lager:info("message: move_unit"),
+    HexId = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(HexId),
+    
     Pos1D = map_get(<<"pos">>, Message),
-    Result = player:move_obj(BinId, Pos1D),
-    <<"Move added">>;   
+    Result = player:move_unit(BinId, Pos1D),
+    <<"Move unit added">>;
 
 message_handle(<<"attack">>, Message) ->
     lager:info("message: attack"),

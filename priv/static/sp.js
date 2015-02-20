@@ -172,8 +172,8 @@ function sendLogin() {
 function sendMove(direction) {
     playerObj = getObjByPlayer(playerId);
 
-    var q = playerObj.pos % 4;
-    var r = parseInt(playerObj.pos / 4, 10);
+    var q = playerObj.x;
+    var r = playerObj.y;
     var cube = odd_q_to_cube(q,r);
 
     var x, y, z;
@@ -210,9 +210,8 @@ function sendMove(direction) {
     }
 
     var odd_q = cube_to_odd_q(x, y, z);
-    var newPos = odd_q.r * 4 + odd_q.q;
-
-    var move = '{"cmd": "move", "id": "' + playerObj.id + '", "pos": ' + newPos + '}';
+    var move = '{"cmd": "move", "id": "' + playerObj.id + 
+        '", "x": ' + odd_q.q + ', "y": ' + odd_q.r + '}';
 
     websocket.send(move);
 };
@@ -307,42 +306,42 @@ function onMessage(evt) {
 
 function setPlayerPos() {
     var i;
+    playerPos = {}
 
     for(i = 0; i < objs.length; i++) {
 
         if(objs[i].player == playerId) {
-            playerPos = objs[i].pos;
+            playerPos.x = objs[i].x;
+            playerPos.y = objs[i].y;
         }
     }
 };
 
 function drawMap() {
     var bitmap;
+    var neighbours = getNeighbours(playerPos.x, playerPos.y);
 
-    var playerQ = playerPos % 4;
-    var playerR = parseInt(playerPos / 4, 10);
-    var neighbours = getNeighbours(playerQ, playerR);
+    for(var i = 0; i < explored.length; i++) {
+        var tile = explored[i];
+        
+        var pixel = hex_to_pixel(tile.x, tile.y);
+        var tileType = tile.t;
 
-    for(var pos in explored) {
-        var hex = pos_to_hex(pos);
-        var pixel = hex_to_pixel(hex.q, hex.r);
-        var tileType = explored[pos];
-
-        bitmap = new createjs.Bitmap(tileImages[tileType]);
-        bitmap.tile = tileType;
-        bitmap.pos = pos;
+        bitmap = new createjs.Bitmap(tileImages[tile.t]);
+        bitmap.tile = tile.t;
+        bitmap.tile_x = tile.x;
+        bitmap.tile_y = tile.y;
         bitmap.x = pixel.x;
         bitmap.y = pixel.y;
         bitmap.on("mousedown", function(evt) {
-
-            var objList = getObjOnTile(this.pos);
-            drawInfoOnTile(this.tile, this.pos, objList);
+            var objList = getObjOnTile(this.tile_x, this.tile_y);
+            drawInfoOnTile(this.tile, this.tile_x, this.tile_y, objList);
         });
 
         map.addChild(bitmap);
 
-        if(pos != playerPos) {
-            if(!isNeighbour(hex.q, hex.r, neighbours)) {
+        if(tile.x != playerPos.x && tile.y != playerPos.x) {
+            if(!isNeighbour(tile.x, tile.y, neighbours)) {
                 
                 bitmap = new createjs.Bitmap(shroud);
                 bitmap.x = pixel.x;
@@ -361,8 +360,7 @@ function drawObjs() {
     var halfheight = $("#map").height() / 2;
 
     for(i = 0; i < objs.length; i++) {
-        var hex = pos_to_hex(objs[i].pos);
-        var pixel = hex_to_pixel(hex.q, hex.r);
+        var pixel = hex_to_pixel(objs[i].x, objs[i].y);
         var objName = objs[i].type;
         if(objs[i].state != "dead") {
             var imagePath =  "/static/art/" + objName + ".png";
@@ -453,12 +451,10 @@ function drawDmg(dmgData) {
     }
 };
 
-function drawInfoOnTile(tileType, tilePos, objsOnTile) {
+function drawInfoOnTile(tileType, tileX, tileY, objsOnTile) {
     showInfoPanel();
 
-    var hex = pos_to_hex(tilePos);
-
-    var bandText = new createjs.Text("(" + hex.q + ", " + hex.r + ")", h1Font, textColor);
+    var bandText = new createjs.Text("(" + tileX + ", " + tileY + ")", h1Font, textColor);
     bandText.x = Math.floor(infoPanelBg.width / 2);
     bandText.y = 10;
     bandText.textAlign = "center";
@@ -468,9 +464,10 @@ function drawInfoOnTile(tileType, tilePos, objsOnTile) {
     var tile = new createjs.Bitmap(tileImages[tileType]);
     
     tile.type = tileType;
-    tile.pos = tilePos;
+    tile.tileX = tileX;
+    tile.tileY = tileY;
     tile.on("mousedown", function(evt) {
-        sendInfoTile(this.type, this.pos);
+        sendInfoTile(this.type, this.tileX, this.tileY);
     });
 
     tile.x = (infoPanelBg.width / 2) - 36;
@@ -882,11 +879,11 @@ function getObj(objId) {
     }
 };
 
-function getObjOnTile(pos) {
+function getObjOnTile(x, y) {
     var objsOnTile = [];
 
     for(var i = 0; i < objs.length; i++) {
-        if(objs[i].pos == pos) {
+        if(objs[i].x == x && objs[i].y == y) {
             objsOnTile.push(objs[i]);
         }
     }
@@ -922,11 +919,8 @@ function getBattleUnit(objId) {
     return false;
 };
 
-function pos_to_hex(pos) {
-    var q = pos % mapWidth;
-    var r = parseInt(pos / mapHeight, 10);
-
-    return {q: q, r: r};
+function to_hex(x, y) {
+    return {q: x, r: y};
 };
 
 function hex_to_pixel(q, r) {
