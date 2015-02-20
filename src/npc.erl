@@ -57,7 +57,7 @@ handle_call(Event, From, Data) ->
 handle_info({map_perception, Perception}, Data) ->
     lager:info("NPC perception: ~p", [Perception]),
 
-    {Explored, Objs} = new_perception(Perception),
+    {Explored, Objs} = Perception,
     {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
     process_action(NPCObjs, EnemyObjs),
 
@@ -87,9 +87,6 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-new_perception([{<<"explored">>, Explored}, {<<"objs">>, Objs}]) ->
-    {Explored, Objs}.    
-        
 split_objs([], NPCObjs, EnemyObjs) ->
     {NPCObjs, EnemyObjs};
 split_objs([Obj | Rest], NPCObjs, EnemyObjs) ->
@@ -124,15 +121,19 @@ check_objs(_NPCObjs, [], Action) ->
 check_objs(NPCObj, [EnemyObj | Rest], Action) ->
 
     NPCId = maps:get(<<"id">>, NPCObj),
-    NPCPos = maps:get(<<"pos">>, NPCObj),
+    NPCX = maps:get(<<"x">>, NPCObj),
+    NPCY = maps:get(<<"y">>, NPCObj),
     NPCState = maps:get(<<"state">>, NPCObj),
+    NPCPos = {NPCX, NPCY},
 
     Id = maps:get(<<"id">>, EnemyObj),
-    Pos = maps:get(<<"pos">>, EnemyObj),
+    X = maps:get(<<"x">>, EnemyObj),
+    Y = maps:get(<<"y">>, EnemyObj),
     State = maps:get(<<"state">>, EnemyObj),
+    Pos = {X, Y},
 
     CheckPos = NPCPos =:= Pos, 
-
+ 
     lager:info("Action: ~p CheckPos: ~p NPC: ~p Enemy: ~p", [Action, CheckPos, {NPCId, NPCPos, NPCState}, {Id, Pos, State}]),
     NewAction = determine_action(Action, 
                                  CheckPos,

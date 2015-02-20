@@ -340,7 +340,7 @@ function drawMap() {
 
         map.addChild(bitmap);
 
-        if(tile.x != playerPos.x && tile.y != playerPos.x) {
+        if(tile.x != playerPos.x && tile.y != playerPos.y) {
             if(!isNeighbour(tile.x, tile.y, neighbours)) {
                 
                 bitmap = new createjs.Bitmap(shroud);
