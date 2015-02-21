@@ -55,26 +55,27 @@ handle_call(Event, From, Data) ->
     {noreply, Data}.
 
 handle_info({map_perception, Perception}, Data) ->
-    lager:info("NPC perception: ~p", [Perception]),
+    lager:info("Map perception: ~p", [Perception]),
 
-    {Explored, Objs} = Perception,
+    {_Explored, Objs} = new_perception(Perception),
     {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
     process_action(NPCObjs, EnemyObjs),
 
     {noreply, Data};
 
 handle_info({battle_perception, Perception}, Data) ->
-    lager:info("NPC perception: ~p", [Perception]),
-    {NPCUnits, EnemyUnits} = split_units(Perception, [], []),
+    lager:info("Battle perception: ~p", [Perception]),
+    {Units, _BattleMap} = Perception,
+    {NPCUnits, EnemyUnits} = split_units(Units, [], []),
     process_battle_action(NPCUnits, EnemyUnits),
 
     {noreply, Data};    
 
 handle_info(Info, Data) ->
-    %error_logger:info_report([{module, ?MODULE}, 
-    %                          {line, ?LINE},
-    %                          {self, self()}, 
-    %                          {message, Info}]),
+    error_logger:info_report([{module, ?MODULE}, 
+                              {line, ?LINE},
+                              {self, self()}, 
+                              {message, Info}]),
     {noreply, Data}.
 
 code_change(_OldVsn, Data, _Extra) ->
@@ -86,6 +87,9 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
+
+new_perception([{<<"explored">>, Explored}, {<<"objs">>, Objs}]) ->
+    {Explored, Objs}.
 
 split_objs([], NPCObjs, EnemyObjs) ->
     {NPCObjs, EnemyObjs};
@@ -184,7 +188,7 @@ split_units([], NPCUnits, EnemyUnits) ->
     {NPCUnits, EnemyUnits};
 split_units([Unit | Units], NPCUnits, EnemyUnits) ->
     PlayerId = get(player_id),
-    {ObjId} = bson:lookup(obj_id, Unit),
+    ObjId = maps:get(<<"obj">>, Unit),
     [Obj] = obj:get_obj(ObjId),
     {UnitPlayerId} = bson:lookup(player, Obj),
 
@@ -214,6 +218,7 @@ check_units(_NPCUnit, [], Action) ->
     Action;
 check_units(NPCUnit, [EnemyUnit | EnemyUnits], Action) ->
 
+    %Check for target
     NewAction = determine_battle_action(NPCUnit, EnemyUnit, Action), 
 
     check_units(NPCUnit, EnemyUnits, NewAction).
