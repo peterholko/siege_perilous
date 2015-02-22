@@ -290,6 +290,9 @@ function onMessage(evt) {
         else if(jsonData.packet == "battle_event") {
             drawDmg(jsonData);
         }
+        else if(jsonData.packet == "battle_move") {
+            console.log("battle_move");
+        }
         else if(jsonData.packet == "info_obj") {
             drawInfoObj(jsonData);
         }

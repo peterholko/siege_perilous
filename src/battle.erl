@@ -39,8 +39,8 @@ active_turn(BattleId, UnitId) ->
 attack_unit(SourceId, TargetId) ->
     gen_server:cast({global, battle}, {attack_unit, SourceId, TargetId}).
 
-move_unit(UnitId, Pos1D) ->
-    gen_server:cast({global, battle}, {move_unit, UnitId, Pos1D}).
+move_unit(UnitId, Pos) ->
+    gen_server:cast({global, battle}, {move_unit, UnitId, Pos}).
 
 %% ====================================================================
 %% Server functions
@@ -108,11 +108,11 @@ handle_cast({attack_unit, SourceId, TargetId}, Data) ->
 
     {noreply, Data};
 
-handle_cast({move_unit, UnitId, Pos1D}, Data) ->
+handle_cast({move_unit, UnitId, Pos}, Data) ->
     
     Action = #action {source_id = UnitId,
                       type = move,
-                      data = Pos1D},
+                      data = Pos},
   
     db:write(Action),
 
@@ -280,14 +280,19 @@ process_attack(BattleId, Action) ->
 
     process_dmg(BattleId, AtkUnit, DefUnit).
 
-process_move(_BattleId, Action) ->
+process_move(BattleId, Action) ->
     UnitId = Action#action.source_id,
     Pos = Action#action.data,
-
-    BattleUnit = db:read(battle_unit, UnitId),
+    
+    [BattleUnit] = db:read(battle_unit, UnitId),
     NewBattleUnit = BattleUnit#battle_unit{pos = Pos},
-    db:write(NewBattleUnit).
+    db:write(NewBattleUnit),
 
+    %Remove move action
+    db:delete(action, UnitId),
+    
+    broadcast_move(BattleId, UnitId, Pos).
+    
 broadcast_dmg(BattleId, SourceId, TargetId, Dmg, State) ->
     BattleObjs = db:read(battle_obj, BattleId), 
 
@@ -298,11 +303,27 @@ broadcast_dmg(BattleId, SourceId, TargetId, Dmg, State) ->
                             <<"dmg">> => Dmg,
                             <<"state">> => State},
                 [Conn] = db:dirty_read(connection, BattleObj#battle_obj.player),
-                send_to_process(Conn#connection.process, battle, Message)
+                send_to_process(Conn#connection.process, battle_dmg, Message)
         end,
 
     lists:foreach(F, BattleObjs).
 
+broadcast_move(BattleId, SourceId, Pos) ->
+    BattleObjs = db:read(battle_obj, BattleId), 
+    {X, Y} = Pos,
+
+    F = fun(BattleObj) ->
+                Message = #{<<"battle">> => BattleId, 
+                            <<"sourceid">> => SourceId,
+                            <<"x">> => X,
+                            <<"y">> => Y,
+                            <<"state">> => <<"moving">>},
+                [Conn] = db:dirty_read(connection, BattleObj#battle_obj.player),
+                send_to_process(Conn#connection.process, battle_move, Message)
+        end,
+
+    lists:foreach(F, BattleObjs).
+       
 is_attack_valid(SourceId, false) ->
     %Invalid unit, remove action
     db:delete(action, SourceId);

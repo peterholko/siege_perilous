@@ -63,14 +63,27 @@ handle_info({map_perception, Perception}, Data) ->
 
     {noreply, Data};
 
-handle_info({battle_perception, Perception}, Data) ->
+handle_info({battle_perception, Perception}, _Data) ->
     lager:info("Battle perception: ~p", [Perception]),
-    {Units, _BattleMap} = Perception,
+    {Units, BattleMap} = Perception,
     {NPCUnits, EnemyUnits} = split_units(Units, [], []),
-    process_battle_action(NPCUnits, EnemyUnits),
+    lager:info("NPCUnits: ~p", [NPCUnits]),
+    lager:info("EnemyUnits: ~p", [EnemyUnits]),
+
+    F = fun(NPCUnitId) ->
+        process_battle_action(NPCUnitId, EnemyUnits)
+    end,
+
+    lists:foreach(F, NPCUnits),
+
+    {noreply, {NPCUnits, EnemyUnits, BattleMap}};    
+
+handle_info({battle_move, MoveData}, Data) ->
+    UnitId = maps:get(<<"sourceid">>, MoveData),
+    {_NPCUnits, EnemyUnits, _BattleMap} = Data,
+    process_battle_action(UnitId, EnemyUnits),
 
     {noreply, Data};    
-
 handle_info(Info, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
                               {line, ?LINE},
@@ -188,12 +201,13 @@ split_units([], NPCUnits, EnemyUnits) ->
     {NPCUnits, EnemyUnits};
 split_units([Unit | Units], NPCUnits, EnemyUnits) ->
     PlayerId = get(player_id),
+    UnitId = maps:get(<<"unit">>, Unit),
     ObjId = maps:get(<<"obj">>, Unit),
     [Obj] = obj:get_obj(ObjId),
     {UnitPlayerId} = bson:lookup(player, Obj),
 
     {NewNPCUnits, NewEnemyUnits} = add_unit(PlayerId =:= UnitPlayerId, 
-                                            Unit,
+                                            UnitId,
                                             NPCUnits, 
                                             EnemyUnits),
 
@@ -202,35 +216,46 @@ split_units([Unit | Units], NPCUnits, EnemyUnits) ->
 add_unit(true, Unit, NPCUnits, EnemyUnits) ->
     {[Unit | NPCUnits], EnemyUnits};
 add_unit(false, Unit, NPCUnits, EnemyUnits) ->
-    {NPCUnits, [Unit, EnemyUnits]}.
+    {NPCUnits, [Unit | EnemyUnits]}.
 
-process_battle_action(NPCUnits, EnemyUnits) ->
+process_battle_action(NPCUnitId, EnemyUnits) ->
+    [NPCUnit] = db:read(battle_unit, NPCUnitId),
+    NPCPos = NPCUnit#battle_unit.pos,
+    EnemyUnit = check_distance(NPCPos, EnemyUnits, {none, 1000}),
     
-    F = fun(NPCUnit) ->
-            Action = none,
-            NewAction = check_units(NPCUnit, EnemyUnits, Action),
-            add_battle_action(NewAction)
-        end,
+    Path = astar:astar(NPCUnit#battle_unit.pos, EnemyUnit#battle_unit.pos),
+    NextAction = next_action(NPCUnit, EnemyUnit, Path),
+    
+    add_battle_action(NextAction).
 
-    lists:foreach(F, NPCUnits).
+check_distance(_NPCUnit, [], {EnemyUnit, _Distance}) ->
+    EnemyUnit;
+check_distance(NPCPos, [NewEnemyUnitId | EnemyUnits], {EnemyUnit, Distance}) ->
+    [NewEnemyUnit] = db:read(battle_unit, NewEnemyUnitId),
+    NewEnemyUnitPos = NewEnemyUnit#battle_unit.pos,
 
-check_units(_NPCUnit, [], Action) ->
-    Action;
-check_units(NPCUnit, [EnemyUnit | EnemyUnits], Action) ->
+    {TargetEnemyUnit, NewDistance} = compare_distance(map:distance(NPCPos, NewEnemyUnitPos), 
+                                                      Distance,
+                                                      NewEnemyUnit,
+                                                      EnemyUnit),
 
-    %Check for target
-    NewAction = determine_battle_action(NPCUnit, EnemyUnit, Action), 
+    check_distance(NPCPos, EnemyUnits, {TargetEnemyUnit, NewDistance}).
+        
+compare_distance(NewDistance, Distance, _New, Old) when NewDistance >= Distance ->
+    {Old, Distance};
+compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance ->
+    {New, NewDistance}.
 
-    check_units(NPCUnit, EnemyUnits, NewAction).
 
-determine_battle_action(NPCUnit, EnemyUnit, none) ->
-    {SourceId} = bson:lookup('_id', NPCUnit),
-    {TargetId} = bson:lookup('_id', EnemyUnit),
-    {attack, SourceId, TargetId};
-determine_battle_action(_NPCUnit, _EnemyUnit, Action) ->
-    Action.
+
+next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 1 ->
+    {move, NPCUnit#battle_unit.unit, lists:nth(2,Path)};
+next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 1 ->
+    {attack, NPCUnit#battle_unit.unit, EnemyUnit#battle_unit.unit}.
 
 add_battle_action({attack, SourceId, TargetId}) ->
     battle:attack_unit(SourceId, TargetId);
+add_battle_action({move, UnitId, NextPos}) ->
+    battle:move_unit(UnitId, NextPos);
 add_battle_action(none) ->
     lager:info("NPC Unit doing nothing.").

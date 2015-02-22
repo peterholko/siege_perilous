@@ -29,8 +29,8 @@ websocket_info({item_perception, Message}, Req, State) ->
     PrepMessage = message:prepare(item_perception, Message),
     Encoded = jsx:encode(PrepMessage),
 	{reply, {text, Encoded}, Req, State};
-websocket_info({battle, Message}, Req, State) ->
-    PrepMessage = message:prepare(battle, Message),
+websocket_info({Type, Message}, Req, State) ->
+    PrepMessage = message:prepare(Type, Message),
     Encoded = jsx:encode(PrepMessage),
 	{reply, {text, Encoded}, Req, State};
 websocket_info(_Info, Req, State) ->
