@@ -223,7 +223,7 @@ process_battle_action(NPCUnitId, EnemyUnits) ->
     Path = astar:astar(NPCUnit#battle_unit.pos, EnemyUnit#battle_unit.pos),
     lager:info("Path: ~p", [Path]),
     NextAction = next_action(NPCUnit, EnemyUnit, Path),
-    
+    lager:info("next_action: ~P", [NextAction]),    
     add_battle_action(NextAction).
 
 check_distance(_NPCUnit, [], {EnemyUnit, _Distance}) ->

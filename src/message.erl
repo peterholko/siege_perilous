@@ -58,7 +58,7 @@ message_handle(<<"move">>, Message) ->
 
 message_handle(<<"move_unit">>, Message) ->
     lager:info("message: move_unit"),
-    HexId = map_get(<<"id">>, Message),
+    HexId = map_get(<<"sourceid">>, Message),
     BinId = util:hex_to_bin(HexId),
     
     X = map_get(<<"x">>, Message),

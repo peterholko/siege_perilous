@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+% -------------------------------------------------------------------
 %% Author  : Peter Holko
 %%% Description : Battle manager
 %%%
@@ -272,11 +272,10 @@ process_attack(BattleId, Action) ->
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
-    AtkUnit = unit:get_stats(SourceId),
-    DefUnit = unit:get_stats(TargetId),
+    AtkUnit = db:read(battle_unit, SourceId),
+    DefUnit = db:read(battle_unit, TargetId),
 
-    is_attack_valid(SourceId, AtkUnit),
-    is_attack_valid(SourceId, DefUnit),
+    is_attack_valid(SourceId, AtkUnit, DefUnit),
 
     process_dmg(BattleId, AtkUnit, DefUnit).
 
@@ -324,12 +323,18 @@ broadcast_move(BattleId, SourceId, Pos) ->
 
     lists:foreach(F, BattleObjs).
        
-is_attack_valid(SourceId, false) ->
-    %Invalid unit, remove action
-    db:delete(action, SourceId);
+is_attack_valid(SourceId, [AtkUnit], [DefUnit]) ->
+    {AtkX, AtkY} = AtkUnit#battle_unit.pos,
+    Neighbours = map:neighbours(AtkX, AtkY), 
+    case lists:member(DefUnit#battle_unit.pos, Neighbours) of
+        true ->
+            valid;
+        false ->
+            db:delete(action, SourceId)
+    end;
 
-is_attack_valid(_SourceId, _Unit) ->
-    valid.
+is_attack_valid(SourceId, _, _) ->
+    db:delete(action, SourceId).
 
 process_dmg(_BattleId, false, _DefUnit) ->
     lager:info("Source no longer available");
@@ -427,7 +432,7 @@ transfer_items(TargetId, [Item | Rest]) ->
     transfer_items(TargetId, Rest).
 
 send_item_perception(BattleId, ObjId) ->
-    Battles = db:read(battle, BattleId),
+    Battles = db:read(battle_obj, BattleId),
     Battle = lists:keyfind(ObjId, #battle_obj.obj, Battles),
     [Conn] = db:read(connection, Battle#battle_obj.player),
     PlayerPid = Conn#connection.process,
