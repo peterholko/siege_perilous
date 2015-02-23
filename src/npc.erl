@@ -171,9 +171,6 @@ determine_action(_Action, _Pos, NPC, _Enemy) ->
 add_action({move, {NPCId, Pos}}) ->
     lager:info("npc ~p adding move", [NPCId]),
     Obj = map:get_obj(NPCId),
-
-    map:update_obj_state(Obj, moving),
-    
     NumTicks = 8,
 
     %Create event data 
@@ -224,6 +221,7 @@ process_battle_action(NPCUnitId, EnemyUnits) ->
     EnemyUnit = check_distance(NPCPos, EnemyUnits, {none, 1000}),
     
     Path = astar:astar(NPCUnit#battle_unit.pos, EnemyUnit#battle_unit.pos),
+    lager:info("Path: ~p", [Path]),
     NextAction = next_action(NPCUnit, EnemyUnit, Path),
     
     add_battle_action(NextAction).
@@ -246,11 +244,9 @@ compare_distance(NewDistance, Distance, _New, Old) when NewDistance >= Distance 
 compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance ->
     {New, NewDistance}.
 
-
-
-next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 1 ->
+next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 2 ->
     {move, NPCUnit#battle_unit.unit, lists:nth(2,Path)};
-next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 1 ->
+next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
     {attack, NPCUnit#battle_unit.unit, EnemyUnit#battle_unit.unit}.
 
 add_battle_action({attack, SourceId, TargetId}) ->

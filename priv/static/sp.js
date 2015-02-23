@@ -13,7 +13,7 @@ var explored = {};
 var objs = {};
 var units = {};
 var battles = [];
-var battleUnits = {};
+var battleUnits = [];
 
 var playerId;
 var playerPos;
@@ -285,13 +285,14 @@ function onMessage(evt) {
             drawObjs();
         }
         else if(jsonData.packet == "battle_perception") {
-            drawBattle(jsonData.units);
+            drawBattle(jsonData);
         }
-        else if(jsonData.packet == "battle_event") {
+        else if(jsonData.packet == "battle_dmg") {
             drawDmg(jsonData);
         }
         else if(jsonData.packet == "battle_move") {
             console.log("battle_move");
+            drawBattleMove(jsonData);
         }
         else if(jsonData.packet == "info_obj") {
             drawInfoObj(jsonData);
@@ -386,32 +387,42 @@ function drawObjs() {
     }
 };
 
-function drawBattle(unit_data) {
+function drawBattle(jsonData) {
     showBattlePanel();
     selectedUnit = false;
-    battleUnits = unit_data;
+    battleUnits = jsonData.units;
 
-    /*for(i = 0; i < unit_data.length; i++) {
-        
-        var obj = getObj(unit_data[i].obj_id);
-        console.log("Unit obj.player: " + obj.player);
+    for(var i = 0; i < jsonData.map.length; i++) {
+        var tile = jsonData.map[i];
+        var pixel = hex_to_pixel(tile.x, tile.y);
 
-        var unitName = unit_data[i].name;
+        var bitmap = new createjs.Bitmap(tileImages[tile.t]);
+        bitmap.x = pixel.x;
+        bitmap.y = pixel.y;
+
+        addChildBattlePanel(bitmap);
+    }
+    
+    drawBattleUnits();
+};
+
+function drawBattleUnits() {
+    
+    for(var i = 0; i < battleUnits.length; i++) {
+        var pixel = hex_to_pixel(battleUnits[i].x, battleUnits[i].y);
+        var obj = getObj(battleUnits[i].obj);
+        var unitName = battleUnits[i].type;
+
         unitName = unitName.toLowerCase().replace(/ /g, '');
 
         var imagePath =  "/static/art/" + unitName + ".png";
         var icon = new createjs.Container();
 
-        icon._id = unit_data[i]._id;
-        icon.player = obj.player;
+        battleUnits[i].icon = icon;
 
-        if(obj.player == playerId) {
-            icon.x = 25;
-            icon.y = 100 + i * 75;
-        } else {
-            icon.x = 425;
-            icon.y = 100 + i * 75;
-        }
+        icon.unit = battleUnits[i].unit;
+        icon.x = pixel.x;
+        icon.y = pixel.y;
 
         icon.on("mousedown", function(evt) {
             if(selectedUnit == false) {
@@ -424,32 +435,39 @@ function drawBattle(unit_data) {
                     websocket.send(attack_unit);
                 }
             }
-            
         });
 
         addChildBattlePanel(icon);
 
         imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
         loaderQueue.loadFile({id: unitName, src: imagePath});
-    }*/
+    }
 };
 
-function drawDmg(dmgData) {
+function drawBattleMove(jsonData) {
+    var unit = getBattleUnit(jsonData.sourceid);
+    var pixel = hex_to_pixel(jsonData.x, jsonData.y);
+
+    unit.icon.x = pixel.x;
+    unit.icon.y = pixel.y;
+};
+
+function drawDmg(jsonData) {
     if(battlePanel.visible) {
-        var source = getBattleUnit(dmgData.sourceid);
-        var target = getBattleUnit(dmgData.targetid);
-        var origX = source.x;
-        var origY = source.y;
+        var source = getBattleUnit(jsonData.sourceid);
+        var target = getBattleUnit(jsonData.targetid);
+        var origX = source.icon.x;
+        var origY = source.icon.y;
 
         if(source && target) {
-            createjs.Tween.get(source).to({x: target.x, y: target.y}, 500, createjs.Ease.getPowInOut(4))
-                                      .to({x: origX, y: origY}, 100, createjs.Ease.getPowInOut(2));
+            createjs.Tween.get(source.icon).to({x: target.icon.x, y: target.icon.y}, 500, createjs.Ease.getPowInOut(4))
+                                           .to({x: origX, y: origY}, 100, createjs.Ease.getPowInOut(2));
         }
 
-        if(dmgData.state == "dead") {
-            target.removeAllChildren();
+        if(jsonData.state == "dead") {
+            target.icon.removeAllChildren();
             var die = new createjs.Sprite(zombieSS, "die");
-            target.addChild(die);
+            target.icon.addChild(die);
         }
     }
 };
@@ -909,16 +927,13 @@ function getTileImage(tileType) {
 
 };
 
-function getBattleUnit(objId) {
-    var battleContent = getBattlePanelContent();
-
-    for(var i = 0; i < battleContent.numChildren; i++) {
-        var unit = battleContent.getChildAt(i);
-        if(objId == unit._id) {
-            return unit;
+function getBattleUnit(unit) {
+    for(var i = 0; i < battleUnits.length; i++) {
+        if(battleUnits[i].unit == unit) {
+            return battleUnits[i];
         }
     }
-
+    
     return false;
 };
 
