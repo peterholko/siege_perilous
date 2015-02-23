@@ -130,8 +130,8 @@ handle_call({info, Battle}, _From, Data) ->
     {reply, {BattlePerception, BattleMap}, Data};
 
 handle_call({check_player, Player, Battle}, _From, Data) ->
-    BattleList = db:read(battle, Battle),
-    Result = lists:keymember(Player, #battle_obj.player, BattleList),
+    BattleObjList = db:read(battle_obj, Battle),
+    Result = lists:keymember(Player, #battle_obj.player, BattleObjList),
     lager:info("Battle check_player: ~p", [Result]), 
     {reply, Result, Data};
 

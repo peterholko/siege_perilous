@@ -61,8 +61,9 @@ message_handle(<<"move_unit">>, Message) ->
     HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
     
-    Pos1D = map_get(<<"pos">>, Message),
-    Result = player:move_unit(BinId, Pos1D),
+    X = map_get(<<"x">>, Message),
+    Y = map_get(<<"y">>, Message),
+    Result = player:move_unit(BinId, {X, Y}),
     <<"Move unit added">>;
 
 message_handle(<<"attack">>, Message) ->

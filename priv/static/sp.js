@@ -397,8 +397,16 @@ function drawBattle(jsonData) {
         var pixel = hex_to_pixel(tile.x, tile.y);
 
         var bitmap = new createjs.Bitmap(tileImages[tile.t]);
+        bitmap.tileX = tile.x;
+        bitmap.tileY = tile.y;
         bitmap.x = pixel.x;
         bitmap.y = pixel.y;
+        bitmap.on("mousedown", function(evt) {
+            if(selectedUnit != false) {
+                var move_unit = '{"cmd": "move_unit", "sourceid": "' + selectedUnit + '", "x": ' + this.tileX + ', "y": ' + this.tileY + '}';    
+                websocket.send(move_unit);
+            } 
+        });
 
         addChildBattlePanel(bitmap);
     }
@@ -420,6 +428,7 @@ function drawBattleUnits() {
 
         battleUnits[i].icon = icon;
 
+        icon.player = obj.player;
         icon.unit = battleUnits[i].unit;
         icon.x = pixel.x;
         icon.y = pixel.y;
@@ -427,11 +436,11 @@ function drawBattleUnits() {
         icon.on("mousedown", function(evt) {
             if(selectedUnit == false) {
                 if(this.player == playerId) {
-                    selectedUnit = this._id;
+                    selectedUnit = this.unit;
                 } 
             } else {
                 if(this.player != playerId) {
-                    var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + this._id + '"}';    
+                    var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + this.unit + '"}';    
                     websocket.send(attack_unit);
                 }
             }

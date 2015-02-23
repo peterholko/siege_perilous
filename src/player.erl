@@ -93,10 +93,10 @@ attack_obj(SourceId, TargetId) ->
 attack_unit(SourceId, TargetId) ->
     battle:attack_unit(SourceId, TargetId).
 
-move_unit(UnitId, Pos1D) ->
+move_unit(UnitId, Pos) ->
 
     %TODO add validation
-    battle:move_unit(UnitId, Pos1D).
+    battle:move_unit(UnitId, Pos).
 
 harvest(Id, Resource) ->
     Player = get(player_id),
