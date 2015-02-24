@@ -92,7 +92,6 @@ handle_cast({create, AtkId, DefId}, Data) ->
     {noreply, Data};
 
 handle_cast({active_turn, BattleId, UnitId}, Data) ->
-    
     Action = db:read(action, UnitId),
     process_action(BattleId, Action),
 
@@ -269,6 +268,7 @@ process_action(_Battle, _Action) ->
     none.
 
 process_attack(BattleId, Action) ->
+    lager:info("process_attack ~p", [Action]),
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
@@ -277,9 +277,10 @@ process_attack(BattleId, Action) ->
 
     is_attack_valid(SourceId, AtkUnit, DefUnit),
 
-    process_dmg(BattleId, AtkUnit, DefUnit).
+    process_dmg(BattleId, SourceId, TargetId).
 
 process_move(BattleId, Action) ->
+    lager:info("process_move ~p", [Action]),
     UnitId = Action#action.source_id,
     Pos = Action#action.data,
     
@@ -342,13 +343,13 @@ process_dmg(_BattleId, false, _DefUnit) ->
 process_dmg(_BattleId, _AtkUnit, false) ->
     lager:info("Target no longer avalalble");
 
-process_dmg(BattleId, AtkUnit, DefUnit) ->
-    {AtkId} = bson:lookup('_id', AtkUnit),
+process_dmg(BattleId, AtkId, DefId) ->
+    AtkUnit = unit:get_stats(AtkId),
+    DefUnit = unit:get_stats(DefId),
     {AtkObjId} = bson:lookup(obj_id, AtkUnit),
     {DmgBase} = bson:lookup(base_dmg, AtkUnit),
     {DmgRange} = bson:lookup(dmg_range, AtkUnit),
 
-    {DefId} = bson:lookup('_id', DefUnit),
     {DefObjId} = bson:lookup(obj_id, DefUnit),
     {DefArmor} = bson:lookup(base_def, DefUnit),
     {DefHp} = bson:lookup(hp, DefUnit),

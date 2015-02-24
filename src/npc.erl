@@ -78,10 +78,15 @@ handle_info({battle_perception, Perception}, _Data) ->
 
     {noreply, {NPCUnits, EnemyUnits, BattleMap}};    
 
-handle_info({battle_move, MoveData}, Data) ->
-    UnitId = maps:get(<<"sourceid">>, MoveData),
-    {_NPCUnits, EnemyUnits, _BattleMap} = Data,
-    process_battle_action(UnitId, EnemyUnits),
+handle_info({battle_move, _MoveData}, Data) ->
+    %UnitId = maps:get(<<"sourceid">>, MoveData),
+    {NPCUnits, EnemyUnits, _BattleMap} = Data,
+
+    F = fun(NPCUnitId) ->
+        process_battle_action(NPCUnitId, EnemyUnits)
+    end,
+
+    lists:foreach(F, NPCUnits),
 
     {noreply, Data};    
 handle_info(Info, Data) ->
@@ -216,6 +221,7 @@ add_unit(false, Unit, NPCUnits, EnemyUnits) ->
     {NPCUnits, [Unit | EnemyUnits]}.
 
 process_battle_action(NPCUnitId, EnemyUnits) ->
+    lager:info("process battle action for ~p", [NPCUnitId]),
     [NPCUnit] = db:read(battle_unit, NPCUnitId),
     NPCPos = NPCUnit#battle_unit.pos,
     EnemyUnit = check_distance(NPCPos, EnemyUnits, {none, 1000}),
@@ -223,7 +229,7 @@ process_battle_action(NPCUnitId, EnemyUnits) ->
     Path = astar:astar(NPCUnit#battle_unit.pos, EnemyUnit#battle_unit.pos),
     lager:info("Path: ~p", [Path]),
     NextAction = next_action(NPCUnit, EnemyUnit, Path),
-    lager:info("next_action: ~P", [NextAction]),    
+    lager:info("next_action: ~p", [NextAction]),    
     add_battle_action(NextAction).
 
 check_distance(_NPCUnit, [], {EnemyUnit, _Distance}) ->
