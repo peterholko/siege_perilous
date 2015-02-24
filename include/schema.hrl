@@ -59,5 +59,6 @@
 
 -record(action, {source_id,
                  type,
-                 data}).
+                 data,
+                 battle}).
 

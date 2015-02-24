@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get_obj/1, get_info/2, create/4, create/6]).
+-export([get_obj/1, get_info/2, create/4, create/6, remove/1]).
 
 get_obj(Id) ->
     Obj = find(Id),
@@ -47,6 +47,9 @@ create(Player, Pos, Class, Type, State, Units) ->
 
     %Return ID
     Id.
+
+remove(ObjId) ->
+    mdb:delete(<<"obj">>, ObjId).
 
 %%% Internal only 
 

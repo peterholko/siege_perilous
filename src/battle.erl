@@ -92,26 +92,33 @@ handle_cast({create, AtkId, DefId}, Data) ->
     {noreply, Data};
 
 handle_cast({active_turn, BattleId, UnitId}, Data) ->
+    
     Action = db:read(action, UnitId),
     process_action(BattleId, Action),
 
     {noreply, Data};
 
-handle_cast({attack_unit, SourceId, TargetId}, Data) ->
-    
+handle_cast({attack_unit, SourceId, TargetId}, Data) -> 
+    [BattleUnit] = db:read(battle_unit, SourceId),
+    BattleId = BattleUnit#battle_unit.battle,
+
     Action = #action {source_id = SourceId,
                       type = attack,
-                      data = TargetId},
+                      data = TargetId,
+                      battle = BattleId},
   
     db:write(Action),
 
     {noreply, Data};
 
-handle_cast({move_unit, UnitId, Pos}, Data) ->
+handle_cast({move_unit, SourceId, Pos}, Data) ->
+    [BattleUnit] = db:read(battle_unit, SourceId),
+    BattleId = BattleUnit#battle_unit.battle,
     
-    Action = #action {source_id = UnitId,
+    Action = #action {source_id = SourceId,
                       type = move,
-                      data = Pos},
+                      data = Pos,
+                      battle = BattleId},
   
     db:write(Action),
 
@@ -268,7 +275,7 @@ process_action(_Battle, _Action) ->
     none.
 
 process_attack(BattleId, Action) ->
-    lager:info("process_attack ~p", [Action]),
+    lager:info("Process attack"),
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
@@ -280,7 +287,7 @@ process_attack(BattleId, Action) ->
     process_dmg(BattleId, SourceId, TargetId).
 
 process_move(BattleId, Action) ->
-    lager:info("process_move ~p", [Action]),
+    lager:info("Process move"),
     UnitId = Action#action.source_id,
     Pos = Action#action.data,
     
@@ -346,6 +353,7 @@ process_dmg(_BattleId, _AtkUnit, false) ->
 process_dmg(BattleId, AtkId, DefId) ->
     AtkUnit = unit:get_stats(AtkId),
     DefUnit = unit:get_stats(DefId),
+
     {AtkObjId} = bson:lookup(obj_id, AtkUnit),
     {DmgBase} = bson:lookup(base_dmg, AtkUnit),
     {DmgRange} = bson:lookup(dmg_range, AtkUnit),
@@ -397,7 +405,7 @@ process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
 
     lager:info("Removing unit..."),
     %Remove unit from collection
-    unit:killed(DefId),
+    unit:remove(DefId),
 
     lager:info("Removing unit from battle..."),
     %Remove unit from battle
@@ -405,6 +413,12 @@ process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
 
     case is_army_dead(unit:get_units(DefObjId)) of
         dead ->
+            %Remove battle units
+            delete_battle_units(BattleId),
+            
+            %Clear all actions
+            delete_actions(BattleId),
+
             %Transfer any defender army items to attacker and battle items
             transfer_items(BattleId, item:get_by_owner(DefObjId)),
             transfer_items(BattleId, item:get_by_owner(BattleId)),
@@ -412,16 +426,21 @@ process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
             %Send item perception
             send_item_perception(BattleId, AtkObjId),
 
-            %Update map obj state of attacker and defender
+            %Update map obj state of attacker
             map:update_obj_state(AtkObjId, none),
-            map:update_obj_state(DefObjId, dead),
+            
+            %Remove obj and battle
+            obj:remove(DefObjId),
+            obj:remove(BattleId),
 
+            map:remove_obj(DefObjId),
+            map:remove_obj(BattleId),
+             
             %Reprocess perception
             game:set_perception(true),
 
-            %Remove battle unit and battle entries
-            db:delete(battle, BattleId),
-            delete_battle_units(BattleId);
+            %Remove battle
+            db:delete(battle, BattleId);
         alive ->
             none
     end.
@@ -448,6 +467,15 @@ delete_battle_units(BattleId) ->
         end,
 
     lists:foreach(F, BattleUnits).
+
+delete_actions(BattleId) ->
+    Actions = db:index_read(action, BattleId, #action.battle),
+
+    F = fun(Action) ->
+            db:delete(action, Action#action.source_id)
+        end,
+
+    lists:foreach(F, Actions).
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [Message, Process]),
