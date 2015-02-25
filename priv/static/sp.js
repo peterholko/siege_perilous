@@ -290,6 +290,9 @@ function onMessage(evt) {
         else if(jsonData.packet == "battle_perception") {
             drawBattle(jsonData);
         }
+        else if(jsonData.packet == "item_perception") {
+            drawItemDialog(jsonData);
+        }
         else if(jsonData.packet == "battle_dmg") {
             drawDmg(jsonData);
         }
@@ -480,6 +483,40 @@ function drawDmg(jsonData) {
             target.icon.removeAllChildren();
             var die = new createjs.Sprite(zombieSS, "die");
             target.icon.addChild(die);
+        }
+    }
+};
+
+function drawItemDialog(jsonData) {
+    if(battlePanel.visible) {
+        showDialogPanel();
+
+        var title = new createjs.Text("Loot", h1Font, textColor);
+        title.x = Math.floor(dialogPanelBg.width / 2);
+        title.y = 10;
+        title.textAlign = "center";
+
+        addChildDialogPanel(title);
+
+        for(var i = 0; i < jsonData.items.length; i++) {
+            var itemName = jsonData.items[i].name;            
+            itemName = itemName.toLowerCase().replace(/ /g,'');
+
+            var imagePath = "/static/art/" + itemName + ".png";
+            var icon = new createjs.Container();
+            
+            icon._id = jsonData.items[i]._id;
+            icon.on("mousedown", function(evt) {
+                sendInfoItem(this._id);
+            });
+
+            icon.x = dialogPanelBg.width / 2 - 24;
+            icon.y = dialogPanelBg.height / 2 + 5 - 24;
+
+            addChildDialogPanel(icon);
+
+            imagesQueue.push({id: itemName, x: 0, y: 0, target: icon});
+            loaderQueue.loadFile({id: itemName, src: imagePath});
         }
     }
 };
@@ -775,8 +812,11 @@ function initUI() {
     close.x = 228;
     close.y = 10;
 
+    content.name = 'content';
+
     dialogPanel.addChild(bg); 
     dialogPanel.addChild(close);
+    dialogPanel.addChild(content);
 
     stage.addChild(dialogPanel);
 };
@@ -814,8 +854,15 @@ function showInfoPanel() {
     activeInfoPanel.visible = true;    
 };
 
-function addChildInfoPanel(item) {
-    var content = activeInfoPanel.getChildByName('content');
+function showDialogPanel() {
+    var content = dialogPanel.getChildByName('content');
+    content.removeAllChildren();
+
+    dialogPanel.visible = true;
+};
+
+function addChildDialogPanel(item) {
+    var content = dialogPanel.getChildByName('content');
     content.addChild(item);
 };
 
@@ -830,6 +877,11 @@ function addChildBattlePanel(item) {
 
 function getBattlePanelContent() {
     return battlePanel.getChildByName('content');
+};
+
+function addChildDialogPanel(item) {
+    var content = dialogPanel.getChildByName('content');
+    content.addChild(item);
 };
 
 function isNeighbour(q, r, neighbours) {

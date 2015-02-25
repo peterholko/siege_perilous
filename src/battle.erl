@@ -85,6 +85,7 @@ handle_cast({create, AtkId, DefId}, Data) ->
     BattleMap = get_battle_map(BattleId),
 
     lager:info("BattlePerception: ~p", [BattlePerception]),
+    lager:info("BattleMap: ~p", [BattleMap]),
 
     send_perception([{AtkObj#map_obj.player, {BattlePerception, BattleMap}}, 
                      {DefObj#map_obj.player, {BattlePerception, BattleMap}}]),
@@ -419,12 +420,14 @@ process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
             %Clear all actions
             delete_actions(BattleId),
 
-            %Transfer any defender army items to attacker and battle items
-            transfer_items(BattleId, item:get_by_owner(DefObjId)),
-            transfer_items(BattleId, item:get_by_owner(BattleId)),
-
+            %Get all items to transfer
+            Items = item:get_by_owner(DefObjId) ++ item:get_by_owner(BattleId),
+            
             %Send item perception
-            send_item_perception(BattleId, AtkObjId),
+            send_item_perception(BattleId, AtkObjId, Items),
+
+            %Transfer any defender army items to attacker and battle items
+            transfer_items(AtkObjId, Items),
 
             %Update map obj state of attacker
             map:update_obj_state(AtkObjId, none),
@@ -451,13 +454,13 @@ transfer_items(TargetId, [Item | Rest]) ->
     item:transfer(Item, TargetId),
     transfer_items(TargetId, Rest).
 
-send_item_perception(BattleId, ObjId) ->
+send_item_perception(BattleId, ObjId, ItemPerception) ->
     Battles = db:read(battle_obj, BattleId),
     Battle = lists:keyfind(ObjId, #battle_obj.obj, Battles),
     [Conn] = db:read(connection, Battle#battle_obj.player),
     PlayerPid = Conn#connection.process,
 
-    send_to_process(PlayerPid, item_perception, item:get_by_owner(BattleId)).
+    send_to_process(PlayerPid, item_perception, ItemPerception).
 
 delete_battle_units(BattleId) ->
     BattleUnits = db:index_read(battle_unit, BattleId, #battle_unit.battle),
