@@ -333,7 +333,7 @@ broadcast_move(BattleId, SourceId, Pos) ->
        
 is_attack_valid(SourceId, [AtkUnit], [DefUnit]) ->
     {AtkX, AtkY} = AtkUnit#battle_unit.pos,
-    Neighbours = map:neighbours(AtkX, AtkY), 
+    Neighbours = map:neighbours(AtkX, AtkY, ?BATTLE_WIDTH, ?BATTLE_HEIGHT), 
     case lists:member(DefUnit#battle_unit.pos, Neighbours) of
         true ->
             valid;

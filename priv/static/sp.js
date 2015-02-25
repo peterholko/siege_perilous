@@ -69,6 +69,9 @@ function init() {
     stage.autoClear = true;
 
     map = new createjs.Container();
+    map.x = $("#map").width() / 2;
+    map.y = $("#map").height() / 2;
+
     stage.addChild(map)
 
     zombieSS = new createjs.SpriteSheet(zombie);
@@ -267,7 +270,7 @@ function onMessage(evt) {
             $("#login").hide();        
             $("#navigation").fadeIn('slow');
             $("#map").fadeIn('slow');
-
+            
             playerId = jsonData.player;
             explored = jsonData.explored;
             objs = jsonData.objs;
@@ -344,7 +347,7 @@ function drawMap() {
 
         map.addChild(bitmap);
 
-        if(tile.x != playerPos.x && tile.y != playerPos.y) {
+        if(tile.x != playerPos.x || tile.y != playerPos.y) {
             if(!isNeighbour(tile.x, tile.y, neighbours)) {
                 
                 bitmap = new createjs.Bitmap(shroud);

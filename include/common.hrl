@@ -9,6 +9,9 @@
 -define(MAP_WIDTH, 4).
 -define(MAP_HEIGHT, 4).
 
+-define(BATTLE_WIDTH, 4).
+-define(BATTLE_HEIGHT, 4).
+
 -define(GAME_LOOP_TICK, 200).
 -define(GAME_VISION_RANGE, 50).
 -define(GAME_NUM_HOURS_PER_DAY, 6).

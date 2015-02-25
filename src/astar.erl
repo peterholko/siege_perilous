@@ -2,10 +2,12 @@
 
 -type cnode() :: {integer(), integer()}.
 
+-include("common.hrl").
+
 -define(MINX, 0).
 -define(MINY, 0).
--define(MAXX, 3).
--define(MAXY, 3).
+-define(MAXX, ?BATTLE_WIDTH - 1).
+-define(MAXY, ?BATTLE_HEIGHT - 1).
 
 -export([
          astar/2,
@@ -81,7 +83,7 @@ best_step([H|Open], Score, Best, BestValue) ->
 -spec neighbour_nodes(cnode(), cnode() | none) -> list(cnode()).
 neighbour_nodes(Node, Parent) ->
     {X, Y} = Node,
-    Neighbours = map:neighbours(X,Y),
+    Neighbours = map:neighbours(X,Y, ?BATTLE_WIDTH, ?BATTLE_HEIGHT),
     %Remove parent
     lists:delete(Parent, Neighbours).
 
