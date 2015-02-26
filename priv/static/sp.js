@@ -493,7 +493,7 @@ function drawItemDialog(jsonData) {
 
         var title = new createjs.Text("Loot", h1Font, textColor);
         title.x = Math.floor(dialogPanelBg.width / 2);
-        title.y = 10;
+        title.y = 5;
         title.textAlign = "center";
 
         addChildDialogPanel(title);
@@ -811,6 +811,9 @@ function initUI() {
 
     close.x = 228;
     close.y = 10;
+    close.on("mousedown", function(evt) {
+        this.parent.visible = false;
+    });
 
     content.name = 'content';
 

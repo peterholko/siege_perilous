@@ -256,6 +256,7 @@ send_perception([]) ->
     lager:info("Done sending battle perception");
 
 send_perception([{PlayerId, Perception} | Players]) ->
+    lager:info("Sending perpcetion to player: ~p", [PlayerId]),
     [Conn] = db:dirty_read(connection, PlayerId),
     send_to_process(Conn#connection.process, battle_perception, Perception),
     send_perception(Players).
