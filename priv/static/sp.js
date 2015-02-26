@@ -34,10 +34,10 @@ var textColor = "#FFFFFF";
 
 var tileImages = [];
 
-tileImages[0] = "/static/art/green.png";
-tileImages[1] = "/static/art/basic-tile.png";
-tileImages[2] = "/static/art/regular.png";
-tileImages[3] = "/static/art/desert.png";
+tileImages[0] = "/static/art/basic-tile.png";
+tileImages[1] = "/static/art/desert.png";
+tileImages[2] = "/static/art/green.png";
+tileImages[3] = "/static/art/regular.png";
 
 var shroud = "/static/art/shroud.png";
 
@@ -922,21 +922,6 @@ function getObjOnTile(x, y) {
     }
 
     return objsOnTile;
-};
-
-function getTileImage(tileType) {
-
-    switch(tileType) {
-        case 0:
-            return tile0;
-        case 1: 
-            return tile1;
-        case 2:
-            return tile2;
-        case 3:
-            return tile3;
-    }
-
 };
 
 function getBattleUnit(unit) {

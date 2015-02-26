@@ -28,7 +28,8 @@ start() ->
     gen_server:start({global, map}, map, [], []).
 
 load() ->
-    gen_server:call({global, map}, load).
+    {ok, File} = file:open(?MAP_FILE, [read]),
+    load_map(File, 0).
 
 get_tile({X, Y}) ->
     get_tile(X, Y).
@@ -279,3 +280,36 @@ odd_q_to_cube({Q, R}) ->
     Z = trunc(R - (Q - (Q band 1)) / 2),
     Y = -X-Z,
     {X, Y, Z}.
+
+load_map(File, RowNum) ->
+    case file:read_line(File) of
+        eof ->
+            done;
+        {error, Reason} ->
+            lager:info("Error: ~p", [Reason]),
+            error;
+        {ok, RawLine} ->
+            Line = string:strip(RawLine, right, $\n),
+            TypeList = string:tokens(Line, ","),
+            store_tile(TypeList, 0, RowNum),
+            load_map(File, RowNum + 1)
+     end.
+
+store_tile([], _ColNum, _RowNum) ->
+    lager:info("Done storing tiles");
+store_tile([Type | Rest], ColNum, RowNum) ->
+    Tile = #tile {pos = {ColNum, RowNum},
+                  type = list_to_integer(Type)},
+
+    db:dirty_write(Tile),
+    store_tile(Rest, ColNum + 1, RowNum).
+
+
+
+
+            
+
+
+
+
+

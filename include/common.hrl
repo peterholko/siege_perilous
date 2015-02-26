@@ -5,9 +5,10 @@
 -define(ERR_BAD_LOGIN, 1).
 -define(ERR_ACCOUNT_DISABLED, 2).
 
--define(MAP_NUMTILES, 16).
--define(MAP_WIDTH, 4).
--define(MAP_HEIGHT, 4).
+-define(MAP_FILE, "lib/sp-1/priv/10x10.csv").
+-define(MAP_NUMTILES, 100).
+-define(MAP_WIDTH, 10).
+-define(MAP_HEIGHT, 10).
 
 -define(BATTLE_WIDTH, 4).
 -define(BATTLE_HEIGHT, 4).

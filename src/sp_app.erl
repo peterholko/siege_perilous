@@ -4,6 +4,8 @@
 -module(sp_app).
 -behaviour(application).
 
+-include("common.hrl").
+
 %% API.
 -export([start/2]).
 -export([stop/1]).
@@ -23,7 +25,9 @@ start(_Type, _Args) ->
     db:create_schema(),
     ok = db:start(),
     db:reset_tables(),
-    
+
+    done = map:load(),
+
     game:start(),
 
     mdb:start(),
