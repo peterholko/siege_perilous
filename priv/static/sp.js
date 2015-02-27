@@ -886,8 +886,8 @@ function showDialogPanel() {
     dialogPanel.visible = true;
 };
 
-function addChildDialogPanel(item) {
-    var content = dialogPanel.getChildByName('content');
+function addChildInfoPanel(item) {
+    var content = activeInfoPanel.getChildByName('content');
     content.addChild(item);
 };
 
