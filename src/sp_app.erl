@@ -26,7 +26,8 @@ start(_Type, _Args) ->
     ok = db:start(),
     db:reset_tables(),
 
-    done = map:load(),
+    map:load_global(),
+    map:load_local(),
 
     game:start(),
 

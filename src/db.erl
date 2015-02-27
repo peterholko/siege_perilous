@@ -45,7 +45,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(battle, [{disc_copies, [node()]}, {attributes, record_info(fields, battle)}]),    
     {atomic, ok} = mnesia:create_table(battle_obj, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, battle_obj)}]),    
     {atomic, ok} = mnesia:create_table(battle_unit, [{disc_copies, [node()]}, {attributes, record_info(fields, battle_unit)}]),    
-    {atomic, ok} = mnesia:create_table(battle_map, [{disc_copies, [node()]}, {attributes, record_info(fields, battle_map)}]),    
+    {atomic, ok} = mnesia:create_table(local_map, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, local_map)}]),    
     {atomic, ok} = mnesia:create_table(charge_time, [{disc_copies, [node()]}, {attributes, record_info(fields, charge_time)}]),    
     {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, resource)}]),    
@@ -66,7 +66,7 @@ create_schema() ->
 start() ->
     mnesia:start(),
     mnesia:wait_for_tables([counter, player, connection, tile, map_obj, explored_map, perception,
-                            event, battle, battle_unit, charge_time, action, resource], 5000).
+                            event, battle, battle_unit, charge_time, action, resource, local_map], 5000).
 
 write(R) ->
     F = fun() -> mnesia:write(R) end,
@@ -134,31 +134,11 @@ test_tables() ->
      {player, 4, <<"peter">>, <<"123123">>, 0, false, false},
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
-     %{tile, {0,0}, 1},   
-     %{tile, {1,0}, 1},   
-     %{tile, {2,0}, 3},   
-     %{tile, {3,0}, 3},   
-     %{tile, {0,1}, 1},   
-     %{tile, {1,1}, 1},   
-     %{tile, {2,1}, 3},   
-     %{tile, {3,1}, 2},   
-     %{tile, {0,2}, 0},   
-     %{tile, {1,2}, 0},   
-     %{tile, {2,2}, 2},   
-     %{tile, {3,2}, 2},   
-     %{tile, {0,3}, 0},   
-     %{tile, {1,3}, 0},   
-     %{tile, {2,3}, 2},   
-     %{tile, {3,3}, 2},
      {explored_map, 1, [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}]},
      {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, 1, entity, <<"heromage">>, none},
      {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, <<"zombie">>, none},
      {resource, <<"Copper Ore">>, ?MOUNTAINS},
-     {resource, <<"Copper Ore">>, ?HILLS},
-     {battle_map, ?PLAINS, [{{0,0}, 0}, {{1,0}, 0}, {{2,0}, 0}, {{3,0}, 0}, 
-                            {{0,1}, 0}, {{1,1}, 0}, {{2,1}, 0}, {{3,1}, 0}, 
-                            {{0,2}, 0}, {{1,2}, 0}, {{2,2}, 0}, {{3,2}, 0},
-                            {{0,3}, 0}, {{1,3}, 0}, {{2,3}, 0}, {{3,3}, 0}]}
+     {resource, <<"Copper Ore">>, ?HILLS}
     ].
 
 reset_tables() ->

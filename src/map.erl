@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/1, get_tiles/1, get_obj/1,
+-export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/1, get_tiles/1, get_obj/1,
          get_nearby_objs/2, get_obj_by_tile/1, create_obj/6, remove_obj/1, move_obj/2]).
 -export([add_explored/2, is_valid_pos/1, update_obj_state/2]).
 -export([neighbours/4, distance/2]).
@@ -27,9 +27,13 @@
 start() ->
     gen_server:start({global, map}, map, [], []).
 
-load() ->
+load_global() ->
     {ok, File} = file:open(?MAP_FILE, [read]),
-    load_map(File, 0).
+    load_map(File, 0, global).
+
+load_local() ->
+    {ok, File} = file:open(?BATTLE_MAP_FILE, [read]),
+    load_map(File, 0, {local, 1}).
 
 get_tile({X, Y}) ->
     get_tile(X, Y).
@@ -281,7 +285,7 @@ odd_q_to_cube({Q, R}) ->
     Y = -X-Z,
     {X, Y, Z}.
 
-load_map(File, RowNum) ->
+load_map(File, RowNum, MapType) ->
     case file:read_line(File) of
         eof ->
             done;
@@ -291,25 +295,25 @@ load_map(File, RowNum) ->
         {ok, RawLine} ->
             Line = string:strip(RawLine, right, $\n),
             TypeList = string:tokens(Line, ","),
-            store_tile(TypeList, 0, RowNum),
-            load_map(File, RowNum + 1)
+            store_tile(TypeList, 0, RowNum, MapType),
+            load_map(File, RowNum + 1, MapType)
      end.
 
-store_tile([], _ColNum, _RowNum) ->
+store_tile([], _ColNum, _RowNum, _MapType) ->
     lager:info("Done storing tiles");
-store_tile([Type | Rest], ColNum, RowNum) ->
-    Tile = #tile {pos = {ColNum, RowNum},
-                  type = list_to_integer(Type)},
+store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
+    case MapType of
+        global ->
+            Tile = #tile {pos = {ColNum, RowNum},
+                          type = list_to_integer(TileType)},
 
-    db:dirty_write(Tile),
-    store_tile(Rest, ColNum + 1, RowNum).
-
-
-
-
+            db:dirty_write(Tile);
+        {local, LocalType} ->
+            LocalMap = #local_map {type = LocalType,
+                                   pos = {ColNum, RowNum},
+                                   tile = list_to_integer(TileType)},
+            db:dirty_write(LocalMap)
+    end,
             
-
-
-
-
+    store_tile(Rest, ColNum + 1, RowNum, MapType).
 

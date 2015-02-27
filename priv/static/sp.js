@@ -25,6 +25,20 @@ var hexSize = 72;
 var stageWidth = 1000;
 var stageHeight = 500;
 
+var castle1 = new Image();
+var castle2 = new Image();
+var castle3 = new Image();
+var castle4 = new Image();
+var castle5 = new Image();
+var castle6 = new Image();
+
+castle1.src = '/static/art/regular-concave-bl.png';
+castle2.src = '/static/art/regular-concave-br.png';
+castle3.src = '/static/art/regular-concave-l.png';
+castle4.src = '/static/art/regular-concave-r.png';
+castle5.src = '/static/art/regular-concave-tl.png';
+castle6.src = '/static/art/regular-concave-tr.png';
+
 var infoPanelBg = new Image();
 var dialogPanelBg = new Image();
 var close_rest = new Image();
@@ -360,6 +374,14 @@ function drawMap() {
             }
         }
     }
+
+    var pixel = hex_to_pixel(3,3);
+
+    bitmap = new createjs.Bitmap(castle5);
+    bitmap.x = pixel.x - 55;
+    bitmap.y = pixel.y - 110;
+
+    map.addChild(bitmap);
 };
 
 function drawObjs() {

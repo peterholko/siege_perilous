@@ -170,10 +170,10 @@ terminate(_Reason, _) ->
 
 create_battle(Pos) ->
     Id =  obj:create(0, Pos, misc, <<"battle">>),
-    [BattleMap] = db:read(battle_map, ?PLAINS),
+    LocalMap = db:read(local_map, 1),
 
     Battle = #battle {id = Id,
-                      tiles = BattleMap#battle_map.tiles},
+                      tiles = LocalMap},
     db:write(Battle),
     Id.
 
@@ -236,7 +236,7 @@ get_battle_map(BattleId) ->
     [Battle] = db:read(battle, BattleId),
    
     F = fun(TileData, MsgTiles) ->
-            {Pos, Type} = TileData,
+            {local_map, _LocalType, Pos, Type} = TileData,
             {X, Y} = Pos,
             [#{<<"x">> => X,
                <<"y">> => Y,
