@@ -6,6 +6,7 @@
 -define(ERR_ACCOUNT_DISABLED, 2).
 
 -define(MAP_FILE, "lib/sp-1/priv/10x10.csv").
+-define(BATTLE_MAP_FILE, "lib/sp-1/priv/battle.csv").
 -define(MAP_NUMTILES, 100).
 -define(MAP_WIDTH, 10).
 -define(MAP_HEIGHT, 10).

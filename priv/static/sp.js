@@ -375,6 +375,7 @@ function drawMap() {
         }
     }
 
+<<<<<<< HEAD
     var pixel = hex_to_pixel(1,1);
 
     var b = new createjs.Bitmap(tr);
@@ -406,8 +407,8 @@ function drawMap() {
     map.addChild(c);
     map.addChild(d);
     map.addChild(e);
-    //map.addChild(f);
-    //map.addChild(g);
+    map.addChild(f);
+    map.addChild(g);
 };
 
 function drawObjs() {
