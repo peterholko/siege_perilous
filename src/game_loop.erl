@@ -120,6 +120,17 @@ do_event(harvest, EventData, PlayerPid) ->
     
     false;
 
+do_event(build, EventData, PlayerPid) ->
+    lager:info("Processing build event: ~p", [EventData]),
+    {Id, _GlobalPos, _LocalPos, _Structure} = EventData,
+
+    local:update_state(Id, none),
+
+    %Send update state to player
+    send_to_process(PlayerPid, local_state, {Id, none}),
+
+    false;
+
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.

@@ -97,6 +97,34 @@ message_handle(<<"harvest">>, Message) ->
 
     <<"Harvest added">>;
 
+message_handle(<<"explore">>, Message) ->
+    lager:info("message: explore"),
+
+    HexId = map_get(<<"sourceid">>, Message),
+    BinId = util:hex_to_bin(HexId),
+    
+    X = map_get(<<"x">>, Message),
+    Y = map_get(<<"y">>, Message),
+
+    {LocalMap, LocalObjs} = player:explore(BinId, {X, Y}),
+    LocalPerception = [{<<"packet">>, <<"explore">>},
+                       {<<"map">>, LocalMap},
+                       {<<"objs">>, convert_id(LocalObjs, [])}],
+    jsx:encode(LocalPerception);
+
+message_handle(<<"build">>, Message) ->
+    lager:info("message: build"),
+    
+    HexId = map_get(<<"sourceid">>, Message),
+    BinId = util:hex_to_bin(HexId),
+    X = map_get(<<"x">>, Message),
+    Y = map_get(<<"y">>, Message),
+    Structure = map_get(<<"structure">>, Message),
+
+    player:build(BinId, {X, Y}, Structure),
+
+    <<"Structure queued">>;
+
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
 

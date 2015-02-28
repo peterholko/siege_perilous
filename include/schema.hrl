@@ -55,6 +55,13 @@
                     pos,
                     tile}).
 
+-record(local_obj, {global,
+                    id,
+                    pos,
+                    class,
+                    type,
+                    state}).
+                    
 -record(charge_time, {unit_id,
                       charge_time}).
 

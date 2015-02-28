@@ -17,6 +17,8 @@
          attack_obj/2,
          attack_unit/2,
          harvest/2,
+         explore/2,
+         build/3,
          equip/2]).
 
 init_perception(PlayerId) ->
@@ -111,6 +113,22 @@ harvest(Id, Resource) ->
 
     add_harvest_event(Result, {Id, Resource}, NumTicks).
 
+explore(_Id, Pos) ->
+    _Player = get(player_id),
+    %TODO add validation
+
+    InitPerception = local:init_perception(Pos, 1),
+    InitPerception.
+
+build(Id, LocalPos, Structure) ->
+    %TODO add validation
+
+    GlobalPos = {1,1},
+    NumTicks = 40,
+    Result = true,
+
+    add_build_event(Result, {Id, GlobalPos, LocalPos, Structure}, NumTicks).
+
 equip(Id, ItemId) ->
     Player = get(player_id),
 
@@ -145,6 +163,16 @@ add_harvest_event(true, {ObjId, Resource}, NumTicks) ->
 
     EventData = {ObjId, Resource},
     game:add_event(self(), harvest, EventData, NumTicks).
+
+add_build_event(false, _EventData, _Ticks) ->
+    lager:info("Build failed"),
+    none;
+add_build_event(true, {Id, GlobalPos, LocalPos, Structure}, NumTicks) ->
+    %Begin building structure
+    structure:start_build(Id, GlobalPos, LocalPos, Structure),
+
+    EventData = {Id, GlobalPos, LocalPos, Structure},
+    game:add_event(self(), build, EventData, NumTicks).
 
 add_attack_obj_event(false, _EventData, _Ticks) ->
     lager:info("Attack failed"),

@@ -235,6 +235,8 @@ function sendMove(direction) {
 
 function sendEquip() {
     console.log("sendEquip");
+    var e = '{"cmd": "explore", "sourceid": "123123", "x": 1, "y": 1}';
+    websocket.send(e);
 };
 
 function sendInfoObj(id) {
@@ -375,7 +377,6 @@ function drawMap() {
         }
     }
 
-<<<<<<< HEAD
     var pixel = hex_to_pixel(1,1);
 
     var b = new createjs.Bitmap(tr);
