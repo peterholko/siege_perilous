@@ -32,6 +32,20 @@ var close_rest = new Image();
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
 
+var tl = new Image();
+var tr = new Image();
+var l = new Image();
+var r = new Image();
+var br = new Image();
+var bl = new Image();
+
+tl.src = "/static/art/regular-concave-tl.png";
+tr.src = "/static/art/regular-concave-tr.png";
+l.src = "/static/art/regular-concave-l.png";
+r.src = "/static/art/regular-concave-r.png";
+br.src = "/static/art/regular-concave-br.png";
+bl.src = "/static/art/regular-concave-bl.png";
+
 var tileImages = [];
 
 tileImages[0] = "/static/art/basic-tile.png";
@@ -360,6 +374,40 @@ function drawMap() {
             }
         }
     }
+
+    var pixel = hex_to_pixel(1,1);
+
+    var b = new createjs.Bitmap(tr);
+    var c = new createjs.Bitmap(tl);
+    var d = new createjs.Bitmap(l);
+    var e = new createjs.Bitmap(r);
+    var f = new createjs.Bitmap(br);
+    var g = new createjs.Bitmap(bl);
+
+    b.x = pixel.x;
+    b.y = pixel.y - 72;
+
+    c.x = pixel.x - 54;
+    c.y = pixel.y - 108;
+
+    d.x = pixel.x - 54;
+    d.y = pixel.y - 36;
+
+    e.x = pixel.x;
+    e.y = pixel.y - 72;
+
+    f.x = pixel.x;
+    f.y = pixel.y;
+
+    g.x = pixel.x - 54;
+    g.y = pixel.y - 36;
+
+    map.addChild(b);
+    map.addChild(c);
+    map.addChild(d);
+    map.addChild(e);
+    //map.addChild(f);
+    //map.addChild(g);
 };
 
 function drawObjs() {
