@@ -235,6 +235,11 @@ function sendMove(direction) {
 
 function sendEquip() {
     console.log("sendEquip");
+    var e = '{"cmd": "build", "sourceid": "54822ccb1c93b16038108f25", "x": 1, "y": 1, "structure": "Stockade"}';
+    websocket.send(e);
+};
+
+function sendExplore() {
     var e = '{"cmd": "explore", "sourceid": "123123", "x": 1, "y": 1}';
     websocket.send(e);
 };

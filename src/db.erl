@@ -61,6 +61,7 @@ create_schema() ->
     mnesia:add_table_index(battle_unit, battle),
     mnesia:add_table_index(battle_unit, pos),
     mnesia:add_table_index(action, battle),
+    mnesia:add_table_index(local_obj, id),
 
     mnesia:stop().
 

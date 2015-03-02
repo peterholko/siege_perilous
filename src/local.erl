@@ -6,8 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/2, create/5]).
-
+-export([init_perception/2, create/6, update_state/2]).
 
 init_perception(Pos, TileType) ->
     LocalObjList = db:read(local_obj, Pos),
@@ -16,14 +15,23 @@ init_perception(Pos, TileType) ->
     LocalObjData = get_obj_data(LocalObjList, []),
     {LocalMap, LocalObjData}.
 
-create(Global, Id, Pos, Class, State) ->
+create(Global, Id, Pos, Class, Type,  State) ->
     LocalObj = #local_obj {global = Global,
                            id = Id,
                            pos = Pos,
                            class = Class,
+                           type = Type,
                            state = State},
 
-    db:write(LocalObj).      
+    db:write(LocalObj).    
+
+update_state(Id, State) ->
+    lager:info("Update state: ~p ~p", [Id, State]),
+    %TODO make transaction
+    [LocalObj] = db:index_read(local_obj, Id, #local_obj.id),
+    NewLocalObj = LocalObj#local_obj {state = State},
+    db:write(NewLocalObj).
+ 
 %
 % Internal functions
 %

@@ -13,15 +13,16 @@ get(Id) ->
     Structure.
 
 start_build(ObjId, GlobalPos, LocalPos, StructureName) ->
-    
+    lager:info("ObjId: ~p GlobalPos: ~p LocalPos: ~p StructureName: ~p", [ObjId, GlobalPos, LocalPos, StructureName]), 
     [StructureType] = find_type(name, StructureName),
     {Hp} = bson:lookup(hp, StructureType),
 
     Attrs = {owner, ObjId, name, StructureName, hp, Hp},
-    [NewStructure] = mongo:insert(mdb:get_conn(), <<"structure">>, Attrs),
-    {StructureId} = bson:lookup('_id', NewStructure),
-    
-    local:create(GlobalPos, StructureId, LocalPos, structure, building).
+    NewStructure = mongo:insert(mdb:get_conn(), <<"structure">>, Attrs),
+    lager:info("NewStructure: ~p", [NewStructure]),
+    {StructureId} = bson:lookup('_id', NewStructure),    
+
+    local:create(GlobalPos, StructureId, LocalPos, structure, StructureName, building).
 %
 % Internal functions
 %
