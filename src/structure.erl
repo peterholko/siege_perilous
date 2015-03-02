@@ -22,7 +22,8 @@ start_build(ObjId, GlobalPos, LocalPos, StructureName) ->
     lager:info("NewStructure: ~p", [NewStructure]),
     {StructureId} = bson:lookup('_id', NewStructure),    
 
-    local:create(GlobalPos, StructureId, LocalPos, structure, StructureName, building).
+    local:create(GlobalPos, StructureId, LocalPos, structure, StructureName, building),
+    StructureId.
 %
 % Internal functions
 %

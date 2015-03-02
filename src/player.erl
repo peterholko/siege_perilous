@@ -169,9 +169,9 @@ add_build_event(false, _EventData, _Ticks) ->
     none;
 add_build_event(true, {Id, GlobalPos, LocalPos, Structure}, NumTicks) ->
     %Begin building structure
-    structure:start_build(Id, GlobalPos, LocalPos, Structure),
+    StructureId = structure:start_build(Id, GlobalPos, LocalPos, Structure),
 
-    EventData = {Id, GlobalPos, LocalPos, Structure},
+    EventData = {Id, GlobalPos, LocalPos, StructureId},
     game:add_event(self(), build, EventData, NumTicks).
 
 add_attack_obj_event(false, _EventData, _Ticks) ->
