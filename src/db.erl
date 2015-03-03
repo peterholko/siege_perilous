@@ -38,7 +38,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(player, [{disc_copies, [node()]}, {attributes, record_info(fields, player)}]),
     {atomic, ok} = mnesia:create_table(connection, [{disc_copies, [node()]}, {attributes, record_info(fields, connection)}]),
     {atomic, ok} = mnesia:create_table(tile, [{ram_copies, [node()]}, {attributes, record_info(fields, tile)}]),  
-    {atomic, ok} = mnesia:create_table(map_obj, [{disc_copies, [node()]}, {attributes, record_info(fields, map_obj)}]),    
+    {atomic, ok} = mnesia:create_table(obj, [{disc_copies, [node()]}, {attributes, record_info(fields, obj)}]),    
     {atomic, ok} = mnesia:create_table(explored_map, [{ram_copies, [node()]}, {attributes, record_info(fields, explored_map)}]),  
     {atomic, ok} = mnesia:create_table(perception, [{ram_copies, [node()]}, {attributes, record_info(fields, perception)}]),  
     {atomic, ok} = mnesia:create_table(event, [{disc_copies, [node()]}, {attributes, record_info(fields, event)}]),    
@@ -54,9 +54,9 @@ create_schema() ->
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
     mnesia:add_table_index(connection, socket),
-    mnesia:add_table_index(map_obj, pos),
-    mnesia:add_table_index(map_obj, class),
-    mnesia:add_table_index(map_obj, player),
+    mnesia:add_table_index(obj, pos),
+    mnesia:add_table_index(obj, class),
+    mnesia:add_table_index(obj, player),
     mnesia:add_table_index(event, tick),
     mnesia:add_table_index(battle_unit, battle),
     mnesia:add_table_index(battle_unit, pos),
@@ -67,7 +67,7 @@ create_schema() ->
 
 start() ->
     mnesia:start(),
-    mnesia:wait_for_tables([counter, player, connection, tile, map_obj, explored_map, perception,
+    mnesia:wait_for_tables([counter, player, connection, tile, obj, explored_map, perception,
                             event, battle, battle_unit, charge_time, action, resource, local_map], 5000).
 
 write(R) ->
@@ -137,8 +137,8 @@ test_tables() ->
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {explored_map, 1, [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}]},
-     {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, 1, entity, <<"heromage">>, none},
-     {map_obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, <<"zombie">>, none},
+     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, 1, entity, <<"heromage">>, none},
+     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, <<"zombie">>, none},
      {resource, <<"Copper Ore">>, ?MOUNTAINS},
      {resource, <<"Copper Ore">>, ?HILLS}
     ].

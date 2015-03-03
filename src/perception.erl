@@ -74,7 +74,7 @@ do_recalculate() ->
     erase(),
 
     %Get all entities
-    AllEntities = db:dirty_index_read(map_obj, entity, #map_obj.class),
+    AllEntities = db:dirty_index_read(obj, entity, #obj.class),
 
     %Remove dead entities
     Entities = remove_dead(AllEntities, []),
@@ -95,7 +95,7 @@ remove_dead([], Entities) ->
     Entities;
 remove_dead([Entity | Rest] , Entities) ->
 
-    NewEntities = is_dead(Entities, Entity, Entity#map_obj.state),
+    NewEntities = is_dead(Entities, Entity, Entity#obj.state),
     remove_dead(Rest, NewEntities).
 
 is_dead(Entities, _Entity, dead) ->
@@ -108,14 +108,14 @@ entity_perception([]) ->
 
 entity_perception([Entity | Rest]) ->
     %Get current player perception from process dict
-    PlayerPerception = convert_undefined(get(Entity#map_obj.player)),
+    PlayerPerception = convert_undefined(get(Entity#obj.player)),
     
-    NearbyObjs = map:get_nearby_objs(Entity#map_obj.pos),
+    NearbyObjs = map:get_nearby_objs(Entity#obj.pos),
 
     NewPlayerPerception = util:unique_list(PlayerPerception ++ NearbyObjs),
     
     %Store new player perception to process dict
-    put(Entity#map_obj.player, NewPlayerPerception),
+    put(Entity#obj.player, NewPlayerPerception),
 
     entity_perception(Rest).
 

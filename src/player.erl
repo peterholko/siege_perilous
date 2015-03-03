@@ -71,10 +71,10 @@ move_obj(Id, Pos) ->
     Obj = map:get_obj(Id),
 
     %Validate obj state
-    ValidState = is_valid_state(Obj#map_obj.state),
+    ValidState = is_valid_state(Obj#obj.state),
 
     %Validate player owned obj
-    ValidPlayer = is_player_owned(Obj#map_obj.player, Player),
+    ValidPlayer = is_player_owned(Obj#obj.player, Player),
     
     %Validate position
     ValidPos = map:is_valid_pos(Pos),
@@ -105,9 +105,9 @@ harvest(Id, Resource) ->
     Obj = map:get_obj(Id),
     NumTicks = 40,
 
-    ValidState = is_valid_state(Obj#map_obj.state),
-    ValidPlayer = is_player_owned(Obj#map_obj.player, Player),
-    ValidResource = resource:contains(Resource, Obj#map_obj.pos),
+    ValidState = is_valid_state(Obj#obj.state),
+    ValidPlayer = is_player_owned(Obj#obj.player, Player),
+    ValidResource = resource:contains(Resource, Obj#obj.pos),
 
     Result = ValidState and ValidPlayer and ValidResource,
 
@@ -143,8 +143,8 @@ equip(Id, ItemId) ->
     {ItemOwner} = bson:lookup(owner, Item),
 
     ValidItem = Id == ItemOwner,
-    ValidState = is_valid_state(Obj#map_obj.state),
-    ValidPlayer = is_player_owned(Obj#map_obj.player, Player),
+    ValidState = is_valid_state(Obj#obj.state),
+    ValidPlayer = is_player_owned(Obj#obj.player, Player),
 
     Result = ValidItem and ValidState and ValidPlayer,
 
@@ -190,8 +190,8 @@ add_move(true, {Obj, NewPos}, NumTicks) ->
     map:update_obj_state(Obj, moving),
 
     %Create event data 
-    EventData = {Obj#map_obj.player,
-                 Obj#map_obj.id,
+    EventData = {Obj#obj.player,
+                 Obj#obj.id,
                  NewPos},
 
     game:add_event(self(), move_obj, EventData, NumTicks).
@@ -203,14 +203,14 @@ add_equip(true, ItemId) ->
     item:equip(ItemId).
 
 get_armies(PlayerId) ->
-    db:index_read(map_obj, PlayerId, #map_obj.player).
+    db:index_read(obj, PlayerId, #obj.player).
 
 get_visible_objs([], Objs) ->
     Objs;
 
 get_visible_objs([Obj | Rest], Objs) ->
 
-    {X, Y} = Obj#map_obj.pos,
+    {X, Y} = Obj#obj.pos,
 
     NearbyObjs = map:get_nearby_objs(X, Y),
     NewObjs = NearbyObjs ++ Objs,

@@ -5,7 +5,8 @@
 
 -include("schema.hrl").
 
--export([get_obj/1, get_info/2, create/4, create/6, remove/1]).
+-export([get_obj/1, get_info/2, create/6, remove/1]).
+-export([get_obj_by_pos/1, get_map_obj/1, move/2, update_state/2]).
 
 get_obj(Id) ->
     Obj = find(Id),
@@ -22,16 +23,6 @@ get_info(Requester, Id) ->
     lager:info("ObjInfo: ~p", [ObjInfo]),
     ObjInfo.
 
-create(Player, Pos, Class, Type) ->
-    lager:info("Create: ~p ~p ~p", [Player, Pos, Type]),
-    Id = insert(Player),
-
-    map:create_obj(Id, Player, Pos, Class, Type, none),
-    game:set_perception(true),
-
-    %Return ID
-    Id.
-
 create(Player, Pos, Class, Type, State, Units) ->
     lager:info("Create: ~p ~p ~p ~p", [Player, Pos, Type, Units]),
 
@@ -41,15 +32,47 @@ create(Player, Pos, Class, Type, State, Units) ->
     %Insert units
     insert_units(Id, Units),
 
-    %Create map obj
-    map:create_obj(Id, Player, Pos, Class, Type, State),
+    %Create new map obj
+    NewObj = #obj {id = Id,
+                   player = Player,
+                   pos = Pos,
+                   class = Class,
+                   type = Type,
+                   state = State},
+
+    db:write(NewObj),
+
     game:set_perception(true),
 
     %Return ID
     Id.
 
 remove(ObjId) ->
+    db:delete(obj, ObjId),
     mdb:delete(<<"obj">>, ObjId).
+
+%%% Map obj interface
+get_obj_by_pos(Pos) ->
+    db:index_read(obj, Pos, #obj.pos).
+
+get_map_obj(Id) ->
+    [Obj] = db:read(obj, Id),
+    Obj.
+
+move(Id, Pos) ->
+    %TODO convert to transaction
+    [Obj] = mnesia:dirty_read(obj, Id),
+    NewObj = Obj#obj {pos = Pos,
+                      state = none},
+    mnesia:dirty_write(NewObj).
+
+update_state(Obj, State) when is_record(Obj, obj) ->
+    NewObj = Obj#obj { state = State},
+    db:write(NewObj);
+
+update_state(ObjId, State) ->
+    Obj = get_map_obj(ObjId),
+    update_state(Obj, State).
 
 %%% Internal only 
 

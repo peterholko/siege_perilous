@@ -15,9 +15,9 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/1, get_tiles/1, get_obj/1,
-         get_nearby_objs/2, get_obj_by_tile/1, create_obj/6, remove_obj/1, move_obj/2]).
--export([add_explored/2, is_valid_pos/1, update_obj_state/2]).
+-export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/1, get_tiles/1,
+         get_nearby_objs/2]).
+-export([add_explored/2, is_valid_pos/1]).
 -export([neighbours/4, distance/2]).
 -record(module_data, {}).
 %% ====================================================================
@@ -51,37 +51,6 @@ get_nearby_objs({X, Y}) ->
     get_nearby_objs(X, Y).
 get_nearby_objs(X, Y) ->
     gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
-
-get_obj_by_tile(Pos) ->
-    db:index_read(map_obj, Pos, #map_obj.pos).
-
-create_obj(Id, Player, Pos, Class, Type, State) ->
-    NewObj = #map_obj {id = Id,
-                       player = Player,
-                       pos = Pos,
-                       class = Class,
-                       type = Type,
-                       state = State},
-
-    db:write(NewObj).
-
-remove_obj(Id) ->
-    db:delete(map_obj, Id).
-
-get_obj(Id) ->
-    [Obj] = db:read(map_obj, Id),
-    Obj.
-
-move_obj(Id, Pos) ->
-    move(Id, Pos). 
-
-update_obj_state(Obj, State) when is_record(Obj, map_obj) ->
-    NewObj = Obj#map_obj { state = State},
-    db:write(NewObj);
-
-update_obj_state(ObjId, State) ->
-    Obj = get_obj(ObjId),
-    update_obj_state(Obj, State).
 
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
@@ -120,7 +89,7 @@ handle_call({get_explored, PlayerId}, _From, Data) ->
     {reply, ExploredTiles, Data};
 
 handle_call({get_tile, TileIndex}, _From, Data) ->
-    Tile = db:dirty_read(tile, TileIndex),
+    Tile = db:dirty_read(map, TileIndex),
     {reply, Tile, Data};
 
 handle_call({get_tiles, TileIds}, _From, Data) ->
@@ -175,11 +144,11 @@ tiles_msg_format([], Tiles) ->
     Tiles;
 
 tiles_msg_format([TileId | Rest], Tiles) ->
-    [Tile] = db:dirty_read(tile, TileId),
+    [Map] = db:dirty_read(map, TileId),
     {X, Y} = TileId,
     NewTiles = [#{<<"x">> => X, 
                   <<"y">> => Y,
-                  <<"t">> => Tile#tile.type} | Tiles],
+                  <<"t">> => Map#map.tile} | Tiles],
 
     tiles_msg_format(Rest, NewTiles).
 
@@ -219,29 +188,27 @@ add_neighbour(false, _NeighbourOddQ, Neighbours) ->
     Neighbours.
 
 nearby_objs(SourcePos) ->
-
     T = fun() ->
-
             F = fun(MapObj, Objs) ->
                     
-                    Dist = distance(SourcePos, MapObj#map_obj.pos),
+                    Dist = distance(SourcePos, MapObj#obj.pos),
                     check_distance(Dist, 2, MapObj, Objs)
                 end,
 
-            mnesia:foldl(F, [], map_obj)
+            mnesia:foldl(F, [], obj)
         end,
 
     {atomic, Result} = mnesia:transaction(T),
     Result.
 
 check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
-    {X, Y} = MapObj#map_obj.pos,
-    [ #{<<"id">> => MapObj#map_obj.id, 
-        <<"player">> => MapObj#map_obj.player, 
+    {X, Y} = MapObj#obj.pos,
+    [ #{<<"id">> => MapObj#obj.id, 
+        <<"player">> => MapObj#obj.player, 
         <<"x">> => X,
         <<"y">> => Y,
-        <<"type">> => MapObj#map_obj.type,
-        <<"state">> => MapObj#map_obj.state} | Objs];
+        <<"type">> => MapObj#obj.type,
+        <<"state">> => MapObj#obj.state} | Objs];
 
 check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
     Objs.
@@ -267,12 +234,6 @@ is_valid_coord({X, Y}, {Width, Height}) ->
                 end,
     
     Result.
-
-move(Id, Pos) ->
-    [Obj] = mnesia:dirty_read(map_obj, Id),
-    NewObj = Obj#map_obj {pos = Pos,
-                          state = none},
-    mnesia:dirty_write(NewObj).
 
 cube_to_odd_q({X, _Y, Z}) ->
     Q = X,
@@ -304,8 +265,8 @@ store_tile([], _ColNum, _RowNum, _MapType) ->
 store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
     case MapType of
         global ->
-            Tile = #tile {pos = {ColNum, RowNum},
-                          type = list_to_integer(TileType)},
+            Tile = #map {pos = {ColNum, RowNum},
+                         tile = list_to_integer(TileType)},
 
             db:dirty_write(Tile);
         {local, LocalType} ->

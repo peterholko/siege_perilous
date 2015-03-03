@@ -11,18 +11,18 @@
 -record(connection, {player,
                      process = none}).
 
--record(tile, {pos,
-               type}).
+-record(map, {pos,
+              tile}).
 
 -record(resource, {resource_type,
                    tile_type}).
 
--record(map_obj, {id, 
-                  pos,
-                  player,
-                  class,
-                  type,
-                  state}).
+-record(obj, {id, 
+              pos,
+              player,
+              class,
+              type,
+              state}).
 
 -record(explored_map, {player,
                        tiles}).
@@ -58,6 +58,7 @@
 -record(local_obj, {global,
                     id,
                     pos,
+                    player,
                     class,
                     type,
                     state}).
