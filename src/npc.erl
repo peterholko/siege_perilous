@@ -181,8 +181,8 @@ add_action({move, {NPCId, Pos}}) ->
     map:update_obj_state(NPCId, move),
 
     %Create event data 
-    EventData = {Obj#map_obj.player,
-                 Obj#map_obj.id,
+    EventData = {Obj#obj.player,
+                 Obj#obj.id,
                  Pos},
     
     game:add_event(self(), move_obj, EventData, NumTicks);

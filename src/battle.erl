@@ -52,7 +52,7 @@ init([]) ->
 handle_cast({create, AtkId, DefId}, Data) ->   
     AtkObj = map:get_obj(AtkId), 
     DefObj = map:get_obj(DefId), 
-    Pos = AtkObj#map_obj.pos,
+    Pos = AtkObj#obj.pos,
 
     lager:info("Creating battle..."),
     %Create battle
@@ -61,8 +61,8 @@ handle_cast({create, AtkId, DefId}, Data) ->
     lager:info("Adding battle objs..."),
 
     %Add battle objs
-    add_battle_obj(BattleId, AtkObj#map_obj.player, AtkObj#map_obj.id),
-    add_battle_obj(BattleId, DefObj#map_obj.player, DefObj#map_obj.id),
+    add_battle_obj(BattleId, AtkObj#obj.player, AtkObj#obj.id),
+    add_battle_obj(BattleId, DefObj#obj.player, DefObj#obj.id),
 
     AtkUnits = unit:get_units_and_stats(AtkId),
     DefUnits = unit:get_units_and_stats(DefId),
@@ -87,8 +87,8 @@ handle_cast({create, AtkId, DefId}, Data) ->
     lager:info("BattlePerception: ~p", [BattlePerception]),
     lager:info("BattleMap: ~p", [BattleMap]),
 
-    send_perception([{AtkObj#map_obj.player, {BattlePerception, BattleMap}}, 
-                     {DefObj#map_obj.player, {BattlePerception, BattleMap}}]),
+    send_perception([{AtkObj#obj.player, {BattlePerception, BattleMap}}, 
+                     {DefObj#obj.player, {BattlePerception, BattleMap}}]),
 
     {noreply, Data};
 

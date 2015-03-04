@@ -148,7 +148,7 @@ tiles_msg_format([TileId | Rest], Tiles) ->
     {X, Y} = TileId,
     NewTiles = [#{<<"x">> => X, 
                   <<"y">> => Y,
-                  <<"t">> => Map#map.tile} | Tiles],
+                  <<"t">> => Map#global_map.tile} | Tiles],
 
     tiles_msg_format(Rest, NewTiles).
 
@@ -265,8 +265,8 @@ store_tile([], _ColNum, _RowNum, _MapType) ->
 store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
     case MapType of
         global ->
-            Tile = #map {pos = {ColNum, RowNum},
-                         tile = list_to_integer(TileType)},
+            Tile = #global_map {pos = {ColNum, RowNum},
+                                tile = list_to_integer(TileType)},
 
             db:dirty_write(Tile);
         {local, LocalType} ->

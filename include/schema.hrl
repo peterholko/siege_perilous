@@ -11,8 +11,8 @@
 -record(connection, {player,
                      process = none}).
 
--record(map, {pos,
-              tile}).
+-record(global_map, {pos,
+                     tile}).
 
 -record(resource, {resource_type,
                    tile_type}).
