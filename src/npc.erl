@@ -175,10 +175,10 @@ determine_action(_Action, _Pos, NPC, _Enemy) ->
 
 add_action({move, {NPCId, Pos}}) ->
     lager:info("npc ~p adding move", [NPCId]),
-    Obj = map:get_obj(NPCId),
+    Obj = obj:get_map_obj(NPCId),
     NumTicks = 8,
     
-    map:update_obj_state(NPCId, move),
+    obj:update_state(NPCId, move),
 
     %Create event data 
     EventData = {Obj#obj.player,
@@ -193,7 +193,7 @@ add_action({attack, {NPCId, Id}}) ->
     NumTicks = 8,
     EventData = {NPCId, Id},
 
-    map:update_obj_state(NPCId, attack),
+    obj:update_state(NPCId, attack),
  
     game:add_event(self(), attack_obj, EventData, NumTicks);
 

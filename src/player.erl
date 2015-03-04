@@ -68,7 +68,7 @@ move_obj(Id, Pos) ->
     NumTicks = 8,
 
     %Get Obj
-    Obj = map:get_obj(Id),
+    Obj = obj:get_map_obj(Id),
 
     %Validate obj state
     ValidState = is_valid_state(Obj#obj.state),
@@ -102,7 +102,7 @@ move_unit(UnitId, Pos) ->
 
 harvest(Id, Resource) ->
     Player = get(player_id),
-    Obj = map:get_obj(Id),
+    Obj = obj:get_map_obj(Id),
     NumTicks = 40,
 
     ValidState = is_valid_state(Obj#obj.state),
@@ -138,7 +138,7 @@ equip(Id, ItemId) ->
     lager:info("Unit: ~p Item: ~p", [Unit, Item]),
 
     {ObjId} = bson:lookup(obj_id, Unit),
-    Obj = map:get_obj(ObjId),
+    Obj = obj:get_map_obj(ObjId),
 
     {ItemOwner} = bson:lookup(owner, Item),
 
@@ -159,7 +159,7 @@ add_harvest_event(false, _EventData, _Ticks) ->
     none;
 add_harvest_event(true, {ObjId, Resource}, NumTicks) ->
     %Update obj state
-    map:update_obj_state(ObjId, harvesting),
+    obj:update_state(ObjId, harvesting),
 
     EventData = {ObjId, Resource},
     game:add_event(self(), harvest, EventData, NumTicks).
@@ -187,7 +187,7 @@ add_move(false, _EventData, _Ticks) ->
     none;
 add_move(true, {Obj, NewPos}, NumTicks) ->
     %Update obj state
-    map:update_obj_state(Obj, moving),
+    obj:update_state(Obj, moving),
 
     %Create event data 
     EventData = {Obj#obj.player,

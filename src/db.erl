@@ -67,7 +67,7 @@ create_schema() ->
 
 start() ->
     mnesia:start(),
-    mnesia:wait_for_tables([counter, player, connection, tile, obj, explored_map, perception,
+    mnesia:wait_for_tables([counter, player, connection, global_map, obj, explored_map, perception,
                             event, battle, battle_unit, charge_time, action, resource, local_map], 5000).
 
 write(R) ->
