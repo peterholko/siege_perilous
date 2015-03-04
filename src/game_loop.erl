@@ -25,9 +25,9 @@ loop(LastTime, GamePID) ->
     
     %Process events
     EventTriggered = process_events(CurrentTick),
-    DirectTriggered = game:get_perception(),
+    %DirectTriggered = game:get_perception(),
 
-    RecalcPerception = EventTriggered or DirectTriggered,
+    RecalcPerception = EventTriggered,
     
     %Build simple perception
     perception_recalculate(RecalcPerception),
@@ -67,7 +67,6 @@ check_sleep(CalcSleepTime, LastTime) ->
     {NextTime, SleepTime}.
 
 process_events(CurrentTick) ->
-
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
 
     check_events(Events, false).
@@ -76,7 +75,6 @@ check_events([], RecalcPerception) ->
     RecalcPerception;
     
 check_events([Event | Rest], PrevRecalc) ->
-    
     Recalc = do_event(Event#event.type,
                       Event#event.data,
                       Event#event.player_process),
@@ -87,13 +85,13 @@ do_event(move_obj, EventData, _PlayerPid) ->
     lager:info("Processing move_obj event: ~p", [EventData]),
 
     {Player, Id, {X, Y}} = EventData,
-    Result = map:move_obj(Id, {X, Y}),
+    Result = obj:move(Id, {X, Y}),
 
     lager:info("move_obj Result: ~p", [Result]),
 
     map:add_explored(Player, {X, Y}),
 
-    true;
+    {global, true};
 
 do_event(attack_obj, EventData, _PlayerPid) ->
     lager:info("Processing attack_obj event: ~p", [EventData]),
@@ -103,14 +101,14 @@ do_event(attack_obj, EventData, _PlayerPid) ->
     %Create battle with list of source and target
     battle:create(SourceId, TargetId),
 
-    true;
+    {global, true};
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
     {ObjId, Resource} = EventData,
 
     %Update obj state
-    map:update_obj_state(ObjId, none),
+    obj:update_state(ObjId, none),
 
     %Create/update item
     resource:harvest(ObjId, Resource),
@@ -118,7 +116,7 @@ do_event(harvest, EventData, PlayerPid) ->
     %Send item perception to player pid
     send_to_process(PlayerPid, item_perception, item:get_by_owner(ObjId)), 
     
-    false;
+    {global, false};
 
 do_event(build, EventData, PlayerPid) ->
     lager:info("Processing build event: ~p", [EventData]),
@@ -129,11 +127,11 @@ do_event(build, EventData, PlayerPid) ->
     %Send update state to player
     send_to_process(PlayerPid, local_state, {StructureId, none}),
 
-    false;
+    {global, false};
 
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
-    false.
+    {unknown, false}.
 
 perception_recalculate(false) ->
     nothing;

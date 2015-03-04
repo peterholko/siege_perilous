@@ -89,7 +89,7 @@ handle_call({get_explored, PlayerId}, _From, Data) ->
     {reply, ExploredTiles, Data};
 
 handle_call({get_tile, TileIndex}, _From, Data) ->
-    Tile = db:dirty_read(map, TileIndex),
+    Tile = db:dirty_read(global_map, TileIndex),
     {reply, Tile, Data};
 
 handle_call({get_tiles, TileIds}, _From, Data) ->
@@ -144,7 +144,7 @@ tiles_msg_format([], Tiles) ->
     Tiles;
 
 tiles_msg_format([TileId | Rest], Tiles) ->
-    [Map] = db:dirty_read(map, TileId),
+    [Map] = db:dirty_read(global_map, TileId),
     {X, Y} = TileId,
     NewTiles = [#{<<"x">> => X, 
                   <<"y">> => Y,

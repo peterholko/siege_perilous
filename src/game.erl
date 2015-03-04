@@ -34,12 +34,17 @@ add_event(PlayerProcess, EventType, EventData, EventTick) ->
 
     db:write(Event).
 
-set_perception(State) ->
-    gen_server:cast({global, game_pid}, {set_perception, State}).
+toggle_global(State) ->
+    gen_server:cast({global, game_pid}, {toggle_global, State}).
 
-get_perception() ->
-    gen_server:call({global, game_pid}, get_perception).
+toggle_local(State, Global) ->
+    gen_server:cast({global, game_pid}, {toggle_local, State, Global}).
 
+get_global() ->
+    gen_server:call({global, game_pid}, get_global_state).
+
+get_local() ->
+    gen_server:call({global, game_pid}, get_local_state).
 %% ====================================================================
 %% %% Server functions
 %% ====================================================================
@@ -52,14 +57,21 @@ init([]) ->
 terminate(_Reason, _) ->
     ok.
 
-handle_cast({set_perception, State}, _Data) ->
+handle_cast({toggle_global, State}, _Data) ->
+    NewData = State,
+    {noreply, NewData};
+
+handle_cast({toggle_local, State, Global}, _Data) ->
     NewData = State,
     {noreply, NewData};
 
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
-handle_call(get_perception, _From, Data) ->
+handle_call(get_global, _From, Data) ->
+    {reply, Data, Data};
+
+handle_call(get_local, _From, Data) ->
     {reply, Data, Data};
 
 handle_call(Event, From, Data) ->
