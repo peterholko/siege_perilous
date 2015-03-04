@@ -22,24 +22,35 @@ start(_Type, _Args) ->
 	{ok, _} = cowboy:start_http(http, 100, [{port, 10100}],
 		[{env, [{dispatch, Dispatch}]}]),
 
+    lager:info("Creating schema..."),
     db:create_schema(),
-    ok = db:start(),
+    lager:info("Starting mnesia db..."),
+    db:start(),
+    lager:info("Inserting test data..."),
     db:reset_tables(),
 
+    lager:info("Loading global map"),
     map:load_global(),
+    lager:info("Loading local maps"),
     map:load_local(),
 
+    lager:info("Starting game process..."),
     game:start(),
 
+    lager:info("Starting mongodb..."),
     mdb:start(),
+    lager:info("Starting map process"),
     map:start(),
 
+    lager:info("Starting perception and battle processes"),
     perception:start(),
     battle:start(),
 
+    lager:info("Starting NPC manager"),
     npc_mgr:start(),
     npc_mgr:start_all_npc(),
 
+    lager:info("Starting game loop"),
     spawn(fun() -> game_loop:loop(util:get_time(), global:whereis_name(game_pid)) end),
 
 	sp_sup:start_link().

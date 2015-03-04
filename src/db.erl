@@ -37,7 +37,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(counter, [{disc_copies, [node()]}, {attributes, record_info(fields, counter)}]),    
     {atomic, ok} = mnesia:create_table(player, [{disc_copies, [node()]}, {attributes, record_info(fields, player)}]),
     {atomic, ok} = mnesia:create_table(connection, [{disc_copies, [node()]}, {attributes, record_info(fields, connection)}]),
-    {atomic, ok} = mnesia:create_table(tile, [{ram_copies, [node()]}, {attributes, record_info(fields, tile)}]),  
+    {atomic, ok} = mnesia:create_table(global_map, [{ram_copies, [node()]}, {attributes, record_info(fields, global_map)}]),  
     {atomic, ok} = mnesia:create_table(obj, [{disc_copies, [node()]}, {attributes, record_info(fields, obj)}]),    
     {atomic, ok} = mnesia:create_table(explored_map, [{ram_copies, [node()]}, {attributes, record_info(fields, explored_map)}]),  
     {atomic, ok} = mnesia:create_table(perception, [{ram_copies, [node()]}, {attributes, record_info(fields, perception)}]),  

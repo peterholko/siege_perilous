@@ -13,7 +13,7 @@ harvest(ObjId, ResourceType) ->
 
 contains(ResourceType, Pos) ->
     [Tile] = map:get_tile(Pos),
-    TileType = Tile#global_map.type,
+    TileType = Tile#global_map.tile,
     
     Resources = db:dirty_read(resource, ResourceType),
     lists:keymember(TileType, #resource.tile_type, Resources).
