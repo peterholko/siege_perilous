@@ -15,8 +15,8 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/1, get_tiles/1,
-         get_nearby_objs/2]).
+-export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/3, get_tiles/1,
+         get_nearby_objs/4]).
 -export([add_explored/2, is_valid_pos/1]).
 -export([neighbours/4, distance/2]).
 -record(module_data, {}).
@@ -47,10 +47,10 @@ get_explored(PlayerId) ->
 get_tiles(TileIds) ->
     gen_server:call({global, map}, {get_tiles, TileIds}).
 
-get_nearby_objs({X, Y}) ->
-    get_nearby_objs(X, Y).
-get_nearby_objs(X, Y) ->
-    gen_server:call({global, map}, {get_nearby_objs, {X,Y}}).    
+get_nearby_objs({X, Y}, MapType, Dist) ->
+    get_nearby_objs(X, Y, MapType, Dist).
+get_nearby_objs(X, Y, MapType, Dist) ->
+    gen_server:call({global, map}, {get_nearby_objs, {X,Y}, MapType, Dist}).    
 
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
@@ -96,10 +96,8 @@ handle_call({get_tiles, TileIds}, _From, Data) ->
     Tiles = tiles_msg_format(TileIds, []),
     {reply, Tiles, Data};
 
-handle_call({get_nearby_objs, {X,Y}}, _From, Data) ->
-
-    Objects = nearby_objs({X,Y}),
-
+handle_call({get_nearby_objs, {X,Y}, MapType, Dist}, _From, Data) ->
+    Objects = nearby_objs({X,Y}, MapType, Dist),
     {reply, Objects, Data};
 
 handle_call(Event, From, Data) ->
@@ -187,32 +185,69 @@ add_neighbour(true, NeighbourOddQ, Neighbours) ->
 add_neighbour(false, _NeighbourOddQ, Neighbours) ->
     Neighbours.
 
-nearby_objs(SourcePos) ->
+nearby_objs(SourcePos, global, LOSDist) ->
     T = fun() ->
-            F = fun(MapObj, Objs) ->
-                    
-                    Dist = distance(SourcePos, MapObj#obj.pos),
-                    check_distance(Dist, 2, MapObj, Objs)
+            F = fun(MapObj, NearbyObjs) ->
+                    build_nearby_list(SourcePos, MapObj, NearbyObjs, LOSDist)
                 end,
-
-            mnesia:foldl(F, [], obj)
+            mnesia:foldl(F, [], global)
         end,
 
     {atomic, Result} = mnesia:transaction(T),
+    Result;
+
+nearby_objs(SourcePos, {local, GlobalPos}, LOSDist) ->
+    T = fun() ->
+            AllObjs = db:read(local_obj, GlobalPos),
+
+            F = fun(MapObj, NearbyObjs) ->
+                    build_nearby_list(SourcePos, MapObj, NearbyObjs, LOSDist)
+                end,
+
+            lists:foldl(F, [], AllObjs)
+        end,
+    {atomic, Result} = mnesia:transaction(T),
     Result.
 
-check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
-    {X, Y} = MapObj#obj.pos,
-    [ #{<<"id">> => MapObj#obj.id, 
-        <<"player">> => MapObj#obj.player, 
-        <<"x">> => X,
-        <<"y">> => Y,
-        <<"type">> => MapObj#obj.type,
-        <<"state">> => MapObj#obj.state} | Objs];
+build_nearby_list(SourcePos, MapObj, Objs, LOSDist) ->
+    MapObjPos = get_pos(MapObj),
+    check_distance(distance(SourcePos, MapObjPos), LOSDist, MapObj, Objs).
 
+get_pos(MapObj) when is_record(MapObj, obj) ->
+    MapObj#obj.pos;
+get_pos(MapObj) when is_record(MapObj, local_obj) ->
+    MapObj#local_obj.pos.
+get_player(MapObj) when is_record(MapObj, obj) ->
+    MapObj#obj.player;
+get_player(MapObj) when is_record(MapObj, local_obj) ->
+    MapObj#local_obj.player.
+get_type(MapObj) when is_record(MapObj, obj) ->
+    MapObj#obj.type;
+get_type(MapObj) when is_record(MapObj, local_obj) ->
+    MapObj#local_obj.type.
+get_state(MapObj) when is_record(MapObj, obj) ->
+    MapObj#obj.state;
+get_state(MapObj) when is_record(MapObj, local_obj) ->
+    MapObj#local_obj.state.
+get_id(MapObj) when is_record(MapObj, obj) ->
+    MapObj#obj.id;
+get_id(MapObj) when is_record(MapObj, local_obj) ->
+    MapObj#local_obj.id.
+
+check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
+    build_message(MapObj, Objs);
 check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
     Objs.
-                              
+
+build_message(MapObj, Objs) ->
+    {X, Y} = get_pos(MapObj),
+    [ #{<<"id">> => get_id(MapObj), 
+        <<"player">> => get_player(MapObj), 
+        <<"x">> => X,
+        <<"y">> => Y,
+        <<"type">> => get_type(MapObj),
+        <<"state">> => get_state(MapObj)} | Objs].
+
 distance(SourcePos, TargetPos) ->
     SourceCube = odd_q_to_cube(SourcePos),
     TargetCube = odd_q_to_cube(TargetPos),

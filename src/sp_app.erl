@@ -42,9 +42,9 @@ start(_Type, _Args) ->
     lager:info("Starting map process"),
     map:start(),
 
-    lager:info("Starting perception and battle processes"),
-    perception:start(),
-    battle:start(),
+    lager:info("Starting global and local perception"),
+    g_perception:start(),
+    l_perception:start(),
 
     lager:info("Starting NPC manager"),
     npc_mgr:start(),

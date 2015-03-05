@@ -1,10 +1,10 @@
 %% -------------------------------------------------------------------
 %% Author  : Peter Holko
-%%% Description : Calculates perception data
+%%% Description : Calculates local perception data
 %%%
 %%% Created : Dec 15, 2014
 %%% -------------------------------------------------------------------
--module(perception).
+-module(l_perception).
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -15,20 +15,18 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([global_recalc/0, local_recalc/1]).
+-export([recalculate/1]).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
 start() ->
-    gen_server:start({global, perception_pid}, perception, [], []).
+    gen_server:start({global, l_perception_pid}, l_perception, [], []).
 
-global_recalc() ->
-    gen_server:cast({global, perception_pid}, global_recalc).
+recalculate(GlobalPos) ->
+    gen_server:cast({global, l_perception_pid}, {recalculate, GlobalPos}).
 
-local_recalc(GlobalPos) ->
-    gen_server:cast({global, perception_pid}, {local_recalc, GlobalPos}).
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -36,12 +34,10 @@ local_recalc(GlobalPos) ->
 init([]) ->
     {ok, []}.
 
-handle_cast(global_recalc, Data) ->   
-    do_global_recalc(),
-    {noreply, Data};
+handle_cast({recalculate, GlobalPos}, Data) ->   
 
-handle_cast({local_recalc, GlobalPos}, Data) ->
-    do_local_recalc(GlobalPos),
+    do_recalculate(GlobalPos),
+
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -73,12 +69,13 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-do_global_recalc() ->
+do_recalculate(GlobalPos) ->
     %Erase process dict
     erase(),
 
     %Get all entities
-    AllEntities = db:dirty_index_read(obj, entity, #obj.class),
+    AllObj = db:read(local_obj, GlobalPos),
+    AllEntities = remove_non_entity(AllObj, []),
 
     %Remove dead entities
     Entities = remove_dead(AllEntities, []),
@@ -95,18 +92,21 @@ do_global_recalc() ->
     lager:debug("Players to update: ~p", [UpdatePlayers]),
     send_perception(UpdatePlayers).
 
-do_local_recalc(GlobalPos) ->
-    %Erase process dict
-    erase(),
+remove_non_entity([], Entities) ->
+    Entities;
+remove_non_entity([Entity | Rest], Entities) ->
+    NewEntities = is_entity(Entities, Entity, Entity#local_obj.class),
+    remove_non_entity(Rest, NewEntities).
 
-    AllEntities = db:dirty_read(local_obj, GlobalPos).
-    Entities = remove_dead(AllEntities),
-
+is_entity(Entities, Entity, entity) ->
+    [Entity | Entities];
+is_entity(Entities, _Entity, _Class) ->
+    Entities.
 
 remove_dead([], Entities) ->
     Entities;
-remove_dead([Entity | Rest] , Entities) ->
-    NewEntities = is_dead(Entities, Entity, get_state(Entity)),
+remove_dead([Entity | Rest], Entities) ->
+    NewEntities = is_dead(Entities, Entity, Entity#local_obj.state),
     remove_dead(Rest, NewEntities).
 
 is_dead(Entities, _Entity, dead) ->
@@ -114,32 +114,14 @@ is_dead(Entities, _Entity, dead) ->
 is_dead(Entities, Entity, _State) ->
     [Entity | Entities].
 
-get_state(Entity) when is_record(Entity, obj) ->
-    Entity#obj.state;
-get_state(Entity) when is_record(Entity, local_obj) ->
-    Entity#local_obj.state.
-
-get_player(Entity) when is_record(Entity, obj) ->
-    Entity#obj.player;
-get_player(Entity) when is_record(Entity, local_obj) ->
-    Entity#local_obj.player.
-
-get_pos(Entity) when is_record(Entity, obj) ->
-    Entity#obj.pos;
-get_pos(Entity) when is_record(Entity, local_obj) ->
-    Entity#local_obj.pos.
-
 entity_perception([]) ->
     done;
 
 entity_perception([Entity | Rest]) ->
     %Get current player perception from process dict
-    PlayerId = get_player(Entity),
-    PlayerPos = get_pos(Entity),
-    PlayerPerception = convert_undefined(get(PlayerId)),
+    PlayerPerception = convert_undefined(get(Entity#local_obj.player)),
     
-    NearbyObjs = map:get_nearby_objs(Entity#obj.pos),
-
+    NearbyObjs = map:get_nearby_objs(Entity#local_obj.pos),
     NewPlayerPerception = util:unique_list(PlayerPerception ++ NearbyObjs),
     
     %Store new player perception to process dict
@@ -156,11 +138,9 @@ compare_perception([], UpdatePlayers) ->
     UpdatePlayers;
 
 compare_perception([{Player, NewObjPerception} | Rest], UpdatePlayers) ->
-    ExploredTiles = map:get_explored(Player),
-    NewPerception = [{<<"explored">>, ExploredTiles}, 
-                     {<<"objs">>, NewObjPerception}],
+    NewPerception = [{<<"objs">>, NewObjPerception}],
 
-    OldPerception = db:dirty_read(perception, Player),
+    OldPerception = db:dirty_read(perception, {Player, local}),
 
     Result = perception_equal(NewPerception, OldPerception),
 

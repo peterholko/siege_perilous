@@ -138,13 +138,13 @@ do_event(build, EventData, PlayerPid) ->
 
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
-    {unknown, false}.
+    false.
 
 perception_recalculate(false) ->
     nothing;
 
 perception_recalculate(true) ->
-    perception:recalculate().
+    perception_g:recalculate().
 
 update_charge_times([]) ->
     done;
