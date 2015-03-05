@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/0]).
+-export([global_recalc/0, local_recalc/1]).
 
 %% ====================================================================
 %% External functions
@@ -24,9 +24,11 @@
 start() ->
     gen_server:start({global, perception_pid}, perception, [], []).
 
-recalculate() ->
-    gen_server:cast({global, perception_pid}, recalculate).
+global_recalc() ->
+    gen_server:cast({global, perception_pid}, global_recalc).
 
+local_recalc(GlobalPos) ->
+    gen_server:cast({global, perception_pid}, {local_recalc, GlobalPos}).
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -34,10 +36,12 @@ recalculate() ->
 init([]) ->
     {ok, []}.
 
-handle_cast(recalculate, Data) ->   
+handle_cast(global_recalc, Data) ->   
+    do_global_recalc(),
+    {noreply, Data};
 
-    do_recalculate(),
-
+handle_cast({local_recalc, GlobalPos}, Data) ->
+    do_local_recalc(GlobalPos),
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -69,7 +73,7 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-do_recalculate() ->
+do_global_recalc() ->
     %Erase process dict
     erase(),
 
@@ -91,11 +95,18 @@ do_recalculate() ->
     lager:debug("Players to update: ~p", [UpdatePlayers]),
     send_perception(UpdatePlayers).
 
+do_local_recalc(GlobalPos) ->
+    %Erase process dict
+    erase(),
+
+    AllEntities = db:dirty_read(local_obj, GlobalPos).
+    Entities = remove_dead(AllEntities),
+
+
 remove_dead([], Entities) ->
     Entities;
 remove_dead([Entity | Rest] , Entities) ->
-
-    NewEntities = is_dead(Entities, Entity, Entity#obj.state),
+    NewEntities = is_dead(Entities, Entity, get_state(Entity)),
     remove_dead(Rest, NewEntities).
 
 is_dead(Entities, _Entity, dead) ->
@@ -103,12 +114,29 @@ is_dead(Entities, _Entity, dead) ->
 is_dead(Entities, Entity, _State) ->
     [Entity | Entities].
 
+get_state(Entity) when is_record(Entity, obj) ->
+    Entity#obj.state;
+get_state(Entity) when is_record(Entity, local_obj) ->
+    Entity#local_obj.state.
+
+get_player(Entity) when is_record(Entity, obj) ->
+    Entity#obj.player;
+get_player(Entity) when is_record(Entity, local_obj) ->
+    Entity#local_obj.player.
+
+get_pos(Entity) when is_record(Entity, obj) ->
+    Entity#obj.pos;
+get_pos(Entity) when is_record(Entity, local_obj) ->
+    Entity#local_obj.pos.
+
 entity_perception([]) ->
     done;
 
 entity_perception([Entity | Rest]) ->
     %Get current player perception from process dict
-    PlayerPerception = convert_undefined(get(Entity#obj.player)),
+    PlayerId = get_player(Entity),
+    PlayerPos = get_pos(Entity),
+    PlayerPerception = convert_undefined(get(PlayerId)),
     
     NearbyObjs = map:get_nearby_objs(Entity#obj.pos),
 
