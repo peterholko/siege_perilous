@@ -14,7 +14,7 @@
 %%
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([add_event/4, set_perception/1, get_perception/0]).
+-export([add_event/4, trigger_global/1, trigger_local/2, get_perception/0]).
 
 %%
 %% API Functions
@@ -34,44 +34,44 @@ add_event(PlayerProcess, EventType, EventData, EventTick) ->
 
     db:write(Event).
 
-toggle_global(State) ->
-    gen_server:cast({global, game_pid}, {toggle_global, State}).
+trigger_global(State) ->
+    gen_server:cast({global, game_pid}, {trigger_global, State}).
 
-toggle_local(State, Global) ->
-    gen_server:cast({global, game_pid}, {toggle_local, State, Global}).
+trigger_local(State, Global) ->
+    gen_server:cast({global, game_pid}, {trigger_local, State, Global}).
 
-get_global() ->
-    gen_server:call({global, game_pid}, get_global_state).
+get_perception() ->
+    gen_server:call({global, game_pid}, get_global).
 
-get_local() ->
-    gen_server:call({global, game_pid}, get_local_state).
 %% ====================================================================
 %% %% Server functions
 %% ====================================================================
 
 
 init([]) ->    
-    Perception = false,
-    {ok, Perception}.
+    GlobalPerception = false,
+    LocalPerception = [],
+    {ok, {GlobalPerception, LocalPerception}}.
 
 terminate(_Reason, _) ->
     ok.
 
-handle_cast({toggle_global, State}, _Data) ->
-    NewData = State,
+handle_cast({trigger_global, State}, Data) ->
+    {_GPerception, LPerception} = Data,
+    NewGPerception = State,
+    NewData = {NewGPerception, LPerception},
     {noreply, NewData};
 
-handle_cast({toggle_local, State, Global}, _Data) ->
-    NewData = State,
+handle_cast({trigger_local, State, GlobalPos}, Data) ->
+    {GPerception, LPerception} = Data,
+    NewLPerception = [{GlobalPos, State} | LPerception],
+    NewData = {GPerception, NewLPerception},
     {noreply, NewData};
 
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
-handle_call(get_global, _From, Data) ->
-    {reply, Data, Data};
-
-handle_call(get_local, _From, Data) ->
+handle_call(get_perception, _From, Data) ->
     {reply, Data, Data};
 
 handle_call(Event, From, Data) ->
