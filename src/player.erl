@@ -113,11 +113,15 @@ harvest(Id, Resource) ->
 
     add_harvest_event(Result, {Id, Resource}, NumTicks).
 
-explore(_Id, Pos) ->
-    _Player = get(player_id),
+explore(_Id, GlobalPos) ->
+    PlayerId = get(player_id),
     %TODO add validation
 
-    InitPerception = local:init_perception(Pos, 1),
+    [Obj] = db:index_read(obj, PlayerId, #obj.player),
+   
+    local:enter(Obj#obj.id, GlobalPos),
+
+    InitPerception = local:init_perception(GlobalPos, 1),
     InitPerception.
 
 build(Id, LocalPos, Structure) ->
@@ -211,8 +215,7 @@ get_visible_objs([], Objs) ->
 get_visible_objs([Obj | Rest], Objs) ->
 
     {X, Y} = Obj#obj.pos,
-
-    NearbyObjs = map:get_nearby_objs(X, Y),
+    NearbyObjs = map:get_nearby_objs(X, Y, global_map, 2),
     NewObjs = NearbyObjs ++ Objs,
 
     get_visible_objs(Rest, NewObjs).

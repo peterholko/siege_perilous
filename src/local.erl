@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/2, create/6, update_state/2]).
+-export([init_perception/2, enter/2, create/7, update_state/2]).
 
 init_perception(Pos, TileType) ->
     LocalObjList = db:read(local_obj, Pos),
@@ -15,8 +15,28 @@ init_perception(Pos, TileType) ->
     LocalObjData = get_obj_data(LocalObjList, []),
     {LocalMap, LocalObjData}.
 
-create(Global, Id, Pos, Class, Type,  State) ->
-    LocalObj = #local_obj {global = Global,
+enter(GlobalObjId, GlobalPos) ->
+    Units = unit:get_units(GlobalObjId), 
+
+    F = fun(Unit) ->
+        {Id} = bson:lookup('_id', Unit), 
+        {TypeName} = bson:lookup('type_name', Unit), 
+        create(GlobalPos, GlobalObjId, Id, {0,0}, unit, TypeName, none)
+    end,
+
+    lists:foreach(F, Units).
+
+exists_on(GlobalObjId, GlobalPos) ->
+    case db:index_read(local_obj, GlobalObjId, #local_obj.global_id) of
+        [] ->
+            false;
+        _ ->
+            true
+    end. 
+
+create(GlobalPos, GlobalObjId, Id, Pos, Class, Type, State) ->
+    LocalObj = #local_obj {global_pos = GlobalPos,
+                           global_id = GlobalObjId,
                            id = Id,
                            pos = Pos,
                            class = Class,

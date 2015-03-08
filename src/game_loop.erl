@@ -25,13 +25,13 @@ loop(LastTime, GamePID) ->
     
     %Process events
     {GlobalRecalc, LocalRecalc} = process_events(CurrentTick),
-    GlobalTriggered = game:get_perception(),
-
+    GlobalTriggered = false,
+   
     %Build simple perception
     perception_recalculate(GlobalRecalc or GlobalTriggered),
    
     %Toggle off perception
-    game:set_perception(false),
+    %game:set_perception(false),
  
     %Update charge times
     BattleUnits = ets:tab2list(battle_unit),
@@ -66,7 +66,6 @@ check_sleep(CalcSleepTime, LastTime) ->
 
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
-
     check_events(Events, false, []).
 
 check_events([], GlobalRecalc, LocalRecalc) ->
@@ -77,9 +76,14 @@ check_events([Event | Rest], PrevGlobalRecalc, PrevLocalRecalc) ->
                                             Event#event.data,
                                             Event#event.player_process),
     NewGlobalRecalc = GlobalRecalc or PrevGlobalRecalc,
-    NewLocalRecalc = [LocalRecalc | PrevLocalRecalc],
+    NewLocalRecalc = add_local_recalc(PrevLocalRecalc, LocalRecalc),
 
     check_events(Rest, NewGlobalRecalc, NewLocalRecalc).
+
+add_local_recalc(PrevLocalRecalc, {GlobalPos, true}) ->
+    [GlobalPos | PrevLocalRecalc];
+add_local_recalc(PrevLocalRecalc, _) ->
+    PrevLocalRecalc.
 
 do_event(move_obj, EventData, _PlayerPid) ->
     lager:info("Processing move_obj event: ~p", [EventData]),
@@ -91,7 +95,7 @@ do_event(move_obj, EventData, _PlayerPid) ->
 
     map:add_explored(Player, {X, Y}),
 
-    true;
+    {true, false};
 
 do_event(attack_obj, EventData, _PlayerPid) ->
     lager:info("Processing attack_obj event: ~p", [EventData]),
@@ -101,14 +105,14 @@ do_event(attack_obj, EventData, _PlayerPid) ->
     %Create battle with list of source and target
     battle:create(SourceId, TargetId),
 
-    true;
+    {true, false};
 
 do_event(move_local_obj, EventData, _PlayerPid) ->
     lager:info("Processing move_local_obj event: ~p", [EventData]),
 
-    {Global, Player, Id, {X, Y}} = EventData,
+    {GlobalPos, Player, Id, {X, Y}} = EventData,
 
-    false;
+    {false, {GlobalPos, true}};
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
@@ -123,18 +127,18 @@ do_event(harvest, EventData, PlayerPid) ->
     %Send item perception to player pid
     send_to_process(PlayerPid, item_perception, item:get_by_owner(ObjId)), 
     
-    false;
+    {false, false};
 
 do_event(build, EventData, PlayerPid) ->
     lager:info("Processing build event: ~p", [EventData]),
-    {_Id, _GlobalPos, _LocalPos, StructureId} = EventData,
+    {_Id, GlobalPos, _LocalPos, StructureId} = EventData,
 
     local:update_state(StructureId, none),
 
     %Send update state to player
     send_to_process(PlayerPid, local_state, {StructureId, none}),
 
-    false;
+    {false, {GlobalPos, true}};
 
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
@@ -144,7 +148,7 @@ perception_recalculate(false) ->
     nothing;
 
 perception_recalculate(true) ->
-    perception_g:recalculate().
+    g_perception:recalculate().
 
 update_charge_times([]) ->
     done;

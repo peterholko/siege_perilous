@@ -1,5 +1,5 @@
-%% -------------------------------------------------------------------
-%% Author  : Peter Holko
+%%% -------------------------------------------------------------------
+%%% Author  : Peter Holko
 %%% Description : Calculates perception data
 %%%
 %%% Created : Dec 15, 2014
@@ -110,7 +110,7 @@ entity_perception([Entity | Rest]) ->
     %Get current player perception from process dict
     PlayerPerception = convert_undefined(get(Entity#obj.player)),
     
-    NearbyObjs = map:get_nearby_objs(Entity#obj.pos),
+    NearbyObjs = map:get_nearby_objs(Entity#obj.pos, global_map, 2),
 
     NewPlayerPerception = util:unique_list(PlayerPerception ++ NearbyObjs),
     

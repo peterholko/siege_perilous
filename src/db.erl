@@ -61,6 +61,7 @@ create_schema() ->
     mnesia:add_table_index(battle_unit, battle),
     mnesia:add_table_index(battle_unit, pos),
     mnesia:add_table_index(action, battle),
+    mnesia:add_table_index(local_obj, global_obj_id),
     mnesia:add_table_index(local_obj, id),
 
     mnesia:stop().
@@ -137,8 +138,8 @@ test_tables() ->
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {explored_map, 1, [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}]},
-     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, 1, entity, <<"heromage">>, none},
-     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, 2, entity, <<"zombie">>, none},
+     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {1,1}, none, 1, entity, <<"heromage">>, none},
+     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,20>>}, {1,0}, none, 2, entity, <<"zombie">>, none},
      {resource, <<"Copper Ore">>, ?MOUNTAINS},
      {resource, <<"Copper Ore">>, ?HILLS}
     ].

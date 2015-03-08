@@ -62,7 +62,9 @@ get_map_obj(Id) ->
 move(Id, Pos) ->
     %TODO convert to transaction
     [Obj] = mnesia:dirty_read(obj, Id),
+    LastPos = Obj#obj.pos,
     NewObj = Obj#obj {pos = Pos,
+                      last_pos = LastPos,
                       state = none},
     mnesia:dirty_write(NewObj).
 

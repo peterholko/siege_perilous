@@ -29,11 +29,11 @@ start() ->
 
 load_global() ->
     {ok, File} = file:open(?MAP_FILE, [read]),
-    load_map(File, 0, global).
+    load_map(File, 0, global_map).
 
 load_local() ->
     {ok, File} = file:open(?BATTLE_MAP_FILE, [read]),
-    load_map(File, 0, {local, 1}).
+    load_map(File, 0, {local_map, 1}).
 
 get_tile({X, Y}) ->
     get_tile(X, Y).
@@ -185,18 +185,18 @@ add_neighbour(true, NeighbourOddQ, Neighbours) ->
 add_neighbour(false, _NeighbourOddQ, Neighbours) ->
     Neighbours.
 
-nearby_objs(SourcePos, global, LOSDist) ->
+nearby_objs(SourcePos, global_map, LOSDist) ->
     T = fun() ->
-            F = fun(MapObj, NearbyObjs) ->
-                    build_nearby_list(SourcePos, MapObj, NearbyObjs, LOSDist)
+            F = fun(Obj, NearbyObjs) ->
+                    build_nearby_list(SourcePos, Obj, NearbyObjs, LOSDist)
                 end,
-            mnesia:foldl(F, [], global)
+            mnesia:foldl(F, [], obj)
         end,
 
     {atomic, Result} = mnesia:transaction(T),
     Result;
 
-nearby_objs(SourcePos, {local, GlobalPos}, LOSDist) ->
+nearby_objs(SourcePos, {local_map, GlobalPos}, LOSDist) ->
     T = fun() ->
             AllObjs = db:read(local_obj, GlobalPos),
 
@@ -210,6 +210,7 @@ nearby_objs(SourcePos, {local, GlobalPos}, LOSDist) ->
     Result.
 
 build_nearby_list(SourcePos, MapObj, Objs, LOSDist) ->
+    lager:info("MapObj: ~p", [MapObj]),
     MapObjPos = get_pos(MapObj),
     check_distance(distance(SourcePos, MapObjPos), LOSDist, MapObj, Objs).
 
@@ -299,12 +300,12 @@ store_tile([], _ColNum, _RowNum, _MapType) ->
     lager:info("Done storing tiles");
 store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
     case MapType of
-        global ->
+        global_map ->
             Tile = #global_map {pos = {ColNum, RowNum},
                                 tile = list_to_integer(TileType)},
 
             db:dirty_write(Tile);
-        {local, LocalType} ->
+        {local_map, LocalType} ->
             LocalMap = #local_map {type = LocalType,
                                    pos = {ColNum, RowNum},
                                    tile = list_to_integer(TileType)},

@@ -19,6 +19,7 @@
 
 -record(obj, {id, 
               pos,
+              last_pos,
               player,
               class,
               type,
@@ -55,7 +56,8 @@
                     pos,
                     tile}).
 
--record(local_obj, {global,
+-record(local_obj, {global_pos,
+                    global_obj_id,
                     id,
                     pos,
                     player,
