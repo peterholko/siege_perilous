@@ -27,8 +27,9 @@ loop(LastTime, GamePID) ->
     {GlobalRecalc, LocalRecalc} = process_events(CurrentTick),
     GlobalTriggered = false,
    
-    %Build simple perception
-    perception_recalculate(GlobalRecalc or GlobalTriggered),
+    %Recalculate global/local perception
+    global_recalculate(GlobalRecalc or GlobalTriggered),
+    local_recalculate(LocalRecalc),
    
     %Toggle off perception
     %game:set_perception(false),
@@ -88,14 +89,17 @@ add_local_recalc(PrevLocalRecalc, _) ->
 do_event(move_obj, EventData, _PlayerPid) ->
     lager:info("Processing move_obj event: ~p", [EventData]),
 
-    {Player, Id, {X, Y}} = EventData,
-    Result = obj:move(Id, {X, Y}),
+    {Player, Id, GlobalPos} = EventData,
 
-    lager:info("move_obj Result: ~p", [Result]),
+    %Move global obj and add explored
+    obj:move(Id, GlobalPos),
+    map:add_explored(Player, GlobalPos),
 
-    map:add_explored(Player, {X, Y}),
+    %Remove any local objs from local map and 
+    %check if local perception update is needed
+    Result = local:exit_map(Id, GlobalPos),
 
-    {true, false};
+    {true, {GlobalPos, Result}};
 
 do_event(attack_obj, EventData, _PlayerPid) ->
     lager:info("Processing attack_obj event: ~p", [EventData]),
@@ -144,11 +148,17 @@ do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.
 
-perception_recalculate(false) ->
+global_recalculate(false) ->
     nothing;
 
-perception_recalculate(true) ->
+global_recalculate(true) ->
     g_perception:recalculate().
+
+local_recalculate([]) ->
+    done;
+local_recalculate([{GlobalPos, true} | Rest]) ->
+    l_perception:recalculate(GlobalPos),
+    local_recalculate(Rest).
 
 update_charge_times([]) ->
     done;

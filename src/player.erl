@@ -119,7 +119,7 @@ explore(_Id, GlobalPos) ->
 
     [Obj] = db:index_read(obj, PlayerId, #obj.player),
    
-    local:enter(Obj#obj.id, GlobalPos),
+    local:enter_map(Obj#obj.id, GlobalPos),
 
     InitPerception = local:init_perception(GlobalPos, 1),
     InitPerception.

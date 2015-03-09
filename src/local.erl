@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/2, enter/2, create/7, update_state/2]).
+-export([init_perception/2, enter_map/2, exit_map/2, create/7, update_state/2]).
 
 init_perception(Pos, TileType) ->
     LocalObjList = db:read(local_obj, Pos),
@@ -15,7 +15,7 @@ init_perception(Pos, TileType) ->
     LocalObjData = get_obj_data(LocalObjList, []),
     {LocalMap, LocalObjData}.
 
-enter(GlobalObjId, GlobalPos) ->
+enter_map(GlobalObjId, GlobalPos) ->
     Units = unit:get_units(GlobalObjId), 
 
     F = fun(Unit) ->
@@ -26,17 +26,20 @@ enter(GlobalObjId, GlobalPos) ->
 
     lists:foreach(F, Units).
 
-exists_on(GlobalObjId, GlobalPos) ->
-    case db:index_read(local_obj, GlobalObjId, #local_obj.global_id) of
-        [] ->
+exit_map(GlobalObjId, GlobalPos) ->
+    LocalObjs = db:read(local_obj, GlobalPos),
+
+    case lists:keyfind(GlobalObjId, #local_obj.global_obj_id, LocalObjs) of
+        false ->
             false;
-        _ ->
+        LocalObj ->
+            remove_obj(LocalObj),
             true
-    end. 
+    end.
 
 create(GlobalPos, GlobalObjId, Id, Pos, Class, Type, State) ->
     LocalObj = #local_obj {global_pos = GlobalPos,
-                           global_id = GlobalObjId,
+                           global_obj_id = GlobalObjId,
                            id = Id,
                            pos = Pos,
                            class = Class,
@@ -55,6 +58,9 @@ update_state(Id, State) ->
 %
 % Internal functions
 %
+
+remove_obj(LocalObj) ->
+    db:delete(LocalObj).
 
 get_map(TileType) ->
     LocalMap = db:read(local_map, TileType),

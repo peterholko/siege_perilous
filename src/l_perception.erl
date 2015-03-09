@@ -70,6 +70,7 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 
 do_recalculate(GlobalPos) ->
+    lager:info("Local perception recalculate ~p", [GlobalPos]),
     %Erase process dict
     erase(),
 
