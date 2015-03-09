@@ -19,25 +19,31 @@ enter_map(GlobalObjId, GlobalPos) ->
     Units = unit:get_units(GlobalObjId), 
 
     F = fun(Unit) ->
-        {Id} = bson:lookup('_id', Unit), 
-        {TypeName} = bson:lookup('type_name', Unit), 
-        create(GlobalPos, GlobalObjId, Id, {0,0}, unit, TypeName, none)
-    end,
+                lager:info("enter_map: ~p", [Unit]),
+                {Id} = bson:lookup('_id', Unit), 
+                {TypeName} = bson:lookup(type_name, Unit),
+                create(GlobalPos, GlobalObjId, Id, {0,0}, unit, TypeName, none)
+        end,
 
     lists:foreach(F, Units).
 
 exit_map(GlobalObjId, GlobalPos) ->
     LocalObjs = db:read(local_obj, GlobalPos),
+    Result = lists:keymember(GlobalObjId, #local_obj.global_obj_id, LocalObjs),
 
-    case lists:keyfind(GlobalObjId, #local_obj.global_obj_id, LocalObjs) of
+    %Remove any local objs owned by global obj id
+    case Result of
+        true ->
+            remove_all_objs(LocalObjs);
         false ->
-            false;
-        LocalObj ->
-            remove_obj(LocalObj),
-            true
-    end.
+            nothing
+    end,
+
+    %Return result 
+    Result.
 
 create(GlobalPos, GlobalObjId, Id, Pos, Class, Type, State) ->
+    lager:info("Creating local obj"),
     LocalObj = #local_obj {global_pos = GlobalPos,
                            global_obj_id = GlobalObjId,
                            id = Id,
@@ -60,7 +66,13 @@ update_state(Id, State) ->
 %
 
 remove_obj(LocalObj) ->
-    db:delete(LocalObj).
+    db:delete(local_obj, LocalObj#local_obj.global_pos).
+
+remove_all_objs([]) ->
+    done;
+remove_all_objs([LocalObj | Rest]) ->
+    remove_obj(LocalObj),
+    remove_all_objs(Rest).
 
 get_map(TileType) ->
     LocalMap = db:read(local_map, TileType),
