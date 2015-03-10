@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/2, enter_map/2, exit_map/2, create/7, update_state/2]).
+-export([init_perception/2, enter_map/3, exit_map/2, create/7, update_state/2]).
 
 init_perception(Pos, TileType) ->
     LocalObjList = db:read(local_obj, Pos),
@@ -15,14 +15,16 @@ init_perception(Pos, TileType) ->
     LocalObjData = get_obj_data(LocalObjList, []),
     {LocalMap, LocalObjData}.
 
-enter_map(GlobalObjId, GlobalPos) ->
+enter_map(GlobalObjId, GlobalPos, LastPos) ->
+    lager:info("Enter map: ~p", [{GlobalObjId, GlobalPos, LastPos}]),
     Units = unit:get_units(GlobalObjId), 
+    EnterPos = get_enter_pos(GlobalPos, LastPos),
 
     F = fun(Unit) ->
-                lager:info("enter_map: ~p", [Unit]),
+                lager:info("enter_map unit: ~p", [Unit]),
                 {Id} = bson:lookup('_id', Unit), 
                 {TypeName} = bson:lookup(type_name, Unit),
-                create(GlobalPos, GlobalObjId, Id, {0,0}, unit, TypeName, none)
+                create(GlobalPos, GlobalObjId, Id, EnterPos, unit, TypeName, none)
         end,
 
     lists:foreach(F, Units).
@@ -99,4 +101,35 @@ get_obj_data([Obj | Rest], ObjData) ->
 
     get_obj_data(Rest, NewObjData).
 
+get_enter_pos(_Pos, none) ->
+    {0,0};
+get_enter_pos(Pos, LastPos) ->
+    CubePos = map:odd_q_to_cube(Pos),
+    LastCubePos = map:odd_q_to_cube(LastPos),
+    {X, Y, Z} = CubePos,
+    {LX, LY, LZ} = LastCubePos,    
 
+    DiffX = X - LX,
+    DiffY = Y - LY,
+    DiffZ = Z - LZ,
+
+    lager:info("Diff: ~p ~p ~p", [DiffX, DiffY, DiffZ]),
+
+    Direction = get_direction(DiffX, DiffY, DiffZ),
+    enter_pos(Direction).
+
+get_direction(-1, 1, 0) -> nw;
+get_direction(0, 1, -1) -> n;
+get_direction(1, 0, -1) -> ne;
+get_direction(-1, 0, 1) -> sw;
+get_direction(0, -1, 1) -> s;
+get_direction(1, -1, 0) -> se;
+get_direction(_, _, _) -> nw.
+
+enter_pos(nw) -> {0,0};
+enter_pos(n) -> {8,0};
+enter_pos(ne) -> {16,0};
+enter_pos(sw) -> {0,12};
+enter_pos(s) -> {8,12};
+enter_pos(se) -> {16,12}. 
+    
