@@ -109,7 +109,7 @@ message_handle(<<"explore">>, Message) ->
     {LocalMap, LocalObjs} = player:explore(BinId, {X, Y}),
     LocalPerception = [{<<"packet">>, <<"explore">>},
                        {<<"map">>, LocalMap},
-                       {<<"objs">>, convert_id(LocalObjs, [])}],
+                       {<<"objs">>, convert_local_id(LocalObjs, [])}],
     jsx:encode(LocalPerception);
 
 message_handle(<<"build">>, Message) ->
@@ -245,6 +245,19 @@ convert_id([Obj | Rest], ConvertedIds) ->
     NewConvertedIds = [NewObj | ConvertedIds],
 
     convert_id(Rest, NewConvertedIds).
+
+convert_local_id([], ConvertedIds) ->
+    ConvertedIds;
+convert_local_id([Obj | Rest], ConvertedIds) ->
+    BinGlobalId = maps:get(<<"id">>, Obj),
+    HexGlobalId = util:bin_to_hex(BinGlobalId),
+    BinId = maps:get(<<"id">>, Obj),
+    HexId = util:bin_to_hex(BinId),
+    NewObj1 = maps:update(<<"global_id">>, HexGlobalId, Obj),
+    NewObj2 = maps:update(<<"id">>, HexId, NewObj1),
+    NewConvertedIds = [NewObj2 | ConvertedIds],
+
+    convert_local_id(Rest, NewConvertedIds).
 
 convert_battle_id([], ConvertedIds) ->
     ConvertedIds;

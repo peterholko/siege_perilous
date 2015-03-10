@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/2, enter_map/3, exit_map/2, create/7, update_state/2]).
+-export([init_perception/2, enter_map/3, exit_map/1, create/7, update_state/2]).
 
 init_perception(Pos, TileType) ->
     LocalObjList = db:read(local_obj, Pos),
@@ -29,20 +29,18 @@ enter_map(GlobalObjId, GlobalPos, LastPos) ->
 
     lists:foreach(F, Units).
 
-exit_map(GlobalObjId, GlobalPos) ->
-    LocalObjs = db:read(local_obj, GlobalPos),
-    Result = lists:keymember(GlobalObjId, #local_obj.global_obj_id, LocalObjs),
+exit_map(GlobalObjId) ->
+    lager:info("Exit map: ~p", [GlobalObjId]),
+    LocalObjs = db:index_read(local_obj, GlobalObjId, #local_obj.global_obj_id),
 
     %Remove any local objs owned by global obj id
-    case Result of
-        true ->
-            remove_all_objs(LocalObjs);
-        false ->
-            nothing
-    end,
-
-    %Return result 
-    Result.
+    case LocalObjs of
+        [] ->            
+            false;
+        LocalObjs ->
+            remove_all_objs(LocalObjs),
+            true
+    end.
 
 create(GlobalPos, GlobalObjId, Id, Pos, Class, Type, State) ->
     lager:info("Creating local obj"),
@@ -68,6 +66,7 @@ update_state(Id, State) ->
 %
 
 remove_obj(LocalObj) ->
+    lager:info("Removing local obj: ~p", [LocalObj]),
     db:delete(local_obj, LocalObj#local_obj.global_pos).
 
 remove_all_objs([]) ->
@@ -93,9 +92,12 @@ get_obj_data([], ObjData) ->
     ObjData;
 get_obj_data([Obj | Rest], ObjData) ->
     {X, Y} = Obj#local_obj.pos,
-    NewObjData = [ #{<<"id">> => Obj#local_obj.id,
+    NewObjData = [ #{<<"global_id">> => Obj#local_obj.global_obj_id,
+                     <<"id">> => Obj#local_obj.id,
                      <<"x">> => X,
                      <<"y">> => Y,
+                     <<"player">> => Obj#local_obj.player,
+                     <<"class">> => Obj#local_obj.class,                   
                      <<"type">> => Obj#local_obj.type,
                      <<"state">> => Obj#local_obj.state} | ObjData],
 
@@ -118,12 +120,12 @@ get_enter_pos(Pos, LastPos) ->
     Direction = get_direction(DiffX, DiffY, DiffZ),
     enter_pos(Direction).
 
-get_direction(-1, 1, 0) -> nw;
-get_direction(0, 1, -1) -> n;
-get_direction(1, 0, -1) -> ne;
-get_direction(-1, 0, 1) -> sw;
-get_direction(0, -1, 1) -> s;
-get_direction(1, -1, 0) -> se;
+get_direction(-1, 1, 0) -> se;
+get_direction(0, 1, -1) -> s;
+get_direction(1, 0, -1) -> sw;
+get_direction(-1, 0, 1) -> ne;
+get_direction(0, -1, 1) -> n;
+get_direction(1, -1, 0) -> nw;
 get_direction(_, _, _) -> nw.
 
 enter_pos(nw) -> {0,0};

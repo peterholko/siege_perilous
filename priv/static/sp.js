@@ -5,6 +5,7 @@ var imagesQueue = [];
 var canvas;
 var map;
 var battlePanel;
+var localPanel;
 var infoPanels = [];
 var activeInfoPanel;
 var dialogPanel;
@@ -308,6 +309,9 @@ function onMessage(evt) {
             drawMap();
             drawObjs();
         }
+        else if(jsonData.packet == "explore") {
+            drawLocal(jsonData);
+        }
         else if(jsonData.packet == "battle_perception") {
             drawBattle(jsonData);
         }
@@ -445,6 +449,42 @@ function drawObjs() {
             c_y = halfheight - 36 - pixel.y;
             createjs.Tween.get(map).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
         }
+    }
+};
+
+function drawLocal(jsonData) {
+    showLocalPanel();
+
+    for(var i = 0; i < jsonData.map.length; i++) {
+        var tile = jsonData.map[i];
+        var pixel = hex_to_pixel(tile.x, tile.y);
+
+        var bitmap = new createjs.Bitmap(tileImages[tile.t]);
+        bitmap.tileX = tile.x;
+        bitmap.tileY = tile.y;
+        bitmap.x = pixel.x;
+        bitmap.y = pixel.y;
+ 
+        addChildLocalPanel(bitmap);
+    }
+
+    for(var i = 0; i < jsonData.objs.length; i++) {
+        var obj = jsonData.objs[i];
+        var pixel = hex_to_pixel(obj.x, obj.y);
+        var unitName = obj.type;
+
+        unitName = unitName.toLowerCase().replace(/ /g, '');
+
+        var imagePath =  "/static/art/" + unitName + ".png";
+        var icon = new createjs.Container();
+
+        icon.x = pixel.x;
+        icon.y = pixel.y;
+
+        addChildLocalPanel(icon);
+
+        imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
+        loaderQueue.loadFile({id: unitName, src: imagePath});
     }
 };
 
@@ -826,6 +866,34 @@ function initUI() {
 
     stage.addChild(battlePanel);
 
+    //Initialize local panel
+    localPanel = new createjs.Container();
+    localPanel.visible = false;
+    localPanel.x = stageWidth / 2 - 500 / 2;
+    localPanel.y = stageHeight / 2 - 460 / 2;
+
+    var bg = new createjs.Shape();
+    var close = new createjs.Bitmap(close_rest);
+    var content = new createjs.Container();
+
+    bg.graphics.beginFill("#1c1c1c").drawRect(0,0,500,460);
+
+    close.x = 480;
+    close.y = 10;
+    close.on("mousedown", function(evt) {
+        console.log('Close mousedown')
+        this.parent.visible = false;
+    });
+
+    content.name = 'content'
+
+    localPanel.addChild(bg);
+    localPanel.addChild(battleText);
+    localPanel.addChild(close);
+    localPanel.addChild(content);
+
+    stage.addChild(localPanel);
+
     //Initialize infoPanels
     for(var i = 0; i < 4; i++) {
         var panel = new createjs.Container();
@@ -886,6 +954,13 @@ function showBattlePanel() {
     battlePanel.visible = true;
 };
 
+function showLocalPanel() {
+    var content = localPanel.getChildByName('content');
+    content.removeAllChildren();
+
+    localPanel.visible = true;
+};
+
 function showInfoPanel() {
     var xCoords = [0, infoPanelBg.width, infoPanelBg.width * 2];
 
@@ -936,6 +1011,16 @@ function addChildBattlePanel(item) {
 function getBattlePanelContent() {
     return battlePanel.getChildByName('content');
 };
+
+function addChildLocalPanel(item) {
+    var content = localPanel.getChildByName('content');
+    content.addChild(item);
+};
+
+function getLocalPanelContent() {
+    return localPanel.getChildByName('content');
+};
+
 
 function addChildDialogPanel(item) {
     var content = dialogPanel.getChildByName('content');

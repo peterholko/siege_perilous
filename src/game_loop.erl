@@ -97,7 +97,7 @@ do_event(move_obj, EventData, _PlayerPid) ->
 
     %Remove any local objs from local map and 
     %check if local perception update is needed
-    Result = local:exit_map(Id, GlobalPos),
+    Result = local:exit_map(Id),
 
     {true, {GlobalPos, Result}};
 
@@ -156,7 +156,7 @@ global_recalculate(true) ->
 
 local_recalculate([]) ->
     done;
-local_recalculate([{GlobalPos, true} | Rest]) ->
+local_recalculate([GlobalPos | Rest]) ->
     l_perception:recalculate(GlobalPos),
     local_recalculate(Rest).
 
