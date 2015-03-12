@@ -1,1 +1,0 @@
-{ "options" : { "create" : "unit_copy" }, "indexes" : [ { "v" : 1, "key" : { "_id" : 1 }, "ns" : "sp.unit_copy", "name" : "_id_" } ] }

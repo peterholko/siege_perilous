@@ -330,8 +330,7 @@ process_layers([{<<"layer">>, _LayerProp, LayerData} | Rest]) ->
 
 process_layer_data([{<<"data">>, _Encoding, Data}]) ->
     BinData = [Data],
-    SplitData = binary:split(BinData, [<<"\n0,">>], [global]),
-    lager:info("~p", [SplitData]);
+    lager:info("~p", [BinData]);
 process_layer_data(LayerData) ->
     lager:info("~p", [LayerData]).
         

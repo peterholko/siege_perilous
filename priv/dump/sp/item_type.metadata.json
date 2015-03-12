@@ -1,1 +1,0 @@
-{ "options" : { "create" : "item_type" }, "indexes" : [ { "v" : 1, "key" : { "_id" : 1 }, "ns" : "sp.item_type", "name" : "_id_" } ] }
