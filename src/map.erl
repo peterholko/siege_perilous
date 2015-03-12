@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/3, get_tiles/1,
-         get_nearby_objs/4]).
+         get_nearby_objs/4, xml_test/0]).
 -export([add_explored/2, is_valid_pos/1]).
 -export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1]).
 -record(module_data, {}).
@@ -314,3 +314,24 @@ store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
             
     store_tile(Rest, ColNum + 1, RowNum, MapType).
 
+xml_test() ->
+    lager:info("Parsing map"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/Test_Zone.tmx"),
+    {_T, _A, C} = parsexml:parse(Bin),
+    lager:info("Processing layers"),
+    process_layers(C).
+
+process_layers([]) ->
+    lager:info("Done processing layers");
+process_layers([{<<"layer">>, _LayerProp, LayerData} | Rest]) ->
+    lager:info("Processing layer data"),
+    process_layer_data(LayerData),
+    process_layers(Rest).
+
+process_layer_data([{<<"data">>, _Encoding, Data}]) ->
+    BinData = [Data],
+    SplitData = binary:split(BinData, [<<"\n0,">>], [global]),
+    lager:info("~p", [SplitData]);
+process_layer_data(LayerData) ->
+    lager:info("~p", [LayerData]).
+        

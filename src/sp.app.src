@@ -16,7 +16,8 @@
 		cowboy,
         jsx,
         bson,
-        mongodb
+        mongodb,
+        parsexml
 	]},
 	{mod, {sp_app, []}},
 	{env, []}
