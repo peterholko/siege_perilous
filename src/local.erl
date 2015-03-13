@@ -75,15 +75,15 @@ remove_all_objs([LocalObj | Rest]) ->
     remove_obj(LocalObj),
     remove_all_objs(Rest).
 
-get_map(TileType) ->
-    LocalMap = db:read(local_map, TileType),
+get_map(_TileType) ->
+    LocalMap = db:dump(local_map),
 
     F = fun(TileData, MsgTiles) ->
-            {local_map, _LocalType, Pos, Type} = TileData,
+            {local_map, {_GlobalIndex, Pos}, _Type, Misc} = TileData,
             {X, Y} = Pos,
             [#{<<"x">> => X,
                <<"y">> => Y,
-               <<"t">> => Type} | MsgTiles]
+               <<"t">> => Misc} | MsgTiles]
         end,
 
     lists:foldl(F, [], LocalMap).

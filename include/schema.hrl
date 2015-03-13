@@ -52,9 +52,9 @@
                       speed,
                       battle}).
 
--record(local_map, {type, 
-                    pos,
-                    tile}).
+-record(local_map, {index,
+                    tile = 0,
+                    misc}).
 
 -record(local_obj, {global_pos,
                     global_obj_id,

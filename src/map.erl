@@ -305,11 +305,8 @@ store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
                                 tile = list_to_integer(TileType)},
 
             db:dirty_write(Tile);
-        {local_map, LocalType} ->
-            LocalMap = #local_map {type = LocalType,
-                                   pos = {ColNum, RowNum},
-                                   tile = list_to_integer(TileType)},
-            db:dirty_write(LocalMap)
+        _ ->
+            nothing
     end,
             
     store_tile(Rest, ColNum + 1, RowNum, MapType).
@@ -323,14 +320,45 @@ xml_test() ->
 
 process_layers([]) ->
     lager:info("Done processing layers");
-process_layers([{<<"layer">>, _LayerProp, LayerData} | Rest]) ->
-    lager:info("Processing layer data"),
+process_layers([{<<"layer">>, LayerProp, LayerData} | Rest]) ->
+    lager:info("Processing layer ~p", [LayerProp]),
     process_layer_data(LayerData),
     process_layers(Rest).
 
 process_layer_data([{<<"data">>, _Encoding, Data}]) ->
-    BinData = [Data],
-    lager:info("~p", [BinData]);
+    [BinData] = Data,
+    ListData = binary_to_list(BinData),
+    ListSplit = string:tokens(ListData, "\n"),
+
+    process_row(ListSplit, 0);
 process_layer_data(LayerData) ->
     lager:info("~p", [LayerData]).
-        
+
+process_row([], _NumRow) ->
+    lager:info("Done storing layer");
+process_row([Row | Rest], NumRow) ->
+    ListTiles = string:tokens(Row, ","),
+    store_tile_list(ListTiles, NumRow, 0),
+    process_row(Rest, NumRow + 1).
+
+store_tile_list([], _NumRow, _NumCol) ->
+    lager:info("Done storing tile row");
+store_tile_list([Tile | Rest], NumRow, NumCol) ->
+    
+    lager:info("Storing tile ~p ~p ~p", [Tile, NumRow, NumCol]),
+    Pos = {NumRow, NumCol},
+    case db:dirty_read(local_map, {1, Pos}) of
+        [] ->
+            NewTile = #local_map {index = {1, Pos},
+                                  tile = 1,
+                                  misc = [list_to_integer(Tile)]},
+            db:dirty_write(NewTile);
+        [LocalTile] ->
+            NewMisc = [list_to_integer(Tile) | LocalTile#local_map.misc],
+            NewTile = LocalTile#local_map { misc = NewMisc},
+            db:dirty_write(NewTile)
+    end,
+
+    store_tile_list(Rest, NumRow, NumCol + 1).
+
+    
