@@ -79,6 +79,10 @@ function init() {
     $("#map").hide();
     $("#navigation").hide();
 
+    $.getJSON("/static/tileset.json", function(data) {
+        console.log(data);
+    });
+
     canvas = document.getElementById("map");
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;

@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/3, get_tiles/1,
-         get_nearby_objs/4, xml_test/0]).
+         get_nearby_objs/4, xml_test/0, tileset/0]).
 -export([add_explored/2, is_valid_pos/1]).
 -export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1]).
 -record(module_data, {}).
@@ -318,12 +318,60 @@ xml_test() ->
     lager:info("Processing layers"),
     process_layers(C).
 
+tileset() ->
+    lager:info("Parsing tileset"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/Forest_Demo_Pax.tmx"),
+    {_T, _A, C} = parsexml:parse(Bin),
+    TilesetList = process_tileset(C, []),
+    JSON = jsx:encode(TilesetList),
+    {ok, F} = file:open("tileset.txt", write),
+    file:write(F, JSON).
+
+process_tileset([], TilesetList) ->
+    lager:info("Done processing tileset"),
+    TilesetList;
+process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList) ->
+    [FirstGidInfo, NameInfo, _H, _W] = TilesetInfo,
+    {_, BinFirstGid} = FirstGidInfo,
+    {_, TilesetName} = NameInfo,
+    FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
+    lager:info("FirstGid: ~p ~p", [FirstGid, TilesetName]),
+    TilesetDict = process_tileset_data(TilesetData, FirstGid, []),
+    NewTilesetList = [ #{<<"tileset">> => TilesetName,
+                         <<"tiles">> => TilesetDict} | TilesetList],
+
+    process_tileset(Rest, NewTilesetList);
+process_tileset(_, Tileset) ->
+    Tileset.
+
+process_tileset_data([], _, NewTileset) ->
+    lager:info("Done procssing tileset"),
+    NewTileset;
+process_tileset_data([{<<"tile">>, IdInfo, ImageInfo} | Rest], FirstGid, Tileset) ->
+    [{_, BinTileId}] = IdInfo,
+    LocalTileId = binary_to_integer(BinTileId),
+    TileId = FirstGid + LocalTileId,
+    Image = get_image(ImageInfo),
+    lager:info("~p - ~p", [TileId, Image]),
+
+    NewTileset= [#{<<"tile">> => TileId,
+                   <<"image">> => Image} | Tileset],
+
+    process_tileset_data(Rest, FirstGid, NewTileset).
+
+get_image([{_, [_Width, _Height, Source], _Empty}]) ->
+    {_, BinFilePath} = Source,
+    FilePath = binary_to_list(BinFilePath),
+    list_to_binary(string:sub_string(FilePath, 69)).
+
 process_layers([]) ->
     lager:info("Done processing layers");
 process_layers([{<<"layer">>, LayerProp, LayerData} | Rest]) ->
     lager:info("Processing layer ~p", [LayerProp]),
     process_layer_data(LayerData),
-    process_layers(Rest).
+    process_layers(Rest);
+process_layers(_) ->
+    nothing.
 
 process_layer_data([{<<"data">>, _Encoding, Data}]) ->
     [BinData] = Data,
