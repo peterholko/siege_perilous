@@ -82,7 +82,7 @@ function init() {
     $("#navigation").hide();
 
     $.getJSON("/static/tileset.json", function(data) {
-        tileset = data;
+        tileset = data.reverse();
     });
 
     canvas = document.getElementById("map");
@@ -464,16 +464,14 @@ function drawLocal(jsonData) {
     for(var i = 0; i < jsonData.map.length; i++) {
         var tile = jsonData.map[i];
         var pixel = hex_to_pixel(tile.x, tile.y);
-        var tiles = tile.t;
+        var tiles = tile.t.reverse();
 
         for(var j = 0; j < tiles.length; j++) {
-            var bitmap = new createjs.Bitmap(tiles[j]);
-            bitmap.tileX = tile.x;
-            bitmap.tileY = tile.y;
-            bitmap.x = pixel.x;
-            bitmap.y = pixel.y;
- 
-            addChildLocalPanel(bitmap);
+            var tileImageId = tiles[j] - 1;
+            var imagePath = "/static/" + tileset[tileImageId].image;
+            
+            imagesQueue.push({id: tileImageId, x: pixel.x, y: pixel.y, target: getLocalPanelContent()});
+            loaderQueue.loadFile({id: tileImageId, src: imagePath});
         }
     }
 
@@ -1148,3 +1146,4 @@ function hex_to_pixel(q, r) {
 
     return {x: x, y: y};
 };
+

@@ -395,7 +395,7 @@ store_tile_list(["0" | Rest], NumRow, NumCol) ->
 store_tile_list([Tile | Rest], NumRow, NumCol) ->
     
     lager:info("Storing tile ~p ~p ~p", [Tile, NumRow, NumCol]),
-    Pos = {NumRow, NumCol},
+    Pos = {NumCol, NumRow},
     case db:dirty_read(local_map, {1, Pos}) of
         [] ->
             NewTile = #local_map {index = {1, Pos},
