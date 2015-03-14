@@ -391,7 +391,7 @@ store_tile_list([], _NumRow, _NumCol) ->
     lager:info("Done storing tile row");
 store_tile_list(["0" | Rest], NumRow, NumCol) ->
     do_nothing,
-    store_tile_list(Rest, NumRow, NumCol);
+    store_tile_list(Rest, NumRow, NumCol + 1);
 store_tile_list([Tile | Rest], NumRow, NumCol) ->
     
     lager:info("Storing tile ~p ~p ~p", [Tile, NumRow, NumCol]),
