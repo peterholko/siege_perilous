@@ -337,7 +337,8 @@ process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList)
     FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
     lager:info("FirstGid: ~p ~p", [FirstGid, TilesetName]),
     TilesetDict = process_tileset_data(TilesetData, FirstGid, []),
-    NewTilesetList = [ #{<<"tileset">> => TilesetName,
+    NewTilesetList = [ #{<<"firstgid">> => FirstGid,
+                         <<"tileset">> => TilesetName,
                          <<"tiles">> => TilesetDict} | TilesetList],
 
     process_tileset(Rest, NewTilesetList);

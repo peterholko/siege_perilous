@@ -54,6 +54,8 @@ tileImages[1] = "/static/art/desert.png";
 tileImages[2] = "/static/art/green.png";
 tileImages[3] = "/static/art/regular.png";
 
+var tileset;
+
 var shroud = "/static/art/shroud.png";
 
 infoPanelBg.src = '/static/art/ui_pane.png';
@@ -80,7 +82,7 @@ function init() {
     $("#navigation").hide();
 
     $.getJSON("/static/tileset.json", function(data) {
-        console.log(data);
+        tileset = data;
     });
 
     canvas = document.getElementById("map");
@@ -462,14 +464,17 @@ function drawLocal(jsonData) {
     for(var i = 0; i < jsonData.map.length; i++) {
         var tile = jsonData.map[i];
         var pixel = hex_to_pixel(tile.x, tile.y);
+        var tiles = tile.t;
 
-        var bitmap = new createjs.Bitmap(tileImages[tile.t]);
-        bitmap.tileX = tile.x;
-        bitmap.tileY = tile.y;
-        bitmap.x = pixel.x;
-        bitmap.y = pixel.y;
+        for(var j = 0; j < tiles.length; j++) {
+            var bitmap = new createjs.Bitmap(tiles[j]);
+            bitmap.tileX = tile.x;
+            bitmap.tileY = tile.y;
+            bitmap.x = pixel.x;
+            bitmap.y = pixel.y;
  
-        addChildLocalPanel(bitmap);
+            addChildLocalPanel(bitmap);
+        }
     }
 
     for(var i = 0; i < jsonData.objs.length; i++) {
