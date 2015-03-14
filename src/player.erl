@@ -119,9 +119,9 @@ explore(_Id, _GlobalPos) ->
 
     [Obj] = db:index_read(obj, PlayerId, #obj.player),
     lager:info("Obj: ~p", [Obj]), 
-    local:enter_map(Obj#obj.id, Obj#obj.pos, Obj#obj.last_pos),
+    local:enter_map(PlayerId, Obj#obj.id, Obj#obj.pos, Obj#obj.last_pos),
 
-    InitPerception = local:init_perception(Obj#obj.pos, 1),
+    InitPerception = local:init_perception(PlayerId, Obj#obj.pos, 1),
     InitPerception.
 
 build(Id, LocalPos, Structure) ->

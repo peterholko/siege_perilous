@@ -468,7 +468,7 @@ function drawLocal(jsonData) {
 
         for(var j = 0; j < tiles.length; j++) {
             var tileImageId = tiles[j] - 1;
-            var imagePath = "/static/" + tileset[tileImageId].image;
+            var imagePath = "/static/tileset/" + tileset[tileImageId].image;
             
             imagesQueue.push({id: tileImageId, x: pixel.x, y: pixel.y, target: getLocalPanelContent()});
             loaderQueue.loadFile({id: tileImageId, src: imagePath});

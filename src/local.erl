@@ -6,20 +6,22 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/2, enter_map/3, exit_map/1, create/7, update_state/2]).
+-export([init_perception/3, enter_map/4, exit_map/1, create/7, update_state/2]).
 
-init_perception(Pos, TileType) ->
+init_perception(PlayerId, Pos, TileType) ->
     LocalObjList = db:read(local_obj, Pos),
 
-    LocalMap = get_map(TileType),
+    LocalExploredMap = map:get_local_explored(PlayerId, Pos),
     LocalObjData = get_obj_data(LocalObjList, []),
-    {LocalMap, LocalObjData}.
+    lager:info("LocalExploredMap: ~p", [LocalExploredMap]), 
+    {LocalExploredMap, LocalObjData}.
 
-enter_map(GlobalObjId, GlobalPos, LastPos) ->
+enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
     lager:info("Enter map: ~p", [{GlobalObjId, GlobalPos, LastPos}]),
     Units = unit:get_units(GlobalObjId), 
     EnterPos = get_enter_pos(GlobalPos, LastPos),
-
+    map:add_local_explored(PlayerId, GlobalPos, EnterPos),
+ 
     F = fun(Unit) ->
                 lager:info("enter_map unit: ~p", [Unit]),
                 {Id} = bson:lookup('_id', Unit), 

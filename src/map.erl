@@ -15,9 +15,9 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_nearby_objs/3, get_tiles/1,
+-export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_local_explored/2, get_nearby_objs/3, get_tiles/1,
          get_nearby_objs/4, xml_test/0, tileset/0]).
--export([add_explored/2, is_valid_pos/1]).
+-export([add_explored/2, add_local_explored/3, is_valid_pos/1]).
 -export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1]).
 -record(module_data, {}).
 %% ====================================================================
@@ -44,6 +44,9 @@ get_tile(X, Y) ->
 get_explored(PlayerId) ->
     gen_server:call({global, map}, {get_explored, PlayerId}).
 
+get_local_explored(PlayerId, GlobalPos) ->
+    gen_server:call({global, map}, {get_local_explored, PlayerId, GlobalPos}).
+
 get_tiles(TileIds) ->
     gen_server:call({global, map}, {get_tiles, TileIds}).
 
@@ -54,6 +57,9 @@ get_nearby_objs(X, Y, MapType, Dist) ->
 
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
+
+add_local_explored(Player, GlobalPos, Pos) ->
+    gen_server:cast({global, map}, {add_local_explored, Player, GlobalPos, Pos}).
 
 is_valid_pos({X, Y}) ->
     is_valid_coord({X, Y}, {?MAP_WIDTH, ?MAP_HEIGHT}).
@@ -70,7 +76,6 @@ handle_cast(none, Data) ->
     {noreply, Data};
 
 handle_cast({add_explored, Player, {X, Y}}, Data) ->
-
     ExploredMap = db:read(explored_map, Player),
     Neighbours = neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
     NewTiles = new_explored_tiles(ExploredMap, Neighbours, [{X, Y}]),
@@ -79,21 +84,36 @@ handle_cast({add_explored, Player, {X, Y}}, Data) ->
 
     {noreply, Data};
 
+handle_cast({add_local_explored, Player, GlobalPos, {X, Y}}, Data) ->
+    lager:info("add_local_explored: ~p ~p", [X, Y]),
+    ExploredMap = db:read(explored_map, {Player, GlobalPos}),
+    Neighbours = neighbours(X, Y, 38, 32),
+    NewTiles = new_explored_tiles(ExploredMap, Neighbours, [{X, Y}]),
+    NewExploredMap = #explored_map {player = {Player, GlobalPos}, tiles = NewTiles},
+    db:write(NewExploredMap),
+    {noreply, Data};
+
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
 handle_call({get_explored, PlayerId}, _From, Data) ->
     ExploredMap = db:read(explored_map, PlayerId),
-    ExploredTiles = explored_map(ExploredMap), 
+    ExploredTiles = explored_map(ExploredMap, none), 
 
     {reply, ExploredTiles, Data};
+
+handle_call({get_local_explored, PlayerId, GlobalPos}, _From, Data) ->
+    ExploredMap = db:read(explored_map, {PlayerId, GlobalPos}),
+    Exploredtiles = explored_map(ExploredMap, GlobalPos),
+
+    {reply, Exploredtiles, Data};
 
 handle_call({get_tile, TileIndex}, _From, Data) ->
     Tile = db:dirty_read(global_map, TileIndex),
     {reply, Tile, Data};
 
 handle_call({get_tiles, TileIds}, _From, Data) ->
-    Tiles = tiles_msg_format(TileIds, []),
+    Tiles = tiles_msg_format(TileIds, [], none),
     {reply, Tiles, Data};
 
 handle_call({get_nearby_objs, {X,Y}, MapType, Dist}, _From, Data) ->
@@ -124,31 +144,40 @@ terminate(_Reason, _) ->
 
 %% --------------------------------------------------------------------
 %%% Internal functions
-explored_map([]) ->
+explored_map([], _) ->
     [];
 
-explored_map([ExploredMap]) ->
+explored_map([ExploredMap], GlobalPos) ->
     TileIds = ExploredMap#explored_map.tiles,
-    Tiles = tiles_msg_format(TileIds, []),
+    Tiles = tiles_msg_format(TileIds, [], GlobalPos),
     Tiles.
 
-new_explored_tiles([], NewExploredTiles, _Pos) ->
-    NewExploredTiles;
+new_explored_tiles([], NewExploredTiles, Pos) ->
+    util:unique_list(NewExploredTiles ++ Pos);
 new_explored_tiles([ExploredMap], NewExploredTiles, CurrPos) ->
     lager:info("ExploredMap: ~p", [ExploredMap]),
     util:unique_list(ExploredMap#explored_map.tiles ++ NewExploredTiles ++ CurrPos).
     
-tiles_msg_format([], Tiles) ->
+tiles_msg_format([], Tiles, _) ->
     Tiles;
 
-tiles_msg_format([TileId | Rest], Tiles) ->
+tiles_msg_format([TileId | Rest], Tiles, none) ->
     [Map] = db:dirty_read(global_map, TileId),
     {X, Y} = TileId,
     NewTiles = [#{<<"x">> => X, 
                   <<"y">> => Y,
                   <<"t">> => Map#global_map.tile} | Tiles],
 
-    tiles_msg_format(Rest, NewTiles).
+    tiles_msg_format(Rest, NewTiles, none);
+tiles_msg_format([TileId | Rest], Tiles, GlobalPos) ->
+    %Fix GlobalPos
+    [Map] = db:dirty_read(local_map, {1, TileId}),
+    {X, Y} = TileId,
+    NewTiles = [#{<<"x">> => X,
+                  <<"y">> => Y,
+                  <<"t">> => Map#local_map.misc} | Tiles],
+
+    tiles_msg_format(Rest, NewTiles, GlobalPos).
 
 %From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
 neighbours(Q, R, W, H) ->
