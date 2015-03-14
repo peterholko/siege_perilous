@@ -324,7 +324,7 @@ tileset() ->
     {_T, _A, C} = parsexml:parse(Bin),
     TilesetList = process_tileset(C, []),
     JSON = jsx:encode(TilesetList),
-    {ok, F} = file:open("tileset.txt", write),
+    {ok, F} = file:open("tileset.json", write),
     file:write(F, JSON).
 
 process_tileset([], TilesetList) ->
@@ -336,10 +336,7 @@ process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList)
     {_, TilesetName} = NameInfo,
     FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
     lager:info("FirstGid: ~p ~p", [FirstGid, TilesetName]),
-    TilesetDict = process_tileset_data(TilesetData, FirstGid, []),
-    NewTilesetList = [ #{<<"firstgid">> => FirstGid,
-                         <<"tileset">> => TilesetName,
-                         <<"tiles">> => TilesetDict} | TilesetList],
+    NewTilesetList = process_tileset_data(TilesetData, FirstGid, TilesetList),
 
     process_tileset(Rest, NewTilesetList);
 process_tileset(_, Tileset) ->
@@ -392,6 +389,9 @@ process_row([Row | Rest], NumRow) ->
 
 store_tile_list([], _NumRow, _NumCol) ->
     lager:info("Done storing tile row");
+store_tile_list(["0" | Rest], NumRow, NumCol) ->
+    do_nothing,
+    store_tile_list(Rest, NumRow, NumCol);
 store_tile_list([Tile | Rest], NumRow, NumCol) ->
     
     lager:info("Storing tile ~p ~p ~p", [Tile, NumRow, NumCol]),
