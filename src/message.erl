@@ -58,7 +58,7 @@ message_handle(<<"move">>, Message) ->
 
 message_handle(<<"move_unit">>, Message) ->
     lager:info("message: move_unit"),
-    HexId = map_get(<<"sourceid">>, Message),
+    HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
     
     X = map_get(<<"x">>, Message),
@@ -108,7 +108,7 @@ message_handle(<<"explore">>, Message) ->
 
     {LocalMap, LocalObjs} = player:explore(BinId, {X, Y}),
     LocalPerception = [{<<"packet">>, <<"explore">>},
-                       {<<"map">>, LocalMap},
+                       {<<"explored">>, LocalMap},
                        {<<"objs">>, convert_local_id(LocalObjs, [])}],
     jsx:encode(LocalPerception);
 
@@ -211,8 +211,6 @@ prepare(item_perception, Message) ->
     ItemPerception = item_perception(Message, []),
     [{<<"packet">>, <<"item_perception">>},
      {<<"items">>, ItemPerception}]; 
-
-    
 
 prepare(battle_dmg, Message) ->
     BattleId = maps:get(<<"battle">>, Message),

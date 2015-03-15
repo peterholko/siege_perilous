@@ -12,6 +12,7 @@ var dialogPanel;
 
 var explored = {};
 var objs = {};
+var localObjs = {};
 var units = {};
 var battles = [];
 var battleUnits = [];
@@ -141,7 +142,12 @@ function handleQueueComplete()
             bitmap.x = imageTask.x;
             bitmap.y = imageTask.y;
 
-            imageTask.target.addChild(bitmap);
+            if(imageTask.hasOwnProperty("index")) {
+                imageTask.target.addChildAt(bitmap, imageTask.index);
+            }
+            else {
+                imageTask.target.addChild(bitmap);
+            }
         }
     }
 
@@ -194,10 +200,22 @@ function sendLogin() {
 };
 
 function sendMove(direction) {
-    playerObj = getObjByPlayer(playerId);
+    if(localPanel.visible == false) {
+        playerObj = getObjByPlayer(playerId);
+        
+        var cmd = "move";
+        var id = playerObj.id;
+        var q = playerObj.x;
+        var r = playerObj.y;
+    }
+    else {
+        unit = getLocalObj(selectedUnit);
 
-    var q = playerObj.x;
-    var r = playerObj.y;
+        var cmd = "move_unit";
+        var id = unit.id;
+        var q = unit.x;
+        var r = unit.y;
+    }
     var cube = odd_q_to_cube(q,r);
 
     var x, y, z;
@@ -234,7 +252,8 @@ function sendMove(direction) {
     }
 
     var odd_q = cube_to_odd_q(x, y, z);
-    var move = '{"cmd": "move", "id": "' + playerObj.id + 
+    
+    var move = '{"cmd": "' + cmd + '", "id": "' + id + 
         '", "x": ' + odd_q.q + ', "y": ' + odd_q.r + '}';
 
     websocket.send(move);
@@ -243,7 +262,7 @@ function sendMove(direction) {
 function sendEquip() {
     console.log("sendEquip");
     //var e = '{"cmd": "build", "sourceid": "54822ccb1c93b16038108f25", "x": 1, "y": 1, "structure": "Stockade"}';
-    var e = '{"cmd": "move_unit", "sourceid": "54e105be9b4e1462bed8ef65", "x": 1, "y": 1}';    
+    var e = '{"cmd": "move_unit", "id": "54e105be9b4e1462bed8ef65", "x": 1, "y": 1}';    
     websocket.send(e);
 };
 
@@ -316,7 +335,12 @@ function onMessage(evt) {
             drawMap();
             drawObjs();
         }
+        else if(jsonData.packet == "local_perception") {
+            localObjs = jsonData.objs;
+            drawLocal(jsonData);
+        }
         else if(jsonData.packet == "explore") {
+            localObjs = jsonData.objs;
             drawLocal(jsonData);
         }
         else if(jsonData.packet == "battle_perception") {
@@ -462,8 +486,8 @@ function drawObjs() {
 function drawLocal(jsonData) {
     showLocalPanel();
 
-    for(var i = 0; i < jsonData.map.length; i++) {
-        var tile = jsonData.map[i];
+    for(var i = 0; i < jsonData.explored.length; i++) {
+        var tile = jsonData.explored[i];
         var pixel = hex_to_pixel(tile.x, tile.y);
         var tiles = tile.t.reverse();
 
@@ -471,7 +495,7 @@ function drawLocal(jsonData) {
             var tileImageId = tiles[j] - 1;
             var imagePath = "/static/tileset/" + tileset[tileImageId].image;
             
-            imagesQueue.push({id: tileImageId, x: pixel.x, y: pixel.y, target: getLocalPanelContent()});
+            imagesQueue.push({id: tileImageId, x: pixel.x, y: pixel.y, target: getLocalPanelContent(), index: j});
             loaderQueue.loadFile({id: tileImageId, src: imagePath});
         }
     }
@@ -488,7 +512,11 @@ function drawLocal(jsonData) {
 
         icon.x = pixel.x;
         icon.y = pixel.y;
-
+        icon.name = unitName;
+        icon.id = jsonData.objs[i].id;
+        icon.on("mousedown", function(evt) {
+            selectedUnit = this.id;
+        });
         addChildLocalPanel(icon);
 
         imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
@@ -1134,6 +1162,15 @@ function getBattleUnit(unit) {
         }
     }
     
+    return false;
+};
+
+function getLocalObj(id) {
+    for(var i = 0; i < localObjs.length; i++) {
+        if(localObjs[i].id == id) {
+            return localObjs[i];
+        }
+    }
     return false;
 };
 
