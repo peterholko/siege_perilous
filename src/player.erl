@@ -96,9 +96,13 @@ attack_unit(SourceId, TargetId) ->
     battle:attack_unit(SourceId, TargetId).
 
 move_unit(UnitId, Pos) ->
-
+    Player = get(player_id),
+    NumTicks = 8,
     %TODO add validation
-    battle:move_unit(UnitId, Pos).
+    Result = true,
+    
+    [Unit] = db:read(local_obj, UnitId),
+    add_move_unit(Result, {Unit#local_obj.global_pos, Player, UnitId, Pos}, NumTicks).
 
 harvest(Id, Resource) ->
     Player = get(player_id),
@@ -199,6 +203,22 @@ add_move(true, {Obj, NewPos}, NumTicks) ->
                  NewPos},
 
     game:add_event(self(), move_obj, EventData, NumTicks).
+
+add_move_unit(true, {GlobalPos, Player, UnitId, NewPos}, NumTicks) ->
+    %Update unit state
+    local:update_state(UnitId, moving),
+    
+    %Create event data
+    EventData = {GlobalPos,
+                 Player,
+                 UnitId,
+                 NewPos},
+
+    game:add_event(self(), move_local_obj, EventData, NumTicks);
+
+add_move_unit(false, _, _) ->
+    lager:info("Move unit failed"),
+    none.
 
 add_equip(false, _EventData) ->
     lager:info("Equip failed"),

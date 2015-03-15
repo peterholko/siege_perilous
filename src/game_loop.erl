@@ -114,7 +114,10 @@ do_event(attack_obj, EventData, _PlayerPid) ->
 do_event(move_local_obj, EventData, _PlayerPid) ->
     lager:info("Processing move_local_obj event: ~p", [EventData]),
 
-    {GlobalPos, Player, Id, {X, Y}} = EventData,
+    {GlobalPos, Player, Id, NewPos} = EventData,
+
+    local:move(Id, NewPos),
+    map:add_local_explored(Player, GlobalPos, NewPos),
 
     {false, {GlobalPos, true}};
 
@@ -157,6 +160,7 @@ global_recalculate(true) ->
 local_recalculate([]) ->
     done;
 local_recalculate([GlobalPos | Rest]) ->
+    lager:info("Local recalculate ~p", [GlobalPos]),
     l_perception:recalculate(GlobalPos),
     local_recalculate(Rest).
 

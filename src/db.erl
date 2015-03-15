@@ -46,7 +46,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(battle_obj, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, battle_obj)}]),    
     {atomic, ok} = mnesia:create_table(battle_unit, [{disc_copies, [node()]}, {attributes, record_info(fields, battle_unit)}]),    
     {atomic, ok} = mnesia:create_table(local_map, [{disc_copies, [node()]}, {attributes, record_info(fields, local_map)}]),    
-    {atomic, ok} = mnesia:create_table(local_obj, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, local_obj)}]),    
+    {atomic, ok} = mnesia:create_table(local_obj, [{disc_copies, [node()]}, {attributes, record_info(fields, local_obj)}]),    
     {atomic, ok} = mnesia:create_table(charge_time, [{disc_copies, [node()]}, {attributes, record_info(fields, charge_time)}]),    
     {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, resource)}]),    
@@ -62,7 +62,7 @@ create_schema() ->
     mnesia:add_table_index(battle_unit, pos),
     mnesia:add_table_index(action, battle),
     mnesia:add_table_index(local_obj, global_obj_id),
-    mnesia:add_table_index(local_obj, id),
+    mnesia:add_table_index(local_obj, global_pos),
     mnesia:add_table_index(local_obj, pos),
 
     mnesia:stop().

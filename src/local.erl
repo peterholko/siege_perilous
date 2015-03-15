@@ -6,10 +6,10 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/3, enter_map/4, exit_map/1, create/7, update_state/2]).
+-export([init_perception/3, enter_map/4, exit_map/1, create/8, move/2, update_state/2]).
 
 init_perception(PlayerId, Pos, TileType) ->
-    LocalObjList = db:read(local_obj, Pos),
+    LocalObjList = db:index_read(local_obj, Pos, #local_obj.global_pos),
 
     LocalExploredMap = map:get_local_explored(PlayerId, Pos),
     LocalObjData = get_obj_data(LocalObjList, []),
@@ -26,7 +26,7 @@ enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
                 lager:info("enter_map unit: ~p", [Unit]),
                 {Id} = bson:lookup('_id', Unit), 
                 {TypeName} = bson:lookup(type_name, Unit),
-                create(GlobalPos, GlobalObjId, Id, EnterPos, unit, TypeName, none)
+                create(GlobalPos, GlobalObjId, Id, EnterPos, PlayerId, entity, TypeName, none)
         end,
 
     lists:foreach(F, Units).
@@ -44,22 +44,31 @@ exit_map(GlobalObjId) ->
             true
     end.
 
-create(GlobalPos, GlobalObjId, Id, Pos, Class, Type, State) ->
+create(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Type, State) ->
     lager:info("Creating local obj"),
-    LocalObj = #local_obj {global_pos = GlobalPos,
+    LocalObj = #local_obj {id = Id,
                            global_obj_id = GlobalObjId,
-                           id = Id,
+                           global_pos = GlobalPos,
                            pos = Pos,
+                           player = PlayerId,
                            class = Class,
                            type = Type,
                            state = State},
 
     db:write(LocalObj).    
 
+move(Id, Pos) ->
+    %TODO convert to transaction
+    lager:info("Move local obj ~p ~p", [Id, Pos]),
+    [LocalObj] = db:read(local_obj, Id),
+    NewLocalObj = LocalObj#local_obj {pos = Pos,
+                                      state = none},
+    db:write(NewLocalObj).
+
 update_state(Id, State) ->
     lager:info("Update state: ~p ~p", [Id, State]),
     %TODO make transaction
-    [LocalObj] = db:index_read(local_obj, Id, #local_obj.id),
+    [LocalObj] = db:read(local_obj, Id),
     NewLocalObj = LocalObj#local_obj {state = State},
     db:write(NewLocalObj).
  
@@ -69,7 +78,7 @@ update_state(Id, State) ->
 
 remove_obj(LocalObj) ->
     lager:info("Removing local obj: ~p", [LocalObj]),
-    db:delete(local_obj, LocalObj#local_obj.global_pos).
+    db:delete(local_obj, LocalObj#local_obj.id).
 
 remove_all_objs([]) ->
     done;

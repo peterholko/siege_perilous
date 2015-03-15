@@ -56,9 +56,9 @@
                     tile = 0,
                     misc}).
 
--record(local_obj, {global_pos,
+-record(local_obj, {id,
                     global_obj_id,
-                    id,
+                    global_pos,
                     pos,
                     player,
                     class,

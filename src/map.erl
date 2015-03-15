@@ -227,7 +227,7 @@ nearby_objs(SourcePos, global_map, LOSDist) ->
 
 nearby_objs(SourcePos, {local_map, GlobalPos}, LOSDist) ->
     T = fun() ->
-            AllObjs = db:read(local_obj, GlobalPos),
+            AllObjs = db:index_read(local_obj, GlobalPos, #local_obj.global_pos),
 
             F = fun(MapObj, NearbyObjs) ->
                     build_nearby_list(SourcePos, MapObj, NearbyObjs, LOSDist)

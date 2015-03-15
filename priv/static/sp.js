@@ -100,7 +100,7 @@ function init() {
     initImages();
     initUI();
 
-    createjs.Ticker.setFPS(30);
+    createjs.Ticker.setFPS(15);
     createjs.Ticker.addEventListener("tick", stage);
 
     $('#server').val("ws://" + window.location.host + "/websocket");
@@ -242,7 +242,8 @@ function sendMove(direction) {
 
 function sendEquip() {
     console.log("sendEquip");
-    var e = '{"cmd": "build", "sourceid": "54822ccb1c93b16038108f25", "x": 1, "y": 1, "structure": "Stockade"}';
+    //var e = '{"cmd": "build", "sourceid": "54822ccb1c93b16038108f25", "x": 1, "y": 1, "structure": "Stockade"}';
+    var e = '{"cmd": "move_unit", "sourceid": "54e105be9b4e1462bed8ef65", "x": 1, "y": 1}';    
     websocket.send(e);
 };
 

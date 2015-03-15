@@ -193,6 +193,13 @@ prepare(map_perception, Message) ->
      {<<"objs">>, NewObjs},
      ExploredTuple];
 
+prepare(local_perception, Message) ->
+    [ExploredTuple, {<<"objs">>, Objs}] = Message,
+    NewObjs = convert_id(Objs, []),
+    [{<<"packet">>, <<"local_perception">>},
+     {<<"objs">>, NewObjs},
+     ExploredTuple];
+    
 prepare(battle_perception, Message) ->
     {BattleUnits, BattleMap} = Message,
     ConvertBattleUnits = convert_battle_id(BattleUnits, []),
@@ -204,6 +211,8 @@ prepare(item_perception, Message) ->
     ItemPerception = item_perception(Message, []),
     [{<<"packet">>, <<"item_perception">>},
      {<<"items">>, ItemPerception}]; 
+
+    
 
 prepare(battle_dmg, Message) ->
     BattleId = maps:get(<<"battle">>, Message),
