@@ -486,6 +486,9 @@ function drawObjs() {
 function drawLocal(jsonData) {
     showLocalPanel();
 
+    var localMap = localPanel.getChildByName("localMap");
+    var localObjs = localPanel.getChildByName("localObjs"); 
+
     for(var i = 0; i < jsonData.explored.length; i++) {
         var tile = jsonData.explored[i];
         var pixel = hex_to_pixel(tile.x, tile.y);
@@ -494,11 +497,13 @@ function drawLocal(jsonData) {
         for(var j = 0; j < tiles.length; j++) {
             var tileImageId = tiles[j] - 1;
             var imagePath = "/static/tileset/" + tileset[tileImageId].image;
-            
-            imagesQueue.push({id: tileImageId, x: pixel.x, y: pixel.y, target: getLocalPanelContent(), index: j});
+         
+            imagesQueue.push({id: tileImageId, x: pixel.x, y: pixel.y, target: localMap, index: j});
             loaderQueue.loadFile({id: tileImageId, src: imagePath});
         }
     }
+ 
+    localObjs.removeAllChildren();
 
     for(var i = 0; i < jsonData.objs.length; i++) {
         var obj = jsonData.objs[i];
@@ -517,8 +522,16 @@ function drawLocal(jsonData) {
         icon.on("mousedown", function(evt) {
             selectedUnit = this.id;
         });
-        addChildLocalPanel(icon);
 
+        addChildLocalPanel(icon, "localObjs");
+
+        if(unitName.indexOf("hero") > -1) {
+            c_x = 250 - 36 - pixel.x;
+            c_y = 230 - 36 - pixel.y;
+            createjs.Tween.get(localMap).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
+            createjs.Tween.get(localObjs).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
+        }
+ 
         imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
         loaderQueue.loadFile({id: unitName, src: imagePath});
     }
@@ -893,7 +906,7 @@ function initUI() {
         this.parent.visible = false;
     });
 
-    content.name = 'content'
+    content.name = "content";
 
     battlePanel.addChild(bg);
     battlePanel.addChild(battleText);
@@ -911,6 +924,11 @@ function initUI() {
     var bg = new createjs.Shape();
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
+    var localMap = new createjs.Container();
+    var localObjs = new createjs.Container();
+
+    localMap.width = 500;
+    localMap.height = 460;
 
     bg.graphics.beginFill("#1c1c1c").drawRect(0,0,500,460);
 
@@ -921,11 +939,15 @@ function initUI() {
         this.parent.visible = false;
     });
 
-    content.name = 'content'
+    content.name = "content";
+    localMap.name = "localMap";
+    localObjs.name = "localObjs";
 
     localPanel.addChild(bg);
     localPanel.addChild(battleText);
     localPanel.addChild(close);
+    localPanel.addChild(localMap);
+    localPanel.addChild(localObjs);
     localPanel.addChild(content);
 
     stage.addChild(localPanel);
@@ -1048,9 +1070,9 @@ function getBattlePanelContent() {
     return battlePanel.getChildByName('content');
 };
 
-function addChildLocalPanel(item) {
-    var content = localPanel.getChildByName('content');
-    content.addChild(item);
+function addChildLocalPanel(item, childName) {
+    var child = localPanel.getChildByName(childName);
+    child.addChild(item);
 };
 
 function getLocalPanelContent() {
