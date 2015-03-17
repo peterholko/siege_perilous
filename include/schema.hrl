@@ -26,7 +26,8 @@
               state}).
 
 -record(explored_map, {player,
-                       tiles}).
+                       tiles,
+                       new_tiles}).
 
 -record(event, {id, 
                 player_process,
@@ -37,20 +38,8 @@
 -record(perception, {player,
                      data}).
 
--record(battle, {id,
-                 tiles}).
-
--record(battle_obj, {battle,
-                     player,
-                     obj}).
-
 -record(battle_unit, {unit,
-                      obj,
-                      pos,
-                      type,
-                      state,
-                      speed,
-                      battle}).
+                      speed}).
 
 -record(local_map, {index,
                     tile = 0,
@@ -70,6 +59,4 @@
 
 -record(action, {source_id,
                  type,
-                 data,
-                 battle}).
-
+                 data}).

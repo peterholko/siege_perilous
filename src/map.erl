@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_local_explored/2, get_nearby_objs/3, get_tiles/1,
+-export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_local_explored/3, get_nearby_objs/3, get_tiles/1,
          get_nearby_objs/4, xml_test/0, tileset/0]).
 -export([add_explored/2, add_local_explored/3, is_valid_pos/1]).
 -export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1]).
@@ -44,8 +44,8 @@ get_tile(X, Y) ->
 get_explored(PlayerId) ->
     gen_server:call({global, map}, {get_explored, PlayerId}).
 
-get_local_explored(PlayerId, GlobalPos) ->
-    gen_server:call({global, map}, {get_local_explored, PlayerId, GlobalPos}).
+get_local_explored(PlayerId, GlobalPos, All) ->
+    gen_server:call({global, map}, {get_local_explored, PlayerId, GlobalPos, All}).
 
 get_tiles(TileIds) ->
     gen_server:call({global, map}, {get_tiles, TileIds}).
@@ -87,10 +87,23 @@ handle_cast({add_explored, Player, {X, Y}}, Data) ->
 handle_cast({add_local_explored, Player, GlobalPos, {X, Y}}, Data) ->
     lager:info("add_local_explored: ~p ~p", [X, Y]),
     ExploredMap = db:read(explored_map, {Player, GlobalPos}),
+    
+    ExploredTiles = get_explored_tiles(ExploredMap),
     Neighbours = neighbours(X, Y, 38, 32),
-    NewTiles = new_explored_tiles(ExploredMap, Neighbours, [{X, Y}]),
-    NewExploredMap = #explored_map {player = {Player, GlobalPos}, tiles = NewTiles},
+    LatestTiles = Neighbours ++ [{X, Y}],
+
+    %Convert lists to sets for intersect and unique list processing
+    SetExploredTiles = sets:from_list(ExploredTiles),
+    SetLatestTiles = sets:from_list(LatestTiles),
+
+    SetNewTiles = sets:subtract(SetLatestTiles, SetExploredTiles),
+    SetNewExploredTiles = sets:union(SetExploredTiles, SetLatestTiles),
+
+    NewExploredMap = #explored_map {player = {Player, GlobalPos}, 
+                                    tiles = sets:to_list(SetNewExploredTiles),
+                                    new_tiles = sets:to_list(SetNewTiles)},
     db:write(NewExploredMap),
+
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -98,13 +111,13 @@ handle_cast(stop, Data) ->
 
 handle_call({get_explored, PlayerId}, _From, Data) ->
     ExploredMap = db:read(explored_map, PlayerId),
-    ExploredTiles = explored_map(ExploredMap, none), 
+    ExploredTiles = explored_map(ExploredMap, none, all), 
 
     {reply, ExploredTiles, Data};
 
-handle_call({get_local_explored, PlayerId, GlobalPos}, _From, Data) ->
+handle_call({get_local_explored, PlayerId, GlobalPos, All}, _From, Data) ->
     ExploredMap = db:read(explored_map, {PlayerId, GlobalPos}),
-    Exploredtiles = explored_map(ExploredMap, GlobalPos),
+    Exploredtiles = explored_map(ExploredMap, GlobalPos, All),
 
     {reply, Exploredtiles, Data};
 
@@ -144,11 +157,14 @@ terminate(_Reason, _) ->
 
 %% --------------------------------------------------------------------
 %%% Internal functions
-explored_map([], _) ->
+explored_map([], _, _) ->
     [];
-
-explored_map([ExploredMap], GlobalPos) ->
+explored_map([ExploredMap], GlobalPos, all) ->
     TileIds = ExploredMap#explored_map.tiles,
+    Tiles = tiles_msg_format(TileIds, [], GlobalPos),
+    Tiles;
+explored_map([ExploredMap], GlobalPos, new) ->
+    TileIds = ExploredMap#explored_map.new_tiles,
     Tiles = tiles_msg_format(TileIds, [], GlobalPos),
     Tiles.
 
@@ -158,6 +174,11 @@ new_explored_tiles([ExploredMap], NewExploredTiles, CurrPos) ->
     lager:info("ExploredMap: ~p", [ExploredMap]),
     util:unique_list(ExploredMap#explored_map.tiles ++ NewExploredTiles ++ CurrPos).
     
+get_explored_tiles([]) ->
+    [];
+get_explored_tiles([ExploredMap]) ->
+    ExploredMap#explored_map.tiles.
+
 tiles_msg_format([], Tiles, _) ->
     Tiles;
 

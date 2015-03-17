@@ -144,7 +144,7 @@ compare_perception([], UpdatePlayers) ->
     UpdatePlayers;
 
 compare_perception([{{Player, GlobalPos}, NewObjPerception} | Rest], UpdatePlayers) ->
-    ExploredTiles = map:get_local_explored(Player, GlobalPos),
+    ExploredTiles = map:get_local_explored(Player, GlobalPos, new),
     lager:info("ExploredTiles ~p", [ExploredTiles]),
     NewPerception = [{<<"explored">>, ExploredTiles},
                      {<<"objs">>, NewObjPerception}],

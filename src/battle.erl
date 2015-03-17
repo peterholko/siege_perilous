@@ -100,16 +100,11 @@ handle_cast({active_turn, BattleId, UnitId}, Data) ->
     {noreply, Data};
 
 handle_cast({attack_unit, SourceId, TargetId}, Data) -> 
-    [BattleUnit] = db:read(battle_unit, SourceId),
-    BattleId = BattleUnit#battle_unit.battle,
-
     Action = #action {source_id = SourceId,
                       type = attack,
-                      data = TargetId,
-                      battle = BattleId},
+                      data = TargetId},
   
     db:write(Action),
-
     {noreply, Data};
 
 handle_cast({move_unit, SourceId, Pos}, Data) ->
@@ -177,46 +172,21 @@ create_battle(Pos) ->
     db:write(Battle),
     Id.
 
-add_battle_obj(Battle, Player, Obj) ->
-    BattleObj = #battle_obj {battle = Battle,
-                             player = Player,
-                             obj =  Obj},
-    db:write(BattleObj).
-
-add_battle_units(_BattleId, [], _Attacker, _Num) ->
+add_battle_units([]) ->
     lager:info("Done adding battle units");
 
-add_battle_units(BattleId, [Unit | Rest], Attacker, UnitIndex) ->
-    lager:info("Adding battle_unit"),
-    set_battle_unit(BattleId, Unit, Attacker, UnitIndex),
+add_battle_units([Unit | Rest]) ->
+    set_battle_unit(Unit),
+    add_battle_units(Rest).
 
-    add_battle_units(BattleId, Rest, Attacker, UnitIndex + 1).
-
-set_battle_unit(BattleId, Unit, Attacker, UnitIndex) ->
+set_battle_unit(Unit) ->
     {Id} = bson:lookup('_id', Unit),
-    {ObjId} = bson:lookup(obj_id, Unit), 
     {Speed} = bson:lookup(base_speed, Unit),
-    {Name} = bson:lookup(name, Unit),
-
-    Pos = get_unit_pos(Attacker, UnitIndex),
 
     BattleUnit = #battle_unit {unit = Id,
-                               obj = ObjId,
-                               pos = Pos,
-                               type = Name,
-                               state = none,
-                               speed = Speed,
-                               battle = BattleId},
+                               speed = Speed},
     lager:info("BattleUnit: ~p", [BattleUnit]),
     db:write(BattleUnit).
-
-get_unit_pos(true, UnitIndex) ->
-    {0, UnitIndex};
-get_unit_pos(false, UnitIndex) ->
-    {3, UnitIndex}.
-
-get_battle_units(BattleId) ->
-    db:index_read(battle_unit, BattleId, #battle_unit.battle).
 
 get_perception([], Perception) ->
     Perception;

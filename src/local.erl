@@ -8,10 +8,10 @@
 
 -export([init_perception/3, enter_map/4, exit_map/1, create/8, move/2, update_state/2]).
 
-init_perception(PlayerId, Pos, TileType) ->
+init_perception(PlayerId, Pos, _TileType) ->
     LocalObjList = db:index_read(local_obj, Pos, #local_obj.global_pos),
 
-    LocalExploredMap = map:get_local_explored(PlayerId, Pos),
+    LocalExploredMap = map:get_local_explored(PlayerId, Pos, all),
     LocalObjData = get_obj_data(LocalObjList, []),
     lager:info("LocalExploredMap: ~p", [LocalExploredMap]), 
     {LocalExploredMap, LocalObjData}.
