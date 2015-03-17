@@ -92,10 +92,10 @@ handle_cast({create, AtkId, DefId}, Data) ->
 
     {noreply, Data};
 
-handle_cast({active_turn, BattleId, UnitId}, Data) ->
+handle_cast({active_turn, UnitId}, Data) ->
     
     Action = db:read(action, UnitId),
-    process_action(BattleId, Action),
+    process_action(Action),
 
     {noreply, Data};
 
@@ -103,18 +103,14 @@ handle_cast({attack_unit, SourceId, TargetId}, Data) ->
     Action = #action {source_id = SourceId,
                       type = attack,
                       data = TargetId},
-  
     db:write(Action),
     {noreply, Data};
 
 handle_cast({move_unit, SourceId, Pos}, Data) ->
-    [BattleUnit] = db:read(battle_unit, SourceId),
-    BattleId = BattleUnit#battle_unit.battle,
-    
+    %[BattleUnit] = db:read(battle_unit, SourceId),
     Action = #action {source_id = SourceId,
                       type = move,
-                      data = Pos,
-                      battle = BattleId},
+                      data = Pos},
   
     db:write(Action),
 
@@ -231,22 +227,22 @@ send_perception([{PlayerId, Perception} | Players]) ->
     send_to_process(Conn#connection.process, battle_perception, Perception),
     send_perception(Players).
 
-process_action(BattleId, [Action]) ->
+process_action([Action]) ->
 
     case Action#action.type of
         attack ->
-            process_attack(BattleId, Action);
+            process_attack(Action);
         move ->
-            process_move(BattleId, Action);
+            process_move(Action);
         _ ->
             lager:info("Unknown action type: ~p", [Action#action.type]) 
     end;
 
-process_action(_Battle, _Action) ->
+process_action(_Action) ->
     %lager:info("No action defined.").
     none.
 
-process_attack(BattleId, Action) ->
+process_attack(Action) ->
     lager:info("Process attack"),
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
@@ -256,9 +252,9 @@ process_attack(BattleId, Action) ->
 
     is_attack_valid(SourceId, AtkUnit, DefUnit),
 
-    process_dmg(BattleId, SourceId, TargetId).
+    process_dmg(SourceId, TargetId).
 
-process_move(BattleId, Action) ->
+process_move(Action) ->
     lager:info("Process move"),
     UnitId = Action#action.source_id,
     Pos = Action#action.data,
@@ -316,13 +312,13 @@ is_attack_valid(SourceId, [AtkUnit], [DefUnit]) ->
 is_attack_valid(SourceId, _, _) ->
     db:delete(action, SourceId).
 
-process_dmg(_BattleId, false, _DefUnit) ->
+process_dmg(false, _DefUnit) ->
     lager:info("Source no longer available");
 
-process_dmg(_BattleId, _AtkUnit, false) ->
+process_dmg(_AtkUnit, false) ->
     lager:info("Target no longer avalalble");
 
-process_dmg(BattleId, AtkId, DefId) ->
+process_dmg(AtkId, DefId) ->
     AtkUnit = unit:get_stats(AtkId),
     DefUnit = unit:get_stats(DefId),
 
@@ -346,14 +342,14 @@ process_dmg(BattleId, AtkId, DefId) ->
 
     %Broadcast damage
     lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
-    broadcast_dmg(BattleId, AtkId, DefId, Dmg, UnitState),
+    broadcast_dmg(AtkId, DefId, Dmg, UnitState),
 
     %Check if unit is dead 
     case UnitState of
         <<"alive">> ->
             update_hp(DefId, NewHp);
         <<"dead">> ->
-            process_unit_dead(BattleId, AtkObjId, DefObjId, DefId)
+            process_unit_dead(AtkObjId, DefObjId, DefId)
     end.
 
 is_unit_dead(Hp) when Hp =< 0 ->
