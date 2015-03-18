@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/2, info/1, check_player/2, active_turn/2, attack_unit/2, move_unit/2]).
+-export([active_turn/1, attack_unit/2, move_unit/2]).
 
 %% ====================================================================
 %% External functions
@@ -24,17 +24,8 @@
 start() ->
     gen_server:start({global, battle}, battle, [], []).
 
-create(AtkId, DefId) ->
-    gen_server:cast({global, battle}, {create, AtkId, DefId}).
-
-info(Battle) ->
-    gen_server:call({global, battle}, {info, Battle}).
-
-check_player(Player, Battle) ->
-    gen_server:call({global, battle}, {check_player, Player, Battle}).
-
-active_turn(BattleId, UnitId) ->
-    gen_server:cast({global, battle}, {active_turn, BattleId, UnitId}).
+active_turn(UnitId) ->
+    gen_server:cast({global, battle}, {active_turn, UnitId}).
 
 attack_unit(SourceId, TargetId) ->
     gen_server:cast({global, battle}, {attack_unit, SourceId, TargetId}).
@@ -48,49 +39,6 @@ move_unit(UnitId, Pos) ->
 
 init([]) ->
     {ok, []}.
-
-handle_cast({create, AtkId, DefId}, Data) ->   
-    AtkObj = map:get_obj(AtkId), 
-    DefObj = map:get_obj(DefId), 
-    Pos = AtkObj#obj.pos,
-
-    lager:info("Creating battle..."),
-    %Create battle
-    BattleId = create_battle(Pos),
-
-    lager:info("Adding battle objs..."),
-
-    %Add battle objs
-    add_battle_obj(BattleId, AtkObj#obj.player, AtkObj#obj.id),
-    add_battle_obj(BattleId, DefObj#obj.player, DefObj#obj.id),
-
-    AtkUnits = unit:get_units_and_stats(AtkId),
-    DefUnits = unit:get_units_and_stats(DefId),
-
-    lager:info("Adding battle units..."),
-
-    %Add battle units
-    add_battle_units(BattleId, AtkUnits, true, 0),
-    add_battle_units(BattleId, DefUnits, false, 0),
-
-    %Set state to combat
-    set_combat_state([AtkObj, DefObj]),
-
-    %Get battle units
-    BattleUnits = get_battle_units(BattleId),
-    lager:info("BattleUnits: ~p", [BattleUnits]),
-
-    %Build battle perception
-    BattlePerception = get_perception(BattleUnits, []),
-    BattleMap = get_battle_map(BattleId),
-
-    lager:info("BattlePerception: ~p", [BattlePerception]),
-    lager:info("BattleMap: ~p", [BattleMap]),
-
-    send_perception([{AtkObj#obj.player, {BattlePerception, BattleMap}}, 
-                     {DefObj#obj.player, {BattlePerception, BattleMap}}]),
-
-    {noreply, Data};
 
 handle_cast({active_turn, UnitId}, Data) ->
     
@@ -107,7 +55,6 @@ handle_cast({attack_unit, SourceId, TargetId}, Data) ->
     {noreply, Data};
 
 handle_cast({move_unit, SourceId, Pos}, Data) ->
-    %[BattleUnit] = db:read(battle_unit, SourceId),
     Action = #action {source_id = SourceId,
                       type = move,
                       data = Pos},
@@ -118,20 +65,6 @@ handle_cast({move_unit, SourceId, Pos}, Data) ->
  
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
-
-handle_call({info, Battle}, _From, Data) ->
-    BattleUnits = get_battle_units(Battle),
-    BattleMap = get_battle_map(Battle),
-
-    BattlePerception = get_perception(BattleUnits, []),
-
-    {reply, {BattlePerception, BattleMap}, Data};
-
-handle_call({check_player, Player, Battle}, _From, Data) ->
-    BattleObjList = db:read(battle_obj, Battle),
-    Result = lists:keymember(Player, #battle_obj.player, BattleObjList),
-    lager:info("Battle check_player: ~p", [Result]), 
-    {reply, Result, Data};
 
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
@@ -159,15 +92,6 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-create_battle(Pos) ->
-    Id =  obj:create(0, Pos, misc, <<"battle">>),
-    LocalMap = db:read(local_map, 1),
-
-    Battle = #battle {id = Id,
-                      tiles = LocalMap},
-    db:write(Battle),
-    Id.
-
 add_battle_units([]) ->
     lager:info("Done adding battle units");
 
@@ -184,48 +108,12 @@ set_battle_unit(Unit) ->
     lager:info("BattleUnit: ~p", [BattleUnit]),
     db:write(BattleUnit).
 
-get_perception([], Perception) ->
-    Perception;
-
-get_perception([BattleUnit | Rest], Perception) ->
-    {X, Y} = BattleUnit#battle_unit.pos,
-    NewPerception = [ #{<<"unit">> => BattleUnit#battle_unit.unit,
-                        <<"obj">> => BattleUnit#battle_unit.obj,
-                        <<"x">> => X,
-                        <<"y">> => Y,
-                        <<"type">> => BattleUnit#battle_unit.type,
-                        <<"state">> => BattleUnit#battle_unit.state} | Perception],
-
-    get_perception(Rest, NewPerception).
-
-get_battle_map(BattleId) ->
-    [Battle] = db:read(battle, BattleId),
-   
-    F = fun(TileData, MsgTiles) ->
-            {local_map, _LocalType, Pos, Type} = TileData,
-            {X, Y} = Pos,
-            [#{<<"x">> => X,
-               <<"y">> => Y,
-               <<"t">> => Type} | MsgTiles]
-        end,
-
-    lists:foldl(F, [], Battle#battle.tiles). 
-
 set_combat_state([]) ->
     lager:info("Done updating combat state"),
     done;
 set_combat_state([Entity | Rest]) ->
     map:update_obj_state(Entity, combat),
     set_combat_state(Rest).
-
-send_perception([]) ->
-    lager:info("Done sending battle perception");
-
-send_perception([{PlayerId, Perception} | Players]) ->
-    lager:info("Sending perpcetion to player: ~p", [PlayerId]),
-    [Conn] = db:dirty_read(connection, PlayerId),
-    send_to_process(Conn#connection.process, battle_perception, Perception),
-    send_perception(Players).
 
 process_action([Action]) ->
 
@@ -255,33 +143,14 @@ process_attack(Action) ->
     process_dmg(SourceId, TargetId).
 
 process_move(Action) ->
-    lager:info("Process move"),
-    UnitId = Action#action.source_id,
-    Pos = Action#action.data,
-    
-    [BattleUnit] = db:read(battle_unit, UnitId),
-    NewBattleUnit = BattleUnit#battle_unit{pos = Pos},
-    db:write(NewBattleUnit),
+    none.
 
-    %Remove move action
-    db:delete(action, UnitId),
-    
-    broadcast_move(BattleId, UnitId, Pos).
-    
 broadcast_dmg(BattleId, SourceId, TargetId, Dmg, State) ->
-    BattleObjs = db:read(battle_obj, BattleId), 
-
-    F = fun(BattleObj) ->
-                Message = #{<<"battle">> => BattleId, 
-                            <<"sourceid">> => SourceId,
-                            <<"targetid">> => TargetId,
-                            <<"dmg">> => Dmg,
-                            <<"state">> => State},
-                [Conn] = db:dirty_read(connection, BattleObj#battle_obj.player),
-                send_to_process(Conn#connection.process, battle_dmg, Message)
-        end,
-
-    lists:foreach(F, BattleObjs).
+        Message = #{<<"battle">> => BattleId, 
+                    <<"sourceid">> => SourceId,
+                    <<"targetid">> => TargetId,
+                    <<"dmg">> => Dmg,
+                    <<"state">> => State},
 
 broadcast_move(BattleId, SourceId, Pos) ->
     BattleObjs = db:read(battle_obj, BattleId), 

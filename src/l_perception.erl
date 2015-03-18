@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/1]).
+-export([recalculate/1, broadcast/3]).
 
 %% ====================================================================
 %% External functions
@@ -27,6 +27,9 @@ start() ->
 recalculate(GlobalPos) ->
     gen_server:cast({global, l_perception_pid}, {recalculate, GlobalPos}).
 
+broadcast(GlobalPos, SourcePos, MessageData) ->
+    gen_server:cast({global, l_perception_pid}, {broadcast, GlobalPos, SourcePos, MessageData}).
+
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -35,10 +38,14 @@ init([]) ->
     {ok, []}.
 
 handle_cast({recalculate, GlobalPos}, Data) ->   
-
     do_recalculate(GlobalPos),
-
     {noreply, Data};
+
+handle_cast({broadcast, GlobalPos, SourcePos, MessageData}, Data) ->
+    NearbyObjs = map:get_nearby_objs(SourcePos, {local_map, GlobalPos}, 2),
+    broadcast_to_objs(NearbyObjs, MessageData),
+
+    {noreply, Data};    
 
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
@@ -183,3 +190,19 @@ send_to_process(Process, NewPerception) when is_pid(Process) ->
     Process ! {local_perception, NewPerception};
 send_to_process(_Process, _NewPerception) ->
     none.
+
+broadcast_to_objs(Objs, Message) ->
+    Players = get_unique_players(Objs, []),
+    
+    F = fun(Player) ->
+            [Conn] = db:dirty_read(connection, Player),
+            Conn#connection.process ! {broadcast, Message}
+        end,
+    
+    lists:foreach(F, Players).    
+
+get_unique_players([], Players) ->
+    util:unique_list(Players);
+get_unique_players([Obj | Rest], Players) ->
+    NewPlayers = [maps:get(<<"player">>, Obj) | Players],
+    get_unique_players(Rest, NewPlayers).
