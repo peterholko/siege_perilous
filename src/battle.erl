@@ -135,57 +135,41 @@ process_attack(Action) ->
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
-    AtkUnit = db:read(battle_unit, SourceId),
-    DefUnit = db:read(battle_unit, TargetId),
-
-    is_attack_valid(SourceId, AtkUnit, DefUnit),
+    is_attack_valid(SourceId),
 
     process_dmg(SourceId, TargetId).
 
 process_move(Action) ->
     none.
 
-broadcast_dmg(BattleId, SourceId, TargetId, Dmg, State) ->
-        Message = #{<<"battle">> => BattleId, 
-                    <<"sourceid">> => SourceId,
-                    <<"targetid">> => TargetId,
-                    <<"dmg">> => Dmg,
-                    <<"state">> => State},
+broadcast_dmg(SourceId, TargetId, Dmg, State) ->
+    Message = #{<<"sourceid">> => SourceId,
+                <<"targetid">> => TargetId,
+                <<"dmg">> => Dmg,
+                <<"state">> => State},
+
+    [SourceObj] = db:read(local_obj, SourceId),
+    [TargetObj] = db:read(local_obj, TargetId),
+
+    GlobalPos = SourceObj#local_obj.global_pos,
+    SourcePos = SourceObj#local_obj.pos,
+    TargetPos = TargetObj#local_obj.pos,
+
+    l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
 
 broadcast_move(BattleId, SourceId, Pos) ->
-    BattleObjs = db:read(battle_obj, BattleId), 
-    {X, Y} = Pos,
-
-    F = fun(BattleObj) ->
-                Message = #{<<"battle">> => BattleId, 
-                            <<"sourceid">> => SourceId,
-                            <<"x">> => X,
-                            <<"y">> => Y,
-                            <<"state">> => <<"moving">>},
-                [Conn] = db:dirty_read(connection, BattleObj#battle_obj.player),
-                send_to_process(Conn#connection.process, battle_move, Message)
-        end,
-
-    lists:foreach(F, BattleObjs).
+    done.
        
-is_attack_valid(SourceId, [AtkUnit], [DefUnit]) ->
-    {AtkX, AtkY} = AtkUnit#battle_unit.pos,
-    Neighbours = map:neighbours(AtkX, AtkY, ?BATTLE_WIDTH, ?BATTLE_HEIGHT), 
-    case lists:member(DefUnit#battle_unit.pos, Neighbours) of
+is_attack_valid(SourceId) ->
+    [SourceObj] = db:read(local_obj, SourceId),
+    {X, Y} = SourceObj#local_obj.pos,
+    Neighbours = map:neighbours(X, Y, ?BATTLE_WIDTH, ?BATTLE_HEIGHT), 
+    case lists:member({X, Y}, Neighbours) of
         true ->
             valid;
         false ->
             db:delete(action, SourceId)
-    end;
-
-is_attack_valid(SourceId, _, _) ->
-    db:delete(action, SourceId).
-
-process_dmg(false, _DefUnit) ->
-    lager:info("Source no longer available");
-
-process_dmg(_AtkUnit, false) ->
-    lager:info("Target no longer avalalble");
+    end.
 
 process_dmg(AtkId, DefId) ->
     AtkUnit = unit:get_stats(AtkId),
@@ -234,7 +218,7 @@ is_army_dead(_Units) ->
 update_hp(DefId, NewHp) ->
     mdb:update(<<"unit">>, DefId, {hp, NewHp}).
 
-process_unit_dead(BattleId, AtkObjId, DefObjId, DefId) ->
+process_unit_dead(AtkObjId, DefObjId, DefId) ->
     lager:info("Unit ~p died.", [DefId]),
     
     %Transfer items to the battle

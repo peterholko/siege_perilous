@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/1, broadcast/3]).
+-export([recalculate/1, broadcast/4]).
 
 %% ====================================================================
 %% External functions
@@ -27,8 +27,8 @@ start() ->
 recalculate(GlobalPos) ->
     gen_server:cast({global, l_perception_pid}, {recalculate, GlobalPos}).
 
-broadcast(GlobalPos, SourcePos, MessageData) ->
-    gen_server:cast({global, l_perception_pid}, {broadcast, GlobalPos, SourcePos, MessageData}).
+broadcast(GlobalPos, SourcePos, TargetPos, MessageData) ->
+    gen_server:cast({global, l_perception_pid}, {broadcast, GlobalPos, SourcePos, TargetPos, MessageData}).
 
 %% ====================================================================
 %% Server functions
@@ -41,9 +41,11 @@ handle_cast({recalculate, GlobalPos}, Data) ->
     do_recalculate(GlobalPos),
     {noreply, Data};
 
-handle_cast({broadcast, GlobalPos, SourcePos, MessageData}, Data) ->
-    NearbyObjs = map:get_nearby_objs(SourcePos, {local_map, GlobalPos}, 2),
-    broadcast_to_objs(NearbyObjs, MessageData),
+handle_cast({broadcast, GlobalPos, SourcePos, TargetPos, MessageData}, Data) ->
+    SourceObjs = map:get_nearby_objs(SourcePos, {local_map, GlobalPos}, 2),
+    TargetObjs = map:get_nearby_objs(TargetPos, {local_map, GlobalPos}, 2),
+
+    broadcast_to_objs(SourceObjs ++ TargetObjs, MessageData),
 
     {noreply, Data};    
 
