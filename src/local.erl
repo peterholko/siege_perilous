@@ -14,6 +14,7 @@ init_perception(PlayerId, Pos, _TileType) ->
     LocalExploredMap = map:get_local_explored(PlayerId, Pos, all),
     LocalObjData = get_obj_data(LocalObjList, []),
     lager:info("LocalExploredMap: ~p", [LocalExploredMap]), 
+    lager:info("LocalObjData: ~p", [LocalObjData]), 
     {LocalExploredMap, LocalObjData}.
 
 enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
