@@ -169,11 +169,10 @@ update_charge_times([]) ->
 update_charge_times([BattleUnit | Rest]) ->
     UnitId = BattleUnit#battle_unit.unit,
     Speed = BattleUnit#battle_unit.speed,
-    Battle = BattleUnit#battle_unit.battle,
     
     NewChargeTime = charge_time:increment(UnitId, Speed),
     ActiveTurn = is_active_turn(NewChargeTime),
-    process_active_turn(ActiveTurn, UnitId, Battle),
+    process_active_turn(ActiveTurn, UnitId),
 
     update_charge_times(Rest).
 
@@ -182,11 +181,11 @@ is_active_turn(ChargeTime) when ChargeTime < 100 ->
 is_active_turn(ChargeTime) when ChargeTime >= 100 ->
     true.
 
-process_active_turn(true, UnitId, Battle) ->
+process_active_turn(true, UnitId) ->
     charge_time:reset(UnitId),
     %lager:info("Active turn: ~p", [UnitId]),
-    battle:active_turn(Battle, UnitId);
-process_active_turn(false, _UnitId, _Battle) ->
+    battle:active_turn(UnitId);
+process_active_turn(false, _UnitId) ->
     none. 
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->

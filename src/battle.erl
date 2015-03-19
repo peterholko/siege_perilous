@@ -48,6 +48,18 @@ handle_cast({active_turn, UnitId}, Data) ->
     {noreply, Data};
 
 handle_cast({attack_unit, SourceId, TargetId}, Data) -> 
+    [SourceObj] = db:read(local_obj, SourceId),
+    [TargetObj] = db:read(local_obj, TargetId),
+
+    SourceUnits = unit:get_units_and_stats(SourceObj#local_obj.global_obj_id),
+    TargetUnits = unit:get_units_and_stats(TargetObj#local_obj.global_obj_id),
+
+    add_battle_units(SourceUnits),
+    add_battle_units(TargetUnits),
+    
+    set_combat_state(SourceUnits),
+    set_combat_state(TargetUnits),
+
     Action = #action {source_id = SourceId,
                       type = attack,
                       data = TargetId},
@@ -92,29 +104,6 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-add_battle_units([]) ->
-    lager:info("Done adding battle units");
-
-add_battle_units([Unit | Rest]) ->
-    set_battle_unit(Unit),
-    add_battle_units(Rest).
-
-set_battle_unit(Unit) ->
-    {Id} = bson:lookup('_id', Unit),
-    {Speed} = bson:lookup(base_speed, Unit),
-
-    BattleUnit = #battle_unit {unit = Id,
-                               speed = Speed},
-    lager:info("BattleUnit: ~p", [BattleUnit]),
-    db:write(BattleUnit).
-
-set_combat_state([]) ->
-    lager:info("Done updating combat state"),
-    done;
-set_combat_state([Entity | Rest]) ->
-    map:update_obj_state(Entity, combat),
-    set_combat_state(Rest).
-
 process_action([Action]) ->
 
     case Action#action.type of
@@ -135,11 +124,18 @@ process_attack(Action) ->
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
-    is_attack_valid(SourceId),
+    
+    
+
+    %TODO fix validation
+    %is_attack_valid(SourceId),  
+   
+     
+
 
     process_dmg(SourceId, TargetId).
 
-process_move(Action) ->
+process_move(_Action) ->
     none.
 
 broadcast_dmg(SourceId, TargetId, Dmg, State) ->
@@ -156,20 +152,17 @@ broadcast_dmg(SourceId, TargetId, Dmg, State) ->
     TargetPos = TargetObj#local_obj.pos,
 
     l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
-
-broadcast_move(BattleId, SourceId, Pos) ->
-    done.
        
-is_attack_valid(SourceId) ->
-    [SourceObj] = db:read(local_obj, SourceId),
-    {X, Y} = SourceObj#local_obj.pos,
-    Neighbours = map:neighbours(X, Y, ?BATTLE_WIDTH, ?BATTLE_HEIGHT), 
-    case lists:member({X, Y}, Neighbours) of
-        true ->
-            valid;
-        false ->
-            db:delete(action, SourceId)
-    end.
+%is_attack_valid(SourceId) ->
+%    [SourceObj] = db:read(local_obj, SourceId),
+%    {X, Y} = SourceObj#local_obj.pos,
+%    Neighbours = map:neighbours(X, Y, ?BATTLE_WIDTH, ?BATTLE_HEIGHT), 
+%    case lists:member({X, Y}, Neighbours) of
+%        true ->
+%            valid;
+%        false ->
+%            db:delete(action, SourceId)
+%    end.
 
 process_dmg(AtkId, DefId) ->
     AtkUnit = unit:get_stats(AtkId),
@@ -221,87 +214,51 @@ update_hp(DefId, NewHp) ->
 process_unit_dead(AtkObjId, DefObjId, DefId) ->
     lager:info("Unit ~p died.", [DefId]),
     
-    %Transfer items to the battle
-    transfer_items(BattleId, item:get_by_owner(DefId)),
-
-    lager:info("Removing unit..."),
+    lager:info("Updating unit state"),
     %Remove unit from collection
-    unit:remove(DefId),
+    local:update_state(DefId, dead),
 
-    lager:info("Removing unit from battle..."),
-    %Remove unit from battle
+    lager:info("Removing unit from battle_unit"),
+    
+    %Remove unit from battle and action
     db:delete(battle_unit, DefId),
+    db:delete(action, DefId),
 
-    case is_army_dead(unit:get_units(DefObjId)) of
+    DefUnits = unit:get_units(DefObjId),
+
+    case is_army_dead(DefUnits) of
         dead ->
-            %Remove battle units
-            delete_battle_units(BattleId),
-            
-            %Clear all actions
-            delete_actions(BattleId),
-
-            %Get all items to transfer
-            Items = item:get_by_owner(DefObjId) ++ item:get_by_owner(BattleId),
-            
-            %Send item perception
-            send_item_perception(BattleId, AtkObjId, Items),
-
-            %Transfer any defender army items to attacker and battle items
-            transfer_items(AtkObjId, Items),
-
             %Update map obj state of attacker
             map:update_obj_state(AtkObjId, none),
             
-            %Remove obj and battle
-            obj:remove(DefObjId),
-            obj:remove(BattleId),
-
-            map:remove_obj(DefObjId),
-            map:remove_obj(BattleId),
-             
             %Reprocess perception
-            game:set_perception(true),
-
-            %Remove battle
-            db:delete(battle, BattleId);
+            game:set_perception(true);
         alive ->
             none
     end.
 
-transfer_items(_TargetId, []) ->
-    lager:info("Transferring items completed.");
-transfer_items(TargetId, [Item | Rest]) ->
-    item:transfer(Item, TargetId),
-    transfer_items(TargetId, Rest).
+add_battle_units([]) ->
+    lager:info("Done adding battle units");
 
-send_item_perception(BattleId, ObjId, ItemPerception) ->
-    Battles = db:read(battle_obj, BattleId),
-    Battle = lists:keyfind(ObjId, #battle_obj.obj, Battles),
-    [Conn] = db:read(connection, Battle#battle_obj.player),
-    PlayerPid = Conn#connection.process,
+add_battle_units([Unit| Rest]) ->    
+    set_battle_unit(Unit),
+    add_battle_units(Rest).
 
-    send_to_process(PlayerPid, item_perception, ItemPerception).
+set_battle_unit(Unit) ->
+    {Id} = bson:lookup('_id', Unit),
+    {Speed} = bson:lookup(base_speed, Unit),
 
-delete_battle_units(BattleId) ->
-    BattleUnits = db:index_read(battle_unit, BattleId, #battle_unit.battle),
-    
-    F = fun(BattleUnit) ->
-            db:delete(battle_unit, BattleUnit#battle_unit.unit)
-        end,
+    BattleUnit = #battle_unit {unit = Id,
+                               speed = Speed},
+    lager:info("BattleUnit: ~p", [BattleUnit]),
+    db:write(BattleUnit).
 
-    lists:foreach(F, BattleUnits).
+set_combat_state([]) ->
+    lager:info("Done updating combat state"),
+    done;
+set_combat_state([Unit | Rest]) ->
+    {Id} = bson:lookup('_id', Unit),
+    local:update_state(Id, combat),
+    set_combat_state(Rest).
 
-delete_actions(BattleId) ->
-    Actions = db:index_read(action, BattleId, #action.battle),
 
-    F = fun(Action) ->
-            db:delete(action, Action#action.source_id)
-        end,
-
-    lists:foreach(F, Actions).
-
-send_to_process(Process, MessageType, Message) when is_pid(Process) ->
-    lager:debug("Sending ~p to ~p", [Message, Process]),
-    Process ! {MessageType, Message};
-send_to_process(_Process, _MessageType, _Message) ->
-    none.
