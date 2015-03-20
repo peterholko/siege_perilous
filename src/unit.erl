@@ -89,8 +89,8 @@ stats([Unit]) ->
     stats(Unit);
 
 stats(Unit) ->
-    {UnitTypeId} = bson:lookup(type, Unit),
-    [UnitType] = find_type(UnitTypeId),
+    {TypeName} = bson:lookup(type_name, Unit),
+    [UnitType] = find_type_by_name(TypeName),
     bson:merge(Unit, UnitType).
 
 info(Unit) ->

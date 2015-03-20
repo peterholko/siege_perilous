@@ -230,14 +230,18 @@ compare_distance(NewDistance, Distance, _New, Old) when NewDistance >= Distance 
 compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance ->
     {New, NewDistance}.
 
-next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 3 ->
+next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 2 ->
     {move, NPCUnit, lists:nth(2,Path)};
-next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 3 ->
+next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
     {attack, NPCUnit, EnemyUnit}.
 
-add_battle_action({attack, SourceId, TargetId}) ->
+add_battle_action({attack, Source, Target}) ->
+    lager:info("Adding attack: ~p ~p", [Source, Target]),
+    SourceId = maps:get(<<"id">>, Source),
+    TargetId = maps:get(<<"id">>, Target),
     battle:attack_unit(SourceId, TargetId);
-add_battle_action({move, UnitId, NextPos}) ->
+add_battle_action({move, Unit, NextPos}) ->
+    UnitId = maps:get(<<"id">>, Unit),
     [UnitObj] = db:read(local_obj, UnitId),
 
     add_move_unit(UnitObj#local_obj.global_pos,

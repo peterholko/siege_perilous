@@ -50,6 +50,9 @@ start(_Type, _Args) ->
     npc_mgr:start(),
     npc_mgr:start_all_npc(),
 
+    lager:info("Starting Battle Manager"),
+    battle:start(),
+
     lager:info("Starting game loop"),
     spawn(fun() -> game_loop:loop(util:get_time(), global:whereis_name(game_pid)) end),
 

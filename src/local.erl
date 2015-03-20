@@ -105,7 +105,7 @@ remove_all_objs([LocalObj | Rest]) ->
 get_visible_objs([], Objs, _GlobalPos) ->
     Objs;
 get_visible_objs([Obj | Rest], Objs, GlobalPos) ->
-    NearbyObjs = map:get_nearby_objs(Obj#local_obj.pos, {local_map, GlobalPos}, 3),
+    NearbyObjs = map:get_nearby_objs(Obj#local_obj.pos, {local_map, GlobalPos}, 4),
     NewObjs = Objs ++ NearbyObjs,
     get_visible_objs(Rest, NewObjs, GlobalPos).
 
