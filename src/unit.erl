@@ -6,7 +6,7 @@
 -include("schema.hrl").
 
 -export([get/1, get_info/1, get_type/1, get_stats/1, get_units/1, get_units_and_stats/1]).
--export([create/3, remove/1]).
+-export([create/2, remove/1]).
 
 get(Id) ->
     Unit = find(Id),
@@ -35,17 +35,17 @@ get_units_and_stats(ObjId) ->
     lager:info("units: ~p", [Units]),
     lists:foldl(F, [], Units).
 
-get_type(TypeId) ->
-    [UnitType] = find_type(TypeId),
+get_type(TypeName) ->
+    [UnitType] = find_type_by_name(TypeName),
     UnitType.
 
 get_stats(Id) ->
     Unit = find(Id),
     stats(Unit).
 
-create(ObjId, TypeName, Size) ->
+create(ObjId, TypeName) ->
     {UnitType} = find_type_by_name(TypeName),
-    insert(ObjId, UnitType, Size).
+    insert(ObjId, UnitType).
 
 remove(UnitId) ->
     mdb:delete(<<"unit">>, UnitId).
@@ -76,10 +76,10 @@ find_units(ObjId) ->
     lager:info("find_units: ~p", [Units]),
     Units.
 
-insert(ObjId, Type, Size) ->
-    {TypeId} = bson:lookup('_id', Type),
+insert(ObjId, Type) ->
+    {TypeName} = bson:lookup('name', Type),
     {BaseHp} = bson:lookup(base_hp, Type),
-    Unit = {obj_id, ObjId, hp, BaseHp, size, Size, type, TypeId},
+    Unit = {obj_id, ObjId, hp, BaseHp, type_name, TypeName},
     mongo:insert(mdb:get_conn(), <<"unit">>, [Unit]).
 
 stats([]) ->

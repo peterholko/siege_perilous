@@ -6,13 +6,14 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/3, enter_map/4, exit_map/1, create/8, move/2, update_state/2]).
+-export([init_perception/3, enter_map/4, exit_map/1, create/6, move/2, update_state/2]).
 
-init_perception(PlayerId, Pos, _TileType) ->
-    LocalObjList = db:index_read(local_obj, Pos, #local_obj.global_pos),
+init_perception(PlayerId, GlobalPos, _TileType) ->
+    LocalPlayerUnits = db:index_read(local_obj, PlayerId, #local_obj.player),
 
-    LocalExploredMap = map:get_local_explored(PlayerId, Pos, all),
-    LocalObjData = get_obj_data(LocalObjList, []),
+    LocalExploredMap = map:get_local_explored(PlayerId, GlobalPos, all),
+    LocalObjData = util:unique_list(get_visible_objs(LocalPlayerUnits, [], GlobalPos)),
+
     lager:info("LocalExploredMap: ~p", [LocalExploredMap]), 
     lager:info("LocalObjData: ~p", [LocalObjData]), 
     {LocalExploredMap, LocalObjData}.
@@ -27,7 +28,7 @@ enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
                 lager:info("enter_map unit: ~p", [Unit]),
                 {Id} = bson:lookup('_id', Unit), 
                 {TypeName} = bson:lookup(type_name, Unit),
-                create(GlobalPos, GlobalObjId, Id, EnterPos, PlayerId, entity, TypeName, none)
+                enter_obj(GlobalPos, GlobalObjId, Id, EnterPos, PlayerId, unit, TypeName, none)
         end,
 
     lists:foreach(F, Units).
@@ -45,8 +46,8 @@ exit_map(GlobalObjId) ->
             true
     end.
 
-create(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Type, State) ->
-    lager:info("Creating local obj"),
+enter_obj(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Type, State) ->
+    lager:info("Enter obj ~p", [Pos]),
     LocalObj = #local_obj {id = Id,
                            global_obj_id = GlobalObjId,
                            global_pos = GlobalPos,
@@ -57,6 +58,20 @@ create(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Type, State) ->
                            state = State},
 
     db:write(LocalObj).    
+
+create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type) ->
+    lager:info("Creating ~p", [Type]),
+    Id = insert(GlobalObjId, Class, Type),
+
+    LocalObj = #local_obj {id = Id,
+                           global_obj_id = GlobalObjId,
+                           global_pos = GlobalPos,
+                           pos = Pos,
+                           player = PlayerId,
+                           class = Class,
+                           type = Type,
+                           state = none}, 
+    db:write(LocalObj). 
 
 move(Id, Pos) ->
     %TODO convert to transaction
@@ -87,33 +102,12 @@ remove_all_objs([LocalObj | Rest]) ->
     remove_obj(LocalObj),
     remove_all_objs(Rest).
 
-get_map(_TileType) ->
-    LocalMap = db:dump(local_map),
-
-    F = fun(TileData, MsgTiles) ->
-            {local_map, {_GlobalIndex, Pos}, _Type, Misc} = TileData,
-            {X, Y} = Pos,
-            [#{<<"x">> => X,
-               <<"y">> => Y,
-               <<"t">> => Misc} | MsgTiles]
-        end,
-
-    lists:foldl(F, [], LocalMap).
-
-get_obj_data([], ObjData) ->
-    ObjData;
-get_obj_data([Obj | Rest], ObjData) ->
-    {X, Y} = Obj#local_obj.pos,
-    NewObjData = [ #{<<"global_id">> => Obj#local_obj.global_obj_id,
-                     <<"id">> => Obj#local_obj.id,
-                     <<"x">> => X,
-                     <<"y">> => Y,
-                     <<"player">> => Obj#local_obj.player,
-                     <<"class">> => Obj#local_obj.class,                   
-                     <<"type">> => Obj#local_obj.type,
-                     <<"state">> => Obj#local_obj.state} | ObjData],
-
-    get_obj_data(Rest, NewObjData).
+get_visible_objs([], Objs, _GlobalPos) ->
+    Objs;
+get_visible_objs([Obj | Rest], Objs, GlobalPos) ->
+    NearbyObjs = map:get_nearby_objs(Obj#local_obj.pos, {local_map, GlobalPos}, 3),
+    NewObjs = Objs ++ NearbyObjs,
+    get_visible_objs(Rest, NewObjs, GlobalPos).
 
 get_enter_pos(_Pos, none) ->
     {0,0};
@@ -146,4 +140,8 @@ enter_pos(ne) -> {16,0};
 enter_pos(sw) -> {0,12};
 enter_pos(s) -> {8,12};
 enter_pos(se) -> {16,12}. 
-    
+
+insert(GlobalObjId, unit, TypeName) ->
+    [Unit] = unit:create(GlobalObjId, TypeName),
+    {Id} = bson:lookup('_id', Unit),
+    Id.

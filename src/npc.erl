@@ -15,13 +15,16 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
-
+-export([new_zombie/0]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
 start(PlayerId) ->
     gen_server:start({global, {npc, PlayerId}}, npc, [PlayerId], []).
+
+new_zombie() ->
+    local:create({2,2}, none, {2,2}, 99, unit, <<"Zombie">>).
 
 %% ====================================================================
 %% Server functions
@@ -68,7 +71,7 @@ handle_info({local_perception, Perception}, Data) ->
     
     {_Explored, Objs} = new_perception(Perception),
     {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-
+    lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
     F = fun(NPCObj) ->
             process_local_action(NPCObj, EnemyObjs)
     end,
@@ -113,6 +116,7 @@ add_npc_obj(Obj, NPCObjs, EnemyObjs, true) ->
     {[Obj | NPCObjs], EnemyObjs};
 add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
     {NPCObjs, [Obj | EnemyObjs]}.
+
 
 process_action(NPCObjs, EnemyObjs) ->
     %Do nothing for now for explored
@@ -191,15 +195,21 @@ add_action({none, _Data}) ->
 add_action(none) ->
     lager:info("NPC doing nothing").
 
+process_local_action(_NPCUnits, []) ->
+    lager:info("No enemies nearby, waiting...");
+
 process_local_action(NPCUnit, EnemyUnits) ->
+    lager:info("NPCUnit: ~p", [NPCUnit]),
+    lager:info("EnemyUnits: ~p", [EnemyUnits]),
     NPCPos = get_pos(NPCUnit),
     EnemyUnit = get_nearest(NPCPos, EnemyUnits, {none, 1000}),
+    lager:info("EnemyUnit: ~p", [EnemyUnit]), 
     EnemyPos = get_pos(EnemyUnit),
     
     Path = astar:astar(NPCPos, EnemyPos),
     lager:info("Path: ~p", [Path]),
     NextAction = next_action(NPCUnit, EnemyUnit, Path),
-
+    lager:info("Next action: ~p", [NextAction]),
     add_battle_action(NextAction). 
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
@@ -207,7 +217,8 @@ get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
 get_nearest(NPCPos, [NewEnemyUnit | EnemyUnits], {EnemyUnit, Distance}) ->
     NewEnemyUnitPos = {maps:get(<<"x">>, NewEnemyUnit), maps:get(<<"y">>, NewEnemyUnit)},
 
-    {TargetEnemyUnit, NewDistance} = compare_distance(map:distance(NPCPos, NewEnemyUnitPos), 
+    CalcDistance = map:distance(NPCPos, NewEnemyUnitPos),
+    {TargetEnemyUnit, NewDistance} = compare_distance(CalcDistance,
                                                       Distance,
                                                       NewEnemyUnit,
                                                       EnemyUnit),
@@ -219,9 +230,9 @@ compare_distance(NewDistance, Distance, _New, Old) when NewDistance >= Distance 
 compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance ->
     {New, NewDistance}.
 
-next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 2 ->
+next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 3 ->
     {move, NPCUnit, lists:nth(2,Path)};
-next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
+next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 3 ->
     {attack, NPCUnit, EnemyUnit}.
 
 add_battle_action({attack, SourceId, TargetId}) ->

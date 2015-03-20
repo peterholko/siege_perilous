@@ -42,8 +42,8 @@ handle_cast({recalculate, GlobalPos}, Data) ->
     {noreply, Data};
 
 handle_cast({broadcast, GlobalPos, SourcePos, TargetPos, MessageData}, Data) ->
-    SourceObjs = map:get_nearby_objs(SourcePos, {local_map, GlobalPos}, 2),
-    TargetObjs = map:get_nearby_objs(TargetPos, {local_map, GlobalPos}, 2),
+    SourceObjs = map:get_nearby_objs(SourcePos, {local_map, GlobalPos}, 3),
+    TargetObjs = map:get_nearby_objs(TargetPos, {local_map, GlobalPos}, 3),
 
     broadcast_to_objs(SourceObjs ++ TargetObjs, MessageData),
 
@@ -110,7 +110,8 @@ remove_non_entity([Entity | Rest], Entities) ->
     NewEntities = is_entity(Entities, Entity, Entity#local_obj.class),
     remove_non_entity(Rest, NewEntities).
 
-is_entity(Entities, Entity, entity) ->
+%Unit or potential structures 
+is_entity(Entities, Entity, unit) ->
     [Entity | Entities];
 is_entity(Entities, _Entity, _Class) ->
     Entities.
@@ -135,7 +136,7 @@ entity_perception([Entity | Rest], GlobalPos) ->
     PlayerPerception = convert_undefined(get({PlayerId, GlobalPos})),
 
     lager:info("Entity perception: ~p", [Entity]),    
-    NearbyObjs = map:get_nearby_objs(Entity#local_obj.pos, {local_map,GlobalPos}, 2),
+    NearbyObjs = map:get_nearby_objs(Entity#local_obj.pos, {local_map,GlobalPos}, 3),
     lager:info("NearbyObjs: ~p", [NearbyObjs]), 
     NewPlayerPerception = util:unique_list(PlayerPerception ++ NearbyObjs),
   

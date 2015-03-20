@@ -47,7 +47,8 @@ handle_cast({active_turn, UnitId}, Data) ->
 
     {noreply, Data};
 
-handle_cast({attack_unit, SourceId, TargetId}, Data) -> 
+handle_cast({attack_unit, SourceId, TargetId}, Data) ->
+    lager:info("Attack unit"), 
     [SourceObj] = db:read(local_obj, SourceId),
     [TargetObj] = db:read(local_obj, TargetId),
 

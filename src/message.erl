@@ -109,7 +109,7 @@ message_handle(<<"explore">>, Message) ->
     {LocalMap, LocalObjs} = player:explore(BinId, {X, Y}),
     LocalPerception = [{<<"packet">>, <<"explore">>},
                        {<<"explored">>, LocalMap},
-                       {<<"objs">>, convert_local_id(LocalObjs, [])}],
+                       {<<"objs">>, convert_id(LocalObjs, [])}],
     jsx:encode(LocalPerception);
 
 message_handle(<<"build">>, Message) ->
