@@ -122,8 +122,15 @@ explore(_Id, _GlobalPos) ->
     %TODO add validation
 
     [Obj] = db:index_read(obj, PlayerId, #obj.player),
-    lager:info("Obj: ~p", [Obj]), 
-    local:enter_map(PlayerId, Obj#obj.id, Obj#obj.pos, Obj#obj.last_pos),
+    lager:info("Obj: ~p", [Obj]),
+
+    case local:has_entered(Obj#obj.id, Obj#obj.pos) of
+        false -> 
+            obj:update_state(Obj, local),
+            local:enter_map(PlayerId, Obj#obj.id, Obj#obj.pos, Obj#obj.last_pos);
+        true ->
+            nothing
+    end,
 
     InitPerception = local:init_perception(PlayerId, Obj#obj.pos, 1),
     InitPerception.

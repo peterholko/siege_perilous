@@ -212,29 +212,8 @@ prepare(item_perception, Message) ->
     [{<<"packet">>, <<"item_perception">>},
      {<<"items">>, ItemPerception}]; 
 
-prepare(battle_dmg, Message) ->
-    BattleId = maps:get(<<"battle">>, Message),
-    SourceId = maps:get(<<"sourceid">>, Message),
-    TargetId = maps:get(<<"targetid">>, Message),
-
-    BattleHexId = util:bin_to_hex(BattleId),
-    SourceHexId = util:bin_to_hex(SourceId),
-    TargetHexId = util:bin_to_hex(TargetId),
-
-    NewMessage0 = maps:put(<<"packet">>, <<"battle_dmg">>, Message),
-    NewMessage1 = maps:put(<<"battle">>, BattleHexId, NewMessage0),
-    NewMessage2 = maps:put(<<"sourceid">>, SourceHexId, NewMessage1),
-    NewMessage3 = maps:put(<<"targetid">>, TargetHexId, NewMessage2),
-    NewMessage3;
-
-prepare(battle_move, Message) ->
-    BattleHexId = util:bin_to_hex(maps:get(<<"battle">>, Message)),
-    SourceHexId = util:bin_to_hex(maps:get(<<"sourceid">>, Message)),
-    
-    M0 = maps:put(<<"packet">>, <<"battle_move">>, Message),
-    M1 = maps:put(<<"battle">>, BattleHexId, M0),
-    M2 = maps:put(<<"sourceid">>, SourceHexId, M1),
-    M2.
+prepare(_MessageType, Message) ->
+    Message.
 
 json_decode(Data) ->
     try jsx:decode(Data, [return_maps])

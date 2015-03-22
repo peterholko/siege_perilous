@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/3, enter_map/4, exit_map/1, create/6, move/2, update_state/2]).
+-export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1, create/6, move/2, update_state/2]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
     LocalPlayerUnits = db:index_read(local_obj, PlayerId, #local_obj.player),
@@ -17,6 +17,18 @@ init_perception(PlayerId, GlobalPos, _TileType) ->
     lager:info("LocalExploredMap: ~p", [LocalExploredMap]), 
     lager:info("LocalObjData: ~p", [LocalObjData]), 
     {LocalExploredMap, LocalObjData}.
+
+has_entered(GlobalObjId, GlobalPos) ->
+    LocalObjs = db:index_read(local_obj, GlobalObjId, #local_obj.global_obj_id),
+    lists:keymember(GlobalPos, #local_obj.global_pos, LocalObjs).
+
+has_entered(GlobalObjId) ->
+    case db:index_read(local_obj, GlobalObjId, #local_obj.global_obj_id) of
+        [] ->
+            false;
+        _LocalObjs ->
+            true
+    end.
 
 enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
     lager:info("Enter map: ~p", [{GlobalObjId, GlobalPos, LastPos}]),
@@ -145,3 +157,4 @@ insert(GlobalObjId, unit, TypeName) ->
     [Unit] = unit:create(GlobalObjId, TypeName),
     {Id} = bson:lookup('_id', Unit),
     Id.
+

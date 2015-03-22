@@ -101,7 +101,7 @@ function init() {
     initImages();
     initUI();
 
-    createjs.Ticker.setFPS(15);
+    createjs.Ticker.setFPS(30);
     createjs.Ticker.addEventListener("tick", stage);
 
     $('#server').val("ws://" + window.location.host + "/websocket");
@@ -336,11 +336,10 @@ function onMessage(evt) {
             drawObjs();
         }
         else if(jsonData.packet == "local_perception") {
-            localObjs = jsonData.objs;
             drawLocal(jsonData);
         }
         else if(jsonData.packet == "explore") {
-            localObjs = jsonData.objs;
+            clearLocal();
             drawLocal(jsonData);
         }
         else if(jsonData.packet == "battle_perception") {
@@ -349,7 +348,7 @@ function onMessage(evt) {
         else if(jsonData.packet == "item_perception") {
             drawItemDialog(jsonData);
         }
-        else if(jsonData.packet == "battle_dmg") {
+        else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
         }
         else if(jsonData.packet == "battle_move") {
@@ -483,11 +482,19 @@ function drawObjs() {
     }
 };
 
+function clearLocal() {
+    var localMap = localPanel.getChildByName("localMap");
+    var localObjsCont = localPanel.getChildByName("localObjs"); 
+
+    localMap.removeAllChildren();
+    localObjsCont.removeAllChildren();
+};
+
 function drawLocal(jsonData) {
     showLocalPanel();
 
     var localMap = localPanel.getChildByName("localMap");
-    var localObjs = localPanel.getChildByName("localObjs"); 
+    var localObjsCont = localPanel.getChildByName("localObjs"); 
 
     for(var i = 0; i < jsonData.explored.length; i++) {
         var tile = jsonData.explored[i];
@@ -503,7 +510,7 @@ function drawLocal(jsonData) {
         }
     }
  
-    localObjs.removeAllChildren();
+    localObjsCont.removeAllChildren();
 
     for(var i = 0; i < jsonData.objs.length; i++) {
         var obj = jsonData.objs[i];
@@ -517,10 +524,17 @@ function drawLocal(jsonData) {
 
         icon.x = pixel.x;
         icon.y = pixel.y;
+        icon.player = obj.player;
         icon.name = unitName;
-        icon.id = jsonData.objs[i].id;
+        icon.id = obj.id;
         icon.on("mousedown", function(evt) {
-            selectedUnit = this.id;
+            if(this.player == playerId) {
+                selectedUnit = this.id;
+            } 
+            else if(selectedUnit != false) {
+                var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + this.id + '"}';    
+                websocket.send(attack_unit);
+            }
         });
 
         addChildLocalPanel(icon, "localObjs");
@@ -529,39 +543,15 @@ function drawLocal(jsonData) {
             c_x = 250 - 36 - pixel.x;
             c_y = 230 - 36 - pixel.y;
             createjs.Tween.get(localMap).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
-            createjs.Tween.get(localObjs).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
+            createjs.Tween.get(localObjsCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
         }
  
         imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
         loaderQueue.loadFile({id: unitName, src: imagePath});
+
+        obj.icon = icon;
+        localObjs[obj.id] = obj;
     }
-};
-
-function drawBattle(jsonData) {
-    showBattlePanel();
-    selectedUnit = false;
-    battleUnits = jsonData.units;
-
-    for(var i = 0; i < jsonData.map.length; i++) {
-        var tile = jsonData.map[i];
-        var pixel = hex_to_pixel(tile.x, tile.y);
-
-        var bitmap = new createjs.Bitmap(tileImages[tile.t]);
-        bitmap.tileX = tile.x;
-        bitmap.tileY = tile.y;
-        bitmap.x = pixel.x;
-        bitmap.y = pixel.y;
-        bitmap.on("mousedown", function(evt) {
-            if(selectedUnit != false) {
-                var move_unit = '{"cmd": "move_unit", "sourceid": "' + selectedUnit + '", "x": ' + this.tileX + ', "y": ' + this.tileY + '}';    
-                websocket.send(move_unit);
-            } 
-        });
-
-        addChildBattlePanel(bitmap);
-    }
-    
-    drawBattleUnits();
 };
 
 function drawBattleUnits() {
@@ -603,18 +593,10 @@ function drawBattleUnits() {
     }
 };
 
-function drawBattleMove(jsonData) {
-    var unit = getBattleUnit(jsonData.sourceid);
-    var pixel = hex_to_pixel(jsonData.x, jsonData.y);
-
-    unit.icon.x = pixel.x;
-    unit.icon.y = pixel.y;
-};
-
 function drawDmg(jsonData) {
-    if(battlePanel.visible) {
-        var source = getBattleUnit(jsonData.sourceid);
-        var target = getBattleUnit(jsonData.targetid);
+    if(localPanel.visible) {
+        var source = getLocalObj(jsonData.sourceid);
+        var target = getLocalObj(jsonData.targetid);
         var origX = source.icon.x;
         var origY = source.icon.y;
 
@@ -881,58 +863,24 @@ function drawInfoItem(jsonData) {
 };
 
 function initUI() {
-
-    //Initialize battle panel
-    battlePanel = new createjs.Container();
-    battlePanel.visible = false;
-    battlePanel.x = stageWidth / 2 - 500 / 2;
-    battlePanel.y = stageHeight / 2 - 460 / 2;
-
-    var bg = new createjs.Shape();
-    var close = new createjs.Bitmap(close_rest);
-    var content = new createjs.Container();
-
-    var battleText = new createjs.Text("Battle", h1Font, textColor);
-    battleText.x = 500 / 2;
-    battleText.y = 10;
-    battleText.textAlign = "center";
-
-    bg.graphics.beginFill("#1c1c1c").drawRect(0,0,500,460);
-
-    close.x = 480;
-    close.y = 10;
-    close.on("mousedown", function(evt) {
-        console.log('Close mousedown')
-        this.parent.visible = false;
-    });
-
-    content.name = "content";
-
-    battlePanel.addChild(bg);
-    battlePanel.addChild(battleText);
-    battlePanel.addChild(close);
-    battlePanel.addChild(content);
-
-    stage.addChild(battlePanel);
-
     //Initialize local panel
     localPanel = new createjs.Container();
     localPanel.visible = false;
-    localPanel.x = stageWidth / 2 - 500 / 2;
-    localPanel.y = stageHeight / 2 - 460 / 2;
+    localPanel.x = 0;
+    localPanel.y = 0;
 
     var bg = new createjs.Shape();
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
     var localMap = new createjs.Container();
-    var localObjs = new createjs.Container();
+    var localObjsCont = new createjs.Container();
 
-    localMap.width = 500;
-    localMap.height = 460;
+    localMap.width = 1280;
+    localMap.height = 800;
 
-    bg.graphics.beginFill("#1c1c1c").drawRect(0,0,500,460);
+    bg.graphics.beginFill("#1c1c1c").drawRect(0,0,1280,800);
 
-    close.x = 480;
+    close.x = 1250;
     close.y = 10;
     close.on("mousedown", function(evt) {
         console.log('Close mousedown')
@@ -941,13 +889,12 @@ function initUI() {
 
     content.name = "content";
     localMap.name = "localMap";
-    localObjs.name = "localObjs";
+    localObjsCont.name = "localObjs";
 
     localPanel.addChild(bg);
-    localPanel.addChild(battleText);
     localPanel.addChild(close);
     localPanel.addChild(localMap);
-    localPanel.addChild(localObjs);
+    localPanel.addChild(localObjsCont);
     localPanel.addChild(content);
 
     stage.addChild(localPanel);
@@ -1177,20 +1124,10 @@ function getObjOnTile(x, y) {
     return objsOnTile;
 };
 
-function getBattleUnit(unit) {
-    for(var i = 0; i < battleUnits.length; i++) {
-        if(battleUnits[i].unit == unit) {
-            return battleUnits[i];
-        }
-    }
-    
-    return false;
-};
-
 function getLocalObj(id) {
-    for(var i = 0; i < localObjs.length; i++) {
-        if(localObjs[i].id == id) {
-            return localObjs[i];
+    for(var localObjId in localObjs) {
+        if(localObjId == id) {
+            return localObjs[localObjId];
         }
     }
     return false;

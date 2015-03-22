@@ -125,23 +125,42 @@ process_attack(Action) ->
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
+    [SourceObj] = db:read(local_obj, SourceId), 
+    [TargetObj] = db:read(local_obj, TargetId), 
+
+    V1 = is_adjacent(SourceObj, TargetObj),
+    V2 = is_target_alive(SourceObj, TargetObj#local_obj.state),
     
-    
+    Result = V1 and V2,
 
-    %TODO fix validation
-    %is_attack_valid(SourceId),  
-   
-     
+    process_dmg(Result, SourceId, TargetId).
 
+is_adjacent(SourceObj, TargetObj) ->
+    {SX, SY} = SourceObj#local_obj.pos,
+    TargetPos = TargetObj#local_obj.pos,
+    Neighbours = map:neighbours(SX, SY, ?BATTLE_WIDTH, ?BATTLE_HEIGHT), 
+    case lists:member(TargetPos, Neighbours) of
+        true ->
+            true;
+        false ->
+            db:delete(action, SourceObj#local_obj.id),
+            false
+    end.
 
-    process_dmg(SourceId, TargetId).
+is_target_alive(SourceObj, dead) -> 
+    db:delete(action, SourceObj#local_obj.id),
+    false;
+is_target_alive(_, _) -> 
+    true.
 
 process_move(_Action) ->
     none.
 
 broadcast_dmg(SourceId, TargetId, Dmg, State) ->
-    Message = #{<<"sourceid">> => SourceId,
-                <<"targetid">> => TargetId,
+    %Convert id here as message is being built
+    Message = #{<<"packet">> => <<"dmg">>,
+                <<"sourceid">> => util:bin_to_hex(SourceId),
+                <<"targetid">> => util:bin_to_hex(TargetId),
                 <<"dmg">> => Dmg,
                 <<"state">> => State},
 
@@ -153,19 +172,10 @@ broadcast_dmg(SourceId, TargetId, Dmg, State) ->
     TargetPos = TargetObj#local_obj.pos,
 
     l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
-       
-%is_attack_valid(SourceId) ->
-%    [SourceObj] = db:read(local_obj, SourceId),
-%    {X, Y} = SourceObj#local_obj.pos,
-%    Neighbours = map:neighbours(X, Y, ?BATTLE_WIDTH, ?BATTLE_HEIGHT), 
-%    case lists:member({X, Y}, Neighbours) of
-%        true ->
-%            valid;
-%        false ->
-%            db:delete(action, SourceId)
-%    end.
 
-process_dmg(AtkId, DefId) ->
+process_dmg(false, _, _) ->
+    lager:info("Invalid attack");      
+process_dmg(true, AtkId, DefId) ->
     AtkUnit = unit:get_stats(AtkId),
     DefUnit = unit:get_stats(DefId),
 

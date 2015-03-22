@@ -7,6 +7,7 @@
 
 -export([get/1, get_info/1, get_type/1, get_stats/1, get_units/1, get_units_and_stats/1]).
 -export([create/2, remove/1]).
+-export([find_type/1]).
 
 get(Id) ->
     Unit = find(Id),
@@ -36,7 +37,7 @@ get_units_and_stats(ObjId) ->
     lists:foldl(F, [], Units).
 
 get_type(TypeName) ->
-    [UnitType] = find_type_by_name(TypeName),
+    {UnitType} = find_type(TypeName),
     UnitType.
 
 get_stats(Id) ->
@@ -44,7 +45,7 @@ get_stats(Id) ->
     stats(Unit).
 
 create(ObjId, TypeName) ->
-    {UnitType} = find_type_by_name(TypeName),
+    {UnitType} = find_type(TypeName),
     insert(ObjId, UnitType).
 
 remove(UnitId) ->
@@ -59,13 +60,7 @@ find(Id) ->
     mc_cursor:close(Cursor),
     Unit.
 
-find_type(Id) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"unit_type">>, {'_id', Id}),
-    UnitType = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    UnitType.
-
-find_type_by_name(Name) ->
+find_type(Name) ->
     mongo:find_one(mdb:get_conn(), <<"unit_type">>, {'name', Name}).
 
 find_units(ObjId) ->
@@ -90,7 +85,7 @@ stats([Unit]) ->
 
 stats(Unit) ->
     {TypeName} = bson:lookup(type_name, Unit),
-    [UnitType] = find_type_by_name(TypeName),
+    {UnitType} = find_type(TypeName),
     bson:merge(Unit, UnitType).
 
 info(Unit) ->
