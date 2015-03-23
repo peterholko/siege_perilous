@@ -6,8 +6,8 @@
 
 -define(MINX, 0).
 -define(MINY, 0).
--define(MAXX, ?BATTLE_WIDTH - 1).
--define(MAXY, ?BATTLE_HEIGHT - 1).
+-define(MAXX, ?BATTLE_WIDTH + 1).
+-define(MAXY, ?BATTLE_HEIGHT + 1).
 
 -export([
          astar/2,

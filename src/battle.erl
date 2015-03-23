@@ -125,15 +125,25 @@ process_attack(Action) ->
     SourceId = Action#action.source_id,
     TargetId = Action#action.data,
 
-    [SourceObj] = db:read(local_obj, SourceId), 
-    [TargetObj] = db:read(local_obj, TargetId), 
-
-    V1 = is_adjacent(SourceObj, TargetObj),
-    V2 = is_target_alive(SourceObj, TargetObj#local_obj.state),
+    SourceObj = get_obj(db:read(local_obj, SourceId)), 
+    TargetObj = get_obj(db:read(local_obj, TargetId)),
     
-    Result = V1 and V2,
-
+    Result = is_valid_obj(SourceObj) andalso
+             is_valid_obj(TargetObj) andalso
+             is_adjacent(SourceObj, TargetObj) andalso
+             is_target_alive(TargetObj#local_obj.state),
+    
     process_dmg(Result, SourceId, TargetId).
+
+get_obj([]) ->
+    false;
+get_obj([Obj]) ->
+    Obj.
+
+is_valid_obj(false) ->
+    false;
+is_valid_obj(_Obj) ->
+    true.
 
 is_adjacent(SourceObj, TargetObj) ->
     {SX, SY} = SourceObj#local_obj.pos,
@@ -143,14 +153,12 @@ is_adjacent(SourceObj, TargetObj) ->
         true ->
             true;
         false ->
-            db:delete(action, SourceObj#local_obj.id),
             false
     end.
 
-is_target_alive(SourceObj, dead) -> 
-    db:delete(action, SourceObj#local_obj.id),
+is_target_alive(dead) -> 
     false;
-is_target_alive(_, _) -> 
+is_target_alive(_) -> 
     true.
 
 process_move(_Action) ->
@@ -173,7 +181,8 @@ broadcast_dmg(SourceId, TargetId, Dmg, State) ->
 
     l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
 
-process_dmg(false, _, _) ->
+process_dmg(false, AtkId, _) ->
+    db:delete(action, AtkId),
     lager:info("Invalid attack");      
 process_dmg(true, AtkId, DefId) ->
     AtkUnit = unit:get_stats(AtkId),

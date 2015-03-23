@@ -7,6 +7,7 @@
 -include("schema.hrl").
 
 -export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1, create/6, move/2, update_state/2]).
+-export([is_exit_valid/1]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
     LocalPlayerUnits = db:index_read(local_obj, PlayerId, #local_obj.player),
@@ -17,6 +18,18 @@ init_perception(PlayerId, GlobalPos, _TileType) ->
     lager:info("LocalExploredMap: ~p", [LocalExploredMap]), 
     lager:info("LocalObjData: ~p", [LocalObjData]), 
     {LocalExploredMap, LocalObjData}.
+
+is_exit_valid(GlobalObjId) ->
+    lager:info("is_exit_valid: ~p", [GlobalObjId]),
+    LocalObjs = db:index_read(local_obj, GlobalObjId, #local_obj.global_obj_id),
+    
+    F = fun(LocalObj, ExitValid) ->
+            lager:info("LocalObj: ~p ~p", [LocalObj, ExitValid]),
+            OnEdge = is_on_edge(LocalObj#local_obj.pos),
+            ExitValid and OnEdge
+        end,
+    
+    lists:foldl(F, true, LocalObjs).
 
 has_entered(GlobalObjId, GlobalPos) ->
     LocalObjs = db:index_read(local_obj, GlobalObjId, #local_obj.global_obj_id),
@@ -158,3 +171,7 @@ insert(GlobalObjId, unit, TypeName) ->
     {Id} = bson:lookup('_id', Unit),
     Id.
 
+is_on_edge({X, _Y}) when X =:= 0 -> true;
+is_on_edge({_X, Y}) when Y =:= 0 -> true;
+is_on_edge({X, Y}) when X =:= 0, Y =:= 0 -> true;
+is_on_edge({_X, _Y}) -> false.

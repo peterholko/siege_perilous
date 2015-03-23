@@ -112,6 +112,12 @@ message_handle(<<"explore">>, Message) ->
                        {<<"objs">>, convert_id(LocalObjs, [])}],
     jsx:encode(LocalPerception);
 
+message_handle(<<"exit_local">>, _Message) ->
+    lager:info("message: exit_local"),
+    player:exit_local(),
+
+    <<"Exit added">>;
+
 message_handle(<<"build">>, Message) ->
     lager:info("message: build"),
     

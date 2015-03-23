@@ -95,11 +95,7 @@ do_event(move_obj, EventData, _PlayerPid) ->
     obj:move(Id, GlobalPos),
     map:add_explored(Player, GlobalPos),
 
-    %Remove any local objs from local map and 
-    %check if local perception update is needed
-    Result = local:exit_map(Id),
-
-    {true, {GlobalPos, Result}};
+    {true, false};
 
 do_event(attack_obj, EventData, _PlayerPid) ->
     lager:info("Processing attack_obj event: ~p", [EventData]),
@@ -120,6 +116,20 @@ do_event(move_local_obj, EventData, _PlayerPid) ->
     map:add_local_explored(Player, GlobalPos, NewPos),
 
     {false, {GlobalPos, true}};
+
+do_event(exit_local, EventData, _PlayerPid) ->
+    lager:info("Processing exit_local event: ~p", [EventData]),
+    
+    {GlobalObjId, GlobalPos} = EventData,
+
+    local:exit_map(GlobalObjId),
+    obj:update_state(GlobalObjId, none),
+
+    %Remove any local objs from local map and 
+    %check if local perception update is needed
+    Result = local:exit_map(GlobalObjId),
+
+    {false, {GlobalPos, Result}};    
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),

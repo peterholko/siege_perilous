@@ -230,6 +230,8 @@ compare_distance(NewDistance, Distance, _New, Old) when NewDistance >= Distance 
 compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance ->
     {New, NewDistance}.
 
+next_action(_, _, failure) ->
+    none; 
 next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 2 ->
     {move, NPCUnit, lists:nth(2,Path)};
 next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
@@ -249,7 +251,6 @@ add_battle_action({move, Unit, NextPos}) ->
                   UnitId,
                   NextPos,
                   8);
-
 add_battle_action(none) ->
     lager:info("NPC Unit doing nothing.").
 

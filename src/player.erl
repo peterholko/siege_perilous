@@ -18,6 +18,7 @@
          attack_unit/2,
          harvest/2,
          explore/2,
+         exit_local/0,
          build/3,
          equip/2]).
 
@@ -109,7 +110,7 @@ harvest(Id, Resource) ->
     Obj = obj:get_map_obj(Id),
     NumTicks = 40,
 
-    ValidState = is_valid_state(Obj#obj.state),
+    ValidState = is_state(none, Obj#obj.state),
     ValidPlayer = is_player_owned(Obj#obj.player, Player),
     ValidResource = resource:contains(Resource, Obj#obj.pos),
 
@@ -118,22 +119,34 @@ harvest(Id, Resource) ->
     add_harvest_event(Result, {Id, Resource}, NumTicks).
 
 explore(_Id, _GlobalPos) ->
-    PlayerId = get(player_id),
     %TODO add validation
+    PlayerId = get(player_id),
 
     [Obj] = db:index_read(obj, PlayerId, #obj.player),
     lager:info("Obj: ~p", [Obj]),
 
-    case local:has_entered(Obj#obj.id, Obj#obj.pos) of
-        false -> 
+    case Obj#obj.state of
+        none ->
             obj:update_state(Obj, local),
             local:enter_map(PlayerId, Obj#obj.id, Obj#obj.pos, Obj#obj.last_pos);
-        true ->
+        _ ->
             nothing
     end,
 
     InitPerception = local:init_perception(PlayerId, Obj#obj.pos, 1),
     InitPerception.
+
+exit_local() ->
+    %TODO add validation
+    PlayerId = get(player_id),
+    [Obj] = db:index_read(obj, PlayerId, #obj.player),
+    lager:info("Obj: ~p", [Obj]),
+    NumTicks = 16,
+
+    ValidExit = is_state(local, Obj#obj.state) andalso
+                local:is_exit_valid(Obj#obj.id),
+
+    add_exit_local(ValidExit, {Obj#obj.id, Obj#obj.pos}, NumTicks).
 
 build(Id, LocalPos, Structure) ->
     %TODO add validation
@@ -227,11 +240,21 @@ add_move_unit(false, _, _) ->
     lager:info("Move unit failed"),
     none.
 
+add_exit_local(true, {GlobalObjId, GlobalPos}, NumTicks) ->
+    EventData = {GlobalObjId, GlobalPos},
+    
+    game:add_event(self(), exit_local, EventData, NumTicks);
+
+add_exit_local(false, _, _) ->
+    lager:info("Exit failed"),
+    none.
+
 add_equip(false, _EventData) ->
     lager:info("Equip failed"),
     none;
 add_equip(true, ItemId) ->
     item:equip(ItemId).
+
 
 get_armies(PlayerId) ->
     db:index_read(obj, PlayerId, #obj.player).
@@ -255,3 +278,5 @@ is_valid_state(_State) ->
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.
 
+is_state(ExpectedState, State) when ExpectedState =:= State -> true;
+is_state(_ExpectdState, _State) -> false.

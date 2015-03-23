@@ -271,6 +271,11 @@ function sendExplore() {
     websocket.send(e);
 };
 
+function sendExitLocal() {
+    var e = '{"cmd": "exit_local", "attr": "val"}';
+    websocket.send(e);
+};
+
 function sendInfoObj(id) {
     var info = '{"cmd": "info_obj", "id": "' + id + '"}';
     websocket.send(info);
@@ -350,10 +355,6 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
-        }
-        else if(jsonData.packet == "battle_move") {
-            console.log("battle_move");
-            drawBattleMove(jsonData);
         }
         else if(jsonData.packet == "info_obj") {
             drawInfoObj(jsonData);
