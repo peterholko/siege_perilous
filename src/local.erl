@@ -82,7 +82,8 @@ enter_obj(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Type, State) ->
                            type = Type,
                            state = State},
 
-    db:write(LocalObj).    
+    db:write(LocalObj),
+    game:trigger_local(GlobalPos).
 
 create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type) ->
     lager:info("Creating ~p", [Type]),
@@ -96,7 +97,8 @@ create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type) ->
                            class = Class,
                            type = Type,
                            state = none}, 
-    db:write(LocalObj). 
+    db:write(LocalObj),
+    game:trigger_local(GlobalPos).
 
 move(Id, Pos) ->
     %TODO convert to transaction

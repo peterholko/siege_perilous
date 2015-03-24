@@ -90,7 +90,9 @@ handle_cast({add_local_explored, Player, GlobalPos, {X, Y}}, Data) ->
     
     ExploredTiles = get_explored_tiles(ExploredMap),
     Neighbours = neighbours(X, Y, 38, 32),
-    LatestTiles = Neighbours ++ [{X, Y}],
+    NeighboursTwo = neighbours_two(Neighbours, []),
+    lager:info("NeighboursTwo: ~p", [NeighboursTwo]),
+    LatestTiles = NeighboursTwo ++ [{X, Y}],
 
     %Convert lists to sets for intersect and unique list processing
     SetExploredTiles = sets:from_list(ExploredTiles),
@@ -192,6 +194,7 @@ tiles_msg_format([TileId | Rest], Tiles, none) ->
     tiles_msg_format(Rest, NewTiles, none);
 tiles_msg_format([TileId | Rest], Tiles, GlobalPos) ->
     %Fix GlobalPos
+    lager:info("TileId: ~p", [TileId]),
     [Map] = db:dirty_read(local_map, {1, TileId}),
     {X, Y} = TileId,
     NewTiles = [#{<<"x">> => X,
@@ -199,6 +202,12 @@ tiles_msg_format([TileId | Rest], Tiles, GlobalPos) ->
                   <<"t">> => Map#local_map.misc} | Tiles],
 
     tiles_msg_format(Rest, NewTiles, GlobalPos).
+
+neighbours_two([], List) ->
+    List;
+neighbours_two([{X, Y} | Rest], List) ->
+    NewList = neighbours(X, Y, 38, 32) ++ List,
+    neighbours_two(Rest, NewList).
 
 %From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
 neighbours(Q, R, W, H) ->

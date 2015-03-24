@@ -14,7 +14,7 @@
 %%
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([add_event/4, trigger_global/1, trigger_local/2, get_perception/0]).
+-export([add_event/4, trigger_global/0, trigger_local/1, get_perception/0, reset_perception/0]).
 
 %%
 %% API Functions
@@ -34,14 +34,17 @@ add_event(PlayerProcess, EventType, EventData, EventTick) ->
 
     db:write(Event).
 
-trigger_global(State) ->
-    gen_server:cast({global, game_pid}, {trigger_global, State}).
+trigger_global() ->
+    gen_server:cast({global, game_pid}, trigger_global).
 
-trigger_local(State, Global) ->
-    gen_server:cast({global, game_pid}, {trigger_local, State, Global}).
+trigger_local(Global) ->
+    gen_server:cast({global, game_pid}, {trigger_local, Global}).
 
 get_perception() ->
-    gen_server:call({global, game_pid}, get_global).
+    gen_server:call({global, game_pid}, get_perception).
+
+reset_perception() ->
+    gen_server:cast({global, game_pid}, reset_perception).
 
 %% ====================================================================
 %% %% Server functions
@@ -56,16 +59,21 @@ init([]) ->
 terminate(_Reason, _) ->
     ok.
 
-handle_cast({trigger_global, State}, Data) ->
+handle_cast(trigger_global, Data) ->
     {_GPerception, LPerception} = Data,
-    NewGPerception = State,
-    NewData = {NewGPerception, LPerception},
+    NewData = {true, LPerception},
     {noreply, NewData};
 
-handle_cast({trigger_local, State, GlobalPos}, Data) ->
+handle_cast({trigger_local, GlobalPos}, Data) ->
     {GPerception, LPerception} = Data,
-    NewLPerception = [{GlobalPos, State} | LPerception],
+    NewLPerception = [GlobalPos | LPerception],
     NewData = {GPerception, NewLPerception},
+    {noreply, NewData};
+
+handle_cast(reset_perception, _Data) ->
+    GlobalPerception = false,
+    LocalPerception = [],
+    NewData = {GlobalPerception, LocalPerception},
     {noreply, NewData};
 
 handle_cast(stop, Data) ->

@@ -25,14 +25,18 @@ loop(LastTime, GamePID) ->
     
     %Process events
     {GlobalRecalc, LocalRecalc} = process_events(CurrentTick),
-    GlobalTriggered = false,
+
+    %Get triggered perception
+    {GlobalTriggered, LocalTriggered} = game:get_perception(),
    
-    %Recalculate global/local perception
+    %Recalculate global perception
     global_recalculate(GlobalRecalc or GlobalTriggered),
-    local_recalculate(LocalRecalc),
+
+    %Recalculate local perception 
+    local_recalculate(LocalRecalc ++ LocalTriggered),
    
     %Toggle off perception
-    %game:set_perception(false),
+    game:reset_perception(),
  
     %Update charge times
     BattleUnits = ets:tab2list(battle_unit),
@@ -127,9 +131,9 @@ do_event(exit_local, EventData, _PlayerPid) ->
 
     %Remove any local objs from local map and 
     %check if local perception update is needed
-    Result = local:exit_map(GlobalObjId),
+    local:exit_map(GlobalObjId),
 
-    {false, {GlobalPos, Result}};    
+    {false, {GlobalPos, true}};    
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
