@@ -6,8 +6,8 @@
 
 -define(MINX, 0).
 -define(MINY, 0).
--define(MAXX, ?BATTLE_WIDTH + 1).
--define(MAXY, ?BATTLE_HEIGHT + 1).
+-define(MAXX, 10).
+-define(MAXY, 10).
 
 -export([
          astar/2,
@@ -83,7 +83,7 @@ best_step([H|Open], Score, Best, BestValue) ->
 -spec neighbour_nodes(cnode(), cnode() | none) -> list(cnode()).
 neighbour_nodes(Node, Parent) ->
     {X, Y} = Node,
-    Neighbours = map:neighbours(X,Y, ?BATTLE_WIDTH, ?BATTLE_HEIGHT),
+    Neighbours = map:neighbours(X,Y, 32, 38),
     %Remove parent
     lists:delete(Parent, Neighbours).
 

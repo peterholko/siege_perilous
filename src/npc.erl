@@ -205,7 +205,6 @@ process_local_action(NPCUnit, EnemyUnits) ->
     EnemyUnit = get_nearest(NPCPos, EnemyUnits, {none, 1000}),
     lager:info("EnemyUnit: ~p", [EnemyUnit]), 
     EnemyPos = get_pos(EnemyUnit),
-    
     Path = astar:astar(NPCPos, EnemyPos),
     lager:info("Path: ~p", [Path]),
     NextAction = next_action(NPCUnit, EnemyUnit, Path),

@@ -141,6 +141,7 @@ get_obj([Obj]) ->
     Obj.
 
 is_valid_obj(false) ->
+    lager:info("Invalid local obj"),
     false;
 is_valid_obj(_Obj) ->
     true.
@@ -148,15 +149,17 @@ is_valid_obj(_Obj) ->
 is_adjacent(SourceObj, TargetObj) ->
     {SX, SY} = SourceObj#local_obj.pos,
     TargetPos = TargetObj#local_obj.pos,
-    Neighbours = map:neighbours(SX, SY, ?BATTLE_WIDTH, ?BATTLE_HEIGHT), 
+    Neighbours = map:neighbours(SX, SY, 32, 38), 
     case lists:member(TargetPos, Neighbours) of
         true ->
             true;
         false ->
+            lager:info("Not adjacent"),
             false
     end.
 
 is_target_alive(dead) -> 
+    lager:info("Target not alive"),
     false;
 is_target_alive(_) -> 
     true.
