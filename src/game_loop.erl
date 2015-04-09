@@ -121,7 +121,7 @@ do_event(move_local_obj, EventData, _PlayerPid) ->
 
     {false, {GlobalPos, true}};
 
-do_event(exit_local, EventData, _PlayerPid) ->
+do_event(exit_local, EventData, PlayerPid) ->
     lager:info("Processing exit_local event: ~p", [EventData]),
     
     {GlobalObjId, GlobalPos} = EventData,
@@ -132,8 +132,11 @@ do_event(exit_local, EventData, _PlayerPid) ->
     %Remove any local objs from local map and 
     %check if local perception update is needed
     local:exit_map(GlobalObjId),
+    
+    %Send exit local to player pid
+    send_to_process(PlayerPid, exit_local, GlobalObjId),
 
-    {false, {GlobalPos, true}};    
+    {true, {GlobalPos, true}};    
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),

@@ -218,6 +218,9 @@ prepare(item_perception, Message) ->
     [{<<"packet">>, <<"item_perception">>},
      {<<"items">>, ItemPerception}]; 
 
+prepare(exit_local, _Message) ->
+    [{<<"packet">>, <<"exit_local">>}];
+
 prepare(_MessageType, Message) ->
     Message.
 

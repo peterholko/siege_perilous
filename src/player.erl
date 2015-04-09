@@ -127,6 +127,7 @@ explore(_Id, _GlobalPos) ->
 
     case Obj#obj.state of
         none ->
+            game:trigger_global(),
             obj:update_state(Obj, local),
             local:enter_map(PlayerId, Obj#obj.id, Obj#obj.pos, Obj#obj.last_pos);
         _ ->

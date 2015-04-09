@@ -70,6 +70,7 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 
 do_recalculate() ->
+    lager:info("Global recalculate"),
     %Erase process dict
     erase(),
 
@@ -84,6 +85,8 @@ do_recalculate() ->
 
     %Get all player perceptions from process dict
     PlayerPerceptions = get(),
+
+    lager:info("PlayerPerceptions: ~p", [PlayerPerceptions]),
 
     %Compare new to previous perception
     UpdatePlayers = compare_perception(PlayerPerceptions, []),

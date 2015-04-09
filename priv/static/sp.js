@@ -13,12 +13,15 @@ var dialogPanel;
 var explored = {};
 var objs = {};
 var localObjs = {};
+var localTiles = [];
 var units = {};
 var battles = [];
 var battleUnits = [];
 
 var playerId;
 var playerPos;
+var heroPos;
+
 var selectedUnit = false;
 
 var mapWidth = 4;
@@ -30,6 +33,7 @@ var stageHeight = 500;
 var infoPanelBg = new Image();
 var dialogPanelBg = new Image();
 var close_rest = new Image();
+var selectImage = new Image();
 
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
@@ -62,6 +66,7 @@ var shroud = "/static/art/shroud.png";
 infoPanelBg.src = '/static/art/ui_pane.png';
 dialogPanelBg.src = '/static/art/dialog.png';
 close_rest.src = '/static/art/close_rest.png';
+selectImage.src = "/static/art/hover-hex.png";
 
 var zombie = {
     images: ['/static/art/zombie_ss.png'],
@@ -78,6 +83,7 @@ var zombieSS;
 $(document).ready(init);
 
 function init() {
+    $('body').on('contextmenu', '#map', function(e){ return false; });
     $('#map').css('background-color', 'rgba(0, 0, 0, 1)');
     $("#map").hide();
     $("#navigation").hide();
@@ -87,6 +93,7 @@ function init() {
     });
 
     canvas = document.getElementById("map");
+
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
 
@@ -199,62 +206,22 @@ function sendLogin() {
     }
 };
 
-function sendMove(direction) {
+function sendMove(newX, newY) {
     if(localPanel.visible == false) {
         playerObj = getObjByPlayer(playerId);
         
         var cmd = "move";
         var id = playerObj.id;
-        var q = playerObj.x;
-        var r = playerObj.y;
     }
     else {
         unit = getLocalObj(selectedUnit);
 
         var cmd = "move_unit";
         var id = unit.id;
-        var q = unit.x;
-        var r = unit.y;
     }
-    var cube = odd_q_to_cube(q,r);
-
-    var x, y, z;
-
-    if(direction == 'NW') {
-        x = cube.x - 1;
-        y = cube.y + 1;
-        z = cube.z;
-    }
-    else if(direction == 'N') {
-        x = cube.x;
-        y = cube.y + 1;
-        z = cube.z - 1;
-    }
-    else if(direction == 'NE') {
-        x = cube.x + 1;
-        y = cube.y;
-        z = cube.z - 1;
-    }
-    else if(direction == 'SW') {
-        x = cube.x - 1;
-        y = cube.y;
-        z = cube.z + 1;
-    }
-    else if(direction == 'S') {
-        x = cube.x;
-        y = cube.y - 1;
-        z = cube.z + 1;
-    }
-    else if(direction == 'SE') {
-        x = cube.x + 1;
-        y = cube.y - 1;
-        z = cube.z;
-    }
-
-    var odd_q = cube_to_odd_q(x, y, z);
     
     var move = '{"cmd": "' + cmd + '", "id": "' + id + 
-        '", "x": ' + odd_q.q + ', "y": ' + odd_q.r + '}';
+        '", "x": ' + newX + ', "y": ' + newY + '}';
 
     websocket.send(move);
 };
@@ -274,6 +241,15 @@ function sendExplore() {
 function sendExitLocal() {
     var e = '{"cmd": "exit_local", "attr": "val"}';
     websocket.send(e);
+
+    showDialogPanel();
+    
+    var title = new createjs.Text("Leaving Local Area...", h1Font, textColor);
+    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.y = 20;
+    title.textAlign = "center";
+
+    addChildDialogPanel(title);
 };
 
 function sendInfoObj(id) {
@@ -339,6 +315,7 @@ function onMessage(evt) {
             setPlayerPos();
             drawMap();
             drawObjs();
+
         }
         else if(jsonData.packet == "local_perception") {
             drawLocal(jsonData);
@@ -347,11 +324,12 @@ function onMessage(evt) {
             clearLocal();
             drawLocal(jsonData);
         }
-        else if(jsonData.packet == "battle_perception") {
-            drawBattle(jsonData);
-        }
         else if(jsonData.packet == "item_perception") {
             drawItemDialog(jsonData);
+        }
+        else if(jsonData.packet == "exit_local") {
+            localPanel.visible = false;            
+            dialogPanel.visible = false;
         }
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
@@ -395,13 +373,18 @@ function drawMap() {
 
         bitmap = new createjs.Bitmap(tileImages[tile.t]);
         bitmap.tile = tile.t;
-        bitmap.tile_x = tile.x;
-        bitmap.tile_y = tile.y;
+        bitmap.tileX = tile.x;
+        bitmap.tileY = tile.y;
         bitmap.x = pixel.x;
         bitmap.y = pixel.y;
         bitmap.on("mousedown", function(evt) {
-            var objList = getObjOnTile(this.tile_x, this.tile_y);
-            drawInfoOnTile(this.tile, this.tile_x, this.tile_y, objList);
+            if(evt.nativeEvent.button == 2) {
+                sendMove(this.tileX, this.tileY);
+            } 
+            else {
+                var objList = getObjOnTile(this.tileX, this.tileY);
+                drawInfoOnTile(this.tile, this.tileX, this.tileY, objList);
+            }
         });
 
         map.addChild(bitmap);
@@ -495,23 +478,44 @@ function drawLocal(jsonData) {
     showLocalPanel();
 
     var localMap = localPanel.getChildByName("localMap");
+    var localShroud = localPanel.getChildByName("localShroud");
     var localObjsCont = localPanel.getChildByName("localObjs"); 
+    var select = localPanel.getChildByName("select");
 
     for(var i = 0; i < jsonData.explored.length; i++) {
         var tile = jsonData.explored[i];
         var pixel = hex_to_pixel(tile.x, tile.y);
         var tiles = tile.t.reverse();
 
+        var icon = new createjs.Container();
+
+        icon.x = pixel.x;
+        icon.y = pixel.y;
+        icon.tileX = tile.x;
+        icon.tileY = tile.y;
+        icon.on("mousedown", function(evt) {
+            if(evt.nativeEvent.button == 2) {
+                console.log("Right click");
+                sendMove(this.tileX, this.tileY);
+            }
+        });
+
+        addChildLocalPanel(icon, "localMap");
+
         for(var j = 0; j < tiles.length; j++) {
             var tileImageId = tiles[j] - 1;
             var imagePath = "/static/tileset/" + tileset[tileImageId].image;
          
-            imagesQueue.push({id: tileImageId, x: pixel.x, y: pixel.y, target: localMap, index: j});
+            imagesQueue.push({id: tileImageId, x: 0, y: 0, target: icon, index: j});
             loaderQueue.loadFile({id: tileImageId, src: imagePath});
         }
+
+        localTiles.push(tile);
     }
  
     localObjsCont.removeAllChildren();
+
+    var visibleTiles = [];
 
     for(var i = 0; i < jsonData.objs.length; i++) {
         var obj = jsonData.objs[i];
@@ -523,29 +527,38 @@ function drawLocal(jsonData) {
         var imagePath =  "/static/art/" + unitName + ".png";
         var icon = new createjs.Container();
 
+        visibleTiles = range(obj.x, obj.y, 2);
+
         icon.x = pixel.x;
         icon.y = pixel.y;
         icon.player = obj.player;
         icon.name = unitName;
         icon.id = obj.id;
+        
+        if(icon.id == selectedUnit) {
+            select.x = icon.x;
+            select.y = icon.y;
+        }
+
         icon.on("mousedown", function(evt) {
-            if(this.player == playerId) {
-                selectedUnit = this.id;
-            } 
-            else if(selectedUnit != false) {
-                var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + this.id + '"}';    
-                websocket.send(attack_unit);
-            }
+            select.x = this.x;
+            select.y = this.y;
+            select.visible = true;
+                    
+            selectedUnit = this.id;
+        /*    var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + this.id + '"}';    
+                websocket.send(attack_unit);*/
         });
+
 
         addChildLocalPanel(icon, "localObjs");
 
-        if(unitName.indexOf("hero") > -1) {
+        /*if(unitName.indexOf("hero") > -1) {
             c_x = 250 - 36 - pixel.x;
             c_y = 230 - 36 - pixel.y;
             createjs.Tween.get(localMap).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
             createjs.Tween.get(localObjsCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
-        }
+        }*/
  
         imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
         loaderQueue.loadFile({id: unitName, src: imagePath});
@@ -553,44 +566,19 @@ function drawLocal(jsonData) {
         obj.icon = icon;
         localObjs[obj.id] = obj;
     }
-};
 
-function drawBattleUnits() {
-    
-    for(var i = 0; i < battleUnits.length; i++) {
-        var pixel = hex_to_pixel(battleUnits[i].x, battleUnits[i].y);
-        var obj = getObj(battleUnits[i].obj);
-        var unitName = battleUnits[i].type;
+    localShroud.removeAllChildren();
 
-        unitName = unitName.toLowerCase().replace(/ /g, '');
+    for(var i = 0; i < localTiles.length; i++) {
+        var tile = localTiles[i];
 
-        var imagePath =  "/static/art/" + unitName + ".png";
-        var icon = new createjs.Container();
-
-        battleUnits[i].icon = icon;
-
-        icon.player = obj.player;
-        icon.unit = battleUnits[i].unit;
-        icon.x = pixel.x;
-        icon.y = pixel.y;
-
-        icon.on("mousedown", function(evt) {
-            if(selectedUnit == false) {
-                if(this.player == playerId) {
-                    selectedUnit = this.unit;
-                } 
-            } else {
-                if(this.player != playerId) {
-                    var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + this.unit + '"}';    
-                    websocket.send(attack_unit);
-                }
-            }
-        });
-
-        addChildBattlePanel(icon);
-
-        imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
-        loaderQueue.loadFile({id: unitName, src: imagePath});
+        if(!is_visible(tile.x, tile.y, visibleTiles)) {
+            var pixel = hex_to_pixel(tile.x, tile.y);
+            var bitmap = new createjs.Bitmap(shroud);
+            bitmap.x = pixel.x;
+            bitmap.y = pixel.y;
+            localShroud.addChild(bitmap);
+        }
     }
 };
 
@@ -864,7 +852,6 @@ function drawInfoItem(jsonData) {
 };
 
 function initUI() {
-    //Initialize local panel
     localPanel = new createjs.Container();
     localPanel.visible = false;
     localPanel.x = 0;
@@ -875,11 +862,13 @@ function initUI() {
     var content = new createjs.Container();
     var localMap = new createjs.Container();
     var localObjsCont = new createjs.Container();
+    var localShroud = new createjs.Container();
+    var select = new createjs.Bitmap(selectImage);
 
     localMap.width = 1280;
     localMap.height = 800;
 
-    bg.graphics.beginFill("#1c1c1c").drawRect(0,0,1280,800);
+    bg.graphics.beginFill("#000000").drawRect(0,0,1280,800);
 
     close.x = 1250;
     close.y = 10;
@@ -890,13 +879,19 @@ function initUI() {
 
     content.name = "content";
     localMap.name = "localMap";
+    localShroud.name = "localShroud";
     localObjsCont.name = "localObjs";
+
+    select.name = "select";
+    select.visible = false;
 
     localPanel.addChild(bg);
     localPanel.addChild(close);
     localPanel.addChild(localMap);
+    localPanel.addChild(localShroud);
     localPanel.addChild(localObjsCont);
     localPanel.addChild(content);
+    localPanel.addChild(select);
 
     stage.addChild(localPanel);
 
@@ -1145,3 +1140,49 @@ function hex_to_pixel(q, r) {
     return {x: x, y: y};
 };
 
+function distance(srcX, srcY, dstX, dstY) {
+    var srcCube = odd_q_to_cube(srcX, srcY);
+    var dstCube = odd_q_to_cube(dstX, dstY);
+
+    return (Math.abs(srcCube["x"] - dstCube["x"]) +
+            Math.abs(srcCube["y"] - dstCube["y"]) +
+            Math.abs(srcCube["z"] - dstCube["z"])) / 2;
+};
+
+function range(srcX, srcY, dist) {
+
+    var srcCube = odd_q_to_cube(srcX, srcY);
+    var results = [];
+
+    for(var x = -1 * dist; x <= dist; x++) {
+        for(var y = -1 * dist; y <= dist; y++) {
+            for(var z = -1 * dist; z <= dist; z++) {
+
+                if((x + y + z) == 0) {
+                    var cube = {};
+
+                    cube["x"] = srcCube["x"] + x;
+                    cube["y"] = srcCube["y"] + y;
+                    cube["z"] = srcCube["z"] + z;
+
+                    var oddq = cube_to_odd_q(cube["x"], cube["y"], cube["z"]);
+                    results.push(oddq);
+                }
+            }
+        }
+    }
+
+    return results;
+};
+
+function is_visible(x, y, visibleTiles) {
+    for(var i = 0; i < visibleTiles.length; i++) {
+        var visibleTile = visibleTiles[i];
+            
+        if(visibleTile["q"] == x && visibleTile["r"] == y) {                
+            return true;
+        }
+    }
+
+    return false;
+};
