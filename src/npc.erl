@@ -209,7 +209,7 @@ process_local_action(NPCUnit, EnemyUnits) ->
     lager:info("Path: ~p", [Path]),
     NextAction = next_action(NPCUnit, EnemyUnit, Path),
     lager:info("Next action: ~p", [NextAction]),
-    add_battle_action(NextAction). 
+    add_local_action(NextAction). 
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
     EnemyUnit;
@@ -236,12 +236,12 @@ next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 2 ->
 next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
     {attack, NPCUnit, EnemyUnit}.
 
-add_battle_action({attack, Source, Target}) ->
+add_local_action({attack, Source, Target}) ->
     lager:info("Adding attack: ~p ~p", [Source, Target]),
     SourceId = maps:get(<<"id">>, Source),
     TargetId = maps:get(<<"id">>, Target),
     battle:attack_unit(SourceId, TargetId);
-add_battle_action({move, Unit, NextPos}) ->
+add_local_action({move, Unit, NextPos}) ->
     UnitId = maps:get(<<"id">>, Unit),
     [UnitObj] = db:read(local_obj, UnitId),
 
@@ -250,7 +250,7 @@ add_battle_action({move, Unit, NextPos}) ->
                   UnitId,
                   NextPos,
                   8);
-add_battle_action(none) ->
+add_local_action(none) ->
     lager:info("NPC Unit doing nothing.").
 
 add_move_unit(GlobalPos, Player, UnitId, NewPos, NumTicks) ->

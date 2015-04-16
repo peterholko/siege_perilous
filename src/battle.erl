@@ -52,30 +52,13 @@ handle_cast({attack_unit, SourceId, TargetId}, Data) ->
     [SourceObj] = db:read(local_obj, SourceId),
     [TargetObj] = db:read(local_obj, TargetId),
 
-    SourceUnits = unit:get_units_and_stats(SourceObj#local_obj.global_obj_id),
-    TargetUnits = unit:get_units_and_stats(TargetObj#local_obj.global_obj_id),
+    Result = is_state_not(dead, SourceObj#local_obj.state) andalso
+             is_state_not(dead, TargetObj#local_obj.state),
 
-    add_battle_units(SourceUnits),
-    add_battle_units(TargetUnits),
-    
-    set_combat_state(SourceUnits),
-    set_combat_state(TargetUnits),
-
-    Action = #action {source_id = SourceId,
-                      type = attack,
-                      data = TargetId},
-    db:write(Action),
-    {noreply, Data};
-
-handle_cast({move_unit, SourceId, Pos}, Data) ->
-    Action = #action {source_id = SourceId,
-                      type = move,
-                      data = Pos},
-  
-    db:write(Action),
+    set_attack_unit(Result, SourceObj, TargetObj),
 
     {noreply, Data};
- 
+
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
@@ -104,6 +87,23 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
+
+set_attack_unit(false, _, _) ->
+    lager:info("set_attack_unit failed");
+set_attack_unit(true, SourceObj, TargetObj) ->
+    SourceUnits = unit:get_units_and_stats(SourceObj#local_obj.global_obj_id),
+    TargetUnits = unit:get_units_and_stats(TargetObj#local_obj.global_obj_id),
+
+    add_battle_units(SourceUnits),
+    add_battle_units(TargetUnits),
+    
+    set_combat_state(SourceUnits),
+    set_combat_state(TargetUnits),
+
+    Action = #action {source_id = SourceObj#local_obj.id,
+                      type = attack,
+                      data = TargetObj#local_obj.id},
+    db:write(Action).
 
 process_action([Action]) ->
 
@@ -284,4 +284,8 @@ set_combat_state([Unit | Rest]) ->
     local:update_state(Id, combat),
     set_combat_state(Rest).
 
+is_state(ExpectedState, State) when ExpectedState =:= State -> true;
+is_state(_ExpectdState, _State) -> false.
 
+is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
+is_state_not(_NotExpectedState, State) -> true.

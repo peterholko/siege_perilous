@@ -92,6 +92,10 @@ info(Unit) ->
     UnitStats = stats(Unit),
     {UnitId} = bson:lookup('_id', UnitStats),
     Items = item:get_by_owner(UnitId),
-    UnitItems = bson:update(items, Items, UnitStats),
-    UnitItems.
 
+    %Get state from local obj table
+    [LocalObj] = db:read(local_obj, UnitId),
+
+    UnitStats2 = bson:update(items, Items, UnitStats),
+    UnitStats3 = bson:update(state, LocalObj#local_obj.state, UnitStats2),
+    UnitStats3.
