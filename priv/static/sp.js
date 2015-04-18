@@ -2,6 +2,7 @@ var websocket;
 var stage;
 var loaderQueue;
 var imagesQueue = [];
+var spritesQueue = [];
 var canvas;
 var map;
 var battlePanel;
@@ -172,7 +173,7 @@ function handleQueueComplete()
 
     while(imagesQueue.length > 0) {
         var imageTask = imagesQueue.shift();
-        var image = loaderQueue.getResult(imageTask.id)
+        var image = loaderQueue.getResult(imageTask.id);
 
         if(image) {
             var bitmap = new createjs.Bitmap(image);
@@ -189,6 +190,39 @@ function handleQueueComplete()
         }
     }
 
+    while(spritesQueue.length > 0) {
+        var spriteTask = spritesQueue.shift();
+        var sprite = loaderQueue.getResult(spriteTask.id);
+        
+        if(sprite) {
+            var sprite = new createjs.Sprite(sprite, spriteTask.animation);
+            
+            sprite.x = spriteTask.x;
+            sprite.y = spriteTask.y;
+            
+            spriteTask.target.addChild(sprite);
+        }
+    }
+
+};
+
+function addSprite(spriteTask) {
+     var sprite = loaderQueue.getResult(spriteTask.id);
+
+    if(sprite) {
+        console.log("Sprite loaded");
+
+        var sprite = new createjs.Sprite(spriteTask.id, spriteTask.animation);
+        
+        sprite.x = spriteTask.x;
+        sprite.y = spriteTask.y;
+    
+        spriteTask.target.addChild(sprite);
+    }
+    else {
+        spritesQueue.push(spriteTask);
+        loaderQueue.loadFile({id: spriteTask.id, src: spriteTask.path, type: "spritesheet");
+    }
 };
 
 function addImage(imageTask) {
@@ -599,7 +633,7 @@ function drawLocal(jsonData) {
         var pixel = hex_to_pixel(obj.x, obj.y);
         var unitName = obj.type;
         unitName = unitName.toLowerCase().replace(/ /g, '');
-        var imagePath =  "/static/art/" + unitName + ".png";
+        var imagePath =  "/static/art/" + unitName + ".json";
         var icon = new createjs.Container();
 
         visibleTiles = range(obj.x, obj.y, 2);
@@ -644,8 +678,9 @@ function drawLocal(jsonData) {
             createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
             
         }
- 
-        addImage({id: unitName, path: imagePath, x: 0, y: 0, target: icon});
+
+        addSprite({id: unitName, path: imagePath, x: 0, y: 0, target: icon, animation: "stand"}); 
+        //addImage({id: unitName, path: imagePath, x: 0, y: 0, target: icon});
 
         obj.icon = icon;
         localObjs[obj.id] = obj;
