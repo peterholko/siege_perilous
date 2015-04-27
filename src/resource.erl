@@ -9,7 +9,8 @@
 -export([harvest/2, contains/2]).
 
 harvest(ObjId, ResourceType) ->
-    item:create(ObjId, ResourceType, 1).
+    NewItem = item:create(ObjId, ResourceType, 1),
+    [NewItem].
 
 contains(ResourceType, Pos) ->
     [Tile] = map:get_tile(Pos),

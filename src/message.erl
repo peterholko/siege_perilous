@@ -89,13 +89,25 @@ message_handle(<<"attack_unit">>, Message) ->
 message_handle(<<"harvest">>, Message) ->
     lager:info("message: harvest"),
 
-    Id = map_get(<<"id">>, Message),
+    SourceId = map_get(<<"sourceid">>, Message),
     Resource = map_get(<<"resource">>, Message),
-    BinId = util:hex_to_bin(Id),
+    BinSourceId = util:hex_to_bin(SourceId),
    
-    player:harvest(BinId, Resource),
+    player:harvest(BinSourceId, Resource),
 
     <<"Harvest added">>;
+
+message_handle(<<"loot">>, Message) ->
+    lager:info("message: loot"),
+    
+    SourceId = map_get(<<"sourceid">>, Message),
+    SourceBinId = util:hex_to_bin(SourceId),
+    Item = map_get(<<"item">>, Message),
+    BinItem = util:hex_to_bin(Item),
+
+    PlayerItems = player:loot(SourceBinId, BinItem),
+    ItemPerception = prepare(item_perception, PlayerItems),
+    jsx:encode(ItemPerception);
 
 message_handle(<<"explore">>, Message) ->
     lager:info("message: explore"),
@@ -172,6 +184,13 @@ message_handle(<<"info_item">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_item_by_name">>, Message) ->
+    lager:info("message: info_item_by_name"),
+    ItemName = map_get(<<"name">>, Message),
+    InfoMaps = mdb:to_map(player:get_info_item(ItemName)),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
 message_handle(<<"info_battle">>, Message) ->
     lager:info("message: info_battle"),
     HexId = map_get(<<"id">>, Message),
@@ -216,6 +235,11 @@ prepare(battle_perception, Message) ->
 prepare(item_perception, Message) ->
     ItemPerception = item_perception(Message, []),
     [{<<"packet">>, <<"item_perception">>},
+     {<<"items">>, ItemPerception}]; 
+
+prepare(new_items, Message) ->
+    ItemPerception = item_perception(Message, []),
+    [{<<"packet">>, <<"new_items">>},
      {<<"items">>, ItemPerception}]; 
 
 prepare(exit_local, _Message) ->

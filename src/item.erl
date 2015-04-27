@@ -12,41 +12,41 @@ get(Id) ->
     Item = find('_id', Id),
     Item.
 
-get_info(Id) ->
-    ItemInfo = case find('_id', Id) of
-                [Item] ->
-                    %TODO compare requester id to owner id
-                    info(Item);
-                _ ->
-                    none
-               end,
-    ItemInfo.
+get_info(Id) when is_tuple(Id) ->
+    [Item] = find('_id', Id),
+    ItemInfo = info(Item),
+    ItemInfo;
+
+get_info(Name) when is_binary(Name) ->
+    [ItemType] = find_type('name', Name),
+    ItemType.
 
 get_by_owner(OwnerId) ->
     Items = find(owner, OwnerId),
     Items.
 
-transfer(Item, TargetId) ->
-    {ItemId} = bson:lookup('_id', Item),
+transfer(ItemId, TargetId) ->
     mdb:update(<<"item">>, ItemId, {owner, TargetId}).
 
 equip(ItemId) ->
     mdb:update(<<"item">>, ItemId, {equip, <<"true">>}).
 
-create(Owner, Type, Quantity) ->
+create(Owner, TypeName, Quantity) ->
     % Find existing item type in owner
-    Items = find(type, Type),
-    
-    case Items of
+    ExistingItem = find(name, TypeName),
+   
+    case ExistingItem of
         [] ->
-            Attrs = {owner, Owner, type, Type, quantity, Quantity},
-            mongo:insert(mdb:get_conn(), <<"item">>, Attrs);
+            NewItem = {owner, Owner, name, TypeName, quantity, Quantity},
+            InsertedItem = mongo:insert(mdb:get_conn(), <<"item">>, NewItem),
+            lager:info("InsertedItem: ~p", [InsertedItem]),
+            InsertedItem;
         [Item] ->
             {ItemId} = bson:lookup('_id', Item),
             {OldQuantity} = bson:lookup(quantity, Item),
-
-            Attrs = {owner, Owner, type, Type, quantity, Quantity + OldQuantity},
-            mdb:update(<<"item">>, ItemId, Attrs)
+            UpdatedItem = {owner, Owner, name, TypeName, quantity, OldQuantity + Quantity},
+            mdb:update(<<"item">>, ItemId, UpdatedItem),
+            UpdatedItem
     end.
 
 obj_perception(ObjId) ->
@@ -80,3 +80,5 @@ stats(Item) ->
 info(Item) ->
     ItemStats = stats(Item),
     ItemStats.
+
+

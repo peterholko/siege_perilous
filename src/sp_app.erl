@@ -53,6 +53,8 @@ start(_Type, _Args) ->
     lager:info("Starting Battle Manager"),
     battle:start(),
 
+    map:xml_test(),
+
     lager:info("Starting game loop"),
     spawn(fun() -> game_loop:loop(util:get_time(), global:whereis_name(game_pid)) end),
 

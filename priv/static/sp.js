@@ -3,6 +3,7 @@ var stage;
 var loaderQueue;
 var imagesQueue = [];
 var spritesQueue = [];
+var assets = [];
 var canvas;
 var map;
 var battlePanel;
@@ -54,6 +55,10 @@ var detailsActive = new Image();
 var detailsRest = new Image();
 var detailsRoll = new Image();
 
+var buttonRestImg = new Image();
+var buttonHoverImg = new Image();
+var buttonClickedImg = new Image();
+
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
 
@@ -98,6 +103,10 @@ attackRoll.src = "/static/art/ActionBar_Attack_Roll.png";
 detailsActive.src = "/static/art/ActionBar_Details_Active.png";
 detailsRest.src = "/static/art/ActionBar_Details_Rest.png";
 detailsRoll.src = "/static/art/ActionBar_Details_Roll.png";
+
+buttonRestImg.src = "/static/art/ButtonRest.png";
+buttonHoverImg.src = "/static/art/ButtonHover.png";
+buttonClickedImg.src = "/static/art/ButtonClicked.png";
 
 var zombie = {
     images: ['/static/art/zombie_ss.png'],
@@ -163,14 +172,17 @@ function initImages() {
                      src: "close_rest.png" , id: "close_rest"}];
                 
     loaderQueue = new createjs.LoadQueue(false);
-    loaderQueue.addEventListener("complete", handleQueueComplete);
+    loaderQueue.on("complete", handleQueueComplete);
+    //loaderQueue.on("fileload", handleQueueFileLoad);
     loaderQueue.loadManifest(manifest, true, "/static/art/");
+};
+
+function handleQueueFileLoad(event) {
+    assets.push(event);    
 };
 
 function handleQueueComplete()
 {
-    console.log("Queue complete");
-
     while(imagesQueue.length > 0) {
         var imageTask = imagesQueue.shift();
         var image = loaderQueue.getResult(imageTask.id);
@@ -192,13 +204,16 @@ function handleQueueComplete()
 
     while(spritesQueue.length > 0) {
         var spriteTask = spritesQueue.shift();
-        var sprite = loaderQueue.getResult(spriteTask.id);
+        var spriteSheet = loaderQueue.getResult(spriteTask.id);
         
-        if(sprite) {
-            var sprite = new createjs.Sprite(sprite, spriteTask.animation);
-            
+        if(spriteSheet) {
+            var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
+
             sprite.x = spriteTask.x;
             sprite.y = spriteTask.y;
+            sprite.name = "sprite";
+        
+            sprite.gotoAndPlay(spriteTask.animation);
             
             spriteTask.target.addChild(sprite);
         }
@@ -207,21 +222,23 @@ function handleQueueComplete()
 };
 
 function addSprite(spriteTask) {
-     var sprite = loaderQueue.getResult(spriteTask.id);
+     var spriteSheet = loaderQueue.getResult(spriteTask.id);
 
-    if(sprite) {
+    if(spriteSheet) {
         console.log("Sprite loaded");
-
-        var sprite = new createjs.Sprite(spriteTask.id, spriteTask.animation);
+        var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
         
         sprite.x = spriteTask.x;
         sprite.y = spriteTask.y;
+        sprite.name = "sprite";
+
+        sprite.gotoAndPlay(spriteTask.animation);
     
         spriteTask.target.addChild(sprite);
     }
     else {
         spritesQueue.push(spriteTask);
-        loaderQueue.loadFile({id: spriteTask.id, src: spriteTask.path, type: "spritesheet");
+        loaderQueue.loadFile({id: spriteTask.id, src: spriteTask.path, type: "spritesheet"});
     }
 };
 
@@ -320,6 +337,16 @@ function sendEquip() {
     websocket.send(e);
 };
 
+function sendLoot(sourceid, item) {
+    var e = '{"cmd": "loot", "sourceid": "' + sourceid + '", "item": "' + item + '"}';
+    websocket.send(e);
+};
+
+function sendHarvest(sourceid, resource) {
+    var e = '{"cmd": "harvest", "sourceid": "' + selectedPortrait + '", "resource": "Copper Ore"}';    
+    websocket.send(e);
+};
+
 function sendExplore() {
     var e = '{"cmd": "explore", "sourceid": "123123", "x": 1, "y": 1}';
     websocket.send(e);
@@ -353,6 +380,11 @@ function sendInfoItem(id) {
     var info = '{"cmd": "info_item", "id": "' + id + '"}';
     websocket.send(info);
 };
+
+function sendInfoItemByName(name) {
+    var info = '{"cmd": "info_item_by_name", "name": "' + name + '"}';
+    websocket.send(info);
+}
 
 function sendInfoTile(type, pos) {
     var info = '{"cmd": "info_tile", "type": ' + type + ', "pos": ' + pos + '}';
@@ -413,7 +445,10 @@ function onMessage(evt) {
             drawPortraits();
         }
         else if(jsonData.packet == "item_perception") {
-            drawItemDialog(jsonData);
+            dialogPanel.visible = false;
+        }
+        else if(jsonData.packet == "new_items") {
+           drawNewItemsDialog(jsonData); 
         }
         else if(jsonData.packet == "exit_local") {
             localPanel.visible = false;            
@@ -427,7 +462,7 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "info_unit") {
             if(jsonData.state == "dead") {
-                drawItemDialog(jsonData);
+                drawLootDialog(jsonData);
             }
             else {
                 drawInfoUnit(jsonData);
@@ -679,7 +714,7 @@ function drawLocal(jsonData) {
             
         }
 
-        addSprite({id: unitName, path: imagePath, x: 0, y: 0, target: icon, animation: "stand"}); 
+        addSprite({id: unitName + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: obj.state}); 
         //addImage({id: unitName, path: imagePath, x: 0, y: 0, target: icon});
 
         obj.icon = icon;
@@ -830,14 +865,13 @@ function drawDmg(jsonData) {
         }
 
         if(jsonData.state == "dead") {
-            target.icon.removeAllChildren();
-            var die = new createjs.Sprite(zombieSS, "die");
-            target.icon.addChild(die);
+            var sprite = target.icon.getChildByName("sprite");
+            sprite.gotoAndPlay("die");
         }
     }
 };
 
-function drawItemDialog(jsonData) {
+function drawLootDialog(jsonData) {
     showDialogPanel();
 
     var title = new createjs.Text("Loot", h1Font, textColor);
@@ -856,7 +890,13 @@ function drawItemDialog(jsonData) {
         
         icon._id = jsonData.items[i]._id;
         icon.on("mousedown", function(evt) {
-            sendInfoItem(this._id);
+            if(evt.nativeEvent.button == 2) {
+                console.log("Sending loot");
+                sendLoot(selectedPortrait, this._id);
+            }
+            else {
+                sendInfoItem(this._id);
+            }
         });
 
         icon.x = dialogPanelBg.width / 2 - 24;
@@ -865,6 +905,52 @@ function drawItemDialog(jsonData) {
         addChildDialogPanel(icon);
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
+
+};
+
+function drawNewItemsDialog(jsonData) {
+    showDialogPanel();
+
+    var title = new createjs.Text("Rewards", h1Font, textColor);
+    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.y = 5;
+    title.textAlign = "center";
+
+    addChildDialogPanel(title);
+
+    for(var i = 0; i < jsonData.items.length; i++) {
+        var itemName = jsonData.items[i].name;            
+        itemName = itemName.toLowerCase().replace(/ /g,'');
+
+        var imagePath = "/static/art/" + itemName + ".png";
+        var icon = new createjs.Container();
+       
+        icon.id = jsonData.items[i]._id;
+        icon.itemName = jsonData.items[i].name;
+
+        if(jsonData.items[i].hasOwnProperty("_id")) {
+            icon.by_name = false;
+        } 
+        else {
+            icon.by_name = true;
+        }
+
+        icon.on("mousedown", function(evt) {
+            if(this.by_name) {
+                sendInfoItemByName(this.itemName);
+            }
+            else {
+                sendInfoItem(this.id);
+            }
+        });
+
+        icon.x = dialogPanelBg.width / 2 - 24;
+        icon.y = dialogPanelBg.height / 2 + 5 - 24;
+
+        addChildDialogPanel(icon);
+        addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
+    }
+
 };
 
 function drawInfoOnTile(tileType, tileX, tileY, objsOnTile) {
@@ -1034,12 +1120,12 @@ function drawInfoUnit(jsonData) {
     addChildInfoPanel(itemText);
 
     for(var i = 0; i < jsonData.items.length; i++) {
-        var itemName = jsonData.items[i].type;
+        var itemName = jsonData.items[i].name;
         itemName = itemName.toLowerCase().replace(/ /g,'');
         var imagePath = "/static/art/" + itemName + ".png";
 
-        //imagesQueue.push({id: itemName, x: 20, y: 276, target: getInfoPanelContent()});
-        //loaderQueue.loadFile({id: itemName, src: imagePath});
+        imagesQueue.push({id: itemName, x: 20, y: 276, target: getInfoPanelContent()});
+        loaderQueue.loadFile({id: itemName, src: imagePath});
     }
 };
 
@@ -1129,35 +1215,7 @@ function initUI() {
 
     stage.addChild(localPanel);
 
-    //Initialize infoPanels
-    for(var i = 0; i < 4; i++) {
-        var panel = new createjs.Container();
-        var bg = new createjs.Bitmap(infoPanelBg);
-        var close = new createjs.Bitmap(close_rest);
-        var content = new createjs.Container();
-
-        panel.visible = false;
-
-        close.x = 300;
-        close.y = 10;
-
-        content.name = 'content';
-
-        close.on("mousedown", function(evt) {
-            console.log('Close mousedown')
-            this.parent.visible = false;
-        });
-
-        panel.addChild(bg);
-        panel.addChild(close);
-        panel.addChild(content);
-
-        stage.addChild(panel);
-
-        infoPanels.push(panel);
-    }
-
-    //Initialize dialogPanel
+   //Initialize dialogPanel
     dialogPanel = new createjs.Container();
     dialogPanel.x = stageWidth / 2 - 200;
     dialogPanel.y = stageHeight / 2 - 150; 
@@ -1252,6 +1310,68 @@ function initUI() {
     portraitPanel.y = stageHeight - 83;
 
     stage.addChild(portraitPanel);
+
+    //Initialize infoPanels
+    for(var i = 0; i < 4; i++) {
+        var panel = new createjs.Container();
+        var bg = new createjs.Bitmap(infoPanelBg);
+        var close = new createjs.Bitmap(close_rest);
+        var content = new createjs.Container();
+
+        panel.visible = false;
+
+        close.x = 300;
+        close.y = 10;
+
+        content.name = 'content';
+
+        close.on("mousedown", function(evt) {
+            console.log('Close mousedown')
+            this.parent.visible = false;
+        });
+
+        panel.addChild(bg);
+        panel.addChild(close);
+        panel.addChild(content);
+
+        stage.addChild(panel);
+
+        infoPanels.push(panel);
+    }
+
+ 
+};
+
+function createButton(text) {
+    var button = new createjs.Container();
+    var rest = new createjs.Bitmap(buttonRestImg);
+    var hover = new createjs.Bitmap(buttonHoverImg);
+    var clicked = new createjs.Bitmap(buttonClickedImg);
+
+    rest.name = "rest";
+    hover.name = "hover";
+    clicked.name = "clicked";
+    
+    rest.visible = true;
+    hover.visible = false;
+    clicked.visible = false;
+
+    button.addChild(rest);
+    button.addChild(hover);
+    button.addChild(clicked);
+
+    var buttonText = new createjs.Text();
+    buttonText.font = "bold 14px Play";
+    buttonText.color = "#e1a972";
+    buttonText.text = text;
+
+    buttonText.x = 0;
+    buttonText.y = 0;
+    buttonText.textAlign = "center";
+
+    button.addChild(buttonText);
+
+    return button;
 };
 
 function showBattlePanel() {

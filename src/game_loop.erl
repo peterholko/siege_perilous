@@ -140,16 +140,16 @@ do_event(exit_local, EventData, PlayerPid) ->
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
-    {ObjId, Resource} = EventData,
+    {LocalObjId, Resource} = EventData,
 
     %Update obj state
-    obj:update_state(ObjId, none),
+    local:update_state(LocalObjId, none),
 
     %Create/update item
-    resource:harvest(ObjId, Resource),
+    NewItems = resource:harvest(LocalObjId, Resource),
 
     %Send item perception to player pid
-    send_to_process(PlayerPid, item_perception, item:get_by_owner(ObjId)), 
+    send_to_process(PlayerPid, new_items, NewItems), 
     
     {false, false};
 

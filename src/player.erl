@@ -17,6 +17,7 @@
          attack_obj/2,
          attack_unit/2,
          harvest/2,
+         loot/2,
          explore/2,
          exit_local/0,
          build/3,
@@ -47,10 +48,8 @@ get_info_obj(Id) ->
 get_info_unit(Id) ->
     unit:get_info(Id).
 
-get_info_item(Id) ->
-    Info = item:get_info(Id),
-    lager:info("Item Info: ~p", [Info]),
-    Info.
+get_info_item(Item) ->
+    item:get_info(Item).
 
 get_info_battle(Id) ->
     Player = get(player_id),
@@ -105,18 +104,20 @@ move_unit(UnitId, Pos) ->
     [Unit] = db:read(local_obj, UnitId),
     add_move_unit(Result, {Unit#local_obj.global_pos, Player, UnitId, Pos}, NumTicks).
 
-harvest(Id, Resource) ->
+harvest(LocalObjId, Resource) ->
     Player = get(player_id),
-    Obj = obj:get_map_obj(Id),
-    NumTicks = 40,
+    NumTicks = 8,
 
-    ValidState = is_state(none, Obj#obj.state),
-    ValidPlayer = is_player_owned(Obj#obj.player, Player),
-    ValidResource = resource:contains(Resource, Obj#obj.pos),
+    %TODO add validation
+    Result = true,
 
-    Result = ValidState and ValidPlayer and ValidResource,
+    add_harvest_event(Result, {LocalObjId, Resource}, NumTicks).
 
-    add_harvest_event(Result, {Id, Resource}, NumTicks).
+loot(SourceId, ItemId) ->
+    %TODO add validation
+    item:transfer(ItemId, SourceId),
+    Items = item:get_by_owner(SourceId),
+    Items.
 
 explore(_Id, _GlobalPos) ->
     %TODO add validation
@@ -186,11 +187,11 @@ equip(Id, ItemId) ->
 add_harvest_event(false, _EventData, _Ticks) ->
     lager:info("Harvest failed"),
     none;
-add_harvest_event(true, {ObjId, Resource}, NumTicks) ->
+add_harvest_event(true, {LocalObjId, Resource}, NumTicks) ->
     %Update obj state
-    obj:update_state(ObjId, harvesting),
+    local:update_state(LocalObjId, harvesting),
 
-    EventData = {ObjId, Resource},
+    EventData = {LocalObjId, Resource},
     game:add_event(self(), harvest, EventData, NumTicks).
 
 add_build_event(false, _EventData, _Ticks) ->
