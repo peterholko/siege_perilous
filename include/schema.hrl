@@ -42,7 +42,6 @@
                       speed}).
 
 -record(local_map, {index,
-                    tile = 0,
                     misc}).
 
 -record(local_obj, {id,

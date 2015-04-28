@@ -372,14 +372,14 @@ store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
 
 xml_test() ->
     lager:info("Parsing map"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/Test_Zone.tmx"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/test1.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     lager:info("Processing layers"),
     process_layers(C).
 
 tileset() ->
     lager:info("Parsing tileset"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/Forest_Demo_Pax.tmx"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/test1.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     TilesetList = process_tileset(C, []),
     JSON = jsx:encode(TilesetList),
@@ -395,31 +395,41 @@ process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList)
     {_, TilesetName} = NameInfo,
     FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
     lager:info("FirstGid: ~p ~p", [FirstGid, TilesetName]),
-    NewTilesetList = process_tileset_data(TilesetData, FirstGid, TilesetList),
+    NewTilesetList = process_tileset_data(TilesetData, {0,0}, FirstGid, TilesetList),
 
     process_tileset(Rest, NewTilesetList);
 process_tileset(_, Tileset) ->
     Tileset.
 
-process_tileset_data([], _, NewTileset) ->
+process_tileset_data([], _, _, NewTileset) ->
     lager:info("Done procssing tileset"),
     NewTileset;
-process_tileset_data([{<<"tile">>, IdInfo, ImageInfo} | Rest], FirstGid, Tileset) ->
+process_tileset_data([{<<"tileoffset">>, OffsetInfo, _OffSetData} | Rest], _Offset, FirstGid, Tileset) ->
+    lager:info("tileoffset: ~p ", [OffsetInfo]),
+    [{<<"x">>, X}, {<<"y">>, Y}] = OffsetInfo,
+    TileOffset = {X, Y},
+    process_tileset_data(Rest, TileOffset, FirstGid, Tileset);
+process_tileset_data([{<<"tile">>, IdInfo, ImageInfo} | Rest], TileOffset, FirstGid, Tileset) ->
     [{_, BinTileId}] = IdInfo,
     LocalTileId = binary_to_integer(BinTileId),
     TileId = FirstGid + LocalTileId,
     Image = get_image(ImageInfo),
     lager:info("~p - ~p", [TileId, Image]),
 
-    NewTileset= [#{<<"tile">> => TileId,
-                   <<"image">> => Image} | Tileset],
+    {X, Y} = TileOffset,
 
-    process_tileset_data(Rest, FirstGid, NewTileset).
+    NewTileset= [#{<<"tile">> => TileId,
+                   <<"image">> => Image, 
+                   <<"offsetx">> => X,
+                   <<"offsety">> => Y} | Tileset],
+
+    process_tileset_data(Rest, TileOffset, FirstGid, NewTileset).
 
 get_image([{_, [_Width, _Height, Source], _Empty}]) ->
     {_, BinFilePath} = Source,
-    FilePath = binary_to_list(BinFilePath),
-    list_to_binary(string:sub_string(FilePath, 69)).
+    %FilePath = binary_to_list(BinFilePath),
+    %list_to_binary(string:sub_string(FilePath, 69)).
+    BinFilePath.
 
 process_layers([]) ->
     lager:info("Done processing layers");
@@ -427,8 +437,8 @@ process_layers([{<<"layer">>, LayerProp, LayerData} | Rest]) ->
     lager:info("Processing layer ~p", [LayerProp]),
     process_layer_data(LayerData),
     process_layers(Rest);
-process_layers(_) ->
-    nothing.
+process_layers([_MapData | Rest]) ->
+    process_layers(Rest).
 
 process_layer_data([{<<"data">>, _Encoding, Data}]) ->
     [BinData] = Data,
@@ -458,7 +468,6 @@ store_tile_list([Tile | Rest], NumRow, NumCol) ->
     case db:dirty_read(local_map, {1, Pos}) of
         [] ->
             NewTile = #local_map {index = {1, Pos},
-                                  tile = 1,
                                   misc = [list_to_integer(Tile)]},
             db:dirty_write(NewTile);
         [LocalTile] ->
