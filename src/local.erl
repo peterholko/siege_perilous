@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1, create/6, move/2, update_state/2]).
+-export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1, create/7, move/2, update_state/2]).
 -export([is_exit_valid/1]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
@@ -85,10 +85,14 @@ enter_obj(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Type, State) ->
     db:write(LocalObj),
     game:trigger_local(GlobalPos).
 
-create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type) ->
+create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type, State) ->
     lager:info("Creating ~p", [Type]),
-    Id = insert(GlobalObjId, Class, Type),
 
+    %Create mongo db local obj
+    [LocalObjM] = local_obj:create(GlobalObjId, Type),
+    {Id} = bson:lookup('_id', LocalObjM),
+
+    %Create mnesia local obj
     LocalObj = #local_obj {id = Id,
                            global_obj_id = GlobalObjId,
                            global_pos = GlobalPos,
@@ -96,9 +100,12 @@ create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type) ->
                            player = PlayerId,
                            class = Class,
                            type = Type,
-                           state = none}, 
+                           state = State}, 
     db:write(LocalObj),
-    game:trigger_local(GlobalPos).
+    game:trigger_local(GlobalPos),
+
+    %Return ID
+    Id.
 
 move(Id, Pos) ->
     %TODO convert to transaction
@@ -167,11 +174,6 @@ enter_pos(ne) -> {16,0};
 enter_pos(sw) -> {0,12};
 enter_pos(s) -> {8,12};
 enter_pos(se) -> {16,12}. 
-
-insert(GlobalObjId, _Class, TypeName) ->
-    [Unit] = local_obj:create(GlobalObjId, TypeName),
-    {Id} = bson:lookup('_id', Unit),
-    Id.
 
 is_on_edge({X, _Y}) when X =:= 0 -> true;
 is_on_edge({_X, Y}) when Y =:= 0 -> true;
