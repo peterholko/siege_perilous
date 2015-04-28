@@ -197,11 +197,11 @@ add_harvest_event(true, {LocalObjId, Resource}, NumTicks) ->
 add_build_event(false, _EventData, _Ticks) ->
     lager:info("Build failed"),
     none;
-add_build_event(true, {Id, GlobalPos, LocalPos, Structure}, NumTicks) ->
+add_build_event(true, {Player, GlobalPos, LocalPos, Structure}, NumTicks) ->
     %Begin building structure
-    StructureId = structure:start_build(Id, GlobalPos, LocalPos, Structure),
+    StructureId = structure:start_build(Player, GlobalPos, LocalPos, Structure),
 
-    EventData = {Id, GlobalPos, LocalPos, StructureId},
+    EventData = {GlobalPos, StructureId},
     game:add_event(self(), build, EventData, NumTicks).
 
 add_attack_obj_event(false, _EventData, _Ticks) ->

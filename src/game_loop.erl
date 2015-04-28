@@ -155,7 +155,7 @@ do_event(harvest, EventData, PlayerPid) ->
 
 do_event(build, EventData, PlayerPid) ->
     lager:info("Processing build event: ~p", [EventData]),
-    {_Id, GlobalPos, _LocalPos, StructureId} = EventData,
+    {GlobalPos, StructureId} = EventData,
 
     local:update_state(StructureId, none),
 

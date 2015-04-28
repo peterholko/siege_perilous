@@ -477,5 +477,4 @@ store_tile_list([Tile | Rest], NumRow, NumCol) ->
     end,
 
     store_tile_list(Rest, NumRow, NumCol + 1).
-
-    
+ 
