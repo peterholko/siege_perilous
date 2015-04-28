@@ -89,7 +89,7 @@ info(_IsPlayers = false, Obj) ->
     Obj;
 info(_IsPlayers = true, Obj) ->
     {ObjId} = bson:lookup('_id', Obj),
-    Units = unit:get_units_and_stats(ObjId),
+    Units = local_obj:units_stats_from_obj(ObjId),
     Items = item:get_by_owner(ObjId),
     ObjUnits = bson:update(units, Units, Obj),
     ObjUnitsItems = bson:update(items, Items, ObjUnits),
@@ -104,6 +104,6 @@ insert(Player) ->
 insert_units(_ObjId, []) ->
     done;
 insert_units(ObjId, [{UnitType, UnitSize} | Rest]) ->
-    unit:create(ObjId, UnitType, UnitSize), 
+    local_obj:create(ObjId, UnitType, UnitSize), 
 
     insert_units(ObjId, Rest).

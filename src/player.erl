@@ -46,7 +46,7 @@ get_info_obj(Id) ->
     obj:get_info(Player, Id).
 
 get_info_unit(Id) ->
-    unit:get_info(Id).
+    local_obj:get_info(Id).
 
 get_info_item(Item) ->
     item:get_info(Item).
@@ -162,7 +162,7 @@ build(Id, LocalPos, Structure) ->
 equip(Id, ItemId) ->
     Player = get(player_id),
 
-    [Unit] = unit:get(Id),
+    [Unit] = local_obj:get(Id),
     [Item] = item:get(ItemId),
 
     lager:info("Unit: ~p Item: ~p", [Unit, Item]),

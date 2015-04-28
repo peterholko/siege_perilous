@@ -91,14 +91,13 @@ terminate(_Reason, _) ->
 set_attack_unit(false, _, _) ->
     lager:info("set_attack_unit failed");
 set_attack_unit(true, SourceObj, TargetObj) ->
-    SourceUnits = unit:get_units_and_stats(SourceObj#local_obj.global_obj_id),
-    TargetUnits = unit:get_units_and_stats(TargetObj#local_obj.global_obj_id),
+    SourceObjStats = local_obj:get_stats(SourceObj#local_obj.id),
+    TargetObjStats = local_obj:get_stats(TargetObj#local_obj.id),
 
-    add_battle_units(SourceUnits),
-    add_battle_units(TargetUnits),
+    set_battle_unit(SourceObjStats),
     
-    set_combat_state(SourceUnits),
-    set_combat_state(TargetUnits),
+    set_combat_state(SourceObjStats),
+    set_combat_state(TargetObjStats),
 
     Action = #action {source_id = SourceObj#local_obj.id,
                       type = attack,
@@ -188,8 +187,8 @@ process_dmg(false, AtkId, _) ->
     db:delete(action, AtkId),
     lager:info("Invalid attack");      
 process_dmg(true, AtkId, DefId) ->
-    AtkUnit = unit:get_stats(AtkId),
-    DefUnit = unit:get_stats(DefId),
+    AtkUnit = local_obj:get_stats(AtkId),
+    DefUnit = local_obj:get_stats(DefId),
 
     {AtkObjId} = bson:lookup(obj_id, AtkUnit),
     {DmgBase} = bson:lookup(base_dmg, AtkUnit),
@@ -216,7 +215,7 @@ process_dmg(true, AtkId, DefId) ->
     %Check if unit is dead 
     case UnitState of
         <<"alive">> ->
-            update_hp(DefId, NewHp);
+            local_obj:update(DefId, {'hp', NewHp});
         <<"dead">> ->
             process_unit_dead(AtkObjId, DefObjId, DefId)
     end.
@@ -231,12 +230,8 @@ is_army_dead([]) ->
 is_army_dead(_Units) ->
     alive.
 
-update_hp(DefId, NewHp) ->
-    mdb:update(<<"unit">>, DefId, {hp, NewHp}).
-
 process_unit_dead(AtkObjId, DefObjId, DefId) ->
     lager:info("Unit ~p died.", [DefId]),
-    
     lager:info("Updating unit state"),
     %Remove unit from collection
     local:update_state(DefId, dead),
@@ -247,7 +242,7 @@ process_unit_dead(AtkObjId, DefObjId, DefId) ->
     db:delete(battle_unit, DefId),
     db:delete(action, DefId),
 
-    DefUnits = unit:get_units(DefObjId),
+    DefUnits = db:index_read(local_obj, DefObjId, #local_obj.global_obj_id),
 
     case is_army_dead(DefUnits) of
         dead ->
@@ -260,29 +255,18 @@ process_unit_dead(AtkObjId, DefObjId, DefId) ->
             none
     end.
 
-add_battle_units([]) ->
-    lager:info("Done adding battle units");
-
-add_battle_units([Unit| Rest]) ->    
-    set_battle_unit(Unit),
-    add_battle_units(Rest).
-
-set_battle_unit(Unit) ->
-    {Id} = bson:lookup('_id', Unit),
-    {Speed} = bson:lookup(base_speed, Unit),
+set_battle_unit(LocalObj) ->
+    {Id} = bson:lookup('_id', LocalObj),
+    {Speed} = bson:lookup(base_speed, LocalObj),
 
     BattleUnit = #battle_unit {unit = Id,
                                speed = Speed},
     lager:info("BattleUnit: ~p", [BattleUnit]),
     db:write(BattleUnit).
 
-set_combat_state([]) ->
-    lager:info("Done updating combat state"),
-    done;
-set_combat_state([Unit | Rest]) ->
-    {Id} = bson:lookup('_id', Unit),
-    local:update_state(Id, combat),
-    set_combat_state(Rest).
+set_combat_state(LocalObj) ->
+    {Id} = bson:lookup('_id', LocalObj),
+    local:update_state(Id, combat).
 
 is_state(ExpectedState, State) when ExpectedState =:= State -> true;
 is_state(_ExpectdState, _State) -> false.

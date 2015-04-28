@@ -45,7 +45,7 @@ has_entered(GlobalObjId) ->
 
 enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
     lager:info("Enter map: ~p", [{GlobalObjId, GlobalPos, LastPos}]),
-    Units = unit:get_units(GlobalObjId), 
+    Units = local_obj:units_from_obj(GlobalObjId), 
     EnterPos = get_enter_pos(GlobalPos, LastPos),
     map:add_local_explored(PlayerId, GlobalPos, EnterPos),
  
@@ -168,8 +168,8 @@ enter_pos(sw) -> {0,12};
 enter_pos(s) -> {8,12};
 enter_pos(se) -> {16,12}. 
 
-insert(GlobalObjId, unit, TypeName) ->
-    [Unit] = unit:create(GlobalObjId, TypeName),
+insert(GlobalObjId, _Class, TypeName) ->
+    [Unit] = local_obj:create(GlobalObjId, TypeName),
     {Id} = bson:lookup('_id', Unit),
     Id.
 
