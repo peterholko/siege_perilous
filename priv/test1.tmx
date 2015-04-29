@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="hexagonal" renderorder="left-up" width="10" height="10" tilewidth="72" tileheight="72" hexsidelength="36" staggeraxis="x" staggerindex="odd" nextobjectid="1">
+ <tileset firstgid="1" name="grassland" tilewidth="72" tileheight="72">
+  <tile id="0">
+   <image width="72" height="72" source="tileset/grass/green.png"/>
+  </tile>
+ </tileset>
+ <tileset firstgid="2" name="mountains" tilewidth="180" tileheight="216">
+  <tileoffset x="-54" y="72"/>
+  <tile id="0">
+   <image width="180" height="216" source="tileset/mountains/basic.png"/>
+  </tile>
+ </tileset>
+ <tileset firstgid="3" name="forest" tilewidth="144" tileheight="144">
+  <tileoffset x="-36" y="36"/>
+  <tile id="0">
+   <image width="144" height="144" source="tileset/forest/deciduous-summer4.png"/>
+  </tile>
+ </tileset>
+ <layer name="base1" width="10" height="10">
+  <data encoding="csv">
+1,1,1,1,1,2,2,2,1,1,
+1,1,1,2,1,1,1,2,1,1,
+1,2,1,2,2,2,1,2,1,1,
+2,2,1,1,2,1,2,1,1,1,
+2,2,1,1,1,1,1,1,1,1,
+2,1,2,1,1,1,1,1,1,1,
+2,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1,
+1,1,1,1,1,1,1,1,1,1
+</data>
+ </layer>
+ <layer name="base2" width="10" height="10">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,3,3,
+0,0,0,0,0,0,0,0,3,3,
+0,0,0,0,0,0,0,0,3,3,
+0,0,0,0,0,0,0,0,3,3,
+0,0,0,0,0,0,0,3,3,3,
+0,0,0,0,0,0,3,3,3,3,
+0,3,0,3,0,0,3,0,3,0,
+3,0,3,0,0,0,0,0,0,0,
+3,3,0,0,3,3,0,3,3,3,
+3,3,3,3,3,0,0,3,3,3
+</data>
+ </layer>
+</map>
