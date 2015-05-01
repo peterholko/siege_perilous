@@ -18,9 +18,11 @@
          attack_unit/2,
          harvest/2,
          loot/2,
+         item_transfer/2,
          explore/2,
          exit_local/0,
-         build/3,
+         build/2,
+         finish_build/1,
          equip/2]).
 
 init_perception(PlayerId) ->
@@ -119,6 +121,26 @@ loot(SourceId, ItemId) ->
     Items = item:get_by_owner(SourceId),
     Items.
 
+item_transfer(TargetId, ItemId) ->
+    Player = get(player_id),
+    [Item] = item:get(ItemId),
+    {Owner} = bson:lookup(owner, Item),
+    [OwnerObj] = db:read(local_obj, Owner),   
+    [TargetObj] = db:read(local_obj, TargetId), 
+
+    ValidOwner = Player =:= OwnerObj#local_obj.player andalso
+                 OwnerObj#local_obj.pos =:= TargetObj#local_obj.pos,
+
+    case ValidOwner of 
+        true ->
+            lager:info("Transfering item"),
+            item:transfer(ItemId, TargetId),
+            <<"success">>;
+        false ->
+            lager:info("Player does not own item: ~p", [ItemId]),
+            <<"Player does not own item">>
+    end.
+
 explore(_Id, _GlobalPos) ->
     %TODO add validation
     PlayerId = get(player_id),
@@ -150,14 +172,33 @@ exit_local() ->
 
     add_exit_local(ValidExit, {Obj#obj.id, Obj#obj.pos}, NumTicks).
 
-build(Id, LocalPos, Structure) ->
+build(LocalObjId, Structure) ->
     %TODO add validation
+    PlayerId = get(player_id),
+    [LocalObj] = db:read(local_obj, LocalObjId),
 
-    GlobalPos = {1,1},
-    NumTicks = 40,
-    Result = true,
+    ValidBuild = PlayerId =:= LocalObj#local_obj.player,
 
-    add_build_event(Result, {Id, GlobalPos, LocalPos, Structure}, NumTicks).
+    case ValidBuild of
+        true ->
+            structure:start_build(PlayerId, 
+                                  LocalObj#local_obj.global_pos, 
+                                  LocalObj#local_obj.pos, 
+                                  Structure);
+        false ->
+            lager:info("Build failed")
+    end.
+
+finish_build(StructureId) ->
+    PlayerId = get(player_id),
+    [Structure] = db:read(local_obj, StructureId),
+    [StructureM] = local_obj:get(StructureId),
+    {NumTicks} = bson:lookup(build_time, StructureM),
+
+    ValidFinish = PlayerId =:= Structure#local_obj.player andalso
+                  structure:check_req(StructureM),
+
+    add_finish_build(ValidFinish, StructureId, NumTicks).
 
 equip(Id, ItemId) ->
     Player = get(player_id),
@@ -194,15 +235,14 @@ add_harvest_event(true, {LocalObjId, Resource}, NumTicks) ->
     EventData = {LocalObjId, Resource},
     game:add_event(self(), harvest, EventData, NumTicks).
 
-add_build_event(false, _EventData, _Ticks) ->
-    lager:info("Build failed"),
+add_finish_build(false, _EventData, _Ticks) ->
+    lager:info("Finish Build failed"),
     none;
-add_build_event(true, {Player, GlobalPos, LocalPos, Structure}, NumTicks) ->
-    %Begin building structure
-    StructureId = structure:start_build(Player, GlobalPos, LocalPos, Structure),
 
-    EventData = {GlobalPos, StructureId},
-    game:add_event(self(), build, EventData, NumTicks).
+add_finish_build(true, {Structure}, NumTicks) ->
+    EventData = Structure,
+
+    game:add_event(self(), finish_build, EventData, NumTicks).
 
 add_attack_obj_event(false, _EventData, _Ticks) ->
     lager:info("Attack failed"),

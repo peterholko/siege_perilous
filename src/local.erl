@@ -45,7 +45,8 @@ has_entered(GlobalObjId) ->
 
 enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
     lager:info("Enter map: ~p", [{GlobalObjId, GlobalPos, LastPos}]),
-    Units = local_obj:units_from_obj(GlobalObjId), 
+    Units = local_obj:units_from_obj(GlobalObjId),
+    lager:info("Units from obj: ~p", [Units]), 
     EnterPos = get_enter_pos(GlobalPos, LastPos),
     map:add_local_explored(PlayerId, GlobalPos, EnterPos),
  

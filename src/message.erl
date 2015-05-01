@@ -1,4 +1,4 @@
-% Author: Peter
+%% Author: Peter
 %% Created: Nov 11, 2014
 %% Description: Handles messages from client
 -module(message).
@@ -109,6 +109,19 @@ message_handle(<<"loot">>, Message) ->
     ItemPerception = prepare(item_perception, PlayerItems),
     jsx:encode(ItemPerception);
 
+message_handle(<<"item_transfer">>, Message) ->
+    lager:info("message: item_transfer ~p", [Message]),
+    
+    TargetId = map_get(<<"targetid">>, Message),
+    TargetBinId = util:hex_to_bin(TargetId),
+    Item = map_get(<<"item">>, Message),
+    BinItem = util:hex_to_bin(Item),
+
+    Result = player:item_transfer(TargetBinId, BinItem),
+    lager:info("Result: ~p", [Result]),
+    jsx:encode([{<<"packet">>, <<"item_transfer">>},
+                {<<"result">>, Result}]);
+
 message_handle(<<"explore">>, Message) ->
     lager:info("message: explore"),
 
@@ -135,14 +148,21 @@ message_handle(<<"build">>, Message) ->
     
     HexId = map_get(<<"sourceid">>, Message),
     BinId = util:hex_to_bin(HexId),
-    X = map_get(<<"x">>, Message),
-    Y = map_get(<<"y">>, Message),
+    
     Structure = map_get(<<"structure">>, Message),
 
-    player:build(BinId, {X, Y}, Structure),
+    player:build(BinId, Structure),
 
-    <<"Structure queued">>;
+    <<"Structure started">>;
 
+message_handle(<<"finish_build">>, Message) ->
+    lager:info("message: finish_build"),
+    
+    HexId = map_get(<<"structureid">>, Message),
+    BinId = util:hex_to_bin(HexId),
+
+    player:finish_build(BinId);
+ 
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
 

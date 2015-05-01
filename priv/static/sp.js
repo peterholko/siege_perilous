@@ -59,6 +59,9 @@ var buttonRestImg = new Image();
 var buttonHoverImg = new Image();
 var buttonClickedImg = new Image();
 
+var btnBuildRestImg = new Image();
+var btnBuildClickedImg = new Image();
+
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
 
@@ -104,9 +107,8 @@ detailsActive.src = "/static/art/ActionBar_Details_Active.png";
 detailsRest.src = "/static/art/ActionBar_Details_Rest.png";
 detailsRoll.src = "/static/art/ActionBar_Details_Roll.png";
 
-buttonRestImg.src = "/static/art/ButtonRest.png";
-buttonHoverImg.src = "/static/art/ButtonHover.png";
-buttonClickedImg.src = "/static/art/ButtonClicked.png";
+btnBuildRestImg.src = "/static/art/ButtonBuildRest.png";
+btnBuildClickedImg.src = "/static/art/ButtonBuildClicked.png";
 
 var zombie = {
     images: ['/static/art/zombie_ss.png'],
@@ -330,15 +332,25 @@ function sendMove(newX, newY) {
     websocket.send(move);
 };
 
-function sendEquip() {
-    console.log("sendEquip");
-    //var e = '{"cmd": "build", "sourceid": "54822ccb1c93b16038108f25", "x": 1, "y": 1, "structure": "Stockade"}';
-    var e = '{"cmd": "move_unit", "id": "54e105be9b4e1462bed8ef65", "x": 1, "y": 1}';    
+function sendBuild() {
+    console.log("sendBuild");
+    var e = '{"cmd": "build", "sourceid": "' + selectedPortrait + '", "structure": "Stockade"}';
+    websocket.send(e);
+};
+
+function sendFinishBuild(structureid) {
+    var e = '{"cmd": "finish_build", "structureid": "' + structureid + '"}';
     websocket.send(e);
 };
 
 function sendLoot(sourceid, item) {
     var e = '{"cmd": "loot", "sourceid": "' + sourceid + '", "item": "' + item + '"}';
+    websocket.send(e);
+};
+
+function sendItemTransfer(targetid, item) {
+    console.log("targetid: " + targetid);
+    var e = '{"cmd": "item_transfer", "targetid": "' + targetid + '", "item": "' + item + '"}';
     websocket.send(e);
 };
 
@@ -446,6 +458,16 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "item_perception") {
             dialogPanel.visible = false;
+        }
+        else if(jsonData.packet == "item_transfer") {
+            if(jsonData.result == "success") {
+                for(var i = infoPanels.length - 1; i >= 0; i--) {
+                    if(infoPanels[i].hasOwnProperty("unitName")) {
+                        infoPanels[i].visible = false;
+                        sendInfoUnit(infoPanels[i]._id);
+                    }
+                }
+            }
         }
         else if(jsonData.packet == "new_items") {
            drawNewItemsDialog(jsonData); 
@@ -651,9 +673,11 @@ function drawLocal(jsonData) {
 
         for(var j = 0; j < tiles.length; j++) {
             var tileImageId = tiles[j] - 1;
-            var imagePath = "/static/tileset/" + tileset[tileImageId].image;
+            var imagePath = "/static/" + tileset[tileImageId].image;
+            var offsetX = tileset[tileImageId].offsetx;
+            var offsetY = -1 * tileset[tileImageId].offsety;
          
-            addImage({id: tileImageId, path: imagePath, x: 0, y: 0, target: icon, index: j});
+            addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: j});
         }
 
         localTiles.push(tile);
@@ -1084,6 +1108,9 @@ function drawInfoUnit(jsonData) {
     showInfoPanel();
 
     var unitName = jsonData.name
+    activeInfoPanel.unitName = unitName;   
+    activeInfoPanel._id = jsonData._id; 
+
     var nameText = new createjs.Text(unitName, h1Font, textColor);
 
     var nameBounds = nameText.getBounds();
@@ -1113,9 +1140,25 @@ function drawInfoUnit(jsonData) {
     
     addChildInfoPanel(statsText);
 
+    if(jsonData.hasOwnProperty("req")) {
+        var req = "Requirements: \n";
+
+        for(var i = 0; i < jsonData.req.length; i++) {
+            req += "  " + jsonData.req[i].quantity + " " + jsonData.req[i].type + "\n";
+        }
+
+        var reqText = new createjs.Text(req, h1Font, textColor);
+
+        reqText.lineHeight = 20;
+        reqText.x = 10;
+        reqText.y = 225;
+
+        addChildInfoPanel(reqText);
+    }
+
     var itemText = new createjs.Text("Items: ", h1Font, textColor);
     itemText.x = 10;
-    itemText.y = 250;
+    itemText.y = 300;
     
     addChildInfoPanel(itemText);
 
@@ -1124,8 +1167,50 @@ function drawInfoUnit(jsonData) {
         itemName = itemName.toLowerCase().replace(/ /g,'');
         var imagePath = "/static/art/" + itemName + ".png";
 
-        imagesQueue.push({id: itemName, x: 20, y: 276, target: getInfoPanelContent()});
-        loaderQueue.loadFile({id: itemName, src: imagePath});
+        var icon = new createjs.Container();
+
+        icon.x = 10 + i * 50;
+        icon.y = 325;
+        icon._id = jsonData.items[i]._id;
+        icon.owner = jsonData.items[i].owner;
+
+        icon.on("pressmove", function(evt) {
+            evt.target.x = evt.localX - 25;
+            evt.target.y = evt.localY - 25;
+
+            stage.setChildIndex(this.parent.parent, stage.numChildren - 1);
+        });
+        icon.on("pressup", function(evt) { 
+            console.log("up"); 
+            
+            for(var i = 0; i < infoPanels.length; i++) {
+                console.log("infoPanel unitName: " + infoPanels[i].unitName);
+                console.log("infoPanel id: " + infoPanels[i]._id);
+                console.log("this._id: " + this._id);
+                var pt = infoPanels[i].globalToLocal(evt.stageX, evt.stageY);
+                if(infoPanels[i].hitTest(pt.x, pt.y)) {
+                    if(infoPanels[i]._id != this.owner) {
+                        if(infoPanels[i]._id != undefined) {
+                            console.log("Transfering item: " + infoPanels[i]._id, this._id);
+                            sendItemTransfer(infoPanels[i]._id, this._id);        
+                        }
+                    }
+                }
+            }
+        })
+
+        addChildInfoPanel(icon);
+        addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
+    }
+
+    if(jsonData.hasOwnProperty("req")) {
+        var btnBuild = activeInfoPanel.getChildByName("btnBuild");
+        btnBuild.visible = true;
+        
+        btnBuild.on("mousedown", function(evt) {
+            console.log("drawInfoUnit btnBuild mousedown");
+            sendFinishBuild(activeInfoPanel._id);
+        });
     }
 };
 
@@ -1300,7 +1385,7 @@ function initUI() {
     selectPanel.addChild(bgPanel);
     selectPanel.addChild(content);
     
-    selectPanel.x = 0;
+    selectPanel.x = 1000;
     selectPanel.y = 200;
 
     stage.addChild(selectPanel);
@@ -1317,22 +1402,57 @@ function initUI() {
         var bg = new createjs.Bitmap(infoPanelBg);
         var close = new createjs.Bitmap(close_rest);
         var content = new createjs.Container();
+        var btnBuild = new createjs.Container();
+        var btnBuildRest = new createjs.Bitmap(btnBuildRestImg);
+        var btnBuildClicked = new createjs.Bitmap(btnBuildClickedImg);
 
         panel.visible = false;
 
         close.x = 300;
         close.y = 10;
 
-        content.name = 'content';
+        btnBuild.visible = false;
+        btnBuild.x = 500 / 2 - 133 / 2;
+        btnBuild.y = 440;
+
+        btnBuild.name = "btnBuild";
+        btnBuildRest.name = "rest";
+        btnBuildClicked.name = "clicked";
+
+        btnBuildRest.visible = true;
+        btnBuildClicked.visible = false;
+
+        btnBuild.addChild(btnBuildRest);
+        btnBuild.addChild(btnBuildClicked);
 
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
             this.parent.visible = false;
         });
 
+        btnBuild.on("mousedown", function(evt) {
+            console.log("initUI btnBuild mousedown");
+            var rest = this.getChildByName("rest");
+            var clicked = this.getChildByName("clicked");
+
+            rest.visible = false;
+            clicked.visible = true;
+        });
+
+        btnBuild.on("mouseup", function(evt) {
+            var rest = this.getChildByName("rest");
+            var clicked = this.getChildByName("clicked");
+
+            rest.visible = true;
+            clicked.visible = false;
+        });
+
+        content.name = 'content';
+
         panel.addChild(bg);
         panel.addChild(close);
         panel.addChild(content);
+        panel.addChild(btnBuild);
 
         stage.addChild(panel);
 
@@ -1342,7 +1462,7 @@ function initUI() {
  
 };
 
-function createButton(text) {
+/*function createButton(text) {
     var button = new createjs.Container();
     var rest = new createjs.Bitmap(buttonRestImg);
     var hover = new createjs.Bitmap(buttonHoverImg);
@@ -1372,7 +1492,7 @@ function createButton(text) {
     button.addChild(buttonText);
 
     return button;
-};
+};*/
 
 function showBattlePanel() {
     var content = battlePanel.getChildByName('content');
