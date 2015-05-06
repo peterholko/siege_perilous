@@ -6,7 +6,9 @@
     "animations": {
         "die": [0,3,"dead",0.5],
         "dead": [3],
-        "none": [4]
+        "none": [4],
+        "combat": [4],
+        "moving": [4]
     },
-    "images": ["/static/art/zombie.png"]
+    "images": ["/static/art/zombie_ss.png"]
 }

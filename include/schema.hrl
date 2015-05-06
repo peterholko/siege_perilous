@@ -19,7 +19,7 @@
 
 -record(obj, {id, 
               pos,
-              last_pos,
+              last_pos = none,
               player,
               class,
               type,
@@ -33,6 +33,7 @@
                 player_process,
                 type,
                 data,
+                source = none,
                 tick}).
 
 -record(perception, {player,

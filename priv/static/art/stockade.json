@@ -1,13 +1,17 @@
 {
-    "frames": {
-        "width": 72,
-        "height": 72
-    },
-    "animations": {
-        "die": [0,3,"dead",0.5],
-        "dead": [3],
-        "combat": [9],
-        "none": [9]
-    },
-    "images": ["/static/art/white-mage.png"]
+    "frames": [
+        [0,0,126,180,0,54,108],
+        [0,0,126,144,1,0,72],
+        [0,0,126,144,2,54,36],
+        [0,0,126,180,3,0,72],
+        [0,0,126,144,4,0,0],
+        [0,0,126,180,5,54,36]
+    ],
+    "images": ["/static/art/regular-concave-tl.png",
+               "/static/art/regular-concave-tr.png",
+               "/static/art/regular-concave-l.png",
+               "/static/art/regular-concave-r.png",
+               "/static/art/regular-concave-br.png",
+               "/static/art/regular-concave-bl.png"]
+                
 }

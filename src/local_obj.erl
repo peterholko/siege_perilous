@@ -77,7 +77,8 @@ find_units(ObjId) ->
 insert(ObjId, Type) ->
     {TypeName} = bson:lookup('name', Type),
     {BaseHp} = bson:lookup(base_hp, Type),
-    Unit = {obj_id, ObjId, hp, BaseHp, type_name, TypeName},
+    {Class} = bson:lookup(class, Type),
+    Unit = {obj_id, ObjId, hp, BaseHp, type_name, TypeName, class, Class},
     mongo:insert(mdb:get_conn(), <<"local_obj">>, [Unit]).
 
 stats([]) ->

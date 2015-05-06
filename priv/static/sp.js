@@ -32,6 +32,10 @@ var selectedUnit = false;
 var attackToggled = false;
 var buildButton = false;
 
+var origX;
+var origY;
+var pressmove = false;
+
 var mapWidth = 4;
 var mapHeight = 4;
 var hexSize = 72;
@@ -175,6 +179,8 @@ function initImages() {
                 
     loaderQueue = new createjs.LoadQueue(false);
     loaderQueue.on("complete", handleQueueComplete);
+    loaderQueue.on("fileerror", handleQueueFileError);
+    loaderQueue.on("error", handleQueueError);
     //loaderQueue.on("fileload", handleQueueFileLoad);
     loaderQueue.loadManifest(manifest, true, "/static/art/");
 };
@@ -209,18 +215,39 @@ function handleQueueComplete()
         var spriteSheet = loaderQueue.getResult(spriteTask.id);
         
         if(spriteSheet) {
-            var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
+            if(spriteSheet.animations.length > 0) {
+                var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
 
-            sprite.x = spriteTask.x;
-            sprite.y = spriteTask.y;
-            sprite.name = "sprite";
-        
-            sprite.gotoAndPlay(spriteTask.animation);
+                sprite.x = spriteTask.x;
+                sprite.y = spriteTask.y;
+                sprite.name = "sprite";
             
-            spriteTask.target.addChild(sprite);
+                sprite.gotoAndPlay(spriteTask.animation);
+            
+                spriteTask.target.addChild(sprite);
+            } 
+            else {  
+                for(var i = 0; i < spriteSheet.getNumFrames(); i++) {
+                    var sprite = new createjs.Sprite(spriteSheet);
+                    sprite.gotoAndStop(i);
+
+                    sprite.x = spriteTask.x;
+                    sprite.y = spriteTask.y;
+
+                    spriteTask.target.addChild(sprite);
+                }     
+            }
         }
     }
 
+};
+
+function handleQueueFileError(evt) {
+    console.log("handleQueueFileError");
+};
+
+function handleQueueError(evt) {
+    console.log("handleQueueError");
 };
 
 function addSprite(spriteTask) {
@@ -228,15 +255,30 @@ function addSprite(spriteTask) {
 
     if(spriteSheet) {
         console.log("Sprite loaded");
-        var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
-        
-        sprite.x = spriteTask.x;
-        sprite.y = spriteTask.y;
-        sprite.name = "sprite";
 
-        sprite.gotoAndPlay(spriteTask.animation);
-    
-        spriteTask.target.addChild(sprite);
+        if(spriteSheet.animations.length > 0) {
+            var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
+            //var sprite = new createjs.Sprite(spriteSheet);
+            
+            sprite.x = spriteTask.x;
+            sprite.y = spriteTask.y;
+            sprite.name = "sprite";
+
+            sprite.gotoAndPlay(spriteTask.animation);
+        
+            spriteTask.target.addChild(sprite);
+        } 
+        else {
+            for(var i = 0; i < spriteSheet.getNumFrames(); i++) {
+                var sprite = new createjs.Sprite(spriteSheet);
+                                
+                sprite.gotoAndStop(i);
+                sprite.x = spriteTask.x;
+                sprite.y = spriteTask.y;
+
+                spriteTask.target.addChild(sprite);
+            }
+        }
     }
     else {
         spritesQueue.push(spriteTask);
@@ -339,7 +381,7 @@ function sendBuild() {
 };
 
 function sendFinishBuild(structureid) {
-    var e = '{"cmd": "finish_build", "structureid": "' + structureid + '"}';
+    var e = '{"cmd": "finish_build", "sourceid": "' + selectedPortrait + '", "structureid": "' + structureid + '"}';
     websocket.send(e);
 };
 
@@ -436,8 +478,9 @@ function onMessage(evt) {
             objs = jsonData.objs;
 
             setPlayerPos();
-            drawMap();
-            drawObjs();
+            sendExplore();
+            //drawMap();
+            //drawObjs();
         }
         else if(jsonData.packet == "map_perception") {
             explored = jsonData.explored;
@@ -453,6 +496,7 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "explore") {
             clearLocal();
+            drawExplore(jsonData);
             drawLocal(jsonData);
             drawPortraits();
         }
@@ -630,6 +674,25 @@ function clearLocal() {
     selectHex.visible = false;
 };
 
+function drawExplore(jsonData) {
+    var localMapCont = localPanel.getChildByName("localMap");
+
+    for(var i = 0; i < jsonData.objs.length; i++) {
+        var obj = jsonData.objs[i];
+        var pixel = hex_to_pixel(obj.x, obj.y);
+
+        if(obj.player == playerId) {
+            if(is_hero(obj.type)) {
+                c_x = 640 - 36 - pixel.x;
+                c_y = 400 - 36 - pixel.y;
+
+                localMapCont.x = c_x;
+                localMapCont.y = c_y;
+            }
+        }
+    }
+};
+
 function drawLocal(jsonData) {
     showLocalPanel();
 
@@ -638,8 +701,6 @@ function drawLocal(jsonData) {
     var localShroudCont = localMapCont.getChildByName("localShroud");
     var localObjsCont = localMapCont.getChildByName("localObjs"); 
     var selectHex = localMapCont.getChildByName("selectHex");
-
-    localMapCont.visible = false;
 
     for(var i = 0; i < jsonData.explored.length; i++) {
         var tile = jsonData.explored[i];
@@ -703,43 +764,18 @@ function drawLocal(jsonData) {
         icon.name = unitName;
         icon.id = obj.id;
         
-        /*if(icon.id == selectedUnit) {
-            select.x = icon.x;
-            select.y = icon.y;
-        }
-
-        icon.on("mousedown", function(evt) {
-            select.x = this.x;
-            select.y = this.y;
-            select.visible = true;
-                    
-            if(attackButton) {
-                var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedUnit + '", "targetid": "' + this.id + '"}';    
-                websocket.send(attack_unit);
-            }
-
-            selectedUnit = this.id;
-        });*/
-
-
         addChildLocalMap(icon, "localObjs");
 
-        if(unitName.indexOf("hero") > -1) {
-            c_x = 640 - 36 - pixel.x;
-            c_y = 400 - 36 - pixel.y;
+        if(obj.player == playerId) {
+            if(is_hero(obj.type)) {
+                c_x = 640 - 36 - pixel.x;
+                c_y = 400 - 36 - pixel.y;
 
-            //localMap.x = c_x;
-            //localMap.y = c_y;
-       
-            //localObjsCont.x = c_x;
-            //localObjsCont.y = c_y;
-            
-            createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
-            
+                createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+            }
         }
 
         addSprite({id: unitName + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: obj.state}); 
-        //addImage({id: unitName, path: imagePath, x: 0, y: 0, target: icon});
 
         obj.icon = icon;
         localObjs[obj.id] = obj;
@@ -758,8 +794,6 @@ function drawLocal(jsonData) {
             localShroudCont.addChild(bitmap);
         }
     }
-
-    localMapCont.visible = true;
 
 };
 
@@ -1127,7 +1161,8 @@ function drawInfoUnit(jsonData) {
                       y: 50, target: getInfoPanelContent()});
     loaderQueue.loadFile({id: unitName, src: imagePath});
 
-    var stats = "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
+    var stats = "State: " + jsonData.state + "\n" 
+              + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
               + "Damage: " + jsonData.base_dmg + " - " + jsonData.dmg_range + "\n" 
               + "Defense: " + jsonData.base_def + "\n"
               + "Speed: " + jsonData.base_speed + "\n";
@@ -1174,30 +1209,44 @@ function drawInfoUnit(jsonData) {
         icon._id = jsonData.items[i]._id;
         icon.owner = jsonData.items[i].owner;
 
+        icon.on("click", function(evt) {
+            if(!pressmove) {
+                sendInfoItem(this._id);
+            }
+        });
+
         icon.on("pressmove", function(evt) {
+            pressmove = true;
+
             evt.target.x = evt.localX - 25;
             evt.target.y = evt.localY - 25;
-
+            
             stage.setChildIndex(this.parent.parent, stage.numChildren - 1);
         });
         icon.on("pressup", function(evt) { 
-            console.log("up"); 
+            pressmove = false;
             
+            var transfer = false;
+
             for(var i = 0; i < infoPanels.length; i++) {
-                console.log("infoPanel unitName: " + infoPanels[i].unitName);
-                console.log("infoPanel id: " + infoPanels[i]._id);
-                console.log("this._id: " + this._id);
                 var pt = infoPanels[i].globalToLocal(evt.stageX, evt.stageY);
                 if(infoPanels[i].hitTest(pt.x, pt.y)) {
                     if(infoPanels[i]._id != this.owner) {
                         if(infoPanels[i]._id != undefined) {
                             console.log("Transfering item: " + infoPanels[i]._id, this._id);
+                            transfer = true;
                             sendItemTransfer(infoPanels[i]._id, this._id);        
                         }
                     }
                 }
             }
-        })
+
+            if(!transfer) {
+                evt.target.x = 0;
+                evt.target.y = 0;
+            }
+    
+        });
 
         addChildInfoPanel(icon);
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
@@ -1737,6 +1786,14 @@ function is_visible(x, y, visibleTiles) {
             return true;
         }
     }
+
+    return false;
+};
+
+function is_hero(type) {
+    if(type.toLowerCase().indexOf("hero") > -1) {
+        return true;
+    } 
 
     return false;
 };

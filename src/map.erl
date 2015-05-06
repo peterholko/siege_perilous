@@ -18,7 +18,7 @@
 -export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_local_explored/3, get_nearby_objs/3, get_tiles/1,
          get_nearby_objs/4, xml_test/0, tileset/0]).
 -export([add_explored/2, add_local_explored/3, is_valid_pos/1]).
--export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1]).
+-export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -63,6 +63,11 @@ add_local_explored(Player, GlobalPos, Pos) ->
 
 is_valid_pos({X, Y}) ->
     is_valid_coord({X, Y}, {?MAP_WIDTH, ?MAP_HEIGHT}).
+
+is_adjacent(SourcePos, TargetPos) ->
+    {SX, SY} = SourcePos,
+    Neighbours = map:neighbours(SX, SY, 10, 10),
+    lists:member(TargetPos, Neighbours).
 
 %% ====================================================================
 %% Server functions

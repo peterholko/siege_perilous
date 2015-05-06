@@ -42,8 +42,7 @@ create(Player, Pos, Class, Type, State, Units) ->
 
     db:write(NewObj),
 
-    game:set_perception(true),
-
+    %game:set_perception(true),
     %Return ID
     Id.
 

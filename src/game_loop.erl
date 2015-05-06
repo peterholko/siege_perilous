@@ -164,6 +164,15 @@ do_event(build, EventData, PlayerPid) ->
 
     {false, {GlobalPos, true}};
 
+do_event(finish_build, EventData, _PlayerPid) ->
+    lager:info("Processing build event: ~p", [EventData]),
+    {LocalObjId, GlobalPos, StructureId} = EventData,
+
+    local:update_state(StructureId, none), 
+    local:update_state(LocalObjId, none), 
+
+    {false, {GlobalPos, true}};
+
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.

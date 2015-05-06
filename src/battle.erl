@@ -215,7 +215,7 @@ process_dmg(true, AtkId, DefId) ->
     %Check if unit is dead 
     case UnitState of
         <<"alive">> ->
-            local_obj:update(DefId, {'hp', NewHp});
+            local_obj:update(DefId, 'hp', NewHp);
         <<"dead">> ->
             process_unit_dead(AtkObjId, DefObjId, DefId)
     end.

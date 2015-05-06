@@ -14,7 +14,7 @@
 %%
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([add_event/4, trigger_global/0, trigger_local/1, get_perception/0, reset_perception/0]).
+-export([add_event/5, cancel_event/1, trigger_global/0, trigger_local/1, get_perception/0, reset_perception/0]).
 
 %%
 %% API Functions
@@ -23,16 +23,21 @@
 start() ->
     gen_server:start({global, game_pid}, game, [], []).
 
-add_event(PlayerProcess, EventType, EventData, EventTick) ->
+add_event(PlayerProcess, EventType, EventData, EventSource, EventTick) ->
     [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
 
     Event = #event { id = counter:increment(event),
                      player_process = PlayerProcess,
                      type = EventType,
                      data = EventData,
+                     source = EventSource,
                      tick = CurrentTick + EventTick},
 
     db:write(Event).
+
+cancel_event(EventSource) ->
+    [Event] = db:index_read(event, EventSource, #event.source),
+    db:delete(event, Event#event.id).
 
 trigger_global() ->
     gen_server:cast({global, game_pid}, trigger_global).

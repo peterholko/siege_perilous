@@ -24,7 +24,7 @@ start(PlayerId) ->
     gen_server:start({global, {npc, PlayerId}}, npc, [PlayerId], []).
 
 new_zombie() ->
-    local:create({2,2}, none, {2,2}, 99, unit, <<"Zombie">>).
+    local:create({2,2}, none, {2,2}, 99, unit, <<"Zombie">>, none).
 
 %% ====================================================================
 %% Server functions
@@ -177,7 +177,7 @@ add_action({move, {NPCId, Pos}}) ->
                  Obj#obj.id,
                  Pos},
     
-    game:add_event(self(), move_obj, EventData, NumTicks);
+    game:add_event(self(), move_obj, EventData, Obj#obj.id, NumTicks);
 
 add_action({attack, {NPCId, Id}}) ->
     lager:info("npc adding attack"),
@@ -187,7 +187,7 @@ add_action({attack, {NPCId, Id}}) ->
 
     obj:update_state(NPCId, attack),
  
-    game:add_event(self(), attack_obj, EventData, NumTicks);
+    game:add_event(self(), attack_obj, EventData, none, NumTicks);
 
 add_action({none, _Data}) ->
     lager:info("NPC doing nothing");
@@ -198,9 +198,11 @@ add_action(none) ->
 process_local_action(_NPCUnits, []) ->
     lager:info("No enemies nearby, waiting...");
 
-process_local_action(NPCUnit, EnemyUnits) ->
+process_local_action(NPCUnit, AllEnemyUnits) ->
     lager:info("NPCUnit: ~p", [NPCUnit]),
-    lager:info("EnemyUnits: ~p", [EnemyUnits]),
+    lager:info("EnemyUnits: ~p", [AllEnemyUnits]),
+    EnemyUnits = remove_dead(AllEnemyUnits),
+
     NPCPos = get_pos(NPCUnit),
     EnemyUnit = get_nearest(NPCPos, EnemyUnits, {none, 1000}),
     lager:info("EnemyUnit: ~p", [EnemyUnit]), 
@@ -263,7 +265,15 @@ add_move_unit(GlobalPos, Player, UnitId, NewPos, NumTicks) ->
                  UnitId,
                  NewPos},
 
-    game:add_event(self(), move_local_obj, EventData, NumTicks).
+    game:add_event(self(), move_local_obj, EventData, UnitId, NumTicks).
 
 get_pos(Obj) ->
     {maps:get(<<"x">>, Obj), maps:get(<<"y">>, Obj)}.
+
+remove_dead(ObjList) ->
+    F = fun(Obj) ->
+            ObjState = maps:get(<<"state">>, Obj),
+            ObjState =/= dead
+        end,
+
+    lists:filter(F, ObjList).

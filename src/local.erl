@@ -7,7 +7,7 @@
 -include("schema.hrl").
 
 -export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1, create/7, move/2, update_state/2]).
--export([is_exit_valid/1]).
+-export([is_exit_valid/1, is_empty/2]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
     LocalPlayerUnits = db:index_read(local_obj, PlayerId, #local_obj.player),
@@ -121,8 +121,15 @@ update_state(Id, State) ->
     %TODO make transaction
     [LocalObj] = db:read(local_obj, Id),
     NewLocalObj = LocalObj#local_obj {state = State},
-    db:write(NewLocalObj).
+    db:write(NewLocalObj),
+
+    %Trigger new perception
+    game:trigger_local(LocalObj#local_obj.global_pos).
  
+is_empty(GlobalPos, LocalPos) ->
+    LocalObjs = db:index_read(local_obj, GlobalPos, #local_obj.global_pos),
+    lists:keymember(LocalPos, #local_obj.pos, LocalObjs).
+
 %
 % Internal functions
 %

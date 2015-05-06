@@ -13,12 +13,6 @@ increment(Type) ->
 increment(Type, Value) ->
     mnesia:dirty_update_counter(counter, Type, Value).    
 
-reset(entity) ->
-    Counter = #counter{
-                       type = entity,
-                       value = 20
-                      },
-    ok = db:write(Counter);
 reset(Type) ->
     Counter = #counter{
                        type = Type,

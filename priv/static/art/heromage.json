@@ -7,7 +7,8 @@
         "die": [0,3,"dead",0.5],
         "dead": [3],
         "combat": [9],
-        "none": [9]
+        "none": [9],
+        "moving": [9]
     },
     "images": ["/static/art/white-mage.png"]
 }

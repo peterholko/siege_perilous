@@ -31,10 +31,27 @@ login(Name, Pass, Socket)
 %% Local Functions
 %%
 
-login([], _) ->
-    %% player not found
-    lager:info("login: account not found. ~n"),
-    {error, ?ERR_BAD_LOGIN};
+login([], [Name, Pass, Socket]) ->
+    PlayerId = counter:increment(player),
+    
+    Player = #player {id = PlayerId,
+                      name = Name,
+                      password = Pass},
+    Connection = #connection {player = PlayerId,
+                              process = Socket},
+
+    ExploredMap = #explored_map {player = PlayerId,
+                                 tiles = [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}],
+                                 new_tiles = []}, 
+
+    db:write(Player),
+    db:write(Connection),
+    db:write(ExploredMap),
+    
+    ObjId = obj:create(PlayerId, {2,2}, entity, <<"heromage">>, none, []),
+    local_obj:create(ObjId, <<"Hero Mage">>),
+
+    {success, PlayerId};
 
 login([PlayerInfo], [_Name, Pass,_] = Args)
   when is_record(PlayerInfo, player) ->

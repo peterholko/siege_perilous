@@ -158,10 +158,15 @@ message_handle(<<"build">>, Message) ->
 message_handle(<<"finish_build">>, Message) ->
     lager:info("message: finish_build"),
     
+    SrcId = map_get(<<"sourceid">>, Message),
+    SrcBinId = util:hex_to_bin(SrcId),
     HexId = map_get(<<"structureid">>, Message),
-    BinId = util:hex_to_bin(HexId),
+    StructureBinId = util:hex_to_bin(HexId),
 
-    player:finish_build(BinId);
+    Result = player:finish_build(SrcBinId, StructureBinId),
+
+    jsx:encode([{<<"packet">>, <<"finish_build">>},
+                {<<"result">>, Result}]);    
  
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
@@ -169,9 +174,20 @@ message_handle(<<"equip">>, Message) ->
     Id = util:hex_to_bin(map_get(<<"id">>, Message)),
     ItemId = util:hex_to_bin(map_get(<<"item">>, Message)),
 
-    player:equip(Id, ItemId),
+    Result = player:equip(Id, ItemId),
 
-    <<"Item Equiped">>;
+    jsx:encode([{<<"packet">>, <<"equip">>},
+                {<<"result">>, Result}]);    
+
+message_handle(<<"cancel">>, Message) ->
+    lager:info("message: cancel"),
+    SrcId = map_get(<<"sourceid">>, Message),
+    SrcBinId = util:hex_to_bin(SrcId),
+ 
+    Result = player:cancel(SrcBinId),
+
+    jsx:encode([{<<"packet">>, <<"cancel">>},
+                {<<"result">>, Result}]);    
 
 message_handle(<<"info_tile">>, Message) ->
     lager:info("message: info_tile"),
