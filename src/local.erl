@@ -128,7 +128,9 @@ update_state(Id, State) ->
  
 is_empty(GlobalPos, LocalPos) ->
     LocalObjs = db:index_read(local_obj, GlobalPos, #local_obj.global_pos),
-    lists:keymember(LocalPos, #local_obj.pos, LocalObjs).
+    Units = filter_units(LocalObjs),
+    Result = not lists:keymember(LocalPos, #local_obj.pos, Units),
+    Result.
 
 %
 % Internal functions
@@ -187,3 +189,7 @@ is_on_edge({X, _Y}) when X =:= 0 -> true;
 is_on_edge({_X, Y}) when Y =:= 0 -> true;
 is_on_edge({X, Y}) when X =:= 0, Y =:= 0 -> true;
 is_on_edge({_X, _Y}) -> false.
+
+filter_units(LocalObjs) ->
+    F = fun(LocalObj) -> LocalObj#local_obj.class =:= unit end,
+    lists:filter(F, LocalObjs).

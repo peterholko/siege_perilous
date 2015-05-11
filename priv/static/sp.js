@@ -740,8 +740,8 @@ function drawLocal(jsonData) {
          
             addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: j});
         }
-
-        localTiles.push(tile);
+    
+        addLocalTile(tile);
     }
  
     localObjsCont.removeAllChildren();
@@ -756,8 +756,6 @@ function drawLocal(jsonData) {
         var imagePath =  "/static/art/" + unitName + ".json";
         var icon = new createjs.Container();
 
-        visibleTiles = range(obj.x, obj.y, 2);
-
         icon.x = pixel.x;
         icon.y = pixel.y;
         icon.player = obj.player;
@@ -767,6 +765,9 @@ function drawLocal(jsonData) {
         addChildLocalMap(icon, "localObjs");
 
         if(obj.player == playerId) {
+
+            visibleTiles = range(obj.x, obj.y, 2);
+
             if(is_hero(obj.type)) {
                 c_x = 640 - 36 - pixel.x;
                 c_y = 400 - 36 - pixel.y;
@@ -783,8 +784,8 @@ function drawLocal(jsonData) {
 
     localShroudCont.removeAllChildren();
 
-    for(var i = 0; i < localTiles.length; i++) {
-        var tile = localTiles[i];
+    for(var tileKey in localTiles) {
+        var tile = localTiles[tileKey];
 
         if(!is_visible(tile.x, tile.y, visibleTiles)) {
             var pixel = hex_to_pixel(tile.x, tile.y);
@@ -1722,12 +1723,17 @@ function getLocalObjsAt(x, y) {
     return objsAt;
 };
 
+function addLocalTile(tile) {
+    var xy = tile.x + "_" + tile.y;
+    localTiles[xy] = tile;
+};
+
 function getLocalTile(x, y) {
-    for(var i = 0; i < localTiles.length; i++) {
-        if(localTiles[i].x == x && localTiles[i].y == y) {
-            return localTiles[i];
-        }
-    }    
+    var xy = tile.x + "_" + tile.y;
+
+    if(xy in localTiles) {
+        return localTiles[xy];
+    }
 
     return false;
 };

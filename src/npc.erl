@@ -15,13 +15,16 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([new_zombie/0]).
+-export([execute/1, new_zombie/0]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
 start(PlayerId) ->
     gen_server:start({global, {npc, PlayerId}}, npc, [PlayerId], []).
+
+execute(PlayerId) ->
+    gen_server:cast({global, {npc, PlayerId}}, execute).
 
 new_zombie() ->
     local:create({2,2}, none, {2,2}, 99, unit, <<"Zombie">>, none).
@@ -42,6 +45,19 @@ init([PlayerId]) ->
     {ok, []}.
 
 handle_cast(create, Data) ->   
+    
+    {noreply, Data};
+
+handle_cast(execute, Data) ->
+    PlayerId = get(player_id),
+    Units = db:index_read(local_obj, PlayerId, #local_obj.player),
+
+    F = fun(Unit) ->
+            Perception = db:dirty_read(perception, {PlayerId, Unit#local_obj.global_pos}),
+            process_perception(Perception)
+        end,
+
+    lists:foreach(F, Units),
 
     {noreply, Data};
 
@@ -66,17 +82,17 @@ handle_info({map_perception_disabled, Perception}, Data) ->
 
     {noreply, Data};
 
-handle_info({local_perception, Perception}, Data) ->
-    lager:info("Local perception: ~p", [Perception]),
+handle_info({local_perception, _Perception}, Data) ->
+    lager:info("Local perception received"),
     
-    {_Explored, Objs} = new_perception(Perception),
-    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-    lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
-    F = fun(NPCObj) ->
-            process_local_action(NPCObj, EnemyObjs)
-    end,
+    %{_Explored, Objs} = new_perception(Perception),
+    %{NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
+    %lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
+    %F = fun(NPCObj) ->
+    %        process_local_action(NPCObj, EnemyObjs)
+    %end,
 
-    lists:foreach(F, NPCObjs),
+    %lists:foreach(F, NPCObjs),
 
     {noreply, Data};
 
@@ -97,7 +113,20 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-new_perception([{<<"explored">>, Explored}, {<<"objs">>, Objs}]) ->
+process_perception([Perception]) ->
+    lager:debug("Processing Perception: ~p", [Perception]),
+    {_Explored, Objs} = new_perception(Perception),
+    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
+    lager:debug("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
+    F = fun(NPCObj) ->
+            process_local_action(NPCObj, EnemyObjs)
+    end,
+
+    lists:foreach(F, NPCObjs);
+process_perception(_) ->
+    nothing.
+
+new_perception({perception, _Key, [{<<"explored">>, Explored}, {<<"objs">>, Objs}]}) ->
     {Explored, Objs}.
 
 split_objs([], NPCObjs, EnemyObjs) ->
@@ -195,8 +224,10 @@ add_action({none, _Data}) ->
 add_action(none) ->
     lager:info("NPC doing nothing").
 
-process_local_action(_NPCUnits, []) ->
-    lager:info("No enemies nearby, waiting...");
+process_local_action(NPCUnit, []) ->
+    lager:info("No enemies nearby, wandering..."),
+    NPCState = maps:get(<<"state">>, NPCUnit),
+    process_wander(NPCState, NPCUnit);
 
 process_local_action(NPCUnit, AllEnemyUnits) ->
     lager:info("NPCUnit: ~p", [NPCUnit]),
@@ -251,7 +282,7 @@ add_local_action({move, Unit, NextPos}) ->
                   UnitObj#local_obj.player,
                   UnitId,
                   NextPos,
-                  8);
+                  40);
 add_local_action(none) ->
     lager:info("NPC Unit doing nothing.").
 
@@ -277,3 +308,29 @@ remove_dead(ObjList) ->
         end,
 
     lists:filter(F, ObjList).
+
+process_wander(none, NPCUnit) ->
+    {X, Y} = get_pos(NPCUnit),
+    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
+    UnitId = maps:get(<<"id">>, NPCUnit),
+    [Unit] = db:read(local_obj, UnitId),
+    GlobalPos = Unit#local_obj.global_pos,
+
+    Action = get_wander_pos(false, NPCUnit, GlobalPos, none, Neighbours),
+
+    add_local_action(Action);
+process_wander(_, _NPCUnit) ->
+    nothing.
+
+get_wander_pos(_, _, _, _, []) ->
+    none;
+get_wander_pos(true, NPCUnit, _GlobalPos, RandomPos, _Neighbours) ->
+    {move, NPCUnit, RandomPos};
+get_wander_pos(false, NPCUnit, GlobalPos, _, Neighbours) ->
+
+    Random = random:uniform(length(Neighbours)),
+    RandomPos = lists:nth(Random, Neighbours),
+    IsEmpty = local:is_empty(GlobalPos, RandomPos),
+    NewNeighbours = lists:delete(RandomPos, Neighbours),
+
+    get_wander_pos(IsEmpty, NPCUnit, GlobalPos, RandomPos, NewNeighbours).

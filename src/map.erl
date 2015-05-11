@@ -178,7 +178,6 @@ explored_map([ExploredMap], GlobalPos, new) ->
 new_explored_tiles([], NewExploredTiles, Pos) ->
     util:unique_list(NewExploredTiles ++ Pos);
 new_explored_tiles([ExploredMap], NewExploredTiles, CurrPos) ->
-    lager:info("ExploredMap: ~p", [ExploredMap]),
     util:unique_list(ExploredMap#explored_map.tiles ++ NewExploredTiles ++ CurrPos).
     
 get_explored_tiles([]) ->
@@ -199,7 +198,6 @@ tiles_msg_format([TileId | Rest], Tiles, none) ->
     tiles_msg_format(Rest, NewTiles, none);
 tiles_msg_format([TileId | Rest], Tiles, GlobalPos) ->
     %Fix GlobalPos
-    lager:info("TileId: ~p", [TileId]),
     [Map] = db:dirty_read(local_map, {1, TileId}),
     {X, Y} = TileId,
     NewTiles = [#{<<"x">> => X,
@@ -274,7 +272,6 @@ nearby_objs(SourcePos, {local_map, GlobalPos}, LOSDist) ->
     Result.
 
 build_nearby_list(SourcePos, MapObj, Objs, LOSDist) ->
-    lager:info("MapObj: ~p", [MapObj]),
     MapObjPos = get_pos(MapObj),
     check_distance(distance(SourcePos, MapObjPos), LOSDist, MapObj, Objs).
 

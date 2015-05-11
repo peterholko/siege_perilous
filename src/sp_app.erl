@@ -56,7 +56,7 @@ start(_Type, _Args) ->
     map:xml_test(),
 
     lager:info("Starting game loop"),
-    spawn(fun() -> game_loop:loop(util:get_time(), global:whereis_name(game_pid)) end),
+    spawn(fun() -> game_loop:loop(0, util:get_time(), global:whereis_name(game_pid)) end),
 
 	sp_sup:start_link().
 

@@ -13,13 +13,13 @@
 %%
 %% Exported Functions
 %%
--export([loop/2]).
+-export([loop/3]).
 
 %%
 %% API Functions
 %%
 
-loop(LastTime, GamePID) ->
+loop(NumTick, LastTime, GamePID) ->
     %StartLoopTime = util:get_time(), 
     CurrentTick = counter:increment(tick),	
     
@@ -34,7 +34,10 @@ loop(LastTime, GamePID) ->
 
     %Recalculate local perception 
     local_recalculate(LocalRecalc ++ LocalTriggered),
-   
+  
+    %Execute NPC actions
+    execute_npc(NumTick),
+ 
     %Toggle off perception
     game:reset_perception(),
  
@@ -45,7 +48,7 @@ loop(LastTime, GamePID) ->
     {NextTime, SleepTime} = calculate_sleep(LastTime),
 
     timer:sleep(SleepTime),
-    loop(NextTime, GamePID).
+    loop(NumTick + 1, NextTime, GamePID).
 %%
 %% Local Functions
 %%
@@ -186,9 +189,13 @@ global_recalculate(true) ->
 local_recalculate([]) ->
     done;
 local_recalculate([GlobalPos | Rest]) ->
-    lager:info("Local recalculate ~p", [GlobalPos]),
     l_perception:recalculate(GlobalPos),
     local_recalculate(Rest).
+
+execute_npc(NumTick) when (NumTick rem 100) =:= 0 ->
+    npc:execute(99);
+execute_npc(_) ->
+    nothing.
 
 update_charge_times([]) ->
     done;

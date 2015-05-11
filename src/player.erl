@@ -105,8 +105,10 @@ move_unit(UnitId, Pos) ->
     
     ValidClass = Unit#local_obj.class =:= unit,
     ValidAdjacent = map:is_adjacent(Unit#local_obj.pos, Pos),
-    ValidPos = local:is_empty(Unit#local_obj.global_pos, Unit#local_obj.pos),
-    
+    ValidPos = local:is_empty(Unit#local_obj.global_pos, Pos),
+
+    lager:info("move_unit validation: ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos]),   
+ 
     Result = ValidClass andalso 
              ValidAdjacent andalso
              ValidPos,
