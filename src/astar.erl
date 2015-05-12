@@ -83,7 +83,7 @@ best_step([H|Open], Score, Best, BestValue) ->
 -spec neighbour_nodes(cnode(), cnode() | none) -> list(cnode()).
 neighbour_nodes(Node, Parent) ->
     {X, Y} = Node,
-    Neighbours = map:neighbours(X,Y, 32, 38),
+    Neighbours = map:neighbours(X,Y, ?MAP_WIDTH, ?MAP_WIDTH),
     %Remove parent
     lists:delete(Parent, Neighbours).
 
