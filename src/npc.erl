@@ -49,15 +49,15 @@ handle_cast(create, Data) ->
     {noreply, Data};
 
 handle_cast(execute, Data) ->
-    PlayerId = get(player_id),
-    Units = db:index_read(local_obj, PlayerId, #local_obj.player),
+    %PlayerId = get(player_id),
+    %Units = db:index_read(local_obj, PlayerId, #local_obj.player),
 
-    F = fun(Unit) ->
-            Perception = db:dirty_read(perception, {PlayerId, Unit#local_obj.global_pos}),
-            process_perception(Perception)
-        end,
+    %F = fun(Unit) ->
+    %        Perception = db:dirty_read(perception, {PlayerId, Unit#local_obj.global_pos}),
+    %        process_perception(Perception)
+    %    end,
 
-    lists:foreach(F, Units),
+    %lists:foreach(F, Units),
 
     {noreply, Data};
 
@@ -82,17 +82,17 @@ handle_info({map_perception_disabled, Perception}, Data) ->
 
     {noreply, Data};
 
-handle_info({local_perception, _Perception}, Data) ->
+handle_info({local_perception, Perception}, Data) ->
     lager:info("Local perception received"),
     
-    %{_Explored, Objs} = new_perception(Perception),
-    %{NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-    %lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
-    %F = fun(NPCObj) ->
-    %        process_local_action(NPCObj, EnemyObjs)
-    %end,
+    {_Explored, Objs} = new_perception(Perception),
+    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
+    lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
+    F = fun(NPCObj) ->
+            process_local_action(NPCObj, EnemyObjs)
+    end,
 
-    %lists:foreach(F, NPCObjs),
+    lists:foreach(F, NPCObjs),
 
     {noreply, Data};
 
@@ -113,20 +113,23 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-process_perception([Perception]) ->
-    lager:debug("Processing Perception: ~p", [Perception]),
-    {_Explored, Objs} = new_perception(Perception),
-    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-    lager:debug("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
-    F = fun(NPCObj) ->
-            process_local_action(NPCObj, EnemyObjs)
-    end,
+%process_perception([Perception]) ->
+%    lager:debug("Processing Perception: ~p", [Perception]),
+%    {_Explored, Objs} = new_perception(Perception),
+%    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
+%    lager:debug("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
+%    F = fun(NPCObj) ->
+%            process_local_action(NPCObj, EnemyObjs)
+%    end,
 
-    lists:foreach(F, NPCObjs);
-process_perception(_) ->
-    nothing.
+%    lists:foreach(F, NPCObjs);
+%process_perception(_) ->
+%    nothing.
 
-new_perception({perception, _Key, [{<<"explored">>, Explored}, {<<"objs">>, Objs}]}) ->
+%new_perception({perception, _Key, [{<<"explored">>, Explored}, {<<"objs">>, Objs}]}) ->
+%    {Explored, Objs}.
+
+new_perception([{<<"explored">>, Explored}, {<<"objs">>, Objs}]) ->
     {Explored, Objs}.
 
 split_objs([], NPCObjs, EnemyObjs) ->

@@ -209,7 +209,7 @@ tiles_msg_format([TileId | Rest], Tiles, GlobalPos) ->
 neighbours_two([], List) ->
     List;
 neighbours_two([{X, Y} | Rest], List) ->
-    NewList = neighbours(X, Y, 38, 32) ++ List,
+    NewList = neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT) ++ List,
     neighbours_two(Rest, NewList).
 
 %From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
