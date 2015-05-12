@@ -89,7 +89,7 @@ handle_info({local_perception, Perception}, Data) ->
     {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
     lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
     F = fun(NPCObj) ->
-            process_local_action(NPCObj, EnemyObjs)
+            process_local_action(maps:get(<<"state">>, NPCObj), NPCObj, EnemyObjs)
     end,
 
     lists:foreach(F, NPCObjs),
@@ -227,12 +227,12 @@ add_action({none, _Data}) ->
 add_action(none) ->
     lager:info("NPC doing nothing").
 
-process_local_action(NPCUnit, []) ->
+process_local_action(none, NPCUnit, []) ->
     lager:info("No enemies nearby, wandering..."),
     NPCState = maps:get(<<"state">>, NPCUnit),
     process_wander(NPCState, NPCUnit);
 
-process_local_action(NPCUnit, AllEnemyUnits) ->
+process_local_action(none, NPCUnit, AllEnemyUnits) ->
     lager:info("NPCUnit: ~p", [NPCUnit]),
     lager:info("EnemyUnits: ~p", [AllEnemyUnits]),
     EnemyUnits = remove_dead(AllEnemyUnits),
@@ -245,7 +245,10 @@ process_local_action(NPCUnit, AllEnemyUnits) ->
     lager:info("Path: ~p", [Path]),
     NextAction = next_action(NPCUnit, EnemyUnit, Path),
     lager:info("Next action: ~p", [NextAction]),
-    add_local_action(NextAction). 
+    add_local_action(NextAction);
+
+process_local_action(_NPCState, _NPCUnit, _AllEnemyUnits) ->
+    lager:info("Action already in progress...").
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
     EnemyUnit;
