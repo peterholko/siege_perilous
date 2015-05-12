@@ -397,7 +397,7 @@ function sendItemTransfer(targetid, item) {
 };
 
 function sendHarvest(sourceid, resource) {
-    var e = '{"cmd": "harvest", "sourceid": "' + selectedPortrait + '", "resource": "Copper Ore"}';    
+    var e = '{"cmd": "harvest", "sourceid": "' + selectedPortrait + '", "resource": "Wood Log"}';    
     websocket.send(e);
 };
 
@@ -1729,7 +1729,7 @@ function addLocalTile(tile) {
 };
 
 function getLocalTile(x, y) {
-    var xy = tile.x + "_" + tile.y;
+    var xy = x + "_" + y;
 
     if(xy in localTiles) {
         return localTiles[xy];
