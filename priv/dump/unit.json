@@ -1,1 +1,0 @@
-{ "_id" : { "$oid" : "54dbe4470f4c2ae71f72630d" }, "obj_id" : { "$oid" : "54822ccb1c93b16038108f25" }, "size" : 1, "hp" : 2791, "type" : { "$oid" : "54dbe40d0f4c2ae71f72630c" }, "type_name" : "Hero Mage" }

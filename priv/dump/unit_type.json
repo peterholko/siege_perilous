@@ -1,3 +1,0 @@
-{ "_id" : { "$oid" : "54b0533e03c27178c3ebd974" }, "name" : "Human Skirmisher", "base_hp" : 10, "base_dmg" : 2, "dmg_range" : 5, "base_def" : 1, "base_speed" : 5 }
-{ "_id" : { "$oid" : "54b43dcb03c27178c3ebd976" }, "name" : "Zombie", "base_hp" : 10, "base_dmg" : 2, "dmg_range" : 6, "base_def" : 7, "base_speed" : 6 }
-{ "_id" : { "$oid" : "54dbe40d0f4c2ae71f72630c" }, "name" : "Hero Mage", "base_hp" : 30, "base_dmg" : 3, "dmg_range" : 8, "base_def" : 1, "base_speed" : 5, "hero" : true }
