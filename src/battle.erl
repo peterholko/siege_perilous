@@ -185,6 +185,7 @@ broadcast_dmg(SourceId, TargetId, Dmg, State) ->
 
 process_dmg(false, AtkId, _) ->
     db:delete(action, AtkId),
+    local:update_state(AtkId, none),
     lager:info("Invalid attack");      
 process_dmg(true, AtkId, DefId) ->
     AtkUnit = local_obj:get_stats(AtkId),

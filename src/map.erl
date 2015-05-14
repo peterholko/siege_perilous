@@ -94,7 +94,7 @@ handle_cast({add_local_explored, Player, GlobalPos, {X, Y}}, Data) ->
     ExploredMap = db:read(explored_map, {Player, GlobalPos}),
     
     ExploredTiles = get_explored_tiles(ExploredMap),
-    Neighbours = neighbours(X, Y, 38, 32),
+    Neighbours = neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
     NeighboursTwo = neighbours_two(Neighbours, []),
     lager:info("NeighboursTwo: ~p", [NeighboursTwo]),
     LatestTiles = NeighboursTwo ++ [{X, Y}],

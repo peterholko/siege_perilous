@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([execute/1, new_zombie/0]).
+-export([execute/1, new_zombie/0, get_nearest/3]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -152,7 +152,6 @@ add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
 
 process_action(NPCObjs, EnemyObjs) ->
     %Do nothing for now for explored
-
     F = fun(NPCObj) ->
             Action = none,
             NewAction = check_objs(NPCObj, EnemyObjs, Action),
@@ -232,18 +231,19 @@ process_local_action(none, NPCUnit, []) ->
     NPCState = maps:get(<<"state">>, NPCUnit),
     process_wander(NPCState, NPCUnit);
 
-process_local_action(none, NPCUnit, AllEnemyUnits) ->
+process_local_action(none, NPCUnit, EnemyUnits) ->
     lager:info("NPCUnit: ~p", [NPCUnit]),
-    lager:info("EnemyUnits: ~p", [AllEnemyUnits]),
-    EnemyUnits = remove_dead(AllEnemyUnits),
-
+    lager:info("EnemyUnits: ~p", [EnemyUnits]),
     NPCPos = get_pos(NPCUnit),
     EnemyUnit = get_nearest(NPCPos, EnemyUnits, {none, 1000}),
     lager:info("EnemyUnit: ~p", [EnemyUnit]), 
     EnemyPos = get_pos(EnemyUnit),
     Path = astar:astar(NPCPos, EnemyPos),
     lager:info("Path: ~p", [Path]),
-    NextAction = next_action(NPCUnit, EnemyUnit, Path),
+    NextAction = next_action(maps:get(<<"state">>, NPCUnit),
+                             NPCUnit, 
+                             EnemyUnit, 
+                             Path),
     lager:info("Next action: ~p", [NextAction]),
     add_local_action(NextAction);
 
@@ -268,11 +268,13 @@ compare_distance(NewDistance, Distance, _New, Old) when NewDistance >= Distance 
 compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance ->
     {New, NewDistance}.
 
-next_action(_, _, failure) ->
-    none; 
-next_action(NPCUnit, _EnemyUnit, Path) when length(Path) > 2 ->
+next_action(_, _, _, failure) ->
+    none; %Failure to find path 
+next_action(dead, _NPCUnit, _EnemyUnit, _Path) ->
+    none; %EnemyUnit is dead
+next_action(_, NPCUnit, _EnemyUnit, Path) when length(Path) > 2 ->
     {move, NPCUnit, lists:nth(2,Path)};
-next_action(NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
+next_action(_, NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
     {attack, NPCUnit, EnemyUnit}.
 
 add_local_action({attack, Source, Target}) ->
