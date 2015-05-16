@@ -1259,8 +1259,11 @@ function drawInfoUnit(jsonData) {
         
         btnBuild.on("mousedown", function(evt) {
             console.log("drawInfoUnit btnBuild mousedown");
-            sendFinishBuild(activeInfoPanel._id);
+            sendFinishBuild(evt.target.parent.parent._id);
         });
+    } 
+    else {
+        btnBuild.visible = false;
     }
 };
 

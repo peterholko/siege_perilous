@@ -43,7 +43,9 @@
                       speed}).
 
 -record(local_map, {index,
-                    misc}).
+                    tile,
+                    resources = [],
+                    layers}).
 
 -record(local_obj, {id,
                     global_obj_id,

@@ -202,7 +202,7 @@ tiles_msg_format([TileId | Rest], Tiles, GlobalPos) ->
     {X, Y} = TileId,
     NewTiles = [#{<<"x">> => X,
                   <<"y">> => Y,
-                  <<"t">> => Map#local_map.misc} | Tiles],
+                  <<"t">> => Map#local_map.layers} | Tiles],
 
     tiles_msg_format(Rest, NewTiles, GlobalPos).
 
@@ -353,13 +353,13 @@ load_map(File, RowNum, MapType) ->
         {ok, RawLine} ->
             Line = string:strip(RawLine, right, $\n),
             TypeList = string:tokens(Line, ","),
-            store_tile(TypeList, 0, RowNum, MapType),
+            store_global_tile(TypeList, 0, RowNum, MapType),
             load_map(File, RowNum + 1, MapType)
      end.
 
-store_tile([], _ColNum, _RowNum, _MapType) ->
+store_global_tile([], _ColNum, _RowNum, _MapType) ->
     lager:info("Done storing tiles");
-store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
+store_global_tile([TileType | Rest], ColNum, RowNum, MapType) ->
     case MapType of
         global_map ->
             Tile = #global_map {pos = {ColNum, RowNum},
@@ -370,7 +370,7 @@ store_tile([TileType | Rest], ColNum, RowNum, MapType) ->
             nothing
     end,
             
-    store_tile(Rest, ColNum + 1, RowNum, MapType).
+    store_global_tile(Rest, ColNum + 1, RowNum, MapType).
 
 xml_test() ->
     lager:info("Parsing map"),
@@ -435,48 +435,83 @@ get_image([{_, [_Width, _Height, Source], _Empty}]) ->
 
 process_layers([]) ->
     lager:info("Done processing layers");
+process_layers([{<<"layer">>, [{<<"name">>,<<"base1">>} | _], LayerData} | Rest]) -> 
+    process_layer_data(base,LayerData),
+    process_layers(Rest);
+process_layers([{<<"layer">>, [{<<"name">>,<<"base2">>} | _], LayerData} | Rest]) ->
+    process_layer_data(base, LayerData),
+    process_layers(Rest);
+process_layers([{<<"layer">>, [{<<"name">>,<<"resource1">>} | _], LayerData} | Rest]) -> 
+    process_layer_data(resource,LayerData),
+    process_layers(Rest);
 process_layers([{<<"layer">>, LayerProp, LayerData} | Rest]) ->
     lager:info("Processing layer ~p", [LayerProp]),
-    process_layer_data(LayerData),
+    process_layer_data(none, LayerData),
     process_layers(Rest);
 process_layers([_MapData | Rest]) ->
     process_layers(Rest).
 
-process_layer_data([{<<"data">>, _Encoding, Data}]) ->
+process_layer_data(LayerType, [{<<"data">>, _Encoding, Data}]) ->
     [BinData] = Data,
     ListData = binary_to_list(BinData),
     ListSplit = string:tokens(ListData, "\n"),
-
-    process_row(ListSplit, 0);
-process_layer_data(LayerData) ->
+    process_row(LayerType, ListSplit, 0);
+process_layer_data(_, LayerData) ->
     lager:info("~p", [LayerData]).
 
-process_row([], _NumRow) ->
+process_row(_, [], _NumRow) ->
     lager:info("Done storing layer");
-process_row([Row | Rest], NumRow) ->
-    ListTiles = string:tokens(Row, ","),
-    store_tile_list(ListTiles, NumRow, 0),
-    process_row(Rest, NumRow + 1).
+process_row(LayerType, [Row | Rest], NumRow) ->
+    NewRow = string:strip(Row, right, $\r),
+    ListTiles = string:tokens(NewRow, ","),
+    store_tile_list(LayerType, ListTiles, NumRow, 0),
+    process_row(LayerType, Rest, NumRow + 1).
 
-store_tile_list([], _NumRow, _NumCol) ->
+store_tile_list(_, [], _NumRow, _NumCol) ->
     lager:info("Done storing tile row");
-store_tile_list(["0" | Rest], NumRow, NumCol) ->
+store_tile_list(LayerType, ["0" | Rest], NumRow, NumCol) ->
     do_nothing,
-    store_tile_list(Rest, NumRow, NumCol + 1);
-store_tile_list([Tile | Rest], NumRow, NumCol) ->
-    
+    store_tile_list(LayerType, Rest, NumRow, NumCol + 1);
+store_tile_list(LayerType, [Tile | Rest], NumRow, NumCol) ->
     lager:info("Storing tile ~p ~p ~p", [Tile, NumRow, NumCol]),
     Pos = {NumCol, NumRow},
+    store_tile(LayerType, Tile, Pos),    
+
+    store_tile_list(LayerType, Rest, NumRow, NumCol + 1).
+
+store_tile(base, Tile, Pos) ->
     case db:dirty_read(local_map, {1, Pos}) of
         [] ->
             NewTile = #local_map {index = {1, Pos},
-                                  misc = [list_to_integer(Tile)]},
+                                  tile = list_to_integer(Tile),
+                                  layers = [list_to_integer(Tile)]},
             db:dirty_write(NewTile);
         [LocalTile] ->
-            NewMisc = [list_to_integer(Tile) | LocalTile#local_map.misc],
-            NewTile = LocalTile#local_map { misc = NewMisc},
+            NewLayers = [list_to_integer(Tile) | LocalTile#local_map.layers],
+            NewTile = LocalTile#local_map { tile = list_to_integer(Tile),
+                                            layers = NewLayers},
             db:dirty_write(NewTile)
-    end,
-
-    store_tile_list(Rest, NumRow, NumCol + 1).
- 
+    end;
+store_tile(resource, Tile, Pos) ->
+    case db:dirty_read(local_map, {1, Pos}) of
+        [] ->
+            NewTile = #local_map {index = {1, Pos},                                   
+                                  resources = [list_to_integer(Tile)]},
+            db:dirty_write(NewTile);
+        [LocalTile] ->
+            NewResources = [list_to_integer(Tile) | LocalTile#local_map.resources],
+            NewTile = LocalTile#local_map { tile = list_to_integer(Tile),
+                                            resources = NewResources},
+            db:dirty_write(NewTile)
+    end;
+store_tile(none, Tile, Pos) ->
+    case db:dirty_read(local_map, {1, Pos}) of
+        [] ->
+            NewTile = #local_map {index = {1, Pos},
+                                  layers = [list_to_integer(Tile)]},
+            db:dirty_write(NewTile);
+        [LocalTile] ->
+            NewLayers = [list_to_integer(Tile) | LocalTile#local_map.layers],
+            NewTile = LocalTile#local_map { layers = NewLayers},
+            db:dirty_write(NewTile)
+    end.

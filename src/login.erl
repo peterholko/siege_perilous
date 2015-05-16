@@ -49,7 +49,7 @@ login([], [Name, Pass, Socket]) ->
     db:write(ExploredMap),
     
     ObjId = obj:create(PlayerId, {2,2}, entity, <<"heromage">>, none, []),
-    local_obj:create(ObjId, <<"Hero Mage">>),
+    local_obj:create(ObjId, unit, <<"Hero Mage">>),
 
     {success, PlayerId};
 

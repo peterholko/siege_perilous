@@ -6,7 +6,7 @@
 -include("schema.hrl").
 
 -export([get/1, get_info/1, get_type/1, get_stats/1, units_from_obj/1, units_stats_from_obj/1]).
--export([create/2, update/3, remove/1]).
+-export([create/3, update/3, remove/1]).
 -export([find_type/1]).
 
 get(Id) ->
@@ -44,7 +44,14 @@ get_stats(Id) ->
     LocalObj = find(Id),
     stats(LocalObj).
 
-create(ObjId, TypeName) ->
+create(ObjId, structure, TypeName) ->
+    {LocalObjType} = find_type(TypeName),
+    [LocalObj] = insert(ObjId, LocalObjType),
+    {LocalObjId} = bson:lookup('_id', LocalObj),
+    update(LocalObjId, hp, 1),
+    [LocalObj];
+
+create(ObjId, _Class, TypeName) ->
     {LocalObjType} = find_type(TypeName),
     insert(ObjId, LocalObjType).
 
@@ -79,7 +86,8 @@ insert(ObjId, Type) ->
     {BaseHp} = bson:lookup(base_hp, Type),
     {Class} = bson:lookup(class, Type),
     Unit = {obj_id, ObjId, hp, BaseHp, type_name, TypeName, class, Class},
-    mongo:insert(mdb:get_conn(), <<"local_obj">>, [Unit]).
+    LocalObj = mongo:insert(mdb:get_conn(), <<"local_obj">>, [Unit]),
+    LocalObj.
 
 stats([]) ->
     false;

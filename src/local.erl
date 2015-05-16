@@ -90,7 +90,7 @@ create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type, State) ->
     lager:info("Creating ~p", [Type]),
 
     %Create mongo db local obj
-    [LocalObjM] = local_obj:create(GlobalObjId, Type),
+    [LocalObjM] = local_obj:create(GlobalObjId, Class, Type),
     {Id} = bson:lookup('_id', LocalObjM),
 
     %Create mnesia local obj
