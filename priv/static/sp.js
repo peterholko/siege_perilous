@@ -409,6 +409,11 @@ function sendItemTransfer(targetid, item) {
     websocket.send(e);
 };
 
+function sendSurvey(sourceid) {
+    var e = '{"cmd": "survey", "sourceid": "' + sourceid + '"}';    
+    websocket.send(e);
+};
+
 function sendHarvest(sourceid, resource) {
     var e = '{"cmd": "harvest", "sourceid": "' + selectedPortrait + '", "resource": "Wood Log"}';    
     websocket.send(e);
@@ -1433,6 +1438,12 @@ function initUI() {
     
         this.removeAllChildren();
         this.addChild(new createjs.Bitmap(detailsActive));
+    });
+
+    gatherButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {
+            sendSurvey(selectedPortrait);
+        }
     });
 
     attackButton.on("mouseover", function(evt) {

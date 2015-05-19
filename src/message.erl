@@ -90,7 +90,8 @@ message_handle(<<"survey">>, Message) ->
     lager:info("message: survey"),
 
     SourceId = map_get(<<"sourceid">>, Message),    
-    Result = player:survey(SourceId),
+    SourceBinId = util:hex_to_bin(SourceId), 
+    Result = player:survey(SourceBinId),
     jsx:encode([{<<"packet">>, <<"survey">>},
                 {<<"result">>, Result}]);    
 

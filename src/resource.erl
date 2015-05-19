@@ -13,6 +13,7 @@ harvest(ObjId, ResourceType) ->
     [NewItem].
 
 survey(Pos) ->
+    lager:info("Survey ~p", [Pos]),
     Resources = db:read(resource, {1, Pos}),
 
     F = fun(Resource, ResourceList) ->

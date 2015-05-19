@@ -117,6 +117,7 @@ move_unit(UnitId, Pos) ->
     add_move_unit(Result, {Unit#local_obj.global_pos, Player, UnitId, Pos}, NumTicks).
 
 survey(LocalObjId) ->
+    lager:info("Survey: ~p", [LocalObjId]),
     Player = get(player_id),
     [LocalObj] = db:read(local_obj, LocalObjId),
 
