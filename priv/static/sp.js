@@ -30,7 +30,6 @@ var selectedPortrait = false;
 var selectedUnit = false;
 
 var attackToggled = false;
-var buildButton = false;
 
 var origX;
 var origY;
@@ -54,6 +53,14 @@ var portraitBg = new Image();
 var attackActive = new Image();
 var attackRest = new Image();
 var attackRoll = new Image();
+
+var gatherActive = new Image();
+var gatherRest = new Image();
+var gatherRoll = new Image();
+
+var buildActive = new Image();
+var buildRest = new Image();
+var buildRoll = new Image();
 
 var detailsActive = new Image();
 var detailsRest = new Image();
@@ -96,20 +103,26 @@ var shroud = "/static/art/shroud.png";
 
 infoPanelBg.src = "/static/art/ui_pane.png";
 dialogPanelBg.src = "/static/art/dialog.png";
-selectPanelBg.src = "/static/art/selectpanel.png";
+selectPanelBg.src = "/static/art/select_bar_bg.png";
 close_rest.src = "/static/art/close_rest.png";
 selectHexImage.src = "/static/art/hover-hex.png";
 selectIconImage.src = "/static/art/select2.png";
 portraitBg.src = "/static/art/selected_bg.png";
-actionBarBgImage.src = "/static/art/actionbar_bg.png";
+actionBarBgImage.src = "/static/art/ab_bg.png";
 
-attackActive.src = "/static/art/ActionBar_Attack_Active.png";
-attackRest.src = "/static/art/ActionBar_Attack_Rest.png";
-attackRoll.src = "/static/art/ActionBar_Attack_Roll.png";
+attackActive.src = "/static/art/ab_attack_active.png";
+attackRest.src = "/static/art/ab_attack_rest.png";
+attackRoll.src = "/static/art/ab_attack_roll.png";
 
-detailsActive.src = "/static/art/ActionBar_Details_Active.png";
-detailsRest.src = "/static/art/ActionBar_Details_Rest.png";
-detailsRoll.src = "/static/art/ActionBar_Details_Roll.png";
+gatherActive.src = "/static/art/ab_gather_active.png";
+gatherRest.src = "/static/art/ab_gather_rest.png";
+
+buildActive.src = "/static/art/ab_build_active.png";
+buildRest.src = "/static/art/ab_build_rest.png";
+
+detailsActive.src = "/static/art/ab_details_active.png";
+detailsRest.src = "/static/art/ab_details_rest.png";
+detailsRoll.src = "/static/art/ab_details_roll.png";
 
 btnBuildRestImg.src = "/static/art/ButtonBuildRest.png";
 btnBuildClickedImg.src = "/static/art/ButtonBuildClicked.png";
@@ -1377,21 +1390,34 @@ function initUI() {
 
     stage.addChild(dialogPanel);
 
+    //Initialize actionBar
     var actionBar = new createjs.Container();
     var actionBarBg = new createjs.Bitmap(actionBarBgImage);
     var detailsButton = new createjs.Container();
+    var gatherButton = new createjs.Container();
+    var buildButton = new createjs.Container();
     var attackButton = new createjs.Container();
 
-    actionBar.x = stageWidth / 2 - 274 / 2;
-    actionBar.y = stageHeight - 184;
+    actionBar.x = stageWidth / 2 - 492 / 2;
+    actionBar.y = stageHeight - 231;
 
-    detailsButton.x = 27;
-    detailsButton.y = 21;
+    detailsButton.x = 48;
+    detailsButton.y = 96;
     detailsButton.mouseChildren = false;
     detailsButton.addChild(new createjs.Bitmap(detailsRest));
     
-    attackButton.x = 103;
-    attackButton.y = 21;
+    gatherButton.x = 101;
+    gatherButton.y = 96;
+    gatherButton.mouseChildren = false;
+    gatherButton.addChild(new createjs.Bitmap(gatherRest));
+ 
+    buildButton.x = 155;
+    buildButton.y = 96;
+    buildButton.mouseChildren = false;
+    buildButton.addChild(new createjs.Bitmap(buildRest));
+ 
+    attackButton.x = 209;
+    attackButton.y = 96;
     attackButton.mouseChildren = false;
     attackButton.addChild(new createjs.Bitmap(attackRest));
 
@@ -1425,6 +1451,8 @@ function initUI() {
 
     actionBar.addChild(actionBarBg);
     actionBar.addChild(detailsButton);
+    actionBar.addChild(gatherButton);
+    actionBar.addChild(buildButton);
     actionBar.addChild(attackButton);
 
     stage.addChild(actionBar);
@@ -1438,10 +1466,10 @@ function initUI() {
     selectPanel.addChild(bgPanel);
     selectPanel.addChild(content);
     
-    selectPanel.x = 1000;
-    selectPanel.y = 200;
+    selectPanel.x = 0;
+    selectPanel.y = 0;
 
-    stage.addChild(selectPanel);
+    actionBar.addChild(selectPanel);
 
     portraitPanel = new createjs.Container();
     portraitPanel.x = 0;

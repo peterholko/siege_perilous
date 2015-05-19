@@ -374,14 +374,14 @@ store_global_tile([TileType | Rest], ColNum, RowNum, MapType) ->
 
 xml_test() ->
     lager:info("Parsing map"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/test1.tmx"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     lager:info("Processing layers"),
     process_layers(C).
 
 tileset() ->
     lager:info("Parsing tileset"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/test1.tmx"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     TilesetList = process_tileset(C, []),
     JSON = jsx:encode(TilesetList),
@@ -397,6 +397,7 @@ process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList)
     {_, TilesetName} = NameInfo,
     FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
     lager:info("FirstGid: ~p ~p", [FirstGid, TilesetName]),
+    lager:info("Tileset Data: ~p", [TilesetData]),
     NewTilesetList = process_tileset_data(TilesetData, {0,0}, FirstGid, TilesetList),
 
     process_tileset(Rest, NewTilesetList);
@@ -411,27 +412,56 @@ process_tileset_data([{<<"tileoffset">>, OffsetInfo, _OffSetData} | Rest], _Offs
     [{<<"x">>, X}, {<<"y">>, Y}] = OffsetInfo,
     TileOffset = {X, Y},
     process_tileset_data(Rest, TileOffset, FirstGid, Tileset);
-process_tileset_data([{<<"tile">>, IdInfo, ImageInfo} | Rest], TileOffset, FirstGid, Tileset) ->
+process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, FirstGid, Tileset) ->
+    lager:info("TileData ~p", [TileData]),  
     [{_, BinTileId}] = IdInfo,
     LocalTileId = binary_to_integer(BinTileId),
     TileId = FirstGid + LocalTileId,
-    Image = get_image(ImageInfo),
-    lager:info("~p - ~p", [TileId, Image]),
-
     {X, Y} = TileOffset,
+    
+    Image = process_tile_data(TileId, TileData, none),
 
     NewTileset= [#{<<"tile">> => TileId,
                    <<"image">> => Image, 
                    <<"offsetx">> => X,
                    <<"offsety">> => Y} | Tileset],
-
+    
     process_tileset_data(Rest, TileOffset, FirstGid, NewTileset).
 
-get_image([{_, [_Width, _Height, Source], _Empty}]) ->
+process_tile_data(_TileId, [], Image) ->
+    Image;
+process_tile_data(TileId, [{<<"image">>, [_Width, _Height, Source], _Empty} | Rest], Image) ->
     {_, BinFilePath} = Source,
-    %FilePath = binary_to_list(BinFilePath),
-    %list_to_binary(string:sub_string(FilePath, 69)).
-    BinFilePath.
+    NewImage = BinFilePath,
+    lager:info("Image: ~p", [Image]),
+
+    process_tile_data(TileId, Rest, NewImage);
+process_tile_data(TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
+    lager:info("PropertyData: ~p", [PropertiesData]), 
+    Properties = process_property(PropertiesData, maps:new()),
+    store_resource_def(TileId, Properties),
+
+    process_tile_data(TileId, Rest, Image).
+
+process_property([], Properties) ->
+    lager:info("Done properties processing: ~p", [Properties]),
+    Properties;
+
+process_property([{<<"property">>, PropertyData, _} | Rest], Properties) ->
+    [{<<"name">>, Name},{<<"value">>, Value}] = PropertyData,
+    
+    NewProperties = maps:put(Name, Value, Properties),
+
+    process_property(Rest, NewProperties).
+
+store_resource_def(TileId, Properties) ->
+    ResourceName = maps:get(<<"name">>, Properties),
+    ResourceQuantity = maps:get(<<"quantity">>, Properties),
+    
+    ResourceDef = #resource_def {tile = TileId,
+                                 name = ResourceName,
+                                 quantity = ResourceQuantity},
+    db:write(ResourceDef).
 
 process_layers([]) ->
     lager:info("Done processing layers");
@@ -493,17 +523,16 @@ store_tile(base, Tile, Pos) ->
             db:dirty_write(NewTile)
     end;
 store_tile(resource, Tile, Pos) ->
-    case db:dirty_read(local_map, {1, Pos}) of
-        [] ->
-            NewTile = #local_map {index = {1, Pos},                                   
-                                  resources = [list_to_integer(Tile)]},
-            db:dirty_write(NewTile);
-        [LocalTile] ->
-            NewResources = [list_to_integer(Tile) | LocalTile#local_map.resources],
-            NewTile = LocalTile#local_map { tile = list_to_integer(Tile),
-                                            resources = NewResources},
-            db:dirty_write(NewTile)
-    end;
+    lager:info("Tile: ~p", [Tile]),
+    [ResourceDef] = db:dirty_read(resource_def, list_to_integer(Tile)),
+    Quantity = res_quantity(ResourceDef#resource_def.quantity),
+
+    Resource = #resource {index = {1, Pos},
+                          name = ResourceDef#resource_def.name,
+                          max = Quantity,
+                          quantity = Quantity},
+
+    db:dirty_write(Resource);
 store_tile(none, Tile, Pos) ->
     case db:dirty_read(local_map, {1, Pos}) of
         [] ->
@@ -515,3 +544,8 @@ store_tile(none, Tile, Pos) ->
             NewTile = LocalTile#local_map { layers = NewLayers},
             db:dirty_write(NewTile)
     end.
+
+res_quantity(<<"high">>) -> 50;
+res_quantity(<<"average">>) -> 25;
+res_quantity(<<"low">>) -> 10;
+res_quantity(_) -> lager:info("Unknown resource quantity").

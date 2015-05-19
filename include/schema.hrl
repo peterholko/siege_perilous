@@ -14,8 +14,14 @@
 -record(global_map, {pos,
                      tile}).
 
--record(resource, {resource_type,
-                   tile_type}).
+-record(resource, {index, 
+                   name,
+                   max,
+                   quantity}).
+
+-record(resource_def, {tile,
+                       name,
+                       quantity}).
 
 -record(obj, {id, 
               pos,
@@ -44,7 +50,6 @@
 
 -record(local_map, {index,
                     tile,
-                    resources = [],
                     layers}).
 
 -record(local_obj, {id,
@@ -62,3 +67,6 @@
 -record(action, {source_id,
                  type,
                  data}).
+
+-record(test, {attr,
+               value}).

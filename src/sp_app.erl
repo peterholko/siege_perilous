@@ -5,6 +5,7 @@
 -behaviour(application).
 
 -include("common.hrl").
+-include("schema.hrl").
 
 %% API.
 -export([start/2]).
@@ -53,8 +54,9 @@ start(_Type, _Args) ->
     lager:info("Starting Battle Manager"),
     battle:start(),
 
+    map:tileset(),
     map:xml_test(),
-
+    
     lager:info("Starting game loop"),
     spawn(fun() -> game_loop:loop(0, util:get_time(), global:whereis_name(game_pid)) end),
 
