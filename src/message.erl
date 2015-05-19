@@ -86,6 +86,14 @@ message_handle(<<"attack_unit">>, Message) ->
     player:attack_unit(SourceBinId, TargetBinId),
     <<"Attack unit added">>;
 
+message_handle(<<"survey">>, Message) ->
+    lager:info("message: survey"),
+
+    SourceId = map_get(<<"sourceid">>, Message),    
+    Result = player:survey(SourceId),
+    jsx:encode([{<<"packet">>, <<"survey">>},
+                {<<"result">>, Result}]);    
+
 message_handle(<<"harvest">>, Message) ->
     lager:info("message: harvest"),
 

@@ -16,6 +16,7 @@
          move_unit/2,
          attack_obj/2,
          attack_unit/2,
+         survey/1,
          harvest/2,
          loot/2,
          item_transfer/2,
@@ -114,6 +115,20 @@ move_unit(UnitId, Pos) ->
              ValidPos,
     
     add_move_unit(Result, {Unit#local_obj.global_pos, Player, UnitId, Pos}, NumTicks).
+
+survey(LocalObjId) ->
+    Player = get(player_id),
+    [LocalObj] = db:read(local_obj, LocalObjId),
+
+    ValidPlayer = is_player_owned(LocalObj#local_obj.player, Player),
+    
+    Result = case ValidPlayer of
+                 true ->
+                     resource:survey(LocalObj#local_obj.pos);
+                 false -> 
+                     <<"Invalid obj">>
+             end,
+    Result.
 
 harvest(LocalObjId, Resource) ->
     Player = get(player_id),

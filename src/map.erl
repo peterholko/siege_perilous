@@ -525,7 +525,7 @@ store_tile(base, Tile, Pos) ->
 store_tile(resource, Tile, Pos) ->
     lager:info("Tile: ~p", [Tile]),
     [ResourceDef] = db:dirty_read(resource_def, list_to_integer(Tile)),
-    Quantity = res_quantity(ResourceDef#resource_def.quantity),
+    Quantity = resource:quantity(ResourceDef#resource_def.quantity),
 
     Resource = #resource {index = {1, Pos},
                           name = ResourceDef#resource_def.name,
@@ -545,7 +545,3 @@ store_tile(none, Tile, Pos) ->
             db:dirty_write(NewTile)
     end.
 
-res_quantity(<<"high">>) -> 50;
-res_quantity(<<"average">>) -> 25;
-res_quantity(<<"low">>) -> 10;
-res_quantity(_) -> lager:info("Unknown resource quantity").
