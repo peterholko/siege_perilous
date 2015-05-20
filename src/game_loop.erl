@@ -37,6 +37,9 @@ loop(NumTick, LastTime, GamePID) ->
   
     %Execute NPC actions
     execute_npc(NumTick),
+
+    %Clean up
+    clean_up(NumTick),
  
     %Toggle off perception
     game:reset_perception(),
@@ -192,11 +195,6 @@ local_recalculate([GlobalPos | Rest]) ->
     l_perception:recalculate(GlobalPos),
     local_recalculate(Rest).
 
-execute_npc(NumTick) when (NumTick rem 100) =:= 0 ->
-    npc:execute(99);
-execute_npc(_) ->
-    nothing.
-
 update_charge_times([]) ->
     done;
 update_charge_times([BattleUnit | Rest]) ->
@@ -224,3 +222,27 @@ process_active_turn(false, _UnitId) ->
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:info("Sending ~p to ~p", [Message, Process]),
     Process ! {MessageType, Message}.
+
+execute_npc(NumTick) when (NumTick rem 100) =:= 0 ->
+    npc:execute(99);
+execute_npc(_) ->
+    nothing.
+
+clean_up(NumTick) when (NumTick rem 200) =:= 0 ->
+    lager:info("Cleaning up dead local objs"),
+    LocalObjs = db:index_read(local_obj, 1, #local_obj.global_pos),
+
+    F = fun(LocalObj) ->
+            remove(LocalObj#local_obj.state, LocalObj)
+        end,
+
+
+    lists:foreach(F, LocalObjs);    
+
+clean_up(_) ->
+    nothing. 
+
+
+remove(dead, LocalObj) ->
+    local_obj:remove(LocalObj#local_obj.id),
+    local:remove(LocalObj).

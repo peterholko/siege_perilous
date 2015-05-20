@@ -6,7 +6,8 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1, create/7, move/2, update_state/2]).
+-export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1]).
+-export([create/7, remove/1, move/2, update_state/2]).
 -export([is_exit_valid/1, is_empty/2]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
@@ -107,6 +108,10 @@ create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type, State) ->
 
     %Return ID
     Id.
+
+remove(LocalObj) ->
+    db:delete(local_obj, LocalObj#local_obj.id),
+    game:trigger_local(LocalObj#local_obj.global_pos).
 
 move(Id, Pos) ->
     %TODO convert to transaction

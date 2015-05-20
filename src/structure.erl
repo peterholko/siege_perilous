@@ -7,6 +7,7 @@
 -include("schema.hrl").
 
 -export([start_build/4, check_req/1]).
+-export([is_wall/1]).
 
 start_build(PlayerId, GlobalPos, LocalPos, StructureName) ->
     lager:info("GlobalPos: ~p LocalPos: ~p StructureName: ~p", [GlobalPos, LocalPos, StructureName]), 
@@ -49,3 +50,14 @@ process_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
 
 match_req({ReqType, ReqQuantity}, {ReqType, ItemQuantity}) when ReqQuantity =< ItemQuantity -> true;
 match_req({_, _}, {_, _}) -> false.
+
+is_wall(StructureName) ->
+    {Structure} = local_obj:get_type(StructureName),
+    Result = case bson:lookup(is_wall, Structure) of
+                {} ->
+                    false;
+                {true} ->
+                    true
+             end,
+    Result.
+    

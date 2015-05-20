@@ -415,7 +415,7 @@ function sendSurvey(sourceid) {
 };
 
 function sendHarvest(sourceid, resource) {
-    var e = '{"cmd": "harvest", "sourceid": "' + selectedPortrait + '", "resource": "Wood Log"}';    
+    var e = '{"cmd": "harvest", "sourceid": "' + selectedPortrait + '", "resource": "' + resource + '"}';    
     websocket.send(e);
 };
 
@@ -555,6 +555,9 @@ function onMessage(evt) {
         else if(jsonData.packet == "info_item") {
             drawInfoItem(jsonData);
         }
+        else if(jsonData.packet == "survey") {
+            drawSurveyDialog(jsonData);
+        }        
     }
 
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
@@ -832,8 +835,8 @@ function drawLocalSelectPanel(tileX, tileY) {
         var icon = new createjs.Container();
         var selectIcon = new createjs.Bitmap(selectIconImage);
 
-        icon.x = 0; 
-        icon.y = i * 75;
+        icon.x = 15 + i * 77; 
+        icon.y = 5;
         icon.id = localObjs[i].id;
         icon.mouseChildren = false;
 
@@ -983,6 +986,48 @@ function drawLootDialog(jsonData) {
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
+};
+
+function drawSurveyDialog(jsonData) {
+    showDialogPanel();
+
+    var title = new createjs.Text("Resources", h1Font, textColor);
+    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.y = 5;
+    title.textAlign = "center";
+
+    addChildDialogPanel(title);
+
+    for(var i = 0; i < jsonData.result.length; i++) {
+        var resource = jsonData.result[i];
+        var resourceImage = resource.name.toLowerCase().replace(/ /g, '');
+        var imagePath = "/static/art/" + resourceImage + ".png";
+
+        var icon = new createjs.Container();
+        icon.resourceName = resource.name;
+
+        icon.x = 25;
+        icon.y = 40 + i * 60;
+
+        icon.on("mousedown", function(evt) {
+            sendHarvest(selectedPortrait, this.resourceName);
+        });
+
+        addChildDialogPanel(icon);
+        addImage({id: resourceImage, path: imagePath, x: 0, y: 0, target: icon});
+
+        var name = new createjs.Text("Name: " + resource.name, h1Font, textColor);
+        var quantity = new createjs.Text("Quantity: " + resource.quantity, h1Font, textColor);
+        
+        name.x = 85;
+        name.y = 40 + i * 60;
+        
+        quantity.x = 85;
+        quantity.y = 60 + i * 60;
+        
+        addChildDialogPanel(name);
+        addChildDialogPanel(quantity);
+    }
 };
 
 function drawNewItemsDialog(jsonData) {

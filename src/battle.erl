@@ -157,6 +157,11 @@ is_adjacent(SourceObj, TargetObj) ->
             false
     end.
 
+is_targetable(Pos) ->
+    Objs = db:index_read(local_obj, Pos, #local_obj.pos),
+    IsTargetable = not behind_walls(Objs, false),
+    IsTargetable.
+
 is_target_alive(dead) -> 
     lager:info("Target not alive"),
     false;
@@ -274,3 +279,10 @@ is_state(_ExpectdState, _State) -> false.
 
 is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
 is_state_not(_NotExpectedState, State) -> true.
+
+behind_walls([], Result) ->
+    Result;
+
+behind_walls([Obj | Rest], Result) ->
+    NewResult = Result or structure:is_wall(Obj#local_obj.type),
+    behind_walls(Rest, NewResult).

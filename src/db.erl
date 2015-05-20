@@ -63,6 +63,7 @@ create_schema() ->
     mnesia:add_table_index(local_obj, global_obj_id),
     mnesia:add_table_index(local_obj, global_pos),
     mnesia:add_table_index(local_obj, player),
+    mnesia:add_table_index(local_obj, pos),
 
     mnesia:stop().
 
@@ -139,9 +140,7 @@ test_tables() ->
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {counter, player, 1000},
      {explored_map, 1, [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}], []},
-     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {2,2}, none, 1, entity, <<"heromage">>, none},
-     {resource, <<"Copper Ore">>, ?MOUNTAINS},
-     {resource, <<"Copper Ore">>, ?HILLS}
+     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {2,2}, none, 1, entity, <<"heromage">>, none}
     ].
 
 reset_tables() ->

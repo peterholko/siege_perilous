@@ -17,7 +17,7 @@ survey(Pos) ->
     Resources = db:read(resource, {1, Pos}),
 
     F = fun(Resource, ResourceList) ->
-            ResourceMap = #{<<"resource">> => Resource#resource.name,
+            ResourceMap = #{<<"name">> => Resource#resource.name,
                             <<"quantity">> => quantity(Resource#resource.quantity)},
             [ResourceMap | ResourceList]
         end,

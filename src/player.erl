@@ -53,6 +53,7 @@ get_info_unit(Id) ->
     local_obj:get_info(Id).
 
 get_info_item(Item) ->
+    lager:info("get_info_item ~p", [Item]),
     item:get_info(Item).
 
 get_info_battle(Id) ->
