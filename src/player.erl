@@ -22,6 +22,7 @@
          item_transfer/2,
          explore/2,
          exit_local/0,
+         structure_list/0,
          build/2,
          finish_build/2,
          equip/2,
@@ -202,6 +203,9 @@ exit_local() ->
                 local:is_exit_valid(Obj#obj.id),
 
     add_exit_local(ValidExit, {Obj#obj.id, Obj#obj.pos}, NumTicks).
+
+structure_list() ->
+    PlayerId = get(player_id).
 
 build(LocalObjId, Structure) ->
     %TODO add validation

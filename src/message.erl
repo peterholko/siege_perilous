@@ -152,6 +152,14 @@ message_handle(<<"exit_local">>, _Message) ->
 
     <<"Exit added">>;
 
+message_handle(<<"structure_list">>, Message) ->
+    lager:info("message: structure_list"),
+
+    Result = player:structure_list(),
+
+    jsx:encode([{<<"packet">>, <<"structure_list">>},
+                {<<"result">>, Result}]);    
+
 message_handle(<<"build">>, Message) ->
     lager:info("message: build"),
     
