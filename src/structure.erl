@@ -7,7 +7,7 @@
 -include("schema.hrl").
 
 -export([start_build/4, check_req/1]).
--export([is_wall/1]).
+-export([is_wall/1, list/0]).
 
 start_build(PlayerId, GlobalPos, LocalPos, StructureName) ->
     lager:info("GlobalPos: ~p LocalPos: ~p StructureName: ~p", [GlobalPos, LocalPos, StructureName]), 
@@ -26,6 +26,11 @@ check_req(Structure) ->
     Items = item:get_by_owner(StructureId),
 
     process_req(false, ReqList, Items).
+
+list() ->
+    Structures = find_type(level, 1),
+    Structures.
+
 %
 % Internal functions
 %
@@ -60,4 +65,11 @@ is_wall(StructureName) ->
                     true
              end,
     Result.
-    
+
+find_type(Key, Value) ->
+    Cursor = mongo:find(mdb:get_conn(), <<"local_obj_type">>, {Key, Value, class, <<"structure">>}),
+    Structures = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Structures.
+
+   

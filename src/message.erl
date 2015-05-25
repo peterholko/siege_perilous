@@ -152,13 +152,22 @@ message_handle(<<"exit_local">>, _Message) ->
 
     <<"Exit added">>;
 
-message_handle(<<"structure_list">>, Message) ->
+message_handle(<<"structure_list">>, _Message) ->
     lager:info("message: structure_list"),
 
-    Result = player:structure_list(),
+    StructuresBSON = player:structure_list(),
+    lager:info("StructuresBSON: ~p", [StructuresBSON]),
+
+    F = fun(Structure, StructuresMap) ->
+                [mdb:to_map(Structure) | StructuresMap]
+        end,
+    
+    StructuresMap = lists:foldl(F, [], StructuresBSON),
+    lager:info("StructuresMap: ~p", [StructuresMap]),
+
 
     jsx:encode([{<<"packet">>, <<"structure_list">>},
-                {<<"result">>, Result}]);    
+                {<<"result">>, StructuresMap}]);    
 
 message_handle(<<"build">>, Message) ->
     lager:info("message: build"),

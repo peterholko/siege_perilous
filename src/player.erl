@@ -205,7 +205,8 @@ exit_local() ->
     add_exit_local(ValidExit, {Obj#obj.id, Obj#obj.pos}, NumTicks).
 
 structure_list() ->
-    PlayerId = get(player_id).
+    _PlayerId = get(player_id),
+    structure:list().
 
 build(LocalObjId, Structure) ->
     %TODO add validation
