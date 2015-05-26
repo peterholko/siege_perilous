@@ -387,9 +387,13 @@ function sendMove(newX, newY) {
     websocket.send(move);
 };
 
-function sendBuild() {
-    console.log("sendBuild");
-    var e = '{"cmd": "build", "sourceid": "' + selectedPortrait + '", "structure": "Stockade"}';
+function sendStructureList() {
+    var e = '{"cmd": "structure_list"}';
+    websocket.send(e);
+};
+
+function sendBuild(structureName) {
+    var e = '{"cmd": "build", "sourceid": "' + selectedPortrait + '", "structure": "' + structureName + '"}';
     websocket.send(e);
 };
 
@@ -557,7 +561,10 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "survey") {
             drawSurveyDialog(jsonData);
-        }        
+        }
+        else if(jsonData.packet =="structure_list") {
+            drawStructureListDialog(jsonData);
+        }     
     }
 
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
@@ -1030,6 +1037,52 @@ function drawSurveyDialog(jsonData) {
     }
 };
 
+function drawStructureListDialog(jsonData) {
+    showDialogPanel();
+
+    var title = new createjs.Text("Structure List", h1Font, textColor);
+    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.y = 5;
+    title.textAlign = "center";
+
+    addChildDialogPanel(title);
+
+    for(var i = 0; i < jsonData.result.length; i++) {
+        var structure = jsonData.result[i];
+        var structureImage = structure.name.toLowerCase().replace(/ /g, '');
+        var imagePath = "/static/art/" + structureImage + ".png";
+
+        var icon = new createjs.Container();
+        icon.structureName = structure.name;
+
+        icon.x = 25 + i * 75;
+        icon.y = 50;
+
+        icon.on("mousedown", function(evt) {
+            sendBuild(selectedPortrait, this.structureName);
+        });
+
+        addChildDialogPanel(icon);
+        addImage({id: structureImage, path: imagePath, x: 0, y: 0, target: icon});
+
+        var name = new createjs.Text(structure.name, h1Font, textColor);
+        
+        name.x = 25 + i * 75;
+        name.y = 130;
+        
+        addChildDialogPanel(name);
+
+        for(var j = 0; j < structure.req.length; j++) {
+            var req = structure.req[j];
+            var reqText = new createjs.Text(req.type + " (" + req.quantity + ")", h1Font, textColor);
+
+            reqText.x = 25 + i * 75;
+            reqText.y = 145;
+
+            addChildDialogPanel(reqText);
+        }
+   }
+}
 function drawNewItemsDialog(jsonData) {
     showDialogPanel();
 
@@ -1489,6 +1542,10 @@ function initUI() {
         if(selectedPortrait != false) {
             sendSurvey(selectedPortrait);
         }
+    });
+
+    buildButton.on("mousedown", function(evt) {
+        sendStructureList();
     });
 
     attackButton.on("mouseover", function(evt) {
