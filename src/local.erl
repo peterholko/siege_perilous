@@ -7,7 +7,7 @@
 -include("schema.hrl").
 
 -export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1]).
--export([create/7, remove/1, move/2, update_state/2]).
+-export([create/8, remove/1, move/2, update_state/2]).
 -export([is_exit_valid/1, is_empty/2]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
@@ -46,7 +46,7 @@ has_entered(GlobalObjId) ->
 
 enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
     lager:info("Enter map: ~p", [{GlobalObjId, GlobalPos, LastPos}]),
-    Units = local_obj:units_from_obj(GlobalObjId),
+    Units = local_obj:units_stats_from_obj(GlobalObjId),
     lager:info("Units from obj: ~p", [Units]), 
     EnterPos = get_enter_pos(GlobalPos, LastPos),
     map:add_local_explored(PlayerId, GlobalPos, EnterPos),
@@ -55,7 +55,8 @@ enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
                 lager:info("enter_map unit: ~p", [Unit]),
                 {Id} = bson:lookup('_id', Unit), 
                 {TypeName} = bson:lookup(type_name, Unit),
-                enter_obj(GlobalPos, GlobalObjId, Id, EnterPos, PlayerId, unit, TypeName, none)
+                {Subclass} = bson:lookup(subclass, Unit),
+                enter_obj(GlobalPos, GlobalObjId, Id, EnterPos, PlayerId, unit, Subclass, TypeName, none)
         end,
 
     lists:foreach(F, Units).
@@ -73,26 +74,33 @@ exit_map(GlobalObjId) ->
             true
     end.
 
-enter_obj(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Type, State) ->
+enter_obj(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Subclass, Name, State) ->
     lager:info("Enter obj ~p", [Pos]),
+
+    Vision = has_vision(Subclass),
+
     LocalObj = #local_obj {id = Id,
                            global_obj_id = GlobalObjId,
                            global_pos = GlobalPos,
                            pos = Pos,
                            player = PlayerId,
                            class = Class,
-                           type = Type,
-                           state = State},
+                           subclass = Subclass,
+                           name = Name,
+                           state = State,
+                           vision = Vision},
 
     db:write(LocalObj),
     game:trigger_local(GlobalPos).
 
-create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type, State) ->
-    lager:info("Creating ~p", [Type]),
+create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Subclass, Name, State) ->
+    lager:info("Creating ~p", [Name]),
 
     %Create mongo db local obj
-    [LocalObjM] = local_obj:create(GlobalObjId, Class, Type),
+    [LocalObjM] = local_obj:create(GlobalObjId, Class, Name),
     {Id} = bson:lookup('_id', LocalObjM),
+
+    Vision = has_vision(Subclass),
 
     %Create mnesia local obj
     LocalObj = #local_obj {id = Id,
@@ -101,8 +109,10 @@ create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Type, State) ->
                            pos = Pos,
                            player = PlayerId,
                            class = Class,
-                           type = Type,
-                           state = State}, 
+                           subclass = Subclass,
+                           name = Name,
+                           state = State,
+                           vision = Vision}, 
     db:write(LocalObj),
     game:trigger_local(GlobalPos),
 
@@ -119,7 +129,17 @@ move(Id, Pos) ->
     [LocalObj] = db:read(local_obj, Id),
     NewLocalObj = LocalObj#local_obj {pos = Pos,
                                       state = none},
-    db:write(NewLocalObj).
+    db:write(NewLocalObj),
+
+    %Add explored if object is granted vision
+    case LocalObj#local_obj.vision of
+        true ->
+            map:add_local_explored(LocalObj#local_obj.player, 
+                                   LocalObj#local_obj.global_pos,
+                                   Pos);
+        false ->
+            nothing
+    end.
 
 update_state(Id, State) ->
     lager:info("Update state: ~p ~p", [Id, State]),
@@ -198,3 +218,7 @@ is_on_edge({_X, _Y}) -> false.
 filter_units(LocalObjs) ->
     F = fun(LocalObj) -> LocalObj#local_obj.class =:= unit end,
     lists:filter(F, LocalObjs).
+
+has_vision(<<"hero">>) -> true;
+has_vision(<<"npc">>) -> true;
+has_vision(_) -> false.

@@ -1059,7 +1059,8 @@ function drawStructureListDialog(jsonData) {
         icon.y = 50;
 
         icon.on("mousedown", function(evt) {
-            sendBuild(selectedPortrait, this.structureName);
+            sendBuild(this.structureName);
+            dialogPanel.hide();
         });
 
         addChildDialogPanel(icon);

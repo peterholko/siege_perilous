@@ -158,9 +158,10 @@ is_adjacent(SourceObj, TargetObj) ->
     end.
 
 is_targetable(Pos) ->
-    Objs = db:index_read(local_obj, Pos, #local_obj.pos),
-    IsTargetable = not behind_walls(Objs, false),
-    IsTargetable.
+    true.
+%    Objs = db:index_read(local_obj, Pos, #local_obj.pos),
+%    IsTargetable = not behind_walls(Objs, false),
+%    IsTargetable.
 
 is_target_alive(dead) -> 
     lager:info("Target not alive"),
@@ -284,5 +285,5 @@ behind_walls([], Result) ->
     Result;
 
 behind_walls([Obj | Rest], Result) ->
-    NewResult = Result or structure:is_wall(Obj#local_obj.type),
+    NewResult = Result or structure:is_wall(Obj#local_obj.name),
     behind_walls(Rest, NewResult).

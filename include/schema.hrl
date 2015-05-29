@@ -58,8 +58,10 @@
                     pos,
                     player,
                     class,
-                    type,
-                    state}).
+                    subclass = none,
+                    name,
+                    state,
+                    vision = false}).
                     
 -record(charge_time, {unit_id,
                       charge_time}).

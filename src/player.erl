@@ -109,12 +109,14 @@ move_unit(UnitId, Pos) ->
     ValidClass = Unit#local_obj.class =:= unit,
     ValidAdjacent = map:is_adjacent(Unit#local_obj.pos, Pos),
     ValidPos = local:is_empty(Unit#local_obj.global_pos, Pos),
+    NearbyHero = local_obj:is_nearby_hero(Unit, Player),
 
-    lager:info("move_unit validation: ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos]),   
+    lager:info("move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   
  
     Result = ValidClass andalso 
              ValidAdjacent andalso
-             ValidPos,
+             ValidPos andalso
+             NearbyHero,
     
     add_move_unit(Result, {Unit#local_obj.global_pos, Player, UnitId, Pos}, NumTicks).
 
@@ -209,18 +211,29 @@ structure_list() ->
     structure:list().
 
 build(LocalObjId, Structure) ->
-    %TODO add validation
+    lager:info("Build ~p ~p", [LocalObjId, Structure]),
     PlayerId = get(player_id),
-    [LocalObj] = db:read(local_obj, LocalObjId),
 
-    ValidBuild = PlayerId =:= LocalObj#local_obj.player,
+    %Validates LocalObj and Structure, player process will crash if not valid
+    [LocalObj] = db:read(local_obj, LocalObjId),
+    lager:info("LocalObj: ~p", [LocalObj]),
+    StructureType = local_obj:get_type(Structure),
+    lager:info("StructureType: ~p", [StructureType]),
+    {StructureSubclass} = bson:lookup(subclass, StructureType),    
+    lager:info("StructureSubclass: ~p", [StructureSubclass]),
+    ValidPlayer = PlayerId =:= LocalObj#local_obj.player,
+    ValidLocation = structure:valid_location(StructureSubclass,
+                                             LocalObj#local_obj.global_pos,
+                                             LocalObj#local_obj.pos),
+
+    ValidBuild = ValidPlayer andalso ValidLocation,
 
     case ValidBuild of
         true ->
             structure:start_build(PlayerId, 
                                   LocalObj#local_obj.global_pos, 
                                   LocalObj#local_obj.pos, 
-                                  Structure);
+                                  StructureType);
         false ->
             lager:info("Build failed")
     end.

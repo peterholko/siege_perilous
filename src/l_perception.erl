@@ -42,8 +42,8 @@ handle_cast({recalculate, GlobalPos}, Data) ->
     {noreply, Data};
 
 handle_cast({broadcast, GlobalPos, SourcePos, TargetPos, MessageData}, Data) ->
-    SourceObjs = map:get_nearby_objs(SourcePos, {local_map, GlobalPos}, 4),
-    TargetObjs = map:get_nearby_objs(TargetPos, {local_map, GlobalPos}, 4),
+    SourceObjs = map:get_nearby_objs(SourcePos, {local_map, GlobalPos}, 2),
+    TargetObjs = map:get_nearby_objs(TargetPos, {local_map, GlobalPos}, 2),
 
     broadcast_to_objs(SourceObjs ++ TargetObjs, MessageData),
 
@@ -85,10 +85,7 @@ do_recalculate(GlobalPos) ->
 
     %Get all entities
     AllObj = db:index_read(local_obj, GlobalPos, #local_obj.global_pos),
-    AllEntities = remove_non_entity(AllObj, []),
-
-    %Remove dead entities
-    Entities = remove_dead(AllEntities, []),
+    Entities = filter_objs(AllObj),
 
     lager:debug("Calculate perceptions ~p", [Entities]),
     %Calculate each player entity perception and store to process dict
@@ -104,28 +101,9 @@ do_recalculate(GlobalPos) ->
     lager:info("Players to update: ~p", [UpdatePlayers]),
     send_perception(UpdatePlayers).
 
-remove_non_entity([], Entities) ->
-    Entities;
-remove_non_entity([Entity | Rest], Entities) ->
-    NewEntities = is_entity(Entities, Entity, Entity#local_obj.class),
-    remove_non_entity(Rest, NewEntities).
-
-%Unit or potential structures 
-is_entity(Entities, Entity, unit) ->
-    [Entity | Entities];
-is_entity(Entities, _Entity, _Class) ->
-    Entities.
-
-remove_dead([], Entities) ->
-    Entities;
-remove_dead([Entity | Rest], Entities) ->
-    NewEntities = is_dead(Entities, Entity, Entity#local_obj.state),
-    remove_dead(Rest, NewEntities).
-
-is_dead(Entities, _Entity, dead) ->
-    Entities;
-is_dead(Entities, Entity, _State) ->
-    [Entity | Entities].
+filter_objs(AllObj) ->
+    F = fun(Obj) -> Obj#local_obj.vision end,
+    lists:filter(F, AllObj).
 
 entity_perception([], _GlobalPos) ->
     done;

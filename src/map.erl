@@ -286,7 +286,7 @@ get_player(MapObj) when is_record(MapObj, local_obj) ->
 get_type(MapObj) when is_record(MapObj, obj) ->
     MapObj#obj.type;
 get_type(MapObj) when is_record(MapObj, local_obj) ->
-    MapObj#local_obj.type.
+    MapObj#local_obj.name.
 get_state(MapObj) when is_record(MapObj, obj) ->
     MapObj#obj.state;
 get_state(MapObj) when is_record(MapObj, local_obj) ->
@@ -317,7 +317,7 @@ distance(SourcePos, TargetPos) ->
     {SX, SY, SZ} = SourceCube,
     {TX, TY, TZ} = TargetCube,
 
-    abs(SX - TX) + abs(SY - TY) + abs(SZ - TZ).
+    (abs(SX - TX) + abs(SY - TY) + abs(SZ - TZ)) div 2.
 
 is_valid_coord({X, Y}, {Width, Height}) ->
     GuardX = (X >= 0) and (X < Width),

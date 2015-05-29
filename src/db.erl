@@ -15,7 +15,7 @@
 %% Exported Functions
 %%
 -export([create_schema/0, start/0, 
-         write/1, read/2, delete/2, index_read/3,
+         write/1, read/2, delete/2, index_read/3, select/2,
          dirty_write/1, dirty_read/2, dirty_index_read/3, dirty_delete/2, dirty_match_object/1,
          dirty_delete_object/1, dump/1,
          reset_tables/0,
@@ -63,14 +63,13 @@ create_schema() ->
     mnesia:add_table_index(local_obj, global_obj_id),
     mnesia:add_table_index(local_obj, global_pos),
     mnesia:add_table_index(local_obj, player),
-    mnesia:add_table_index(local_obj, pos),
 
     mnesia:stop().
 
 start() ->
     mnesia:start(),
     mnesia:wait_for_tables([counter, player, connection, global_map, obj, explored_map, perception,
-                            event, battle, battle_unit, charge_time, action, resource, local_map], 5000).
+                            event, battle, battle_unit, charge_time, action, resource, local_map], 1000).
 
 write(R) ->
     F = fun() -> mnesia:write(R) end,
@@ -89,6 +88,11 @@ delete(T, K) ->
 
 index_read(T, V, K) ->
     F = fun() ->  mnesia:index_read(T, V, K) end,
+    {atomic, Value} = mnesia:transaction(F),
+    Value.
+
+select(T, F_MS) ->
+    F = fun() -> mnesia:select(T, F_MS) end,
     {atomic, Value} = mnesia:transaction(F),
     Value.
 

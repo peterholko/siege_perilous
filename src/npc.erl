@@ -27,7 +27,7 @@ execute(PlayerId) ->
     gen_server:cast({global, {npc, PlayerId}}, execute).
 
 new_zombie() ->
-    local:create({2,2}, none, {2,2}, 99, unit, <<"Zombie">>, none).
+    local:create({2,2}, none, {2,2}, 99, unit, <<"npc">>, <<"Zombie">>, none).
 
 %% ====================================================================
 %% Server functions

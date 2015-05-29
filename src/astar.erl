@@ -58,7 +58,8 @@ h_score(Current, Goal) ->
 %% @doc Returns the distance from `Current' node to `Goal' node
 -spec dist_between(cnode(), cnode()) -> Distance :: number().
 dist_between(Current, Goal) ->
-    map:distance(Current, Goal).
+    %TODO investigate why distance is not divided by 2
+    2 * map:distance(Current, Goal).
 
 %% @doc Returns the best next step from `OpenSetAsList'
 %% TODO: May be optimized by making OpenSet an ordered set.

@@ -120,10 +120,9 @@ do_event(attack_obj, EventData, _PlayerPid) ->
 do_event(move_local_obj, EventData, _PlayerPid) ->
     lager:info("Processing move_local_obj event: ~p", [EventData]),
 
-    {GlobalPos, Player, Id, NewPos} = EventData,
+    {GlobalPos, _Player, Id, NewPos} = EventData,
 
     local:move(Id, NewPos),
-    map:add_local_explored(Player, GlobalPos, NewPos),
 
     {false, {GlobalPos, true}};
 
@@ -229,7 +228,7 @@ execute_npc(_) ->
     nothing.
 
 clean_up(NumTick) when (NumTick rem 200) =:= 0 ->
-    lager:info("Cleaning up dead local objs"),
+    lager:debug("Cleaning up dead local objs"),
     LocalObjs = db:index_read(local_obj, 1, #local_obj.global_pos),
 
     F = fun(LocalObj) ->

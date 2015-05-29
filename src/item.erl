@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get/1, get_info/1, get_by_owner/1, transfer/2, create/3, equip/1]).
+-export([get/1, get_info/1, get_stats/1, get_by_owner/1, transfer/2, create/3, equip/1]).
 -export([obj_perception/1]).
 
 
@@ -21,6 +21,9 @@ get_info(Id) when is_tuple(Id) ->
 get_info(Name) when is_binary(Name) ->
     [ItemType] = find_type('name', Name),
     ItemType.
+
+get_stats(Item) ->
+    stats(Item).
 
 get_by_owner(OwnerId) ->
     Items = find(owner, OwnerId),

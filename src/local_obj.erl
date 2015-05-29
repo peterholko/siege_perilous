@@ -3,11 +3,14 @@
 %% Description: Handles access to local obj mongodb data
 -module(local_obj).
 
+-include_lib("stdlib/include/ms_transform.hrl").
+
 -include("schema.hrl").
+-include("common.hrl").
 
 -export([get/1, get_info/1, get_type/1, get_stats/1, units_from_obj/1, units_stats_from_obj/1]).
 -export([create/3, update/3, remove/1]).
--export([find_type/1]).
+-export([find_type/1, is_nearby_hero/2]).
 
 get(Id) ->
     LocalObj = find(Id),
@@ -60,6 +63,16 @@ update(Id, Attr, Val) ->
 
 remove(Id) ->
     mdb:delete(<<"local_obj">>, Id).
+
+is_nearby_hero(_Target = #local_obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
+    true;
+is_nearby_hero(Target, HeroPlayer) ->
+    MS = ets:fun2ms(fun(N = #local_obj{player = Player,
+                                       subclass = Subclass}) when Player =:= HeroPlayer,
+                                                                  Subclass =:= <<"hero">> -> N end),
+    [Hero] = db:select(local_obj, MS),
+    Distance = map:distance(Hero#local_obj.pos, Target#local_obj.pos),
+    Distance =< ?LOS.
 
 %%Internal function
 %%

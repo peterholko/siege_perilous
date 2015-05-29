@@ -18,6 +18,8 @@
 -define(GAME_VISION_RANGE, 50).
 -define(GAME_NUM_HOURS_PER_DAY, 6).
 
+-define(LOS, 2).
+
 -define(PLAINS, 0).
 -define(MOUNTAINS, 1).
 -define(FOREST, 2).
