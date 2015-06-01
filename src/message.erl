@@ -193,7 +193,24 @@ message_handle(<<"finish_build">>, Message) ->
 
     jsx:encode([{<<"packet">>, <<"finish_build">>},
                 {<<"result">>, Result}]);    
- 
+
+message_handle(<<"craft_list">>, Message) ->
+    lager:info("message: craft_list"),
+    
+    HexId = map_get(<<"sourceid">>, Message),
+    SourceBinId = util:hex_to_bin(HexId),
+
+    CraftListBSON = player:craft_list(SourceBinId),
+    
+    F = fun(CraftItem, Map) ->
+            [mdb:to_map(CraftItem) | Map]
+        end,
+    
+    CraftListMap = lists:foldl(F, [], CraftListBSON),
+
+    jsx:encode([{<<"packet">>, <<"craft_list">>},
+                {<<"result">>, CraftListMap}]);
+
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
 

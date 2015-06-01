@@ -144,17 +144,22 @@ convert_id(Value) when is_tuple(Value) ->
 convert_id(ValueList) when is_list(ValueList) ->
 
     F = fun(V, Acc) ->
-        FF = fun(Label, Val, List) -> 
-                maps:put(atom_to_binary(Label, latin1), convert_id(Val), List)
-        end,
-
-        [doc_foldr(FF, maps:new(), V) | Acc]
-    end,
+        convert_list(V, Acc)
+   end,
 
     lists:foldl(F, [], ValueList);
 
 convert_id(Value) ->
     Value.
+
+convert_list(V, Acc) when is_tuple(V) ->
+    FF = fun(Label, Val, List) -> 
+            maps:put(atom_to_binary(Label, latin1), convert_id(Val), List)
+    end,
+
+    [doc_foldr(FF, maps:new(), V) | Acc];
+convert_list(V, Acc) ->
+    [V | Acc].
 
 convert_bin_id({Value}) when is_binary(Value) ->
     to_hex(Value, Value);

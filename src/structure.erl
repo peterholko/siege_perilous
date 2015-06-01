@@ -9,7 +9,7 @@
 -include("schema.hrl").
 
 -export([start_build/4, check_req/1, valid_location/3]).
--export([is_wall/1, list/0]).
+-export([is_wall/1, list/0, craft_list/1]).
 
 start_build(PlayerId, GlobalPos, LocalPos, StructureType) ->
     {Name} = bson:lookup(name, StructureType),
@@ -35,6 +35,18 @@ check_req(Structure) ->
 list() ->
     Structures = find_type(level, 1),
     Structures.
+
+craft_list(LocalObj) ->
+    LocalObjType = local_obj:get_type(LocalObj#local_obj.name),
+    {CraftList} = bson:lookup(craft, LocalObjType),
+
+    F = fun(ItemName, CraftReqList) ->
+            ItemType = item:get_info(ItemName),
+            [ItemType | CraftReqList]
+        end,
+
+    lists:foldl(F, [], CraftList).
+
 
 valid_location(<<"wall">>, GlobalPos, LocalPos) ->
     lager:info("Valid location for wall"),

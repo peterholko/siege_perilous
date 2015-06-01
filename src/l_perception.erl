@@ -114,7 +114,7 @@ entity_perception([Entity | Rest], GlobalPos) ->
     PlayerPerception = convert_undefined(get({PlayerId, GlobalPos})),
 
     lager:debug("Entity perception: ~p", [Entity]),    
-    NearbyObjs = map:get_nearby_objs(Entity#local_obj.pos, {local_map,GlobalPos}, 4),
+    NearbyObjs = map:get_nearby_objs(Entity#local_obj.pos, {local_map,GlobalPos}, ?LOS),
     lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
     NewPlayerPerception = util:unique_list(PlayerPerception ++ NearbyObjs),
 

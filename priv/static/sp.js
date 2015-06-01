@@ -73,6 +73,8 @@ var buttonClickedImg = new Image();
 var btnBuildRestImg = new Image();
 var btnBuildClickedImg = new Image();
 
+var btnCraftRestImg = new Image();
+
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
 
@@ -126,6 +128,9 @@ detailsRoll.src = "/static/art/ab_details_roll.png";
 
 btnBuildRestImg.src = "/static/art/ButtonBuildRest.png";
 btnBuildClickedImg.src = "/static/art/ButtonBuildClicked.png";
+
+btnCraftRestImg.src = "/static/art/btn_craft_rest.png";
+
 
 var zombie = {
     images: ['/static/art/zombie_ss.png'],
@@ -402,6 +407,11 @@ function sendFinishBuild(structureid) {
     websocket.send(e);
 };
 
+function sendCraftList(sourceid) {
+    var e = '{"cmd": "craft_list", "sourceid": "' + sourceid + '"}';
+    websocket.send(e);
+};
+
 function sendLoot(sourceid, item) {
     var e = '{"cmd": "loot", "sourceid": "' + sourceid + '", "item": "' + item + '"}';
     websocket.send(e);
@@ -564,6 +574,9 @@ function onMessage(evt) {
         }
         else if(jsonData.packet =="structure_list") {
             drawStructureListDialog(jsonData);
+        }     
+        else if(jsonData.packet =="craft_list") {
+            drawCraftListDialog(jsonData);
         }     
     }
 
@@ -794,9 +807,10 @@ function drawLocal(jsonData) {
 
         if(obj.player == playerId) {
 
-            visibleTiles = range(obj.x, obj.y, 2);
 
             if(is_hero(obj.type)) {
+
+                visibleTiles = range(obj.x, obj.y, 2);
                 c_x = 640 - 36 - pixel.x;
                 c_y = 400 - 36 - pixel.y;
 
@@ -1060,7 +1074,7 @@ function drawStructureListDialog(jsonData) {
 
         icon.on("mousedown", function(evt) {
             sendBuild(this.structureName);
-            dialogPanel.hide();
+            dialogPanel.visible = false;
         });
 
         addChildDialogPanel(icon);
@@ -1084,6 +1098,54 @@ function drawStructureListDialog(jsonData) {
         }
    }
 }
+
+function drawCraftListDialog(jsonData) {
+    showDialogPanel();
+
+    var title = new createjs.Text("Crafting List", h1Font, textColor);
+    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.y = 5;
+    title.textAlign = "center";
+
+    addChildDialogPanel(title);
+
+    for(var i = 0; i < jsonData.result.length; i++) {
+        var item = jsonData.result[i];
+        var itemImage = item.name.toLowerCase().replace(/ /g, '');
+        var imagePath = "/static/art/" + itemImage + ".png";
+
+        var icon = new createjs.Container();
+        icon.structureName = item.name;
+
+        icon.x = 25 + i * 75;
+        icon.y = 50;
+
+        icon.on("mousedown", function(evt) {
+            dialogPanel.visible = false;
+        });
+
+        addChildDialogPanel(icon);
+        addImage({id: itemImage, path: imagePath, x: 0, y: 0, target: icon});
+
+        var name = new createjs.Text(item.name, h1Font, textColor);
+        
+        name.x = 25 + i * 75;
+        name.y = 130;
+        
+        addChildDialogPanel(name);
+
+        for(var j = 0; j < item.req.length; j++) {
+            var req = item.req[j];
+            var reqText = new createjs.Text(req.type + " (" + req.quantity + ")", h1Font, textColor);
+
+            reqText.x = 25 + i * 75;
+            reqText.y = 145;
+
+            addChildDialogPanel(reqText);
+        }
+    }
+};
+
 function drawNewItemsDialog(jsonData) {
     showDialogPanel();
 
@@ -1370,14 +1432,24 @@ function drawInfoUnit(jsonData) {
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
-    if(jsonData.hasOwnProperty("req")) {
-        var btnBuild = activeInfoPanel.getChildByName("btnBuild");
-        btnBuild.visible = true;
+    if(jsonData.class == "structure") {
+        if(jsonData.state == "building") {
+            var btnBuild = activeInfoPanel.getChildByName("btnBuild");
+            btnBuild.visible = true;
         
-        btnBuild.on("mousedown", function(evt) {
-            console.log("drawInfoUnit btnBuild mousedown");
-            sendFinishBuild(evt.target.parent.parent._id);
-        });
+            btnBuild.on("mousedown", function(evt) {
+                console.log("drawInfoUnit btnBuild mousedown");
+                sendFinishBuild(evt.target.parent.parent._id);
+            });
+        }
+        else if(jsonData.state == "none") {
+            var btnCraft = activeInfoPanel.getChildByName("btnCraft");
+            btnCraft.visible = true;
+
+            btnCraft.on("mousedown", function(evt) {
+                sendCraftList(jsonData._id);
+            });
+        }
     } 
     else {
         btnBuild.visible = false;
@@ -1472,8 +1544,8 @@ function initUI() {
 
    //Initialize dialogPanel
     dialogPanel = new createjs.Container();
-    dialogPanel.x = stageWidth / 2 - 200;
-    dialogPanel.y = stageHeight / 2 - 150; 
+    dialogPanel.x = 140;
+    dialogPanel.y = stageHeight / 2 - 275; 
     dialogPanel.visible = false;
 
     var bg = new createjs.Bitmap(dialogPanelBg);
@@ -1598,8 +1670,12 @@ function initUI() {
         var close = new createjs.Bitmap(close_rest);
         var content = new createjs.Container();
         var btnBuild = new createjs.Container();
+        var btnCraft = new createjs.Container();
+
         var btnBuildRest = new createjs.Bitmap(btnBuildRestImg);
         var btnBuildClicked = new createjs.Bitmap(btnBuildClickedImg);
+
+        var btnCraftRest = new createjs.Bitmap(btnCraftRestImg);
 
         panel.visible = false;
 
@@ -1610,15 +1686,26 @@ function initUI() {
         btnBuild.x = 500 / 2 - 133 / 2;
         btnBuild.y = 440;
 
+        btnCraft.visible = false;
+        btnCraft.x = 500 / 2 - 133 / 2;
+        btnCraft.y = 440;
+
         btnBuild.name = "btnBuild";
         btnBuildRest.name = "rest";
         btnBuildClicked.name = "clicked";
 
+        btnCraft.name = "btnCraft";
+        btnCraftRest.name = "rest";
+
         btnBuildRest.visible = true;
         btnBuildClicked.visible = false;
 
+        btnCraftRest.visible = true;
+
         btnBuild.addChild(btnBuildRest);
         btnBuild.addChild(btnBuildClicked);
+
+        btnCraft.addChild(btnCraftRest);
 
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
@@ -1648,6 +1735,7 @@ function initUI() {
         panel.addChild(close);
         panel.addChild(content);
         panel.addChild(btnBuild);
+        panel.addChild(btnCraft);
 
         stage.addChild(panel);
 
