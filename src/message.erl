@@ -211,6 +211,11 @@ message_handle(<<"craft_list">>, Message) ->
     jsx:encode([{<<"packet">>, <<"craft_list">>},
                 {<<"result">>, CraftListMap}]);
 
+message_handle(<<"craft">>, Message) ->
+    lager:info("message: craft");
+
+    
+
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
 
