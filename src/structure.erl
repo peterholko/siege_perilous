@@ -9,7 +9,7 @@
 -include("schema.hrl").
 
 -export([start_build/4, check_req/1, valid_location/3]).
--export([is_wall/1, list/0, craft_list/1]).
+-export([list/0, craft_list/1]).
 
 start_build(PlayerId, GlobalPos, LocalPos, StructureType) ->
     {Name} = bson:lookup(name, StructureType),
@@ -47,6 +47,10 @@ craft_list(LocalObj) ->
 
     lists:foldl(F, [], CraftList).
 
+craft(LocalObj, ItemName) ->
+    ItemType = item:get_info(ItemName),
+    Items = item:get_by_owner(LocalObj#local_obj.id).
+    
 
 valid_location(<<"wall">>, GlobalPos, LocalPos) ->
     lager:info("Valid location for wall"),
@@ -79,6 +83,8 @@ valid_location(_, GlobalPos, LocalPos) ->
 % Internal functions
 %
 
+
+
 process_req(Result, [], _Items) ->
     Result;
 process_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
@@ -105,16 +111,6 @@ process_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
     NewResult = Result and ReqMatch,
 
     process_req(NewResult, Rest, Items).
-
-is_wall(StructureName) ->
-    {Structure} = local_obj:get_type(StructureName),
-    Result = case bson:lookup(is_wall, Structure) of
-                {} ->
-                    false;
-                {true} ->
-                    true
-             end,
-    Result.
 
 find_type(Key, Value) ->
     Cursor = mongo:find(mdb:get_conn(), <<"local_obj_type">>, {Key, Value, class, <<"structure">>}),

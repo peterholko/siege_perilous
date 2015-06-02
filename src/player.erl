@@ -26,6 +26,7 @@
          build/2,
          finish_build/2,
          craft_list/1,
+         craft/2,
          equip/2,
          cancel/1]).
 
@@ -253,11 +254,11 @@ finish_build(SourceId, StructureId) ->
 
     add_finish_build(ValidFinish, {SourceId, Structure#local_obj.global_pos, StructureId}, NumTicks),
 
-    atom_to_binary(ValidFinish, latin1).
+    {<<"result">>, atom_to_binary(ValidFinish, latin1),
+     <<"build_time">>, NumTicks * 4}. 
 
 craft_list(SourceId) ->
     Player = get(player_id),
-
     [LocalObj] = db:read(local_obj, SourceId),
 
     ValidPlayer = Player =:= LocalObj#local_obj.player,
@@ -268,8 +269,20 @@ craft_list(SourceId) ->
                 false ->
                     <<"Source not owned by player">>
              end,
+    Result.
 
-    lager:info("CraftList: ~p", [Result]),
+craft(SourceId, Item) ->
+    Player = get(player_id),
+    [LocalObj] = db:read(local_obj, SourceId),
+
+    ValidPlayer = Player =:= LocalObj#local_obj.player,
+
+    Result = case ValidPlayer of
+                true ->
+                    structure:craft(LocalObj, Item);
+                false ->
+                    <<"Source not owned by player">>
+             end,
     Result.
 
 equip(Id, ItemId) ->

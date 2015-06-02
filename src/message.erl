@@ -191,8 +191,7 @@ message_handle(<<"finish_build">>, Message) ->
 
     Result = player:finish_build(SrcBinId, StructureBinId),
 
-    jsx:encode([{<<"packet">>, <<"finish_build">>},
-                {<<"result">>, Result}]);    
+    jsx:encode([{<<"packet">>, <<"finish_build">>} | Result]);    
 
 message_handle(<<"craft_list">>, Message) ->
     lager:info("message: craft_list"),
@@ -212,9 +211,17 @@ message_handle(<<"craft_list">>, Message) ->
                 {<<"result">>, CraftListMap}]);
 
 message_handle(<<"craft">>, Message) ->
-    lager:info("message: craft");
+    lager:info("message: craft"),
 
-    
+    HexId = map_get(<<"sourceid">>, Message),
+    SourceBinId = util:hex_to_bin(HexId),
+
+    Item = map_get(<<"item">>, Message),
+
+    Result = player:craft(SourceBinId, Item),
+
+    jsx:encode([{<<"packet">>, <<"craft">>},
+                {<<"result">>, Result}]);
 
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
