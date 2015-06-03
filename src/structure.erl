@@ -118,4 +118,9 @@ find_type(Key, Value) ->
     mc_cursor:close(Cursor),
     Structures.
 
-
+get_recipes(Structure) ->
+    Cursor = mongo:find(mdb:get_conn(), <<"recipe_type">>, {structure, Structure}),
+    Recipes = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Recipes.
+   

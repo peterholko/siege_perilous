@@ -27,10 +27,10 @@
   </tile>
   <tile id="4">
    <properties>
-    <property name="name" value="Valleyrun Copper"/>
+    <property name="name" value="Valleyrun Copper Ore"/>
     <property name="quantity" value="high"/>
    </properties>
-   <image width="48" height="48" source="valleyruncopper.png"/>
+   <image width="48" height="48" source="valleyruncopperore.png"/>
   </tile>
   <tile id="5">
    <properties>
