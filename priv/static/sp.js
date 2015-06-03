@@ -407,8 +407,13 @@ function sendFinishBuild(structureid) {
     websocket.send(e);
 };
 
-function sendCraftList(sourceid) {
-    var e = '{"cmd": "craft_list", "sourceid": "' + sourceid + '"}';
+function sendRecipeList(sourceid) {
+    var e = '{"cmd": "recipe_list", "sourceid": "' + sourceid + '"}';
+    websocket.send(e);
+};
+
+function sendCraft(sourceid, recipe) {
+    var e = '{"cmd": "craft", "sourceid": "' + sourceid + '", "recipe": "' + recipe + '"}';
     websocket.send(e);
 };
 
@@ -575,7 +580,7 @@ function onMessage(evt) {
         else if(jsonData.packet =="structure_list") {
             drawStructureListDialog(jsonData);
         }     
-        else if(jsonData.packet =="craft_list") {
+        else if(jsonData.packet =="recipe_list") {
             drawCraftListDialog(jsonData);
         }     
     }
@@ -1102,7 +1107,7 @@ function drawStructureListDialog(jsonData) {
 function drawCraftListDialog(jsonData) {
     showDialogPanel();
 
-    var title = new createjs.Text("Crafting List", h1Font, textColor);
+    var title = new createjs.Text("Recipes", h1Font, textColor);
     title.x = Math.floor(dialogPanelBg.width / 2);
     title.y = 5;
     title.textAlign = "center";
@@ -1110,32 +1115,33 @@ function drawCraftListDialog(jsonData) {
     addChildDialogPanel(title);
 
     for(var i = 0; i < jsonData.result.length; i++) {
-        var item = jsonData.result[i];
-        var itemImage = item.name.toLowerCase().replace(/ /g, '');
-        var imagePath = "/static/art/" + itemImage + ".png";
+        var recipe = jsonData.result[i];
+        var recipeImage = recipe.item.toLowerCase().replace(/ /g, '');
+        var imagePath = "/static/art/" + recipeImage + ".png";
 
         var icon = new createjs.Container();
-        icon.structureName = item.name;
+        icon.item = recipe.item;
 
         icon.x = 25 + i * 75;
         icon.y = 50;
 
         icon.on("mousedown", function(evt) {
+            sendCraft(selectedUnit, this.item);
             dialogPanel.visible = false;
         });
 
         addChildDialogPanel(icon);
-        addImage({id: itemImage, path: imagePath, x: 0, y: 0, target: icon});
+        addImage({id: recipeImage, path: imagePath, x: 0, y: 0, target: icon});
 
-        var name = new createjs.Text(item.name, h1Font, textColor);
+        var name = new createjs.Text(recipe.item, h1Font, textColor);
         
         name.x = 25 + i * 75;
         name.y = 130;
         
         addChildDialogPanel(name);
 
-        for(var j = 0; j < item.req.length; j++) {
-            var req = item.req[j];
+        for(var j = 0; j < recipe.req.length; j++) {
+            var req = recipe.req[j];
             var reqText = new createjs.Text(req.type + " (" + req.quantity + ")", h1Font, textColor);
 
             reqText.x = 25 + i * 75;
@@ -1447,7 +1453,7 @@ function drawInfoUnit(jsonData) {
             btnCraft.visible = true;
 
             btnCraft.on("mousedown", function(evt) {
-                sendCraftList(jsonData._id);
+                sendRecipeList(jsonData._id);
             });
         }
     } 

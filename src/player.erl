@@ -25,7 +25,7 @@
          structure_list/0,
          build/2,
          finish_build/2,
-         craft_list/1,
+         recipe_list/1,
          craft/2,
          equip/2,
          cancel/1]).
@@ -257,7 +257,7 @@ finish_build(SourceId, StructureId) ->
     {<<"result">>, atom_to_binary(ValidFinish, latin1),
      <<"build_time">>, NumTicks * 4}. 
 
-craft_list(SourceId) ->
+recipe_list(SourceId) ->
     Player = get(player_id),
     [LocalObj] = db:read(local_obj, SourceId),
 
@@ -265,13 +265,13 @@ craft_list(SourceId) ->
 
     Result = case ValidPlayer of
                 true ->
-                    structure:craft_list(LocalObj);
+                    structure:recipe_list(LocalObj);
                 false ->
                     <<"Source not owned by player">>
              end,
     Result.
 
-craft(SourceId, Item) ->
+craft(SourceId, Recipe) ->
     Player = get(player_id),
     [LocalObj] = db:read(local_obj, SourceId),
 
@@ -279,7 +279,7 @@ craft(SourceId, Item) ->
 
     Result = case ValidPlayer of
                 true ->
-                    structure:craft(LocalObj, Item);
+                    structure:craft(LocalObj, Recipe);
                 false ->
                     <<"Source not owned by player">>
              end,

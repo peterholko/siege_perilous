@@ -9,7 +9,7 @@
 -include("schema.hrl").
 
 -export([start_build/4, check_req/1, valid_location/3]).
--export([list/0, craft_list/1]).
+-export([list/0, recipe_list/1, craft/2]).
 
 start_build(PlayerId, GlobalPos, LocalPos, StructureType) ->
     {Name} = bson:lookup(name, StructureType),
@@ -36,20 +36,19 @@ list() ->
     Structures = find_type(level, 1),
     Structures.
 
-craft_list(LocalObj) ->
-    LocalObjType = local_obj:get_type(LocalObj#local_obj.name),
-    {CraftList} = bson:lookup(craft, LocalObjType),
+recipe_list(LocalObj) ->
+    Recipes = get_recipes(LocalObj#local_obj.name),
+    Recipes.
 
-    F = fun(ItemName, CraftReqList) ->
-            ItemType = item:get_info(ItemName),
-            [ItemType | CraftReqList]
-        end,
+craft(LocalObj, RecipeName) ->
+    Items = item:get_by_owner(LocalObj#local_obj.id),
 
-    lists:foldl(F, [], CraftList).
+    Recipe = get_recipe(RecipeName),
+    {ReqList} = bson:lookup(req, Recipe),
 
-craft(LocalObj, ItemName) ->
-    ItemType = item:get_info(ItemName),
-    Items = item:get_by_owner(LocalObj#local_obj.id).
+    Result = process_req(true, ReqList, Items),
+
+    lager:info("Result: ~p", [Result]).
     
 
 valid_location(<<"wall">>, GlobalPos, LocalPos) ->
@@ -123,4 +122,11 @@ get_recipes(Structure) ->
     Recipes = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Recipes.
+
+get_recipe(ItemName) ->
+    Cursor = mongo:find(mdb:get_conn(), <<"recipe_type">>, {item, ItemName}),
+    [Recipe] = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Recipe.
+
    

@@ -190,25 +190,25 @@ message_handle(<<"finish_build">>, Message) ->
     StructureBinId = util:hex_to_bin(HexId),
 
     Result = player:finish_build(SrcBinId, StructureBinId),
-
+    lager:info("Result: ~p", [Result]),
     jsx:encode([{<<"packet">>, <<"finish_build">>} | Result]);    
 
-message_handle(<<"craft_list">>, Message) ->
-    lager:info("message: craft_list"),
+message_handle(<<"recipe_list">>, Message) ->
+    lager:info("message: recipe_list"),
     
     HexId = map_get(<<"sourceid">>, Message),
     SourceBinId = util:hex_to_bin(HexId),
 
-    CraftListBSON = player:craft_list(SourceBinId),
+    RecipeListBSON = player:recipe_list(SourceBinId),
     
-    F = fun(CraftItem, Map) ->
-            [mdb:to_map(CraftItem) | Map]
+    F = fun(Recipe, Map) ->
+            [mdb:to_map(Recipe) | Map]
         end,
     
-    CraftListMap = lists:foldl(F, [], CraftListBSON),
+    RecipeMap = lists:foldl(F, [], RecipeListBSON),
 
-    jsx:encode([{<<"packet">>, <<"craft_list">>},
-                {<<"result">>, CraftListMap}]);
+    jsx:encode([{<<"packet">>, <<"recipe_list">>},
+                {<<"result">>, RecipeMap}]);
 
 message_handle(<<"craft">>, Message) ->
     lager:info("message: craft"),
@@ -216,12 +216,12 @@ message_handle(<<"craft">>, Message) ->
     HexId = map_get(<<"sourceid">>, Message),
     SourceBinId = util:hex_to_bin(HexId),
 
-    Item = map_get(<<"item">>, Message),
+    Recipe = map_get(<<"recipe">>, Message),
 
-    Result = player:craft(SourceBinId, Item),
+    Result = player:craft(SourceBinId, Recipe),
 
     jsx:encode([{<<"packet">>, <<"craft">>},
-                {<<"result">>, Result}]);
+                {<<"result">>, <<"true">>}]);
 
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
