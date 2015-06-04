@@ -254,8 +254,8 @@ finish_build(SourceId, StructureId) ->
 
     add_finish_build(ValidFinish, {SourceId, Structure#local_obj.global_pos, StructureId}, NumTicks),
 
-    {<<"result">>, atom_to_binary(ValidFinish, latin1),
-     <<"build_time">>, NumTicks * 4}. 
+    [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
+    {<<"build_time">>, NumTicks * 4}]. 
 
 recipe_list(SourceId) ->
     Player = get(player_id),

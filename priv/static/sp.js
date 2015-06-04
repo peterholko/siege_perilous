@@ -1690,11 +1690,11 @@ function initUI() {
 
         btnBuild.visible = false;
         btnBuild.x = 500 / 2 - 133 / 2;
-        btnBuild.y = 440;
+        btnBuild.y = 240;
 
         btnCraft.visible = false;
         btnCraft.x = 500 / 2 - 133 / 2;
-        btnCraft.y = 440;
+        btnCraft.y = 240;
 
         btnBuild.name = "btnBuild";
         btnBuildRest.name = "rest";
