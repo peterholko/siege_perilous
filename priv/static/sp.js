@@ -1548,30 +1548,6 @@ function initUI() {
 
     stage.addChild(localPanel);
 
-   //Initialize dialogPanel
-    dialogPanel = new createjs.Container();
-    dialogPanel.x = 140;
-    dialogPanel.y = stageHeight / 2 - 275; 
-    dialogPanel.visible = false;
-
-    var bg = new createjs.Bitmap(dialogPanelBg);
-    var close = new createjs.Bitmap(close_rest);
-    var content = new createjs.Container();
-
-    close.x = 385;
-    close.y = 10;
-    close.on("mousedown", function(evt) {
-        this.parent.visible = false;
-    });
-
-    content.name = 'content';
-
-    dialogPanel.addChild(bg); 
-    dialogPanel.addChild(close);
-    dialogPanel.addChild(content);
-
-    stage.addChild(dialogPanel);
-
     //Initialize actionBar
     var actionBar = new createjs.Container();
     var actionBarBg = new createjs.Bitmap(actionBarBgImage);
@@ -1748,7 +1724,30 @@ function initUI() {
         infoPanels.push(panel);
     }
 
- 
+    //Initialize dialogPanel
+    dialogPanel = new createjs.Container();
+    dialogPanel.x = 140;
+    dialogPanel.y = stageHeight / 2 - 275; 
+    dialogPanel.visible = false;
+
+    var bg = new createjs.Bitmap(dialogPanelBg);
+    var close = new createjs.Bitmap(close_rest);
+    var content = new createjs.Container();
+
+    close.x = 385;
+    close.y = 10;
+    close.on("mousedown", function(evt) {
+        this.parent.visible = false;
+    });
+
+    content.name = 'content';
+
+    dialogPanel.addChild(bg); 
+    dialogPanel.addChild(close);
+    dialogPanel.addChild(content);
+
+    stage.addChild(dialogPanel);
+
 };
 
 /*function createButton(text) {

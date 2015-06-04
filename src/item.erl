@@ -5,8 +5,8 @@
 
 -include("schema.hrl").
 
--export([get/1, get_info/1, get_stats/1, get_by_owner/1, transfer/2, create/3, equip/1]).
--export([obj_perception/1]).
+-export([get/1, get_info/1, get_stats/1, get_by_owner/1, transfer/2, update/2, create/3, equip/1]).
+-export([obj_perception/1, find/1]).
 
 
 get(Id) ->
@@ -35,9 +35,12 @@ transfer(ItemId, TargetId) ->
 equip(ItemId) ->
     mdb:update(<<"item">>, ItemId, {equip, <<"true">>}).
 
+update(ItemId, NewQuantity) ->
+    mdb:update(<<"item">>, ItemId, {quantity, NewQuantity}).
+
 create(Owner, TypeName, Quantity) ->
     % Find existing item type in owner
-    ExistingItem = find(name, TypeName),
+    ExistingItem = find({name, TypeName, owner, Owner}),
    
     case ExistingItem of
         [] ->
@@ -50,7 +53,15 @@ create(Owner, TypeName, Quantity) ->
             {OldQuantity} = bson:lookup(quantity, Item),
             UpdatedItem = {owner, Owner, name, TypeName, quantity, OldQuantity + Quantity},
             mdb:update(<<"item">>, ItemId, UpdatedItem),
-            UpdatedItem
+            UpdatedItem;
+        Items ->
+            %Pick the first item of the same type and owner
+            [Item | _Rest] = Items,
+            {ItemId} = bson:lookup('_id', Item),
+            {OldQuantity} = bson:lookup(quantity, Item),
+            UpdatedItem = {owner, Owner, name, TypeName, quantity, OldQuantity + Quantity},
+            mdb:update(<<"item">>, ItemId, UpdatedItem),
+            UpdatedItem 
     end.
 
 obj_perception(ObjId) ->
@@ -69,6 +80,12 @@ find_type(Key, Value) ->
     ItemTypes = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     ItemTypes.
+
+find(Tuple) ->
+    Cursor = mongo:find(mdb:get_conn(), <<"item">>, Tuple),
+    Items = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Items.
 
 stats([]) ->
     false;

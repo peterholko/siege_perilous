@@ -48,8 +48,9 @@ craft(LocalObj, RecipeName) ->
 
     Result = process_req(true, ReqList, Items),
 
-    lager:info("Result: ~p", [Result]).
-    
+    lager:info("process_req: ~p", [Result]),
+
+    consume_req(ReqList, Items).
 
 valid_location(<<"wall">>, GlobalPos, LocalPos) ->
     lager:info("Valid location for wall"),
@@ -110,6 +111,37 @@ process_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
     NewResult = Result and ReqMatch,
 
     process_req(NewResult, Rest, Items).
+
+consume_req([], _Items) ->
+    lager:info("Completed consuming items");
+consume_req([{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
+    F = fun(Item) ->
+            ItemStats = item:get_stats(Item),
+
+            {ItemId} = bson:lookup('_id', ItemStats),
+            {ItemName} = bson:lookup(name, ItemStats),
+            {ItemSubClass} = bson:lookup(subclass, ItemStats),
+            {ItemQuantity} = bson:lookup(quantity, ItemStats),
+
+            QuantityMatch = ReqQuantity =< ItemQuantity,            
+            ItemNameMatch = ReqType =:= ItemName,
+            ItemSubClassMatch = ReqType =:= ItemSubClass,
+
+            ItemMatch = ItemNameMatch or ItemSubClassMatch,
+            Match = ItemMatch and QuantityMatch,
+            NewQuantity = ItemQuantity - ReqQuantity,
+
+            consume_item(Match, ItemId, NewQuantity)
+       end,
+    lists:foreach(F, Items),
+
+    consume_req(Rest, Items).
+
+consume_item(false, _ItemId, _Quantity) ->
+    nothing;
+consume_item(true, ItemId, Quantity) ->
+    lager:info("Updating item ~p quantity ~p", [ItemId, Quantity]),
+    item:update(ItemId, Quantity).
 
 find_type(Key, Value) ->
     Cursor = mongo:find(mdb:get_conn(), <<"local_obj_type">>, {Key, Value, class, <<"structure">>}),
