@@ -131,6 +131,20 @@ message_handle(<<"item_transfer">>, Message) ->
     jsx:encode([{<<"packet">>, <<"item_transfer">>},
                 {<<"result">>, Result}]);
 
+message_handle(<<"item_split">>, Message) ->
+    lager:info("message: item_split ~p", [Message]),
+
+    Item = map_get(<<"item">>, Message),
+    BinItem = util:hex_to_bin(Item),
+
+    QuantityStr = map:get(<<"quantity">>, Message),
+    Quantity = list_to_integer(binary_to_list(QuantityStr)),
+
+    Result = player:item_split(BinItem, Quantity),
+
+    jsx:encode([{<<"packet">>, <<"item_split">>},
+                {<<"result">>, Result}]);
+
 message_handle(<<"explore">>, Message) ->
     lager:info("message: explore"),
 

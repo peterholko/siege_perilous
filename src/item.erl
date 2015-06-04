@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get/1, get_info/1, get_stats/1, get_by_owner/1, transfer/2, update/2, create/3, equip/1]).
+-export([get/1, get_info/1, get_stats/1, get_by_owner/1, transfer/2, split/2, update/2, create/3, equip/1]).
 -export([obj_perception/1, find/1]).
 
 
@@ -31,6 +31,16 @@ get_by_owner(OwnerId) ->
 
 transfer(ItemId, TargetId) ->
     mdb:update(<<"item">>, ItemId, {owner, TargetId}).
+
+split(Item, NewQuantity) ->
+    {ItemId} = bson:lookup('_id', Item),
+    {Quantity} = bson:lookup(quantity, Item),
+    
+    NewItem = bson:update(quantity, NewQuantity, Item),
+    NewItem2 = bson:exclude(['_id'], NewItem),
+    mongo:insert(mdb:get_conn(), <<"item">>, NewItem2),
+
+    update(ItemId, Quantity - NewQuantity).
 
 equip(ItemId) ->
     mdb:update(<<"item">>, ItemId, {equip, <<"true">>}).

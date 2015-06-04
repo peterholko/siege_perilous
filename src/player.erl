@@ -20,6 +20,7 @@
          harvest/2,
          loot/2,
          item_transfer/2,
+         item_split/2,
          explore/2,
          exit_local/0,
          structure_list/0,
@@ -172,6 +173,24 @@ item_transfer(TargetId, ItemId) ->
             lager:info("Transfering item"),
             item:transfer(ItemId, TargetId),
             <<"success">>;
+        false ->
+            lager:info("Player does not own item: ~p", [ItemId]),
+            <<"Player does not own item">>
+    end.
+
+item_split(ItemId, Quantity) ->
+    Player = get(player_id),
+    [Item] = item:get(ItemId),
+    {Owner} = bson:lookup(owner, Item),
+    [OwnerObj] = db:read(local_obj, Owner),
+
+    ValidOwner = Player =:= OwnerObj#local_obj.player,
+
+    case ValidOwner of
+        true ->
+            lager:info("Splitting item"),
+            item:split(ItemId, Quantity),
+            item:obj_perception(Owner);
         false ->
             lager:info("Player does not own item: ~p", [ItemId]),
             <<"Player does not own item">>
