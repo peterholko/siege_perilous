@@ -44,13 +44,14 @@ craft(LocalObj, RecipeName) ->
     Items = item:get_by_owner(LocalObj#local_obj.id),
 
     Recipe = get_recipe(RecipeName),
+    {NewItem} = bson:lookup(item, Recipe),
     {ReqList} = bson:lookup(req, Recipe),
 
     Result = process_req(true, ReqList, Items),
 
     lager:info("process_req: ~p", [Result]),
 
-    consume_req(ReqList, Items).
+    consume_req(ReqList, Items)
 
 valid_location(<<"wall">>, GlobalPos, LocalPos) ->
     lager:info("Valid location for wall"),
