@@ -5,25 +5,21 @@
 
 -include("schema.hrl").
 
--export([get/1, get_info/1, get_stats/1, get_by_owner/1, transfer/2, split/2, update/2, create/3, equip/1]).
--export([obj_perception/1, find/1]).
+-export([get/1, get_by_name/1, get_type/1, get_by_owner/1, transfer/2, split/2, update/2, create/3, equip/1]).
+-export([obj_perception/1, find/1, find_type/2]).
 
 
 get(Id) ->
     Item = find('_id', Id),
     Item.
 
-get_info(Id) when is_tuple(Id) ->
-    [Item] = find('_id', Id),
-    ItemInfo = info(Item),
-    ItemInfo;
+get_by_name(Name) ->
+    Item = find(name, Name),
+    Item.
 
-get_info(Name) when is_binary(Name) ->
-    [ItemType] = find_type('name', Name),
+get_type(Name) ->
+    [ItemType] = find_type(name, Name),
     ItemType.
-
-get_stats(Item) ->
-    stats(Item).
 
 get_by_owner(OwnerId) ->
     Items = find(owner, OwnerId),
@@ -48,20 +44,24 @@ equip(ItemId) ->
 update(ItemId, NewQuantity) ->
     mdb:update(<<"item">>, ItemId, {quantity, NewQuantity}).
 
-create(Owner, TypeName, Quantity) ->
+create(Owner, Name, Quantity) ->
     % Find existing item type in owner
-    ExistingItem = find({name, TypeName, owner, Owner}),
-   
+    ExistingItem = find({name, Name, owner, Owner}),
+    lager:info("ExistingItem: ~p", [ExistingItem]),
     case ExistingItem of
         [] ->
-            NewItem = {owner, Owner, name, TypeName, quantity, Quantity},
-            InsertedItem = mongo:insert(mdb:get_conn(), <<"item">>, NewItem),
+            [ItemType] = find_type(name, Name),
+            NewItem = bson:exclude(['_id'], ItemType),
+            NewItem2 = bson:merge({quantity, Quantity}, NewItem),
+            NewItem3 = bson:merge({owner, Owner}, NewItem2),
+            InsertedItem = mongo:insert(mdb:get_conn(), <<"item">>, NewItem3),
             lager:info("InsertedItem: ~p", [InsertedItem]),
             InsertedItem;
         [Item] ->
             {ItemId} = bson:lookup('_id', Item),
             {OldQuantity} = bson:lookup(quantity, Item),
-            UpdatedItem = {owner, Owner, name, TypeName, quantity, OldQuantity + Quantity},
+            UpdatedItem = bson:update(quantity, OldQuantity + Quantity),
+            
             mdb:update(<<"item">>, ItemId, UpdatedItem),
             UpdatedItem;
         Items ->
@@ -69,7 +69,7 @@ create(Owner, TypeName, Quantity) ->
             [Item | _Rest] = Items,
             {ItemId} = bson:lookup('_id', Item),
             {OldQuantity} = bson:lookup(quantity, Item),
-            UpdatedItem = {owner, Owner, name, TypeName, quantity, OldQuantity + Quantity},
+            UpdatedItem = bson:update(quantity, OldQuantity + Quantity),
             mdb:update(<<"item">>, ItemId, UpdatedItem),
             UpdatedItem 
     end.
@@ -96,20 +96,4 @@ find(Tuple) ->
     Items = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Items.
-
-stats([]) ->
-    false;
-
-stats([Item]) ->
-    stats(Item);
-
-stats(Item) ->
-    {ItemName} = bson:lookup(name, Item),
-    [ItemType] = find_type(name, ItemName),
-    bson:merge(Item, ItemType).
-
-info(Item) ->
-    ItemStats = stats(Item),
-    ItemStats.
-
 

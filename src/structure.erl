@@ -51,7 +51,7 @@ craft(LocalObj, RecipeName) ->
 
     lager:info("process_req: ~p", [Result]),
 
-    consume_req(ReqList, Items)
+    consume_req(ReqList, Items).
 
 valid_location(<<"wall">>, GlobalPos, LocalPos) ->
     lager:info("Valid location for wall"),
@@ -90,11 +90,9 @@ process_req(Result, [], _Items) ->
     Result;
 process_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
     F = fun(Item, HasReq) ->
-            ItemStats = item:get_stats(Item),
-
-            {ItemName} = bson:lookup(name, ItemStats),
-            {ItemSubClass} = bson:lookup(subclass, ItemStats),
-            {ItemQuantity} = bson:lookup(quantity, ItemStats),
+            {ItemName} = bson:lookup(name, Item),
+            {ItemSubClass} = bson:lookup(subclass, Item),
+            {ItemQuantity} = bson:lookup(quantity, Item),
 
             QuantityMatch = ReqQuantity =< ItemQuantity,            
             ItemNameMatch = ReqType =:= ItemName,
@@ -117,12 +115,10 @@ consume_req([], _Items) ->
     lager:info("Completed consuming items");
 consume_req([{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
     F = fun(Item) ->
-            ItemStats = item:get_stats(Item),
-
-            {ItemId} = bson:lookup('_id', ItemStats),
-            {ItemName} = bson:lookup(name, ItemStats),
-            {ItemSubClass} = bson:lookup(subclass, ItemStats),
-            {ItemQuantity} = bson:lookup(quantity, ItemStats),
+            {ItemId} = bson:lookup('_id', Item),
+            {ItemName} = bson:lookup(name, Item),
+            {ItemSubClass} = bson:lookup(subclass, Item),
+            {ItemQuantity} = bson:lookup(quantity, Item),
 
             QuantityMatch = ReqQuantity =< ItemQuantity,            
             ItemNameMatch = ReqType =:= ItemName,
