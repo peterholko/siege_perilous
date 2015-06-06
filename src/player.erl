@@ -189,8 +189,10 @@ item_split(ItemId, Quantity) ->
     case ValidOwner of
         true ->
             lager:info("Splitting item"),
-            item:split(ItemId, Quantity),
-            item:obj_perception(Owner);
+            item:split(Item, Quantity),
+            Perception = item:obj_perception(Owner),
+            lager:info("Perception: ~p", [Perception]),
+            <<"Item split">>;
         false ->
             lager:info("Player does not own item: ~p", [ItemId]),
             <<"Player does not own item">>

@@ -137,7 +137,7 @@ message_handle(<<"item_split">>, Message) ->
     Item = map_get(<<"item">>, Message),
     BinItem = util:hex_to_bin(Item),
 
-    QuantityStr = map:get(<<"quantity">>, Message),
+    QuantityStr = map_get(<<"quantity">>, Message),
     Quantity = list_to_integer(binary_to_list(QuantityStr)),
 
     Result = player:item_split(BinItem, Quantity),

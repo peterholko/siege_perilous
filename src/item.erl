@@ -29,6 +29,7 @@ transfer(ItemId, TargetId) ->
     mdb:update(<<"item">>, ItemId, {owner, TargetId}).
 
 split(Item, NewQuantity) ->
+    lager:info("Item: ~p NewQuantity: ~p", [Item, NewQuantity]),
     {ItemId} = bson:lookup('_id', Item),
     {Quantity} = bson:lookup(quantity, Item),
     
@@ -36,6 +37,7 @@ split(Item, NewQuantity) ->
     NewItem2 = bson:exclude(['_id'], NewItem),
     mongo:insert(mdb:get_conn(), <<"item">>, NewItem2),
 
+    lager:info("Updating original item quantity"),
     update(ItemId, Quantity - NewQuantity).
 
 equip(ItemId) ->
@@ -60,7 +62,7 @@ create(Owner, Name, Quantity) ->
         [Item] ->
             {ItemId} = bson:lookup('_id', Item),
             {OldQuantity} = bson:lookup(quantity, Item),
-            UpdatedItem = bson:update(quantity, OldQuantity + Quantity),
+            UpdatedItem = bson:update(quantity, OldQuantity + Quantity, Item),
             
             mdb:update(<<"item">>, ItemId, UpdatedItem),
             UpdatedItem;
@@ -69,7 +71,7 @@ create(Owner, Name, Quantity) ->
             [Item | _Rest] = Items,
             {ItemId} = bson:lookup('_id', Item),
             {OldQuantity} = bson:lookup(quantity, Item),
-            UpdatedItem = bson:update(quantity, OldQuantity + Quantity),
+            UpdatedItem = bson:update(quantity, OldQuantity + Quantity, Item),
             mdb:update(<<"item">>, ItemId, UpdatedItem),
             UpdatedItem 
     end.

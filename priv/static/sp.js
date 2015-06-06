@@ -11,6 +11,7 @@ var localPanel;
 var infoPanels = [];
 var activeInfoPanel;
 var dialogPanel;
+var smallDialogPanel;
 var selectPanel;
 var portraitPanel;
 
@@ -43,12 +44,15 @@ var stageHeight = 800;
 
 var infoPanelBg = new Image();
 var dialogPanelBg = new Image();
+var smallDialogPanelBg = new Image();
 var selectPanelBg = new Image();
 var close_rest = new Image();
 var selectHexImage = new Image();
 var selectIconImage = new Image();
 var actionBarBgImage = new Image();
 var portraitBg = new Image();
+var leftImage = new Image();
+var rightImage = new Image();
 
 var attackActive = new Image();
 var attackRest = new Image();
@@ -74,6 +78,8 @@ var btnBuildRestImg = new Image();
 var btnBuildClickedImg = new Image();
 
 var btnCraftRestImg = new Image();
+
+var btnSplitRestImg = new Image();
 
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
@@ -105,7 +111,11 @@ var shroud = "/static/art/shroud.png";
 
 infoPanelBg.src = "/static/art/ui_pane.png";
 dialogPanelBg.src = "/static/art/dialog.png";
+smallDialogPanelBg.src = "/static/art/small_dialog.png";
 selectPanelBg.src = "/static/art/select_bar_bg.png";
+leftImage.src = "/static/art/select_bar_left.png";
+rightImage.src = "/static/art/select_bar_right.png";
+
 close_rest.src = "/static/art/close_rest.png";
 selectHexImage.src = "/static/art/hover-hex.png";
 selectIconImage.src = "/static/art/select2.png";
@@ -130,7 +140,7 @@ btnBuildRestImg.src = "/static/art/ButtonBuildRest.png";
 btnBuildClickedImg.src = "/static/art/ButtonBuildClicked.png";
 
 btnCraftRestImg.src = "/static/art/btn_craft_rest.png";
-
+btnSplitRestImg.src = "/static/art/btn_split_rest.png";
 
 var zombie = {
     images: ['/static/art/zombie_ss.png'],
@@ -425,6 +435,12 @@ function sendLoot(sourceid, item) {
 function sendItemTransfer(targetid, item) {
     console.log("targetid: " + targetid);
     var e = '{"cmd": "item_transfer", "targetid": "' + targetid + '", "item": "' + item + '"}';
+    websocket.send(e);
+};
+
+function sendItemSplit(item, quantity) {
+    console.log("quantity: " + quantity);
+    var e = '{"cmd": "item_split", "item": "' + item + '", "quantity": "' + quantity + '"}';
     websocket.send(e);
 };
 
@@ -1153,14 +1169,14 @@ function drawCraftListDialog(jsonData) {
 };
 
 function drawNewItemsDialog(jsonData) {
-    showDialogPanel();
+    showSmallDialogPanel();
 
     var title = new createjs.Text("Rewards", h1Font, textColor);
-    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.x = Math.floor(smallDialogPanelBg.width / 2);
     title.y = 5;
     title.textAlign = "center";
 
-    addChildDialogPanel(title);
+    addChildSmallDialogPanel(title);
 
     for(var i = 0; i < jsonData.items.length; i++) {
         var itemName = jsonData.items[i].name;            
@@ -1188,10 +1204,10 @@ function drawNewItemsDialog(jsonData) {
             }
         });
 
-        icon.x = dialogPanelBg.width / 2 - 24;
-        icon.y = dialogPanelBg.height / 2 + 5 - 24;
+        icon.x = smallDialogPanelBg.width / 2 - 24;
+        icon.y = smallDialogPanelBg.height / 2 + 5 - 24;
 
-        addChildDialogPanel(icon);
+        addChildSmallDialogPanel(icon);
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
@@ -1394,20 +1410,30 @@ function drawInfoUnit(jsonData) {
         icon.y = 325;
         icon._id = jsonData.items[i]._id;
         icon.owner = jsonData.items[i].owner;
+        icon.itemName = jsonData.items[i].name;
+        icon.quantity = jsonData.items[i].quantity;
 
         icon.on("click", function(evt) {
             if(!pressmove) {
-                sendInfoItem(this._id);
+                if(evt.nativeEvent.button == 2) {
+                    console.log("Right Click!");
+                    drawItemSplit(this._id, this.itemName, this.quantity);
+                }
+                else {
+                    sendInfoItem(this._id);
+                }
             }
         });
 
         icon.on("pressmove", function(evt) {
-            pressmove = true;
+            if(evt.nativeEvent.button != 2) {
+                pressmove = true;
 
-            evt.target.x = evt.localX - 25;
-            evt.target.y = evt.localY - 25;
+                evt.target.x = evt.localX - 25;
+                evt.target.y = evt.localY - 25;
             
-            stage.setChildIndex(this.parent.parent, stage.numChildren - 1);
+                stage.setChildIndex(this.parent.parent, stage.numChildren - 1);
+            }
         });
         icon.on("pressup", function(evt) { 
             pressmove = false;
@@ -1458,6 +1484,7 @@ function drawInfoUnit(jsonData) {
         }
     } 
     else {
+        var btnBuild = activeInfoPanel.getChildByName("btnBuild");
         btnBuild.visible = false;
     }
 };
@@ -1499,6 +1526,83 @@ function drawInfoItem(jsonData) {
     
     addChildInfoPanel(statsText);
      
+};
+
+function drawItemSplit(itemId, itemName, quantity) {
+    showSmallDialogPanel();
+
+    var quantityLeft = quantity;
+    var quantityRight = 0;
+
+    var title = new createjs.Text("Split Item", h1Font, textColor);
+    title.x = Math.floor(smallDialogPanelBg.width / 2);
+    title.y = 5;
+    title.textAlign = "center";
+
+    addChildSmallDialogPanel(title);
+
+    imageName = itemName.toLowerCase().replace(/ /g,'');
+
+    var imagePath = "/static/art/" + imageName + ".png";
+    var iconLeft = new createjs.Container();
+    var iconRight = new createjs.Container();
+    var btnLeft = new createjs.Bitmap(leftImage);
+    var btnRight = new createjs.Bitmap(rightImage);
+    var textLeft = new createjs.Text(quantityLeft, h1Font, textColor);
+    var textRight = new createjs.Text(quantityRight, h1Font, textColor);
+    var btnSplit = new createjs.Bitmap(btnSplitRestImg);
+
+    iconLeft.x = 140;
+    iconLeft.y = 100;
+
+    iconRight.x = 240;
+    iconRight.y = 100;
+
+    btnLeft.x = 175;
+    btnLeft.y = 150;
+
+    btnLeft.on("mousedown", function(evt) {
+        quantityLeft += 1;
+        quantityRight -= 1;
+
+        textLeft.text = quantityLeft;
+        textRight.text = quantityRight;
+    });
+
+    btnRight.x = 220;
+    btnRight.y = 150;
+
+    btnRight.on("mousedown", function(evt) {
+        quantityLeft -= 1;
+        quantityRight += 1;
+
+        textLeft.text = quantityLeft;
+        textRight.text = quantityRight;
+    });
+
+    textLeft.x = 155;
+    textLeft.y = 150;
+
+    textRight.x = 250;
+    textRight.y = 150;
+
+    btnSplit.x = Math.floor(smallDialogPanelBg.width / 2) - 133 / 2; 
+    btnSplit.y = 225;
+
+    btnSplit.on("mousedown", function(evt) {
+        sendItemSplit(itemId, quantityRight);
+    });
+
+    addChildSmallDialogPanel(iconLeft);
+    addChildSmallDialogPanel(iconRight);
+    addChildSmallDialogPanel(btnLeft);
+    addChildSmallDialogPanel(btnRight);
+    addChildSmallDialogPanel(textLeft);
+    addChildSmallDialogPanel(textRight);
+    addChildSmallDialogPanel(btnSplit);
+
+    addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconLeft});
+    addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconRight});
 };
 
 function initUI() {
@@ -1734,7 +1838,7 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
 
-    close.x = 385;
+    close.x = 383;
     close.y = 10;
     close.on("mousedown", function(evt) {
         this.parent.visible = false;
@@ -1748,39 +1852,30 @@ function initUI() {
 
     stage.addChild(dialogPanel);
 
+    //Initialize smallDialogPanel
+    smallDialogPanel = new createjs.Container();
+    smallDialogPanel.x = stageWidth / 2 - 150;
+    smallDialogPanel.y = stageHeight / 2 - 150; 
+    smallDialogPanel.visible = false;
+
+    var bg = new createjs.Bitmap(smallDialogPanelBg);
+    var close = new createjs.Bitmap(close_rest);
+    var content = new createjs.Container();
+
+    close.x = 385;
+    close.y = 10;
+    close.on("mousedown", function(evt) {
+        this.parent.visible = false;
+    });
+
+    content.name = 'content';
+
+    smallDialogPanel.addChild(bg); 
+    smallDialogPanel.addChild(close);
+    smallDialogPanel.addChild(content);
+
+    stage.addChild(smallDialogPanel);
 };
-
-/*function createButton(text) {
-    var button = new createjs.Container();
-    var rest = new createjs.Bitmap(buttonRestImg);
-    var hover = new createjs.Bitmap(buttonHoverImg);
-    var clicked = new createjs.Bitmap(buttonClickedImg);
-
-    rest.name = "rest";
-    hover.name = "hover";
-    clicked.name = "clicked";
-    
-    rest.visible = true;
-    hover.visible = false;
-    clicked.visible = false;
-
-    button.addChild(rest);
-    button.addChild(hover);
-    button.addChild(clicked);
-
-    var buttonText = new createjs.Text();
-    buttonText.font = "bold 14px Play";
-    buttonText.color = "#e1a972";
-    buttonText.text = text;
-
-    buttonText.x = 0;
-    buttonText.y = 0;
-    buttonText.textAlign = "center";
-
-    button.addChild(buttonText);
-
-    return button;
-};*/
 
 function showBattlePanel() {
     var content = battlePanel.getChildByName('content');
@@ -1826,6 +1921,13 @@ function showDialogPanel() {
     dialogPanel.visible = true;
 };
 
+function showSmallDialogPanel() {
+    var content = smallDialogPanel.getChildByName('content');
+    content.removeAllChildren();
+
+    smallDialogPanel.visible = true;
+}
+
 function addChildInfoPanel(item) {
     var content = activeInfoPanel.getChildByName('content');
     content.addChild(item);
@@ -1846,6 +1948,12 @@ function addChildDialogPanel(item) {
     var content = dialogPanel.getChildByName('content');
     content.addChild(item);
 };
+
+function addChildSmallDialogPanel(item) {
+    var content = smallDialogPanel.getChildByName('content');
+    content.addChild(item);
+};
+
 
 function isNeighbour(q, r, neighbours) {
     var i;
