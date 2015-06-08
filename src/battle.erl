@@ -132,7 +132,6 @@ process_attack(Action) ->
              is_adjacent(SourceObj, TargetObj) andalso
              is_target_alive(TargetObj#local_obj.state) andalso
              is_targetable(TargetObj),
-             
     
     process_dmg(Result, SourceId, TargetId).
 
@@ -160,8 +159,10 @@ is_adjacent(SourceObj, TargetObj) ->
     end.
 
 is_targetable(LocalObj) ->
-    not structure:behind_wall(LocalObj#local_obj.global_pos,
-                              LocalObj#local_obj.pos).
+    Targetable = not structure:behind_wall(LocalObj#local_obj.global_pos,
+                                           LocalObj#local_obj.pos),
+    lager:info("Targetable: ~p", [Targetable]),
+    Targetable.
 
 is_target_alive(dead) -> 
     lager:info("Target not alive"),

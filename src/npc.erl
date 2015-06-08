@@ -76,26 +76,17 @@ handle_call(Event, From, Data) ->
 handle_info({map_perception_disabled, Perception}, Data) ->
     lager:info("Map perception: ~p", [Perception]),
 
-    {_Explored, Objs} = new_perception(Perception),
-    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-    process_action(NPCObjs, EnemyObjs),
-
     {noreply, Data};
 
 handle_info({local_perception, Perception}, Data) ->
     lager:info("Local perception received"),
-
-    ets:new(local_objs, [bag, named_table]),
     
-    {_Explored, Objs} = new_perception(Perception),
-    load_ets(Objs),
-    %{NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
+    {_Explored, Objs} = new_perception(Perception),    
+    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
     
-    
-
     lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
     F = fun(NPCObj) ->
-            process_local_action(maps:get(<<"state">>, NPCObj), NPCObj, EnemyObjs)
+            process_local_action(NPCObj, EnemyObjs)
     end,
 
     lists:foreach(F, NPCObjs),
@@ -119,31 +110,6 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-%process_perception([Perception]) ->
-%    lager:debug("Processing Perception: ~p", [Perception]),
-%    {_Explored, Objs} = new_perception(Perception),
-%    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-%    lager:debug("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
-%    F = fun(NPCObj) ->
-%            process_local_action(NPCObj, EnemyObjs)
-%    end,
-
-%    lists:foreach(F, NPCObjs);
-%process_perception(_) ->
-%    nothing.
-
-%new_perception({perception, _Key, [{<<"explored">>, Explored}, {<<"objs">>, Objs}]}) ->
-%    {Explored, Objs}.
-
-load_ets([]) ->
-    nothing;
-load_ets([Obj | Rest]) ->
-    X = maps:get(<<"x">>, Obj),
-    Y = maps:get(<<"y">>, Obj),
-    ets:insert(local_objs, {{X,Y}, Obj}),
-
-    load_ets(Rest).
-
 new_perception([{<<"explored">>, Explored}, {<<"objs">>, Objs}]) ->
     {Explored, Objs}.
 
@@ -166,89 +132,12 @@ add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
 
     {NPCObjs, [Obj | EnemyObjs]}.
 
-
-process_action(NPCObjs, EnemyObjs) ->
-    %Do nothing for now for explored
-    F = fun(NPCObj) ->
-            Action = none,
-            NewAction = check_objs(NPCObj, EnemyObjs, Action),
-            add_action(NewAction)
-        end,
-
-    lists:foreach(F, NPCObjs).
-
-check_objs(_NPCObjs, [], Action) ->
-    Action;
-
-check_objs(NPCObj, [EnemyObj | Rest], Action) ->
-
-    NPCId = maps:get(<<"id">>, NPCObj),
-    NPCX = maps:get(<<"x">>, NPCObj),
-    NPCY = maps:get(<<"y">>, NPCObj),
-    NPCState = maps:get(<<"state">>, NPCObj),
-    NPCPos = {NPCX, NPCY},
-
-    Id = maps:get(<<"id">>, EnemyObj),
-    X = maps:get(<<"x">>, EnemyObj),
-    Y = maps:get(<<"y">>, EnemyObj),
-    State = maps:get(<<"state">>, EnemyObj),
-    Pos = {X, Y},
-
-    CheckPos = NPCPos =:= Pos, 
- 
-    lager:info("Action: ~p CheckPos: ~p NPC: ~p Enemy: ~p", [Action, CheckPos, {NPCId, NPCPos, NPCState}, {Id, Pos, State}]),
-    NewAction = determine_action(Action, 
-                                 CheckPos,
-                                 {NPCId, NPCPos, NPCState},
-                                 {Id, Pos, State}),
-    lager:info("NewAction: ~p", [NewAction]),
-    check_objs(NPCObj, Rest, NewAction).
-
-determine_action(_Action, false, {NPCId, _NPCPos, none}, {_Id, Pos, none}) ->
-    lager:info("determine_action move npcid: ~p pos: ~p", [NPCId, Pos]),
-    {move, {NPCId, Pos}};
-determine_action(_Action, true, {NPCId, _NPCPos, none}, {Id, _Pos, none}) ->
-    lager:info("determine_action attack npcid: ~p id: ~p", [NPCId, Id]),
-    {attack, {NPCId, Id}};
-determine_action(_Action, _Pos, NPC, _Enemy) ->
-    {none, {NPC}}.
-
-add_action({move, {NPCId, Pos}}) ->
-    lager:info("npc ~p adding move", [NPCId]),
-    Obj = obj:get_map_obj(NPCId),
-    NumTicks = 8,
-    
-    obj:update_state(NPCId, move),
-
-    %Create event data 
-    EventData = {Obj#obj.player,
-                 Obj#obj.id,
-                 Pos},
-    
-    game:add_event(self(), move_obj, EventData, Obj#obj.id, NumTicks);
-
-add_action({attack, {NPCId, Id}}) ->
-    lager:info("npc adding attack"),
-
-    NumTicks = 8,
-    EventData = {NPCId, Id},
-
-    obj:update_state(NPCId, attack),
- 
-    game:add_event(self(), attack_obj, EventData, none, NumTicks);
-
-add_action({none, _Data}) ->
-    lager:info("NPC doing nothing");
-
-add_action(none) ->
-    lager:info("NPC doing nothing").
-
-process_local_action(none, NPCUnit, []) ->
+process_local_action(#{<<"state">> := State} = NPCUnit, []) when State =:= none ->
     lager:info("No enemies nearby, wandering..."),
     NPCState = maps:get(<<"state">>, NPCUnit),
     process_wander(NPCState, NPCUnit);
 
-process_local_action(none, NPCUnit, EnemyUnits) ->
+process_local_action(#{<<"state">> := State} = NPCUnit, EnemyUnits) when State =:= none ->
     lager:info("NPCUnit: ~p", [NPCUnit]),
     lager:info("EnemyUnits: ~p", [EnemyUnits]),
     NPCPos = get_pos(NPCUnit),
@@ -264,7 +153,7 @@ process_local_action(none, NPCUnit, EnemyUnits) ->
     lager:info("Next action: ~p", [NextAction]),
     add_local_action(NextAction);
 
-process_local_action(_NPCState, _NPCUnit, _AllEnemyUnits) ->
+process_local_action(_NPCUnit, _AllEnemyUnits) ->
     lager:info("Action already in progress...").
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
@@ -326,13 +215,13 @@ add_move_unit(GlobalPos, Player, UnitId, NewPos, NumTicks) ->
 get_pos(Obj) ->
     {maps:get(<<"x">>, Obj), maps:get(<<"y">>, Obj)}.
 
-remove_dead(ObjList) ->
-    F = fun(Obj) ->
-            ObjState = maps:get(<<"state">>, Obj),
-            ObjState =/= dead
-        end,
-
-    lists:filter(F, ObjList).
+%remove_dead(ObjList) ->
+%    F = fun(Obj) ->
+%            ObjState = maps:get(<<"state">>, Obj),
+%            ObjState =/= dead
+%        end,
+%
+%    lists:filter(F, ObjList).
 
 process_wander(none, NPCUnit) ->
     {X, Y} = get_pos(NPCUnit),

@@ -86,10 +86,13 @@ behind_wall(GlobalPos, LocalPos) ->
     MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos, 
                                        pos = LPos, 
                                        class = structure,
+                                       state = State,
                                        subclass = <<"wall">>}) when GPos =:= GlobalPos, 
-                                                                    LPos =:= LocalPos -> N end),
+                                                                    LPos =:= LocalPos,
+                                                                    %State =/= building,
+                                                                    State =/= dead -> N end),
     LocalObjs = db:select(local_obj, MS),
-    LocalObjs =:= [].
+    LocalObjs =/= [].
 
 %
 % Internal functions
