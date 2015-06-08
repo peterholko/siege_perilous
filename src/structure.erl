@@ -10,6 +10,7 @@
 
 -export([start_build/4, check_req/1, valid_location/3]).
 -export([list/0, recipe_list/1, craft/2]).
+-export([behind_wall/2]).
 
 start_build(PlayerId, GlobalPos, LocalPos, StructureType) ->
     {Name} = bson:lookup(name, StructureType),
@@ -78,6 +79,16 @@ valid_location(_, GlobalPos, LocalPos) ->
     lager:info("LocalObjs: ~p", [LocalObjs]),
 
     % True if no local_objs, False if Wall local_objs
+    LocalObjs =:= [].
+
+
+behind_wall(GlobalPos, LocalPos) ->
+    MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos, 
+                                       pos = LPos, 
+                                       class = structure,
+                                       subclass = <<"wall">>}) when GPos =:= GlobalPos, 
+                                                                    LPos =:= LocalPos -> N end),
+    LocalObjs = db:select(local_obj, MS),
     LocalObjs =:= [].
 
 %

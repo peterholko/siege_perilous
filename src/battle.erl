@@ -130,7 +130,9 @@ process_attack(Action) ->
     Result = is_valid_obj(SourceObj) andalso
              is_valid_obj(TargetObj) andalso
              is_adjacent(SourceObj, TargetObj) andalso
-             is_target_alive(TargetObj#local_obj.state),
+             is_target_alive(TargetObj#local_obj.state) andalso
+             is_targetable(TargetObj),
+             
     
     process_dmg(Result, SourceId, TargetId).
 
@@ -157,11 +159,9 @@ is_adjacent(SourceObj, TargetObj) ->
             false
     end.
 
-is_targetable(Pos) ->
-    true.
-%    Objs = db:index_read(local_obj, Pos, #local_obj.pos),
-%    IsTargetable = not behind_walls(Objs, false),
-%    IsTargetable.
+is_targetable(LocalObj) ->
+    not structure:behind_wall(LocalObj#local_obj.global_pos,
+                              LocalObj#local_obj.pos).
 
 is_target_alive(dead) -> 
     lager:info("Target not alive"),
@@ -281,9 +281,3 @@ is_state(_ExpectdState, _State) -> false.
 is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
 is_state_not(_NotExpectedState, State) -> true.
 
-behind_walls([], Result) ->
-    Result;
-
-behind_walls([Obj | Rest], Result) ->
-    NewResult = Result or structure:is_wall(Obj#local_obj.name),
-    behind_walls(Rest, NewResult).

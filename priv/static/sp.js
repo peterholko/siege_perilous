@@ -1031,14 +1031,14 @@ function drawLootDialog(jsonData) {
 };
 
 function drawSurveyDialog(jsonData) {
-    showDialogPanel();
+    showSmallDialogPanel();
 
     var title = new createjs.Text("Resources", h1Font, textColor);
-    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.x = Math.floor(smallDialogPanelBg.width / 2);
     title.y = 5;
     title.textAlign = "center";
 
-    addChildDialogPanel(title);
+    addChildSmallDialogPanel(title);
 
     for(var i = 0; i < jsonData.result.length; i++) {
         var resource = jsonData.result[i];
@@ -1053,9 +1053,10 @@ function drawSurveyDialog(jsonData) {
 
         icon.on("mousedown", function(evt) {
             sendHarvest(selectedPortrait, this.resourceName);
+            smallDialogPanel.visible = false;
         });
 
-        addChildDialogPanel(icon);
+        addChildSmallDialogPanel(icon);
         addImage({id: resourceImage, path: imagePath, x: 0, y: 0, target: icon});
 
         var name = new createjs.Text("Name: " + resource.name, h1Font, textColor);
@@ -1067,8 +1068,8 @@ function drawSurveyDialog(jsonData) {
         quantity.x = 85;
         quantity.y = 60 + i * 60;
         
-        addChildDialogPanel(name);
-        addChildDialogPanel(quantity);
+        addChildSmallDialogPanel(name);
+        addChildSmallDialogPanel(quantity);
     }
 };
 
@@ -1562,22 +1563,26 @@ function drawItemSplit(itemId, itemName, quantity) {
     btnLeft.y = 150;
 
     btnLeft.on("mousedown", function(evt) {
-        quantityLeft += 1;
-        quantityRight -= 1;
+        if(quantityRight > 1) {
+            quantityLeft += 1;
+            quantityRight -= 1;
 
-        textLeft.text = quantityLeft;
-        textRight.text = quantityRight;
+            textLeft.text = quantityLeft;
+            textRight.text = quantityRight;
+        }
     });
 
     btnRight.x = 220;
     btnRight.y = 150;
 
     btnRight.on("mousedown", function(evt) {
-        quantityLeft -= 1;
-        quantityRight += 1;
+        if(quantityLeft > 1) {
+            quantityLeft -= 1;
+            quantityRight += 1;
 
-        textLeft.text = quantityLeft;
-        textRight.text = quantityRight;
+            textLeft.text = quantityLeft;
+            textRight.text = quantityRight;
+        }        
     });
 
     textLeft.x = 155;
@@ -1591,6 +1596,7 @@ function drawItemSplit(itemId, itemName, quantity) {
 
     btnSplit.on("mousedown", function(evt) {
         sendItemSplit(itemId, quantityRight);
+        smallDialogPanel.visible = false;
     });
 
     addChildSmallDialogPanel(iconLeft);
@@ -1862,7 +1868,7 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
 
-    close.x = 385;
+    close.x = 382;
     close.y = 10;
     close.on("mousedown", function(evt) {
         this.parent.visible = false;

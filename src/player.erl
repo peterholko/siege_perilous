@@ -182,11 +182,15 @@ item_split(ItemId, Quantity) ->
     Player = get(player_id),
     [Item] = item:get(ItemId),
     {Owner} = bson:lookup(owner, Item),
+    {CurrentQuantity} = bson:lookup(quantity, Item),
+
     [OwnerObj] = db:read(local_obj, Owner),
 
-    ValidOwner = Player =:= OwnerObj#local_obj.player,
+    ValidSplit = Player =:= OwnerObj#local_obj.player andalso
+                 CurrentQuantity > 1 andalso
+                 CurrentQuantity > Quantity,
 
-    case ValidOwner of
+    case ValidSplit of
         true ->
             lager:info("Splitting item"),
             item:split(Item, Quantity),

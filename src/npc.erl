@@ -84,9 +84,15 @@ handle_info({map_perception_disabled, Perception}, Data) ->
 
 handle_info({local_perception, Perception}, Data) ->
     lager:info("Local perception received"),
+
+    ets:new(local_objs, [bag, named_table]),
     
     {_Explored, Objs} = new_perception(Perception),
-    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
+    load_ets(Objs),
+    %{NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
+    
+    
+
     lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
     F = fun(NPCObj) ->
             process_local_action(maps:get(<<"state">>, NPCObj), NPCObj, EnemyObjs)
@@ -129,6 +135,15 @@ terminate(_Reason, _) ->
 %new_perception({perception, _Key, [{<<"explored">>, Explored}, {<<"objs">>, Objs}]}) ->
 %    {Explored, Objs}.
 
+load_ets([]) ->
+    nothing;
+load_ets([Obj | Rest]) ->
+    X = maps:get(<<"x">>, Obj),
+    Y = maps:get(<<"y">>, Obj),
+    ets:insert(local_objs, {{X,Y}, Obj}),
+
+    load_ets(Rest).
+
 new_perception([{<<"explored">>, Explored}, {<<"objs">>, Objs}]) ->
     {Explored, Objs}.
 
@@ -147,6 +162,8 @@ split_objs([Obj | Rest], NPCObjs, EnemyObjs) ->
 add_npc_obj(Obj, NPCObjs, EnemyObjs, true) ->
     {[Obj | NPCObjs], EnemyObjs};
 add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
+    
+
     {NPCObjs, [Obj | EnemyObjs]}.
 
 
