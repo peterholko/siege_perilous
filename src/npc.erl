@@ -132,21 +132,26 @@ add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
 
     {NPCObjs, [Obj | EnemyObjs]}.
 
+
 process_local_action(#{<<"state">> := State} = NPCUnit, []) when State =:= none ->
     lager:info("No enemies nearby, wandering..."),
-    NPCState = maps:get(<<"state">>, NPCUnit),
-    process_wander(NPCState, NPCUnit);
+    process_wander(NPCUnit);
 
-process_local_action(#{<<"state">> := State} = NPCUnit, EnemyUnits) when State =:= none ->
+process_local_action(#{<<"state">> := State} = NPCUnit, AllEnemyUnits) when State =:= none ->
     lager:info("NPCUnit: ~p", [NPCUnit]),
-    lager:info("EnemyUnits: ~p", [EnemyUnits]),
+    lager:info("EnemyUnits: ~p", [AllEnemyUnits]),
+    
+    %EnemyUnits = case get_int(get(player_id)) of
+    %                 undead ->
+    EnemyUnits = AllEnemyUnits,
+
     NPCPos = get_pos(NPCUnit),
     EnemyUnit = get_nearest(NPCPos, EnemyUnits, {none, 1000}),
     lager:info("EnemyUnit: ~p", [EnemyUnit]), 
     EnemyPos = get_pos(EnemyUnit),
     Path = astar:astar(NPCPos, EnemyPos),
     lager:info("Path: ~p", [Path]),
-    NextAction = next_action(maps:get(<<"state">>, NPCUnit),
+    NextAction = next_action(State,
                              NPCUnit, 
                              EnemyUnit, 
                              Path),
@@ -223,17 +228,18 @@ get_pos(Obj) ->
 %
 %    lists:filter(F, ObjList).
 
-process_wander(none, NPCUnit) ->
-    {X, Y} = get_pos(NPCUnit),
+process_wander(#{<<"state">> := State,
+                 <<"x">> := X,
+                 <<"y">> := Y,
+                 <<"id">> := Id} = NPCUnit) when State =:= none ->
     Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    UnitId = maps:get(<<"id">>, NPCUnit),
-    [Unit] = db:read(local_obj, UnitId),
+    [Unit] = db:read(local_obj, Id),
     GlobalPos = Unit#local_obj.global_pos,
 
     Action = get_wander_pos(false, NPCUnit, GlobalPos, none, Neighbours),
 
     add_local_action(Action);
-process_wander(_, _NPCUnit) ->
+process_wander(_) ->
     nothing.
 
 get_wander_pos(_, _, _, _, []) ->
@@ -248,3 +254,6 @@ get_wander_pos(false, NPCUnit, GlobalPos, _, Neighbours) ->
     NewNeighbours = lists:delete(RandomPos, Neighbours),
 
     get_wander_pos(IsEmpty, NPCUnit, GlobalPos, RandomPos, NewNeighbours).
+
+get_int(99) -> undead;
+get_int(_) -> undead.

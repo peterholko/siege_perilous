@@ -73,9 +73,11 @@ handle_cast({create_obj, Player, Units}, Data) ->
 
 handle_cast({update, Collection, Id, Value}, Data) ->
     Connection = Data,
-    Cmd = {'$set', Value},
+    %Exclude id from any updates
+    Cmd = {'$set', bson:exclude(['_id'], Value)},
     
-    mongo:update(Connection, Collection, {'_id', Id}, Cmd),
+    Result = mongo:update(Connection, Collection, {'_id', Id}, Cmd),
+    lager:info("Result: ~p", [Result]),
 
     {noreply, Data};
 

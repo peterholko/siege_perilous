@@ -60,18 +60,22 @@ create(Owner, Name, Quantity) ->
             lager:info("InsertedItem: ~p", [InsertedItem]),
             InsertedItem;
         [Item] ->
+            lager:info("Updating existing item"),
             {ItemId} = bson:lookup('_id', Item),
             {OldQuantity} = bson:lookup(quantity, Item),
             UpdatedItem = bson:update(quantity, OldQuantity + Quantity, Item),
             
+            lager:info("UpdatedItem: ~p", [UpdatedItem]),
             mdb:update(<<"item">>, ItemId, UpdatedItem),
             UpdatedItem;
         Items ->
             %Pick the first item of the same type and owner
+            lager:info("Found multiple existing items, updating first existing item"),
             [Item | _Rest] = Items,
             {ItemId} = bson:lookup('_id', Item),
             {OldQuantity} = bson:lookup(quantity, Item),
             UpdatedItem = bson:update(quantity, OldQuantity + Quantity, Item),
+            lager:info("UpdatedItem: ~p", [UpdatedItem]),
             mdb:update(<<"item">>, ItemId, UpdatedItem),
             UpdatedItem 
     end.

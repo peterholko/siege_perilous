@@ -10,7 +10,7 @@
 
 -export([get/1, get_info/1, get_type/1, get_stats/1, units_from_obj/1, units_stats_from_obj/1]).
 -export([create/3, update/3, remove/1]).
--export([find_type/1, is_nearby_hero/2]).
+-export([find_type/1, get_by_pos/2, is_nearby_hero/2]).
 
 get(Id) ->
     LocalObj = find(Id),
@@ -63,6 +63,13 @@ update(Id, Attr, Val) ->
 
 remove(Id) ->
     mdb:delete(<<"local_obj">>, Id).
+
+get_by_pos(GlobalPos, LocalPos) ->
+    MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos,
+                                       pos = LPos}) when GPos =:= GlobalPos,
+                                                         LPos =:= LocalPos -> N end),
+    LocalObjs = db:select(local_obj, MS),
+    LocalObjs.
 
 is_nearby_hero(_Target = #local_obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
     true;

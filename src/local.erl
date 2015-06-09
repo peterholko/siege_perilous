@@ -3,11 +3,13 @@
 %% Description: Local map module
 -module(local).
 
+-include_lib("stdlib/include/ms_transform.hrl").
+
 -include("common.hrl").
 -include("schema.hrl").
 
 -export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1]).
--export([create/8, remove/1, move/2, update_state/2, update_wall_effect/1]).
+-export([create/8, remove/1, move/2, update_state/2, set_wall_effect/1, is_behind_wall/2]).
 -export([is_exit_valid/1, is_empty/2]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
@@ -127,11 +129,20 @@ move(Id, Pos) ->
     %TODO convert to transaction
     lager:info("Move local obj ~p ~p", [Id, Pos]),
     [LocalObj] = db:read(local_obj, Id),
+    GlobalPos = LocalObj#local_obj.global_pos,
+
     NewLocalObj = LocalObj#local_obj {pos = Pos,
                                       state = none},
     db:write(NewLocalObj),
 
+    %Update wall effect
+    lager:info("Updating wall effect"),
+    IsBehindWall = is_behind_wall(GlobalPos, Pos),
+    AddOrRemove = is_add_remove_wall(IsBehindWall),
+    update_wall_effect(AddOrRemove, NewLocalObj),
+
     %Add explored if object is granted vision
+    lager:info("Adding explored tiles"),
     case LocalObj#local_obj.vision of
         true ->
             map:add_local_explored(LocalObj#local_obj.player, 
@@ -157,17 +168,31 @@ is_empty(GlobalPos, LocalPos) ->
     Result = not lists:keymember(LocalPos, #local_obj.pos, Units),
     Result.
 
+is_behind_wall(GlobalPos, LocalPos) ->
+    MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos, 
+                                       pos = LPos, 
+                                       class = structure,
+                                       state = State,
+                                       subclass = <<"wall">>}) when GPos =:= GlobalPos, 
+                                                                    LPos =:= LocalPos,
+                                                                    %State =/= building,
+                                                                    State =/= dead -> N end),
+    LocalObjs = db:select(local_obj, MS),
+    LocalObjs =/= [].
+
 set_wall_effect(_ = #local_obj{id = Id,
                                subclass = Subclass,
                                state = State,
-                               pos = Pos}) when Subclass =:= wall,
-                                                State =:= none ->
-    LocalObjs = db:index_read(local_obj, #local_obj.pos, Pos),
+                               global_pos = GlobalPos,
+                               pos = Pos}) when Subclass =:= wall ->
+    lager:info("Set wall effect"),
+    LocalObjs = local_obj:get_by_pos(GlobalPos, Pos),
+    AddOrRemove = is_add_remove_wall(State),
 
     F = fun(LocalObj) ->
             case LocalObj#local_obj.id =/= Id of
                 true ->
-                    update_wall_effect(add, LocalObj);
+                    update_wall_effect(AddOrRemove, LocalObj);
                 false ->
                     nothing
             end
@@ -178,10 +203,16 @@ set_wall_effect(_ = #local_obj{id = Id,
 set_wall_effect(_) ->
     nothing.
 
+is_add_remove_wall(none) -> add;
+is_add_remove_wall(true) -> add;
+is_add_remove_wall(false) -> remove;
+is_add_remove_wall(_) -> remove.
+
 update_wall_effect(add, LocalObj) ->
     NewEffects = [ wall | LocalObj#local_obj.effect],
     NewLocalObj = LocalObj#local_obj {effect = NewEffects},
     db:write(NewLocalObj);
+
 update_wall_effect(remove, LocalObj) ->
     NewEffects = lists:delete(wall, LocalObj#local_obj.effect),
     NewLocalObj = LocalObj#local_obj {effect = NewEffects},
@@ -209,7 +240,8 @@ get_visible_objs([Obj | Rest], Objs, GlobalPos) ->
     get_visible_objs(Rest, NewObjs, GlobalPos).
 
 get_enter_pos(_Pos, none) ->
-    {0,0};
+    %TODO fix after debugging
+    {0,7};
 get_enter_pos(Pos, LastPos) ->
     CubePos = map:odd_q_to_cube(Pos),
     LastCubePos = map:odd_q_to_cube(LastPos),
