@@ -266,13 +266,12 @@ build(LocalObjId, Structure) ->
     end.
 
 finish_build(SourceId, StructureId) ->
-    lager:info("finish build ~p", [StructureId]),
     PlayerId = get(player_id),
+
     [Structure] = db:read(local_obj, StructureId),
-    lager:info("Structure: ~p", [Structure]),
     StructureM = local_obj:get_stats(StructureId),
-    lager:info("StructureM: ~p", [StructureM]),
     {NumTicks} = bson:lookup(build_time, StructureM),
+
     %TODO add validation to make sure id is a structure
     ValidFinish = PlayerId =:= Structure#local_obj.player andalso
                   structure:check_req(StructureM),

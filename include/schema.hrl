@@ -61,6 +61,7 @@
                     subclass = none,
                     name,
                     state,
+                    effect = [],
                     vision = false}).
                     
 -record(charge_time, {unit_id,

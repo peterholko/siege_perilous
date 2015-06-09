@@ -7,7 +7,7 @@
 -include("schema.hrl").
 
 -export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1]).
--export([create/8, remove/1, move/2, update_state/2]).
+-export([create/8, remove/1, move/2, update_state/2, update_wall_effect/1]).
 -export([is_exit_valid/1, is_empty/2]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
@@ -156,6 +156,36 @@ is_empty(GlobalPos, LocalPos) ->
     Units = filter_units(LocalObjs),
     Result = not lists:keymember(LocalPos, #local_obj.pos, Units),
     Result.
+
+set_wall_effect(_ = #local_obj{id = Id,
+                               subclass = Subclass,
+                               state = State,
+                               pos = Pos}) when Subclass =:= wall,
+                                                State =:= none ->
+    LocalObjs = db:index_read(local_obj, #local_obj.pos, Pos),
+
+    F = fun(LocalObj) ->
+            case LocalObj#local_obj.id =/= Id of
+                true ->
+                    update_wall_effect(add, LocalObj);
+                false ->
+                    nothing
+            end
+        end,
+
+    lists:foreach(F, LocalObjs);
+      
+set_wall_effect(_) ->
+    nothing.
+
+update_wall_effect(add, LocalObj) ->
+    NewEffects = [ wall | LocalObj#local_obj.effect],
+    NewLocalObj = LocalObj#local_obj {effect = NewEffects},
+    db:write(NewLocalObj);
+update_wall_effect(remove, LocalObj) ->
+    NewEffects = lists:delete(wall, LocalObj#local_obj.effect),
+    NewLocalObj = LocalObj#local_obj {effect = NewEffects},
+    db:write(NewLocalObj).
 
 %
 % Internal functions
