@@ -272,8 +272,10 @@ finish_build(SourceId, StructureId) ->
     StructureM = local_obj:get_stats(StructureId),
     {NumTicks} = bson:lookup(build_time, StructureM),
 
+    lager:info("Structure state: ~p", [Structure#local_obj.state]),
     %TODO add validation to make sure id is a structure
-    ValidFinish = PlayerId =:= Structure#local_obj.player andalso
+    ValidFinish = Structure#local_obj.player =:= PlayerId andalso
+                  Structure#local_obj.state =:= founded andalso
                   structure:check_req(StructureM),
 
     add_finish_build(ValidFinish, {SourceId, Structure#local_obj.global_pos, StructureId}, NumTicks),
@@ -354,6 +356,7 @@ add_finish_build(true, {LocalObjId, GlobalPos, StructureId}, NumTicks) ->
     EventData = {LocalObjId, GlobalPos, StructureId},
 
     local:update_state(LocalObjId, building),
+    local:update_state(StructureId, under_construction),
 
     game:add_event(self(), finish_build, EventData, LocalObjId, NumTicks).
 

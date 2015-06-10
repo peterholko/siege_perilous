@@ -173,11 +173,10 @@ do_event(finish_build, EventData, _PlayerPid) ->
     lager:info("Processing build event: ~p", [EventData]),
     {LocalObjId, GlobalPos, StructureId} = EventData,
 
-    [Structure] = db:read(local_obj, StructureId),
-
-    local:update_state(StructureId, none), 
     local:update_state(LocalObjId, none),
-    local:set_wall_effect(Structure), 
+    NewStructure = local:update_state(StructureId, none), 
+
+    local:set_wall_effect(NewStructure), 
 
     {false, {GlobalPos, true}};
 

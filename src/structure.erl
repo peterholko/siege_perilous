@@ -22,7 +22,7 @@ start_build(PlayerId, GlobalPos, LocalPos, StructureType) ->
                                structure,
                                Subclass,
                                Name, 
-                               building),
+                               founded),
     StructureId.
 
 check_req(Structure) ->

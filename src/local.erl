@@ -160,7 +160,9 @@ update_state(Id, State) ->
     db:write(NewLocalObj),
 
     %Trigger new perception
-    game:trigger_local(LocalObj#local_obj.global_pos).
+    game:trigger_local(LocalObj#local_obj.global_pos),
+
+    NewLocalObj.
  
 is_empty(GlobalPos, LocalPos) ->
     LocalObjs = db:index_read(local_obj, GlobalPos, #local_obj.global_pos),
@@ -180,27 +182,25 @@ is_behind_wall(GlobalPos, LocalPos) ->
     LocalObjs = db:select(local_obj, MS),
     LocalObjs =/= [].
 
-set_wall_effect(_ = #local_obj{id = Id,
-                               subclass = Subclass,
+set_wall_effect(_ = #local_obj{subclass = Subclass,
                                state = State,
                                global_pos = GlobalPos,
-                               pos = Pos}) when Subclass =:= wall ->
+                               pos = Pos}) when Subclass =:= <<"wall">> ->
     lager:info("Set wall effect"),
     LocalObjs = local_obj:get_by_pos(GlobalPos, Pos),
+    lager:info("LocalObjs: ~p", [LocalObjs]),
+    lager:info("State: ~p", [State]),
     AddOrRemove = is_add_remove_wall(State),
+    lager:info("AddOrRemove: ~p", [AddOrRemove]),
 
     F = fun(LocalObj) ->
-            case LocalObj#local_obj.id =/= Id of
-                true ->
-                    update_wall_effect(AddOrRemove, LocalObj);
-                false ->
-                    nothing
-            end
+            update_wall_effect(AddOrRemove, LocalObj)
         end,
 
     lists:foreach(F, LocalObjs);
       
 set_wall_effect(_) ->
+
     nothing.
 
 is_add_remove_wall(none) -> add;
