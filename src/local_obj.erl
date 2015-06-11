@@ -10,7 +10,10 @@
 
 -export([get/1, get_info/1, get_type/1, get_stats/1, units_from_obj/1, units_stats_from_obj/1]).
 -export([create/3, update/3, remove/1]).
--export([find_type/1, get_by_pos/2, is_nearby_hero/2]).
+-export([test/0, find/1, info/1]).
+-export([find_type/1, get_by_pos/2, is_nearby_hero/2, readtest/1]).
+
+
 
 get(Id) ->
     LocalObj = find(Id),
@@ -131,3 +134,15 @@ info(LocalObjM) ->
     LocalObjStats2 = bson:update(items, Items, LocalObjStats),
     LocalObjStats3 = bson:update(state, LocalObj#local_obj.state, LocalObjStats2),
     LocalObjStats3.
+
+test() ->
+    {Result, _} = timer:tc(local_obj, readtest, [100]),
+    lager:info("~p", [Result]).
+
+readtest(0) ->
+    done;
+readtest(N) ->
+    Id = {<<84,219,228,71,15,76,42,231,31,114,99,13>>},
+    lager:info("~p", [get_stats(Id)]),
+
+    readtest(N - 1).

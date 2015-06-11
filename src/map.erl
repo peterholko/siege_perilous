@@ -295,6 +295,10 @@ get_id(MapObj) when is_record(MapObj, obj) ->
     MapObj#obj.id;
 get_id(MapObj) when is_record(MapObj, local_obj) ->
     MapObj#local_obj.id.
+get_effect(MapObj) when is_record(MapObj, obj) ->
+    [];
+get_effect(MapObj) when is_record(MapObj, local_obj) ->
+    MapObj#local_obj.effect.
 
 check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
     build_message(MapObj, Objs);
@@ -308,7 +312,8 @@ build_message(MapObj, Objs) ->
         <<"x">> => X,
         <<"y">> => Y,
         <<"type">> => get_type(MapObj),
-        <<"state">> => get_state(MapObj)} | Objs].
+        <<"state">> => get_state(MapObj),
+        <<"effect">> => get_effect(MapObj)} | Objs].
 
 distance(SourcePos, TargetPos) ->
     SourceCube = odd_q_to_cube(SourcePos),

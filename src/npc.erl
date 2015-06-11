@@ -137,13 +137,15 @@ process_local_action(#{<<"state">> := State} = NPCUnit, []) when State =:= none 
     lager:info("No enemies nearby, wandering..."),
     process_wander(NPCUnit);
 
-process_local_action(#{<<"state">> := State} = NPCUnit, AllEnemyUnits) when State =:= none ->
+process_local_action(#{<<"state">> := State, 
+                       <<"id">> := NPCId} = NPCUnit, AllEnemyUnits) when State =:= none ->
     lager:info("NPCUnit: ~p", [NPCUnit]),
     lager:info("EnemyUnits: ~p", [AllEnemyUnits]),
     
-    %EnemyUnits = case get_int(get(player_id)) of
-    %                 undead ->
-    EnemyUnits = AllEnemyUnits,
+    NPCStats = local_obj:get_stats(NPCId),
+    Int = bson:lookup(<<"int">>, NPCStats),
+    Aggression = bson:lookup(<<"aggression">>, NPCStats),
+    EnemyUnits = determine_targets(Int, Aggression, AllEnemyUnits),
 
     NPCPos = get_pos(NPCUnit),
     EnemyUnit = get_nearest(NPCPos, EnemyUnits, {none, 1000}),
@@ -160,6 +162,11 @@ process_local_action(#{<<"state">> := State} = NPCUnit, AllEnemyUnits) when Stat
 
 process_local_action(_NPCUnit, _AllEnemyUnits) ->
     lager:info("Action already in progress...").
+
+determine_targets(mindless, high, AllEnemyUnits) ->
+    remove_walled(remove_dead(AllEnemyUnits));
+determine_targets(_, _, AllEnemyUnits) ->
+    AllEnemyUnits.
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
     EnemyUnit;
@@ -220,13 +227,21 @@ add_move_unit(GlobalPos, Player, UnitId, NewPos, NumTicks) ->
 get_pos(Obj) ->
     {maps:get(<<"x">>, Obj), maps:get(<<"y">>, Obj)}.
 
-%remove_dead(ObjList) ->
-%    F = fun(Obj) ->
-%            ObjState = maps:get(<<"state">>, Obj),
-%            ObjState =/= dead
-%        end,
-%
-%    lists:filter(F, ObjList).
+remove_walled(ObjList) ->
+    F = fun(Obj) ->
+            ObjEffect = maps:get(<<"effect">>, Obj),
+            lists:member(<<"wall">>, ObjEffect)
+        end,
+
+    lists:filter(F, ObjList).
+
+remove_dead(ObjList) ->
+    F = fun(Obj) ->
+            ObjState = maps:get(<<"state">>, Obj),
+            ObjState =/= dead
+        end,
+
+    lists:filter(F, ObjList).
 
 process_wander(#{<<"state">> := State,
                  <<"x">> := X,
@@ -255,5 +270,3 @@ get_wander_pos(false, NPCUnit, GlobalPos, _, Neighbours) ->
 
     get_wander_pos(IsEmpty, NPCUnit, GlobalPos, RandomPos, NewNeighbours).
 
-get_int(99) -> undead;
-get_int(_) -> undead.
