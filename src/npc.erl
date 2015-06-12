@@ -116,7 +116,6 @@ new_perception([{<<"explored">>, Explored}, {<<"objs">>, Objs}]) ->
 split_objs([], NPCObjs, EnemyObjs) ->
     {NPCObjs, EnemyObjs};
 split_objs([Obj | Rest], NPCObjs, EnemyObjs) ->
-
     Player = get(player_id),
     ObjPlayer = maps:get(<<"player">>, Obj),
     ComparePlayer = Player =:= ObjPlayer,
@@ -126,19 +125,20 @@ split_objs([Obj | Rest], NPCObjs, EnemyObjs) ->
     split_objs(Rest, NewNPCObjs, NewEnemyObjs).
 
 add_npc_obj(Obj, NPCObjs, EnemyObjs, true) ->
-    {[Obj | NPCObjs], EnemyObjs};
+    {[get_local_obj(Obj) | NPCObjs], EnemyObjs};
 add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
-    
+    {NPCObjs, [get_local_obj(Obj) | EnemyObjs]}.
 
-    {NPCObjs, [Obj | EnemyObjs]}.
+get_local_obj(Obj) ->
+    Id = maps:get(<<"id">>, Obj),
+    [LocalObj] = db:read(local_obj, Id),
+    LocalObj.
 
-
-process_local_action(#{<<"state">> := State} = NPCUnit, []) when State =:= none ->
+process_local_action(#local_obj{state = State} = NPCUnit, []) when State =:= none ->
     lager:info("No enemies nearby, wandering..."),
     process_wander(NPCUnit);
 
-process_local_action(#{<<"state">> := State, 
-                       <<"id">> := NPCId} = NPCUnit, AllEnemyUnits) when State =:= none ->
+process_local_action(#local_obj{state = State, id = NPCId} = NPCUnit, AllEnemyUnits) when State =:= none ->
     lager:info("NPCUnit: ~p", [NPCUnit]),
     lager:info("EnemyUnits: ~p", [AllEnemyUnits]),
     
@@ -147,11 +147,9 @@ process_local_action(#{<<"state">> := State,
     Aggression = bson:lookup(<<"aggression">>, NPCStats),
     EnemyUnits = determine_targets(Int, Aggression, AllEnemyUnits),
 
-    NPCPos = get_pos(NPCUnit),
-    EnemyUnit = get_nearest(NPCPos, EnemyUnits, {none, 1000}),
+    EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
     lager:info("EnemyUnit: ~p", [EnemyUnit]), 
-    EnemyPos = get_pos(EnemyUnit),
-    Path = astar:astar(NPCPos, EnemyPos),
+    Path = astar:astar(NPCUnit#local_obj.pos, EnemyUnit#local_obj.pos),
     lager:info("Path: ~p", [Path]),
     NextAction = next_action(State,
                              NPCUnit, 
@@ -165,13 +163,15 @@ process_local_action(_NPCUnit, _AllEnemyUnits) ->
 
 determine_targets(mindless, high, AllEnemyUnits) ->
     remove_walled(remove_dead(AllEnemyUnits));
+determine_targets(animal, high, AllEnemyUnits) ->
+    remove_walled(remove_dead(AllEnemyUnits));
 determine_targets(_, _, AllEnemyUnits) ->
     AllEnemyUnits.
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
     EnemyUnit;
 get_nearest(NPCPos, [NewEnemyUnit | EnemyUnits], {EnemyUnit, Distance}) ->
-    NewEnemyUnitPos = {maps:get(<<"x">>, NewEnemyUnit), maps:get(<<"y">>, NewEnemyUnit)},
+    NewEnemyUnitPos = NewEnemyUnit#local_obj.pos,
 
     CalcDistance = map:distance(NPCPos, NewEnemyUnitPos),
     {TargetEnemyUnit, NewDistance} = compare_distance(CalcDistance,
@@ -197,16 +197,11 @@ next_action(_, NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
 
 add_local_action({attack, Source, Target}) ->
     lager:info("Adding attack: ~p ~p", [Source, Target]),
-    SourceId = maps:get(<<"id">>, Source),
-    TargetId = maps:get(<<"id">>, Target),
-    battle:attack_unit(SourceId, TargetId);
+    battle:attack_unit(Source#local_obj.id, Target#local_obj.id);
 add_local_action({move, Unit, NextPos}) ->
-    UnitId = maps:get(<<"id">>, Unit),
-    [UnitObj] = db:read(local_obj, UnitId),
-
-    add_move_unit(UnitObj#local_obj.global_pos,
-                  UnitObj#local_obj.player,
-                  UnitId,
+    add_move_unit(Unit#local_obj.global_pos,
+                  Unit#local_obj.player,
+                  Unit#local_obj.id,
                   NextPos,
                   40);
 add_local_action(none) ->
@@ -224,33 +219,29 @@ add_move_unit(GlobalPos, Player, UnitId, NewPos, NumTicks) ->
 
     game:add_event(self(), move_local_obj, EventData, UnitId, NumTicks).
 
-get_pos(Obj) ->
-    {maps:get(<<"x">>, Obj), maps:get(<<"y">>, Obj)}.
-
 remove_walled(ObjList) ->
     F = fun(Obj) ->
-            ObjEffect = maps:get(<<"effect">>, Obj),
+            ObjEffect = Obj#local_obj.effect,
             lists:member(<<"wall">>, ObjEffect)
         end,
-
     lists:filter(F, ObjList).
 
 remove_dead(ObjList) ->
     F = fun(Obj) ->
-            ObjState = maps:get(<<"state">>, Obj),
-            ObjState =/= dead
+            Obj#local_obj.state =/= dead
         end,
-
     lists:filter(F, ObjList).
 
-process_wander(#{<<"state">> := State,
-                 <<"x">> := X,
-                 <<"y">> := Y,
-                 <<"id">> := Id} = NPCUnit) when State =:= none ->
-    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    [Unit] = db:read(local_obj, Id),
-    GlobalPos = Unit#local_obj.global_pos,
+remove_structures(ObjList) ->
+    F = fun(Obj) ->
+            Obj#local_obj.class =/= structure
+        end,
+    lists:filter(F, ObjList).
 
+process_wander(#local_obj{state = State,
+                          global_pos = GlobalPos,
+                          pos = {X, Y}} = NPCUnit) when State =:= none ->
+    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
     Action = get_wander_pos(false, NPCUnit, GlobalPos, none, Neighbours),
 
     add_local_action(Action);
