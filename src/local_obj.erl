@@ -10,10 +10,8 @@
 
 -export([get/1, get_info/1, get_type/1, get_stats/1, units_from_obj/1, units_stats_from_obj/1]).
 -export([create/3, update/3, remove/1]).
--export([test/0, find/1, info/1]).
--export([find_type/1, get_by_pos/2, is_nearby_hero/2, readtest/1]).
-
-
+-export([find_type/1, is_nearby_hero/2, readtest/1]).
+-export([get_by_pos/2, get_wall/2]).
 
 get(Id) ->
     LocalObj = find(Id),
@@ -73,6 +71,15 @@ get_by_pos(GlobalPos, LocalPos) ->
                                                          LPos =:= LocalPos -> N end),
     LocalObjs = db:select(local_obj, MS),
     LocalObjs.
+
+get_wall(GlobalPos, LocalPos) ->
+    MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos,
+                                       pos = LPos,
+                                       subclass = SubClass}) when GPos =:= GlobalPos,
+                                                                  LPos =:= LocalPos,
+                                                                  SubClass =:= <<"wall">> -> N end),
+    [Wall] = db:select(local_obj, MS),
+    Wall.
 
 is_nearby_hero(_Target = #local_obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
     true;
