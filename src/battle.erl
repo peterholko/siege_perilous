@@ -158,10 +158,9 @@ is_adjacent(SourceObj, TargetObj) ->
             false
     end.
 
-is_targetable(LocalObj) ->
-    Targetable = not structure:behind_wall(LocalObj#local_obj.global_pos,
-                                           LocalObj#local_obj.pos),
-    lager:info("Targetable: ~p", [Targetable]),
+is_targetable(#local_obj{effect = Effect} = _LocalObj) ->
+    HasWall = lists:member(<<"wall">>, Effect),
+    Targetable = not HasWall,
     Targetable.
 
 is_target_alive(dead) -> 

@@ -1466,7 +1466,7 @@ function drawInfoUnit(jsonData) {
     }
 
     if(jsonData.class == "structure") {
-        if(jsonData.state == "started") {
+        if(jsonData.state == "founded") {
             var btnBuild = activeInfoPanel.getChildByName("btnBuild");
             btnBuild.visible = true;
         
