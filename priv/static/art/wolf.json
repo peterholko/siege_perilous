@@ -1,0 +1,14 @@
+{
+    "frames": {
+        "width": 72,
+        "height": 72
+    },
+    "animations": {
+        "die": [0,"dead",0.5],
+        "dead": [0],
+        "combat": [0],
+        "none": [0],
+        "moving": [0]
+    },
+    "images": ["/static/art/wolf.png"]
+}

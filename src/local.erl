@@ -208,15 +208,18 @@ is_add_remove_wall(true) -> add;
 is_add_remove_wall(false) -> remove;
 is_add_remove_wall(_) -> remove.
 
-update_wall_effect(add, LocalObj) ->
-    NewEffects = [ wall | LocalObj#local_obj.effect],
+update_wall_effect(add, #local_obj{class = Class} = LocalObj) when Class =:= unit ->
+    NewEffects = [ <<"wall">> | LocalObj#local_obj.effect],
     NewLocalObj = LocalObj#local_obj {effect = NewEffects},
     db:write(NewLocalObj);
 
-update_wall_effect(remove, LocalObj) ->
-    NewEffects = lists:delete(wall, LocalObj#local_obj.effect),
+update_wall_effect(remove, #local_obj{class = Class} = LocalObj) when Class =:= unit ->
+    NewEffects = lists:delete(<<"wall">>, LocalObj#local_obj.effect),
     NewLocalObj = LocalObj#local_obj {effect = NewEffects},
-    db:write(NewLocalObj).
+    db:write(NewLocalObj);
+
+update_wall_effect(_, _LocalObj) ->
+    lager:info("Not applying wall effect to non-unit").
 
 %
 % Internal functions

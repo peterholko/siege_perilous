@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([execute/1, new_zombie/0, get_nearest/3]).
+-export([execute/1, new_zombie/0, new_wolf/0, get_nearest/3]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -28,6 +28,9 @@ execute(PlayerId) ->
 
 new_zombie() ->
     local:create({2,2}, none, {2,2}, 99, unit, <<"npc">>, <<"Zombie">>, none).
+
+new_wolf() ->
+    local:create({2,2}, none, {3,3}, 99, unit, <<"npc">>, <<"Wolf">>, none).
 
 %% ====================================================================
 %% Server functions
@@ -267,13 +270,14 @@ get_wander_pos(false, NPCUnit, GlobalPos, _, Neighbours) ->
 
     get_wander_pos(IsEmpty, NPCUnit, GlobalPos, RandomPos, NewNeighbours).
 
-check_wall(#local_obj{pos = Pos, effect = Effect} = EnemyUnit) ->    
+check_wall(#local_obj{global_pos = GPos, pos = Pos, effect = Effect} = EnemyUnit) ->    
     HasWall = lists:member(<<"wall">>, Effect),
-
+    lager:info("HasWall: ~p", [HasWall]),
     Target = case HasWall of
                 true ->
-                    local_obj:get_wall(Pos);
+                    local_obj:get_wall(GPos, Pos);
                 false ->
                     EnemyUnit
              end,
+    lager:info("Target: ~p", [Target]),
     Target.

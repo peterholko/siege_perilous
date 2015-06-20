@@ -142,7 +142,7 @@ consume_item(true, ItemId, Quantity) ->
     item:update(ItemId, Quantity).
 
 find_type(Key, Value) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"local_obj_type">>, {Key, Value, class, <<"structure">>}),
+    Cursor = mongo:find(mdb:get_conn(), <<"local_obj_type">>, {name, <<"Stockade">>, class, <<"structure">>}),
     Structures = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Structures.

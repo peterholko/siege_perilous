@@ -177,6 +177,8 @@ do_event(finish_build, EventData, _PlayerPid) ->
     NewStructure = local:update_state(StructureId, none), 
 
     local:set_wall_effect(NewStructure), 
+    
+    local_obj:update(StructureId, <<"hp">>, 1000),
 
     {false, {GlobalPos, true}};
 

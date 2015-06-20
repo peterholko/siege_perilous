@@ -158,9 +158,12 @@ is_adjacent(SourceObj, TargetObj) ->
             false
     end.
 
-is_targetable(#local_obj{effect = Effect} = _LocalObj) ->
+is_targetable(#local_obj{effect = Effect} = LocalObj) ->
+    lager:info("LocalObj: ~p", [LocalObj]),
     HasWall = lists:member(<<"wall">>, Effect),
+    
     Targetable = not HasWall,
+    lager:info("Targetable: ~p", [Targetable]),
     Targetable.
 
 is_target_alive(dead) -> 
@@ -232,35 +235,20 @@ is_unit_dead(Hp) when Hp =< 0 ->
 is_unit_dead(_Hp) ->
     <<"alive">>.
 
-is_army_dead([]) ->
-    dead;
-is_army_dead(_Units) ->
-    alive.
-
-process_unit_dead(AtkObjId, DefObjId, DefId) ->
+process_unit_dead(_AtkObjId, _DefObjId, DefId) ->
     lager:info("Unit ~p died.", [DefId]),
-    lager:info("Updating unit state"),
-    %Remove unit from collection
-    local:update_state(DefId, dead),
 
     lager:info("Removing unit from battle_unit"),
-    
     %Remove unit from battle and action
     db:delete(battle_unit, DefId),
     db:delete(action, DefId),
 
-    DefUnits = db:index_read(local_obj, DefObjId, #local_obj.global_obj_id),
+    lager:info("Updating unit state"),
+    %Remove unit from collection
+    NewLocalObj = local:update_state(DefId, dead),
 
-    case is_army_dead(DefUnits) of
-        dead ->
-            %Update map obj state of attacker
-            map:update_obj_state(AtkObjId, none),
-            
-            %Reprocess perception
-            game:set_perception(true);
-        alive ->
-            none
-    end.
+    %Remove potential wall effect
+    local:set_wall_effect(NewLocalObj).
 
 set_battle_unit(LocalObj) ->
     {Id} = bson:lookup('_id', LocalObj),
