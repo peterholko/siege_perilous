@@ -33,7 +33,7 @@ check_req(Structure) ->
     process_req(true, ReqList, Items).
 
 list() ->
-    Structures = find_type(level, 1),
+    Structures = find_type(level, 0),
     Structures.
 
 recipe_list(LocalObj) ->
@@ -142,7 +142,7 @@ consume_item(true, ItemId, Quantity) ->
     item:update(ItemId, Quantity).
 
 find_type(Key, Value) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"local_obj_type">>, {name, <<"Stockade">>, class, <<"structure">>}),
+    Cursor = mongo:find(mdb:get_conn(), <<"local_obj_type">>, {Key, Value}),
     Structures = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Structures.

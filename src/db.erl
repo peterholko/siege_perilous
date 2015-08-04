@@ -63,6 +63,7 @@ create_schema() ->
     mnesia:add_table_index(local_obj, global_obj_id),
     mnesia:add_table_index(local_obj, global_pos),
     mnesia:add_table_index(local_obj, player),
+    mnesia:add_table_index(local_obj, pos),
 
     mnesia:stop().
 

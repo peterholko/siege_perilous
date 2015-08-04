@@ -89,6 +89,8 @@ check_events([Event | Rest], PrevGlobalRecalc, PrevLocalRecalc) ->
     NewGlobalRecalc = GlobalRecalc or PrevGlobalRecalc,
     NewLocalRecalc = add_local_recalc(PrevLocalRecalc, LocalRecalc),
 
+    db:dirty_delete(event, Event#event.id),
+
     check_events(Rest, NewGlobalRecalc, NewLocalRecalc).
 
 add_local_recalc(PrevLocalRecalc, {GlobalPos, true}) ->
@@ -145,29 +147,32 @@ do_event(exit_local, EventData, PlayerPid) ->
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
-    {LocalObjId, Resource} = EventData,
+    {LocalObjId, Resource, NumTicks, Auto} = EventData,
+
 
     %Update obj state
     local:update_state(LocalObjId, none),
 
     %Create/update item
     NewItems = resource:harvest(LocalObjId, Resource),
+    
+    [LocalObj] = db:read(local_obj, LocalObjId),
+    case local_obj:is_nearby_hero(LocalObj, LocalObj#local_obj.player) of
+        true ->
+            %Send item perception to player pid
+            send_to_process(PlayerPid, new_items, NewItems);
+        false ->
+            nothing
+    end,
 
-    %Send item perception to player pid
-    send_to_process(PlayerPid, new_items, NewItems), 
+    case Auto of
+        true ->
+            game:add_event(PlayerPid, harvest, EventData, LocalObjId, NumTicks);
+        false ->
+            nothing
+    end,
     
     {false, false};
-
-do_event(build, EventData, PlayerPid) ->
-    lager:info("Processing build event: ~p", [EventData]),
-    {GlobalPos, StructureId} = EventData,
-
-    local:update_state(StructureId, none),
-
-    %Send update state to player
-    send_to_process(PlayerPid, local_state, {StructureId, none}),
-
-    {false, {GlobalPos, true}};
 
 do_event(finish_build, EventData, _PlayerPid) ->
     lager:info("Processing build event: ~p", [EventData]),

@@ -36,8 +36,14 @@ add_event(PlayerProcess, EventType, EventData, EventSource, EventTick) ->
     db:write(Event).
 
 cancel_event(EventSource) ->
-    [Event] = db:index_read(event, EventSource, #event.source),
-    db:delete(event, Event#event.id).
+    case db:index_read(event, EventSource, #event.source) of
+        [Event] ->
+            lager:info("cancel_event - Deleting event: ~p", [Event]),
+            db:delete(event, Event#event.id);
+        _ ->
+            lager:info("Cancel_event - none found from ~p", [EventSource]),
+            nothing
+    end.
 
 trigger_global() ->
     gen_server:cast({global, game_pid}, trigger_global).

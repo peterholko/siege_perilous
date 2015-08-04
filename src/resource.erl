@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([harvest/2, survey/1, quantity/1]).
+-export([harvest/2, survey/1, is_valid/2, is_auto/2, quantity/1]).
 
 harvest(ObjId, ResourceType) ->
     NewItem = item:create(ObjId, ResourceType, 1),
@@ -23,6 +23,23 @@ survey(Pos) ->
         end,
 
     lists:foldl(F, [], Resources).
+
+is_valid(Pos, Resource) ->
+    Resources = db:read(resource, {1, Pos}),
+    
+    F = fun(TileResource) ->
+            TileResource#resource.name =:= Resource
+        end,
+
+    lists:any(F, Resources).
+
+is_auto(LocalObjs, Resource) ->
+    
+    F = fun(LocalObj) ->
+            LocalObj#local_obj.name =:= <<"Lumbermill">>
+        end,
+
+    lists:any(F, LocalObjs).
 
 quantity(<<"high">>) -> 50;
 quantity(<<"average">>) -> 25;

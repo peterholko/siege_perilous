@@ -108,7 +108,8 @@ move_unit(UnitId, Pos) ->
     Player = get(player_id),
     NumTicks = 8,
     [Unit] = db:read(local_obj, UnitId),
-    
+   
+    ValidState = Unit#local_obj.state =/= dead, 
     ValidClass = Unit#local_obj.class =:= unit,
     ValidAdjacent = map:is_adjacent(Unit#local_obj.pos, Pos),
     ValidPos = local:is_empty(Unit#local_obj.global_pos, Pos),
@@ -116,12 +117,13 @@ move_unit(UnitId, Pos) ->
 
     lager:info("move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   
  
-    Result = ValidClass andalso 
+    Result = ValidState andalso
+             ValidClass andalso 
              ValidAdjacent andalso
              ValidPos andalso
              NearbyHero,
     
-    add_move_unit(Result, {Unit#local_obj.global_pos, Player, UnitId, Pos}, NumTicks).
+    add_move_unit(Result, {Unit, Pos}, NumTicks).
 
 survey(LocalObjId) ->
     lager:info("Survey: ~p", [LocalObjId]),
@@ -140,17 +142,24 @@ survey(LocalObjId) ->
 
 harvest(LocalObjId, Resource) ->
     Player = get(player_id),
-    NumTicks = 8,
+    NumTicks = 80,
 
     [LocalObj] = db:read(local_obj, LocalObjId),
 
     ValidPlayer = is_player_owned(LocalObj#local_obj.player, Player),
     ValidState = is_state(LocalObj#local_obj.state, none),
+    ValidResource = resource:is_valid(LocalObj#local_obj.pos, Resource),
 
-    %TODO add validation
-    Result = ValidPlayer and ValidState,
+    Result = ValidPlayer andalso
+             ValidState andalso
+             ValidResource,
 
-    add_harvest_event(Result, {LocalObjId, Resource}, NumTicks).
+    %Get objs on the same tile
+    LocalObjs = db:index_read(local_obj, LocalObj#local_obj.pos, #local_obj.pos),
+
+    AutoHarvest = resource:is_auto(LocalObjs, Resource),
+
+    add_harvest_event(Result, {LocalObjId, Resource, AutoHarvest}, NumTicks).
 
 loot(SourceId, ItemId) ->
     %TODO add validation
@@ -268,20 +277,41 @@ build(LocalObjId, Structure) ->
 finish_build(SourceId, StructureId) ->
     PlayerId = get(player_id),
 
+    [Source] = db:read(local_obj, SourceId),
     [Structure] = db:read(local_obj, StructureId),
-    StructureM = local_obj:get_stats(StructureId),
-    {NumTicks} = bson:lookup(build_time, StructureM),
 
     lager:info("Structure state: ~p", [Structure#local_obj.state]),
-    %TODO add validation to make sure id is a structure
-    ValidFinish = Structure#local_obj.player =:= PlayerId andalso
-                  Structure#local_obj.state =:= founded andalso
+
+    finish_build(PlayerId, Source, Structure).
+
+finish_build(PlayerId, Source, Structure = #local_obj {state = founded}) -> 
+    StructureM = local_obj:get_stats(Structure#local_obj.id),
+    {NumTicks} = bson:lookup(build_time, StructureM),
+    
+    ValidFinish = Source#local_obj.pos =:= Structure#local_obj.pos andalso
+                  Structure#local_obj.player =:= PlayerId andalso
                   structure:check_req(StructureM),
 
-    add_finish_build(ValidFinish, {SourceId, Structure#local_obj.global_pos, StructureId}, NumTicks),
+    add_finish_build(ValidFinish, {Source#local_obj.id, 
+                                   Structure#local_obj.global_pos, 
+                                   Structure#local_obj.id}, NumTicks),
 
     [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
-    {<<"build_time">>, NumTicks * 4}]. 
+    {<<"build_time">>, NumTicks * 4}];
+
+finish_build(PlayerId, Source, Structure = #local_obj {state = under_construction}) ->
+    StructureM = local_obj:get_stats(Structure#local_obj.id),
+    {NumTicks} = bson:lookup(build_time, StructureM),
+
+    ValidFinish = Source#local_obj.pos =:= Structure#local_obj.pos andalso
+                  Structure#local_obj.player =:= PlayerId,
+ 
+     add_finish_build(ValidFinish, {Source#local_obj.id, 
+                                   Structure#local_obj.global_pos, 
+                                   Structure#local_obj.id}, NumTicks),
+
+    [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
+    {<<"build_time">>, NumTicks * 4}].
 
 recipe_list(SourceId) ->
     Player = get(player_id),
@@ -341,11 +371,11 @@ cancel(SourceId) ->
 add_harvest_event(false, _EventData, _Ticks) ->
     lager:info("Harvest failed"),
     none;
-add_harvest_event(true, {LocalObjId, Resource}, NumTicks) ->
+add_harvest_event(true, {LocalObjId, Resource, Auto}, NumTicks) ->
     %Update obj state
     local:update_state(LocalObjId, harvesting),
 
-    EventData = {LocalObjId, Resource},
+    EventData = {LocalObjId, Resource, NumTicks, Auto},
     game:add_event(self(), harvest, EventData, LocalObjId, NumTicks).
 
 add_finish_build(false, _EventData, _Ticks) ->
@@ -353,6 +383,8 @@ add_finish_build(false, _EventData, _Ticks) ->
     none;
 
 add_finish_build(true, {LocalObjId, GlobalPos, StructureId}, NumTicks) ->
+    game:cancel_event(LocalObjId),
+
     EventData = {LocalObjId, GlobalPos, StructureId},
 
     local:update_state(LocalObjId, building),
@@ -372,6 +404,8 @@ add_move(false, _EventData, _Ticks) ->
     lager:info("Move failed"),
     none;
 add_move(true, {Obj, NewPos}, NumTicks) ->
+
+
     %Update obj state
     obj:update_state(Obj, moving),
 
@@ -382,17 +416,20 @@ add_move(true, {Obj, NewPos}, NumTicks) ->
 
     game:add_event(self(), move_obj, EventData, none, NumTicks).
 
-add_move_unit(true, {GlobalPos, Player, UnitId, NewPos}, NumTicks) ->
+add_move_unit(true, {Unit, NewPos}, NumTicks) ->
+    %Cancel any events associated with previous state
+    game:cancel_event(Unit#local_obj.id),
+
     %Update unit state
-    local:update_state(UnitId, moving),
+    local:update_state(Unit#local_obj.id, moving),
     
     %Create event data
-    EventData = {GlobalPos,
-                 Player,
-                 UnitId,
+    EventData = {Unit#local_obj.global_pos,
+                 Unit#local_obj.player,
+                 Unit#local_obj.id,
                  NewPos},
 
-    game:add_event(self(), move_local_obj, EventData, UnitId, NumTicks);
+    game:add_event(self(), move_local_obj, EventData, Unit#local_obj.id, NumTicks);
 
 add_move_unit(false, _, _) ->
     lager:info("Move unit failed"),

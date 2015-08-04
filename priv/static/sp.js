@@ -413,6 +413,7 @@ function sendBuild(structureName) {
 };
 
 function sendFinishBuild(structureid) {
+    console.log("sendFinishBuild");
     var e = '{"cmd": "finish_build", "sourceid": "' + selectedPortrait + '", "structureid": "' + structureid + '"}';
     websocket.send(e);
 };
@@ -1466,7 +1467,8 @@ function drawInfoUnit(jsonData) {
     }
 
     if(jsonData.class == "structure") {
-        if(jsonData.state == "founded") {
+        if(jsonData.state == "founded" || 
+           jsonDate.state == "under_construction") {
             var btnBuild = activeInfoPanel.getChildByName("btnBuild");
             btnBuild.visible = true;
         

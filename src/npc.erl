@@ -149,6 +149,8 @@ process_npc(#local_obj{state = State, id = NPCId} = NPCUnit, AllEnemyUnits) when
     {Int} = bson:lookup(int, NPCStats),
     {Aggression} = bson:lookup(aggression, NPCStats),
 
+    lager:info("Int: ~p Aggression: ~p", [Int, Aggression]),
+
     determine_action(NPCUnit, Int, Aggression, AllEnemyUnits);
 
 process_npc(_NPCUnit, _AllEnemyUnits) ->
@@ -163,7 +165,9 @@ determine_action(NPCUnit, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     process_target(NPCUnit, Target);
 
 determine_action(NPCUnit, <<"animal">>, <<"high">>, AllEnemyUnits) ->
+    lager:info("AllEnemyUnits: ~p", [AllEnemyUnits]),
     EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
+    lager:info("EnemyUnits: ~p", [EnemyUnits]),
     EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
     lager:info("Current Target: ~p", [EnemyUnit]),
     
@@ -231,7 +235,8 @@ add_move_unit(GlobalPos, Player, UnitId, NewPos, NumTicks) ->
 remove_walled(ObjList) ->
     F = fun(Obj) ->
             ObjEffect = Obj#local_obj.effect,
-            lists:member(<<"wall">>, ObjEffect)
+            IsWalled = lists:member(<<"wall">>, ObjEffect),
+            not IsWalled
         end,
     lists:filter(F, ObjList).
 
