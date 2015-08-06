@@ -78,7 +78,7 @@ var btnBuildRestImg = new Image();
 var btnBuildClickedImg = new Image();
 
 var btnCraftRestImg = new Image();
-
+var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
 
 var h1Font = "14px Verdana"
@@ -141,6 +141,7 @@ btnBuildClickedImg.src = "/static/art/ButtonBuildClicked.png";
 
 btnCraftRestImg.src = "/static/art/btn_craft_rest.png";
 btnSplitRestImg.src = "/static/art/btn_split_rest.png";
+btnAssignRestImg.src = "/static/art/btn_assign_rest.png";
 
 var zombie = {
     images: ['/static/art/zombie_ss.png'],
@@ -423,6 +424,11 @@ function sendRecipeList(sourceid) {
     websocket.send(e);
 };
 
+function sendAssign(sourceid, targetid) {
+    var e = '{"cmd": "assign", "sourceid": "' + sourceid + '", "targetid": "' + targetid + '"}';
+    websocket.send(e);
+};
+
 function sendCraft(sourceid, recipe) {
     var e = '{"cmd": "craft", "sourceid": "' + sourceid + '", "recipe": "' + recipe + '"}';
     websocket.send(e);
@@ -552,7 +558,7 @@ function onMessage(evt) {
             clearLocal();
             drawExplore(jsonData);
             drawLocal(jsonData);
-            drawPortraits();
+            drawPortrait();
         }
         else if(jsonData.packet == "item_perception") {
             dialogPanel.visible = false;
@@ -594,12 +600,15 @@ function onMessage(evt) {
         else if(jsonData.packet == "survey") {
             drawSurveyDialog(jsonData);
         }
-        else if(jsonData.packet =="structure_list") {
+        else if(jsonData.packet == "structure_list") {
             drawStructureListDialog(jsonData);
         }     
-        else if(jsonData.packet =="recipe_list") {
+        else if(jsonData.packet == "recipe_list") {
             drawCraftListDialog(jsonData);
-        }     
+        }
+        else if(jsonData.packet == "finish_build") {
+            drawProgressBar(jsonData);
+        }
     }
 
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
@@ -900,6 +909,7 @@ function drawLocalSelectPanel(tileX, tileY) {
             selectIcon.visible = true;
 
             selectedUnit = this.id;
+            drawSelectedPortrait();
 
             if(attackToggled) {
                 var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedPortrait + '", "targetid": "' + selectedUnit + '"}';    
@@ -916,63 +926,20 @@ function drawLocalSelectPanel(tileX, tileY) {
     }
 };
 
-function drawPortraits() {
-    var numPortraits = 0;
-    var portraits = [];
+function drawSelectedPortrait() {
+    var content = portraitPanel.getChildByName("content");
+    content.removeAllChildren();
+    
+    if(selectedUnit) {    
+        selectedPortrait = selectedUnit;
 
-    for(var localObjId in localObjs) {
-        var objName = localObjs[localObjId].type;
+        var objName = localObjs[selectedUnit].type;
         objName = objName.toLowerCase().replace(/ /g, '');
         var imagePath =  "/static/art/" + objName + ".png";
 
-        if(playerId == localObjs[localObjId].player) {
-            var portrait = new createjs.Container();
-            var bg = new createjs.Bitmap(portraitBg);
-            var selectPortrait = new createjs.Bitmap(selectIconImage);
-            
-            bg.x = 0;
-            bg.y = 0;
+        addImage({id: objName, path: imagePath, x: 0, y: 0, target: content});
+    }
 
-            selectPortrait.x = 7;
-            selectPortrait.y = 7;
-
-            selectPortrait.name = "selectPortrait";
-
-            if(numPortraits == 0) {
-                selectPortrait.visible = true;
-                selectedPortrait = localObjId;
-            } 
-            else {
-                selectPortrait.visible = false;
-            }
-
-            portrait.addChild(bg);
-            portrait.addChild(selectPortrait);
-
-            portrait.x = numPortraits * 84 + 75;
-            portrait.y = 0;
-            portrait.id = localObjId;
-
-            portrait.on("mousedown", function(evt) {                 
-                for(var i = 0; i < portraits.length; i++) {
-                    var selectPortrait = portraits[i].getChildByName("selectPortrait");
-                    selectPortrait.visible = false;
-                }
-
-                var selectPortrait = this.getChildByName("selectPortrait");
-                selectPortrait.visible = true;
-
-                selectedPortrait = this.id;
-            });
-
-            portraitPanel.addChild(portrait);
-
-            addImage({id: objName, path: imagePath, x: 0, y: 0, target: portrait});
-
-            portraits.push(portrait);
-            numPortraits += 1;
-        }
-    } 
 };
 
 function drawDmg(jsonData) {
@@ -1468,16 +1435,24 @@ function drawInfoUnit(jsonData) {
 
     if(jsonData.class == "structure") {
         if(jsonData.state == "founded" || 
-           jsonDate.state == "under_construction") {
+           jsonData.state == "under_construction") {
             var btnBuild = activeInfoPanel.getChildByName("btnBuild");
             btnBuild.visible = true;
-        
+            
+            console.log("Adding mousedown event handler");   
             btnBuild.on("mousedown", function(evt) {
                 console.log("drawInfoUnit btnBuild mousedown");
                 sendFinishBuild(evt.target.parent.parent._id);
             });
         }
         else if(jsonData.state == "none") {
+            var btnAssign = activeInfoPanel.getChildByName("btnAssign");
+            btnAssign.visible = true;
+
+            btnAssign.on("mousedown", function(evt) {
+                sendAssign(selectedPortrait, jsonData._id);
+            });
+        
             var btnCraft = activeInfoPanel.getChildByName("btnCraft");
             btnCraft.visible = true;
 
@@ -1611,6 +1586,22 @@ function drawItemSplit(itemId, itemName, quantity) {
 
     addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconLeft});
     addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconRight});
+};
+
+function drawProgressBar(jsonData) {
+    var bar = new tine.ProgressBar('green', 'black', null, 100, 15);
+    bar.value = 0;
+    bar.x = 500;
+    bar.y = 500;
+
+    stage.addChild(bar); 
+
+    updateBar(bar);
+
+    function updateBar(bar) {
+        createjs.Tween.get(bar)
+            .to({value: 100}, (jsonData.build_time / 5) * 1000);
+    }
 };
 
 function initUI() {
@@ -1752,8 +1743,16 @@ function initUI() {
     actionBar.addChild(selectPanel);
 
     portraitPanel = new createjs.Container();
-    portraitPanel.x = 0;
-    portraitPanel.y = stageHeight - 83;
+    var bgPanel = new createjs.Bitmap(portraitBg);
+    var content = new createjs.Container();
+   
+    content.name = "content";
+
+    portraitPanel.addChild(bgPanel);
+    portraitPanel.addChild(content);
+ 
+    portraitPanel.x = 333;
+    portraitPanel.y = stageHeight - 125;
 
     stage.addChild(portraitPanel);
 
@@ -1765,11 +1764,13 @@ function initUI() {
         var content = new createjs.Container();
         var btnBuild = new createjs.Container();
         var btnCraft = new createjs.Container();
+        var btnAssign = new createjs.Container();
 
         var btnBuildRest = new createjs.Bitmap(btnBuildRestImg);
         var btnBuildClicked = new createjs.Bitmap(btnBuildClickedImg);
 
         var btnCraftRest = new createjs.Bitmap(btnCraftRestImg);
+        var btnAssignRest = new createjs.Bitmap(btnAssignRestImg);
 
         panel.visible = false;
 
@@ -1784,6 +1785,10 @@ function initUI() {
         btnCraft.x = 500 / 2 - 133 / 2;
         btnCraft.y = 240;
 
+        btnAssign.visible = false;
+        btnAssign.x = 500 / 2 - 133 / 2;
+        btnAssign.y = 165;
+
         btnBuild.name = "btnBuild";
         btnBuildRest.name = "rest";
         btnBuildClicked.name = "clicked";
@@ -1791,15 +1796,22 @@ function initUI() {
         btnCraft.name = "btnCraft";
         btnCraftRest.name = "rest";
 
+        btnAssign.name = "btnAssign";
+        btnAssignRest.name = "rest";
+
         btnBuildRest.visible = true;
         btnBuildClicked.visible = false;
 
         btnCraftRest.visible = true;
+        
+        btnAssignRest.visible = true;
 
         btnBuild.addChild(btnBuildRest);
         btnBuild.addChild(btnBuildClicked);
 
         btnCraft.addChild(btnCraftRest);
+
+        btnAssign.addChild(btnAssignRest);
 
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
@@ -1830,6 +1842,7 @@ function initUI() {
         panel.addChild(content);
         panel.addChild(btnBuild);
         panel.addChild(btnCraft);
+        panel.addChild(btnAssign);
 
         stage.addChild(panel);
 

@@ -43,6 +43,9 @@ split(Item, NewQuantity) ->
 equip(ItemId) ->
     mdb:update(<<"item">>, ItemId, {equip, <<"true">>}).
 
+
+update(ItemId, 0) ->
+    mdb:delete(<<"item">>, ItemId);
 update(ItemId, NewQuantity) ->
     mdb:update(<<"item">>, ItemId, {quantity, NewQuantity}).
 

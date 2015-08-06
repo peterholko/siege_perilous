@@ -29,6 +29,7 @@
          recipe_list/1,
          craft/2,
          equip/2,
+         assign/2,
          cancel/1]).
 
 init_perception(PlayerId) ->
@@ -142,7 +143,7 @@ survey(LocalObjId) ->
 
 harvest(LocalObjId, Resource) ->
     Player = get(player_id),
-    NumTicks = 80,
+    NumTicks = 20,
 
     [LocalObj] = db:read(local_obj, LocalObjId),
 
@@ -311,7 +312,7 @@ finish_build(PlayerId, Source, Structure = #local_obj {state = under_constructio
                                    Structure#local_obj.id}, NumTicks),
 
     [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
-    {<<"build_time">>, NumTicks * 4}].
+    {<<"build_time">>, NumTicks}].
 
 recipe_list(SourceId) ->
     Player = get(player_id),
@@ -355,6 +356,26 @@ equip(Id, ItemId) ->
     Result = ValidItem and ValidState and ValidPlayer,
 
     ReturnMsg = add_equip(Result, ItemId),
+    ReturnMsg.
+
+assign(SourceId, TargetId) ->
+    Player = get(player_id),
+    
+    [SourceObj] = db:read(local_obj, SourceId),
+    [TargetObj] = db:read(local_obj, TargetId),
+
+    ValidPlayer1 = is_player_owned(SourceObj#local_obj.player, Player),
+    ValidPlayer2 = is_player_owned(TargetObj#local_obj.player, Player),
+    NearbyHero = local_obj:is_nearby_hero(SourceObj, Player),
+    
+    Result = ValidPlayer1 and ValidPlayer2 and NearbyHero,
+
+    ReturnMsg = case Result of
+                    true ->
+                        commoner:assign(SourceId, TargetId);
+                    false ->
+                        <<"Source or target not owned by player">>
+                end,
     ReturnMsg.
 
 cancel(SourceId) ->

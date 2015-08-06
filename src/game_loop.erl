@@ -38,6 +38,9 @@ loop(NumTick, LastTime, GamePID) ->
     %Execute NPC actions
     execute_npc(NumTick),
 
+    %Execute commoner tasks
+    execute_commoner(NumTick),
+
     %Clean up
     clean_up(NumTick),
  
@@ -47,6 +50,8 @@ loop(NumTick, LastTime, GamePID) ->
     %Update charge times
     BattleUnits = ets:tab2list(battle_unit),
     update_charge_times(BattleUnits),
+
+
 
     {NextTime, SleepTime} = calculate_sleep(LastTime),
 
@@ -234,6 +239,11 @@ send_to_process(Process, MessageType, Message) when is_pid(Process) ->
 execute_npc(NumTick) when (NumTick rem 100) =:= 0 ->
     npc:execute(99);
 execute_npc(_) ->
+    nothing.
+
+execute_commoner(NumTick) when (NumTick rem 150) =:= 0 ->
+    commoner:check_task();
+execute_commoner(_) ->
     nothing.
 
 clean_up(NumTick) when (NumTick rem 200) =:= 0 ->

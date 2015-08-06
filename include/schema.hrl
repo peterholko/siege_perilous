@@ -75,5 +75,9 @@
                  type,
                  data}).
 
+-record(commoner, {id,
+                    task,
+                    dwelling}).
+
 -record(test, {attr,
                value}).

@@ -248,6 +248,17 @@ message_handle(<<"equip">>, Message) ->
     jsx:encode([{<<"packet">>, <<"equip">>},
                 {<<"result">>, Result}]);    
 
+message_handle(<<"assign">>, Message) ->
+    lager:info("message: assign"),
+    
+    SourceId = util:hex_to_bin(map_get(<<"sourceid">>, Message)),
+    TargetId = util:hex_to_bin(map_get(<<"targetid">>, Message)),
+
+    Result = player:assign(SourceId, TargetId),
+    
+    jsx:encode([{<<"packet">>, <<"assign">>},
+                {<<"result">>, Result}]);
+
 message_handle(<<"cancel">>, Message) ->
     lager:info("message: cancel"),
     SrcId = map_get(<<"sourceid">>, Message),
