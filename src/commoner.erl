@@ -120,6 +120,7 @@ process_action({move_dest, Dest}, _Commoner, LocalObj) ->
             add_move_unit(LocalObj, NextPos)
     end;
 process_action({harvest, _StructureId}, _Commoner, LocalObj) ->
+    local:update_state(LocalObj#local_obj.id, harvesting),
     EventData = {LocalObj#local_obj.id, <<"Cragroot Popular">>, 50, true},
     game:add_event(self(), harvest, EventData, LocalObj#local_obj.id, 50);
  
