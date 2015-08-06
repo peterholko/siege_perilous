@@ -54,8 +54,8 @@ start(_Type, _Args) ->
     lager:info("Starting Battle Manager"),
     battle:start(),
 
-    lager:info("Starting Commoner Manager"),
-    commoner:start(),
+    lager:info("Starting Villager Manager"),
+    villager:start(),
 
     map:tileset(),
     map:xml_test(),

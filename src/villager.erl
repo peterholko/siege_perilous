@@ -1,10 +1,10 @@
 %% -------------------------------------------------------------------
 %% Author  : Peter Holko
-%%% Description : Commoner Manager server
+%%% Description : Villager Manager server
 %%%
 %%% Created : Aug 6, 2015
 %%% -------------------------------------------------------------------
--module(commoner).
+-module(villager).
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -22,16 +22,16 @@
 %% ====================================================================
 
 start() ->
-    gen_server:start({global, commoner}, commoner, [], []).
+    gen_server:start({global, villager}, villager, [], []).
 
 check_task() ->
-    gen_server:cast({global, commoner}, process).
+    gen_server:cast({global, villager}, process).
 
 assign(SourceId, TargetId) ->
-    Commoner = #commoner {id = SourceId,
+    Villager = #villager {id = SourceId,
                           task = {structure, TargetId},
                           dwelling = none},
-    db:write(Commoner).
+    db:write(Villager).
 
 %% ====================================================================
 %% Server functions
@@ -42,7 +42,7 @@ init([]) ->
 
 handle_cast(process, Data) ->   
 
-    process(mnesia:dirty_first(commoner)),
+    process(mnesia:dirty_first(villager)),
 
     {noreply, Data};
 
@@ -75,22 +75,22 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 process('$end_of_table') ->
-    lager:info("Done processing commoners");
+    lager:info("Done processing villagers");
 process(Id) ->
-    [Commoner] = db:dirty_read(commoner, Id),
+    [Villager] = db:dirty_read(villager, Id),
     [LocalObj] = db:dirty_read(local_obj, Id),
 
-    process_state(Commoner, LocalObj),
+    process_state(Villager, LocalObj),
     
-    process(mnesia:dirty_next(commoner, Id)).
+    process(mnesia:dirty_next(villager, Id)).
 
-process_state(Commoner, LocalObj = #local_obj {state = State}) when State =:= none ->
-    Task = Commoner#commoner.task,
-    process_task(Task, Commoner, LocalObj);
-process_state(_Commoner, _LocalObj) ->
+process_state(Villager, LocalObj = #local_obj {state = State}) when State =:= none ->
+    Task = Villager#villager.task,
+    process_task(Task, Villager, LocalObj);
+process_state(_Villager, _LocalObj) ->
     nothing.
 
-process_task({structure, StructureId}, Commoner, LocalObj) ->
+process_task({structure, StructureId}, Villager, LocalObj) ->
     [Structure] = db:dirty_read(local_obj, StructureId),
 
     %Check same position    
@@ -104,12 +104,12 @@ process_task({structure, StructureId}, Commoner, LocalObj) ->
                     {move_dest, Structure#local_obj.pos}
              end,
 
-    process_action(Action, Commoner, LocalObj);
+    process_action(Action, Villager, LocalObj);
 
 process_task(_, _, _) ->
     nothing.
 
-process_action({move_dest, Dest}, _Commoner, LocalObj) ->
+process_action({move_dest, Dest}, _Villager, LocalObj) ->
     Pathfinding = astar:astar(LocalObj#local_obj.pos, Dest),
     
     case Pathfinding of 
@@ -119,7 +119,7 @@ process_action({move_dest, Dest}, _Commoner, LocalObj) ->
             NextPos = lists:nth(2, PathList),
             add_move_unit(LocalObj, NextPos)
     end;
-process_action({harvest, _StructureId}, _Commoner, LocalObj) ->
+process_action({harvest, _StructureId}, _Villager, LocalObj) ->
     local:update_state(LocalObj#local_obj.id, harvesting),
     EventData = {LocalObj#local_obj.id, <<"Cragroot Popular">>, 50, true},
     game:add_event(self(), harvest, EventData, LocalObj#local_obj.id, 50);

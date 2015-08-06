@@ -372,7 +372,7 @@ assign(SourceId, TargetId) ->
 
     ReturnMsg = case Result of
                     true ->
-                        commoner:assign(SourceId, TargetId);
+                        villager:assign(SourceId, TargetId);
                     false ->
                         <<"Source or target not owned by player">>
                 end,

@@ -75,9 +75,9 @@
                  type,
                  data}).
 
--record(commoner, {id,
-                    task,
-                    dwelling}).
+-record(villager, {id,
+                   task,
+                   dwelling}).
 
 -record(test, {attr,
                value}).

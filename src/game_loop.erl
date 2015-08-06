@@ -38,8 +38,8 @@ loop(NumTick, LastTime, GamePID) ->
     %Execute NPC actions
     execute_npc(NumTick),
 
-    %Execute commoner tasks
-    execute_commoner(NumTick),
+    %Execute villager tasks
+    execute_villager(NumTick),
 
     %Clean up
     clean_up(NumTick),
@@ -241,9 +241,9 @@ execute_npc(NumTick) when (NumTick rem 100) =:= 0 ->
 execute_npc(_) ->
     nothing.
 
-execute_commoner(NumTick) when (NumTick rem 150) =:= 0 ->
-    commoner:check_task();
-execute_commoner(_) ->
+execute_villager(NumTick) when (NumTick rem 150) =:= 0 ->
+    villager:check_task();
+execute_villager(_) ->
     nothing.
 
 clean_up(NumTick) when (NumTick rem 200) =:= 0 ->
