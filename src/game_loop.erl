@@ -152,15 +152,19 @@ do_event(exit_local, EventData, PlayerPid) ->
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
-    {LocalObjId, Resource, NumTicks, Auto} = EventData,
-
-
-    %Update obj state
-    local:update_state(LocalObjId, none),
+    {LocalObjId, Resource, NumTicks, Repeat} = EventData,
 
     %Create/update item
     NewItems = resource:harvest(LocalObjId, Resource),
     
+    case Repeat of
+        true ->
+            game:add_event(PlayerPid, harvest, EventData, LocalObjId, NumTicks);
+        false ->
+            %Update obj state
+            local:update_state(LocalObjId, none)
+    end,
+ 
     [LocalObj] = db:read(local_obj, LocalObjId),
     case local_obj:is_nearby_hero(LocalObj, LocalObj#local_obj.player) of
         true ->
@@ -169,14 +173,7 @@ do_event(harvest, EventData, PlayerPid) ->
         false ->
             nothing
     end,
-
-    case Auto of
-        true ->
-            game:add_event(PlayerPid, harvest, EventData, LocalObjId, NumTicks);
-        false ->
-            nothing
-    end,
-    
+   
     {false, false};
 
 do_event(finish_build, EventData, _PlayerPid) ->
@@ -241,7 +238,7 @@ execute_npc(NumTick) when (NumTick rem 100) =:= 0 ->
 execute_npc(_) ->
     nothing.
 
-execute_villager(NumTick) when (NumTick rem 150) =:= 0 ->
+execute_villager(NumTick) when (NumTick rem 50) =:= 0 ->
     villager:check_task();
 execute_villager(_) ->
     nothing.

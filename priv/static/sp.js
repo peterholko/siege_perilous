@@ -736,12 +736,14 @@ function clearLocal() {
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
     var localShroudCont = localMapCont.getChildByName("localShroud");
-    var localObjsCont = localMapCont.getChildByName("localObjs"); 
+    var localObjsCont1 = localMapCont.getChildByName("localObjs1"); 
+    var localObjsCont2 = localMapCont.getChildByName("localObjs2"); 
     var selectHex = localMapCont.getChildByName("selectHex");
     
     localTilesCont.removeAllChildren();
     localShroudCont.removeAllChildren();
-    localObjsCont.removeAllChildren();
+    localObjsCont1.removeAllChildren();
+    localObjsCont2.removeAllChildren();
     
     selectHex.visible = false;
 };
@@ -770,8 +772,10 @@ function drawLocal(jsonData) {
 
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
-    var localShroudCont = localMapCont.getChildByName("localShroud");
-    var localObjsCont = localMapCont.getChildByName("localObjs"); 
+    var localShroudCont = localMapCont.getChildByName("localShroud"); 
+    var localObjsCont1 = localMapCont.getChildByName("localObjs1"); 
+    var localObjsCont2 = localMapCont.getChildByName("localObjs2"); 
+    
     var selectHex = localMapCont.getChildByName("selectHex");
 
     for(var i = 0; i < jsonData.explored.length; i++) {
@@ -816,7 +820,8 @@ function drawLocal(jsonData) {
         addLocalTile(tile);
     }
  
-    localObjsCont.removeAllChildren();
+    localObjsCont1.removeAllChildren();
+    localObjsCont2.removeAllChildren();
 
     var visibleTiles = [];
 
@@ -834,7 +839,12 @@ function drawLocal(jsonData) {
         icon.name = unitName;
         icon.id = obj.id;
         
-        addChildLocalMap(icon, "localObjs");
+        if(obj.class == "structure") {             
+            addChildLocalMap(icon, "localObjs1");
+        }
+        else {
+            addChildLocalMap(icon, "localObjs2");
+        }
 
         if(obj.player == playerId) {
 
@@ -1591,8 +1601,8 @@ function drawItemSplit(itemId, itemName, quantity) {
 function drawProgressBar(jsonData) {
     var bar = new tine.ProgressBar('green', 'black', null, 100, 15);
     bar.value = 0;
-    bar.x = 500;
-    bar.y = 500;
+    bar.x = 200;
+    bar.y = 700;
 
     stage.addChild(bar); 
 
@@ -1614,7 +1624,8 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var localMapCont = new createjs.Container();
     var localTilesCont = new createjs.Container();
-    var localObjsCont = new createjs.Container();
+    var localObjsCont1 = new createjs.Container();
+    var localObjsCont2 = new createjs.Container();
     var localShroudCont = new createjs.Container();
 
     var selectHex = new createjs.Bitmap(selectHexImage);
@@ -1634,9 +1645,9 @@ function initUI() {
     localMapCont.name = "localMap";
     localTilesCont.name = "localTiles";
     localShroudCont.name = "localShroud";
-    localObjsCont.name = "localObjs";
+    localObjsCont1.name = "localObjs1";
+    localObjsCont2.name = "localObjs2";
 
-    
     selectHex.name = "selectHex";
     selectHex.visible = false;
 
@@ -1646,7 +1657,8 @@ function initUI() {
     
     localMapCont.addChild(localTilesCont);
     localMapCont.addChild(localShroudCont);
-    localMapCont.addChild(localObjsCont);
+    localMapCont.addChild(localObjsCont1);
+    localMapCont.addChild(localObjsCont2);
     localMapCont.addChild(selectHex);
 
     stage.addChild(localPanel);

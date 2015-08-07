@@ -51,6 +51,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(resource, [{type, bag}, {disc_copies, [node()]}, {attributes, record_info(fields, resource)}]),    
     {atomic, ok} = mnesia:create_table(test, [{disc_copies, [node()]}, {attributes, record_info(fields, test)}]),    
     {atomic, ok} = mnesia:create_table(villager, [{disc_copies, [node()]}, {attributes, record_info(fields, villager)}]),    
+    {atomic, ok} = mnesia:create_table(npc, [{disc_copies, [node()]}, {attributes, record_info(fields, npc)}]),    
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),

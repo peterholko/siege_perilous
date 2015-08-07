@@ -118,8 +118,17 @@ create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Subclass, Name, State) ->
     db:write(LocalObj),
     game:trigger_local(GlobalPos),
 
+    %Check subclass for any other post creation tasks
+    create_subclass(LocalObj, Subclass),
+
     %Return ID
     Id.
+
+create_subclass(LocalObj, <<"npc">>) ->
+    NPC = #npc {id = LocalObj#local_obj.id},
+    db:write(NPC);
+create_subclass(_, _) ->
+    nothing.
 
 remove(LocalObj) ->
     db:delete(local_obj, LocalObj#local_obj.id),

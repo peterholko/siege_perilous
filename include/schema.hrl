@@ -8,10 +8,6 @@
                  disabled = false,
                  npc = false}).
 
--record(npc, {id,
-              int, 
-              aggression}).
-
 -record(connection, {player,
                      process = none}).
 
@@ -78,6 +74,9 @@
 -record(villager, {id,
                    task,
                    dwelling}).
+
+-record(npc, {id, 
+              objective = wander}).
 
 -record(test, {attr,
                value}).

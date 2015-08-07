@@ -299,6 +299,10 @@ get_effect(MapObj) when is_record(MapObj, obj) ->
     [];
 get_effect(MapObj) when is_record(MapObj, local_obj) ->
     MapObj#local_obj.effect.
+get_class(MapObj) when is_record(MapObj, obj) ->
+    MapObj#obj.class;
+get_class(MapObj) when is_record(MapObj, local_obj) ->
+    MapObj#local_obj.class.
 
 check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
     build_message(MapObj, Objs);
@@ -311,6 +315,7 @@ build_message(MapObj, Objs) ->
         <<"player">> => get_player(MapObj), 
         <<"x">> => X,
         <<"y">> => Y,
+        <<"class">> => get_class(MapObj),
         <<"type">> => get_type(MapObj),
         <<"state">> => get_state(MapObj),
         <<"effect">> => get_effect(MapObj)} | Objs].

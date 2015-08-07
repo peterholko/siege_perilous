@@ -89,7 +89,8 @@ handle_info({local_perception, Perception}, Data) ->
     
     lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
     F = fun(NPCObj) ->
-            process_npc(NPCObj, EnemyObjs)
+            [NPC] = db:read(npc, NPCObj#local_obj.id),
+            process_npc(NPC#npc.objective, NPCObj, EnemyObjs)
     end,
 
     lists:foreach(F, NPCObjs),
@@ -137,50 +138,101 @@ get_local_obj(Obj) ->
     [LocalObj] = db:read(local_obj, Id),
     LocalObj.
 
-process_npc(#local_obj{state = State} = NPCUnit, []) when State =:= none ->
+process_npc(_Objective, NPCObj, []) ->
     lager:info("No enemies nearby, wandering..."),
-    process_wander(NPCUnit);
+    %Set action wander and process
+    process_action(wander, NPCObj#local_obj.state, true, NPCObj);
 
-process_npc(#local_obj{state = State, id = NPCId} = NPCUnit, AllEnemyUnits) when State =:= none ->
-    lager:info("NPCUnit: ~p", [NPCUnit]),
+process_npc(Objective, NPCObj, AllEnemyUnits) ->
+    lager:info("NPCObj: ~p", [NPCObj]),
     lager:info("EnemyUnits: ~p", [AllEnemyUnits]),
     
-    NPCStats = local_obj:get_stats(NPCId),
+    NPCStats = local_obj:get_stats(NPCObj#local_obj.id),
     {Int} = bson:lookup(int, NPCStats),
     {Aggression} = bson:lookup(aggression, NPCStats),
 
-    lager:info("Int: ~p Aggression: ~p", [Int, Aggression]),
+    NewObjective = determine_objective(NPCObj, Int, Aggression, AllEnemyUnits),
+    SameObjective = NewObjective =:= Objective,
 
-    determine_action(NPCUnit, Int, Aggression, AllEnemyUnits);
+    process_action(NewObjective, NPCObj#local_obj.state, SameObjective, NPCObj).
 
-process_npc(_NPCUnit, _AllEnemyUnits) ->
-    lager:info("Action already in progress...").
-
-determine_action(NPCUnit, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
+determine_objective(NPCUnit, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
     EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
     lager:info("Current Target: ~p", [EnemyUnit]),
     Target = check_wall(EnemyUnit),
 
-    process_target(NPCUnit, Target);
+    check_target(NPCUnit, Target);
 
-determine_action(NPCUnit, <<"animal">>, <<"high">>, AllEnemyUnits) ->
+determine_objective(NPCUnit, <<"animal">>, <<"high">>, AllEnemyUnits) ->
     lager:info("AllEnemyUnits: ~p", [AllEnemyUnits]),
     EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
     lager:info("EnemyUnits: ~p", [EnemyUnits]),
     EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
     lager:info("Current Target: ~p", [EnemyUnit]),
     
-    process_target(NPCUnit, EnemyUnit).
+    check_target(NPCUnit, EnemyUnit).
 
-process_target(NPCUnit, none) ->
+check_target(_NPCUnit, none) ->
     lager:info("No valid targets nearby, wandering..."),
-    process_wander(NPCUnit);
-process_target(NPCUnit, Target) ->
-    Path = astar:astar(NPCUnit#local_obj.pos, Target#local_obj.pos),
-    lager:info("Path: ~p", [Path]),
-    Action = process_path(NPCUnit, Target, Path),
-    Action.
+    wander;
+check_target(NPCUnit, Target) ->
+    Result = astar:astar(NPCUnit#local_obj.pos, Target#local_obj.pos),
+    Objective = case Result of
+                    failure ->
+                        wander;
+                    Path ->
+                        {attack, Target, Path}
+                end,
+    Objective.
+
+process_action(wander, moving, _, _NPCObj) -> 
+    nothing;
+process_action(wander, none, _, NPCObj) -> 
+    do_wander(NPCObj);
+process_action({attack, _Target, _Path}, moving, true, _NPCObj) ->
+    nothing;
+process_action({attack, Target, Path}, moving, false, NPCObj) ->
+    game:cancel_event(NPCObj#local_obj.id),
+    do_attack(NPCObj, Target, Path);
+process_action({attack, Target, Path}, none, _, NPCObj) ->
+    do_attack(NPCObj, Target, Path);
+process_action(_, _, _, _) ->
+    nothing.
+
+do_attack(NPCObj, Target, Path) ->
+    case process_path(Path) of
+        move ->
+            move_unit(NPCObj, lists:nth(2, Path));
+        attack ->
+            attack_unit(NPCObj, Target);
+        _ ->
+            nothing
+    end.
+
+process_path(Path) when length(Path) > 2 ->
+    move;
+process_path(Path) when length(Path) =< 2 ->
+    attack.
+
+attack_unit(Source, Target) ->
+    battle:attack_unit(Source#local_obj.id, Target#local_obj.id).
+
+move_unit(#local_obj {id = Id,
+                      player = Player,
+                      global_pos = GlobalPos}, NewPos) ->
+    NumTicks = 40,
+
+    %Update unit state
+    local:update_state(Id, moving),
+    
+    %Create event data
+    EventData = {GlobalPos,
+                 Player,
+                 Id,
+                 NewPos},
+
+    game:add_event(self(), move_local_obj, EventData, Id, NumTicks).
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
     EnemyUnit;
@@ -199,38 +251,6 @@ compare_distance(NewDistance, Distance, _New, Old) when NewDistance >= Distance 
     {Old, Distance};
 compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance ->
     {New, NewDistance}.
-
-process_path(NPCUnit, _EnemyUnit, failure) ->
-    %Failure to find path, back to wandering
-    process_wander(NPCUnit);
-process_path(NPCUnit, _EnemyUnit, Path) when length(Path) > 2 ->
-    add_local_action({move, NPCUnit, lists:nth(2, Path)});
-process_path(NPCUnit, EnemyUnit, Path) when length(Path) =< 2 ->
-    add_local_action({attack, NPCUnit, EnemyUnit}).
-
-add_local_action({attack, Source, Target}) ->
-    lager:info("Adding attack: ~p ~p", [Source, Target]),
-    battle:attack_unit(Source#local_obj.id, Target#local_obj.id);
-add_local_action({move, Unit, NextPos}) ->
-    add_move_unit(Unit#local_obj.global_pos,
-                  Unit#local_obj.player,
-                  Unit#local_obj.id,
-                  NextPos,
-                  40);
-add_local_action(none) ->
-    lager:info("NPC Unit doing nothing.").
-
-add_move_unit(GlobalPos, Player, UnitId, NewPos, NumTicks) ->
-    %Update unit state
-    local:update_state(UnitId, moving),
-    
-    %Create event data
-    EventData = {GlobalPos,
-                 Player,
-                 UnitId,
-                 NewPos},
-
-    game:add_event(self(), move_local_obj, EventData, UnitId, NumTicks).
 
 remove_walled(ObjList) ->
     F = fun(Obj) ->
@@ -252,28 +272,24 @@ remove_structures(ObjList) ->
         end,
     lists:filter(F, ObjList).
 
-process_wander(#local_obj{state = State,
-                          global_pos = GlobalPos,
-                          pos = {X, Y}} = NPCUnit) when State =:= none ->
+do_wander(NPCObj = #local_obj{global_pos = GlobalPos,
+                              pos = {X, Y}}) ->
     Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    Action = get_wander_pos(false, NPCUnit, GlobalPos, none, Neighbours),
+    NewPos = get_wander_pos(false, GlobalPos, none, Neighbours),
 
-    add_local_action(Action);
-process_wander(_) ->
-    nothing.
+    move_unit(NPCObj, NewPos).
 
-get_wander_pos(_, _, _, _, []) ->
+get_wander_pos(_, _, _, []) ->
     none;
-get_wander_pos(true, NPCUnit, _GlobalPos, RandomPos, _Neighbours) ->
-    {move, NPCUnit, RandomPos};
-get_wander_pos(false, NPCUnit, GlobalPos, _, Neighbours) ->
-
+get_wander_pos(true, _GlobalPos, RandomPos, _Neighbours) ->
+    RandomPos;
+get_wander_pos(false, GlobalPos, _, Neighbours) ->
     Random = random:uniform(length(Neighbours)),
     RandomPos = lists:nth(Random, Neighbours),
     IsEmpty = local:is_empty(GlobalPos, RandomPos),
     NewNeighbours = lists:delete(RandomPos, Neighbours),
 
-    get_wander_pos(IsEmpty, NPCUnit, GlobalPos, RandomPos, NewNeighbours).
+    get_wander_pos(IsEmpty, GlobalPos, RandomPos, NewNeighbours).
 
 check_wall(#local_obj{global_pos = GPos, pos = Pos, effect = Effect} = EnemyUnit) ->    
     HasWall = lists:member(<<"wall">>, Effect),
