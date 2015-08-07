@@ -98,7 +98,7 @@ do_recalculate(GlobalPos) ->
     %Compare new to previous perception
     UpdatePlayers = compare_perception(PlayerPerceptions, []),
 
-    lager:info("Players to update: ~p", [UpdatePlayers]),
+    lager:debug("Players to update: ~p", [UpdatePlayers]),
     send_perception(UpdatePlayers).
 
 filter_objs(AllObj) ->
@@ -181,7 +181,7 @@ broadcast_to_objs(Objs, Message) ->
     
     F = fun(Player) ->
             [Conn] = db:dirty_read(connection, Player),
-            lager:info("Broadcasting ~p to ~p", [Message, Player]),
+            lager:debug("Broadcasting ~p to ~p", [Message, Player]),
             Conn#connection.process ! {broadcast, Message}
         end,
     

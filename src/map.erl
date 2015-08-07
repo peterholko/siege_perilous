@@ -90,13 +90,13 @@ handle_cast({add_explored, Player, {X, Y}}, Data) ->
     {noreply, Data};
 
 handle_cast({add_local_explored, Player, GlobalPos, {X, Y}}, Data) ->
-    lager:info("add_local_explored: ~p ~p", [X, Y]),
+    lager:debug("add_local_explored: ~p ~p", [X, Y]),
     ExploredMap = db:read(explored_map, {Player, GlobalPos}),
     
     ExploredTiles = get_explored_tiles(ExploredMap),
     Neighbours = neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
     NeighboursTwo = neighbours_two(Neighbours, []),
-    lager:info("NeighboursTwo: ~p", [NeighboursTwo]),
+    lager:debug("NeighboursTwo: ~p", [NeighboursTwo]),
     LatestTiles = NeighboursTwo ++ [{X, Y}],
 
     %Convert lists to sets for intersect and unique list processing

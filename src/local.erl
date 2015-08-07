@@ -136,7 +136,6 @@ remove(LocalObj) ->
 
 move(Id, Pos) ->
     %TODO convert to transaction
-    lager:info("Move local obj ~p ~p", [Id, Pos]),
     [LocalObj] = db:read(local_obj, Id),
     GlobalPos = LocalObj#local_obj.global_pos,
 
@@ -145,7 +144,7 @@ move(Id, Pos) ->
     db:write(NewLocalObj),
 
     %Update wall effect
-    lager:info("Updating wall effect"),
+    lager:debug("Updating wall effect"),
     IsBehindWall = is_behind_wall(GlobalPos, Pos),
     AddOrRemove = is_add_remove_wall(IsBehindWall),
     update_wall_effect(AddOrRemove, NewLocalObj),
@@ -195,12 +194,9 @@ set_wall_effect(_ = #local_obj{subclass = Subclass,
                                state = State,
                                global_pos = GlobalPos,
                                pos = Pos}) when Subclass =:= <<"wall">> ->
-    lager:info("Set wall effect"),
+    lager:debug("Set wall effect"),
     LocalObjs = local_obj:get_by_pos(GlobalPos, Pos),
-    lager:info("LocalObjs: ~p", [LocalObjs]),
-    lager:info("State: ~p", [State]),
     AddOrRemove = is_add_remove_wall(State),
-    lager:info("AddOrRemove: ~p", [AddOrRemove]),
 
     F = fun(LocalObj) ->
             update_wall_effect(AddOrRemove, LocalObj)

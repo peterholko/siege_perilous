@@ -87,14 +87,14 @@ handle_info({local_perception, Perception}, Data) ->
     {_Explored, Objs} = new_perception(Perception),    
     {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
     
-    lager:info("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
+    lager:debug("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
     F = fun(NPCObj) ->
             [NPC] = db:read(npc, NPCObj#local_obj.id),
             process_npc(NPC#npc.objective, NPCObj, EnemyObjs)
     end,
 
     lists:foreach(F, NPCObjs),
-
+    lager:info("Local perception processing end."),
     {noreply, Data};
 
 handle_info(Info, Data) ->
@@ -139,13 +139,13 @@ get_local_obj(Obj) ->
     LocalObj.
 
 process_npc(_Objective, NPCObj, []) ->
-    lager:info("No enemies nearby, wandering..."),
+    lager:debug("No enemies nearby, wandering..."),
     %Set action wander and process
     process_action(wander, NPCObj#local_obj.state, true, NPCObj);
 
 process_npc(Objective, NPCObj, AllEnemyUnits) ->
-    lager:info("NPCObj: ~p", [NPCObj]),
-    lager:info("EnemyUnits: ~p", [AllEnemyUnits]),
+    lager:debug("NPCObj: ~p", [NPCObj]),
+    lager:debug("EnemyUnits: ~p", [AllEnemyUnits]),
     
     NPCStats = local_obj:get_stats(NPCObj#local_obj.id),
     {Int} = bson:lookup(int, NPCStats),
@@ -159,22 +159,22 @@ process_npc(Objective, NPCObj, AllEnemyUnits) ->
 determine_objective(NPCUnit, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
     EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
-    lager:info("Current Target: ~p", [EnemyUnit]),
+    lager:debug("Current Target: ~p", [EnemyUnit]),
     Target = check_wall(EnemyUnit),
 
     check_target(NPCUnit, Target);
 
 determine_objective(NPCUnit, <<"animal">>, <<"high">>, AllEnemyUnits) ->
-    lager:info("AllEnemyUnits: ~p", [AllEnemyUnits]),
+    lager:debug("AllEnemyUnits: ~p", [AllEnemyUnits]),
     EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
-    lager:info("EnemyUnits: ~p", [EnemyUnits]),
+    lager:debug("EnemyUnits: ~p", [EnemyUnits]),
     EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
-    lager:info("Current Target: ~p", [EnemyUnit]),
+    lager:debug("Current Target: ~p", [EnemyUnit]),
     
     check_target(NPCUnit, EnemyUnit).
 
 check_target(_NPCUnit, none) ->
-    lager:info("No valid targets nearby, wandering..."),
+    lager:debug("No valid targets nearby, wandering..."),
     wander;
 check_target(NPCUnit, Target) ->
     Result = astar:astar(NPCUnit#local_obj.pos, Target#local_obj.pos),
@@ -293,12 +293,12 @@ get_wander_pos(false, GlobalPos, _, Neighbours) ->
 
 check_wall(#local_obj{global_pos = GPos, pos = Pos, effect = Effect} = EnemyUnit) ->    
     HasWall = lists:member(<<"wall">>, Effect),
-    lager:info("HasWall: ~p", [HasWall]),
+    lager:debug("HasWall: ~p", [HasWall]),
     Target = case HasWall of
                 true ->
                     local_obj:get_wall(GPos, Pos);
                 false ->
                     EnemyUnit
              end,
-    lager:info("Target: ~p", [Target]),
+    lager:debug("Target: ~p", [Target]),
     Target.
