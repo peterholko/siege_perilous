@@ -408,7 +408,7 @@ process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList)
     FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
     lager:info("FirstGid: ~p ~p", [FirstGid, TilesetName]),
     lager:info("Tileset Data: ~p", [TilesetData]),
-    NewTilesetList = process_tileset_data(TilesetData, {0,0}, FirstGid, TilesetList),
+    NewTilesetList = process_tileset_data(TilesetData, {0,0}, {FirstGid, TilesetName}, TilesetList),
 
     process_tileset(Rest, NewTilesetList);
 process_tileset(_, Tileset) ->
@@ -417,41 +417,50 @@ process_tileset(_, Tileset) ->
 process_tileset_data([], _, _, NewTileset) ->
     lager:info("Done procssing tileset"),
     NewTileset;
-process_tileset_data([{<<"tileoffset">>, OffsetInfo, _OffSetData} | Rest], _Offset, FirstGid, Tileset) ->
+process_tileset_data([{<<"tileoffset">>, OffsetInfo, _OffSetData} | Rest], _Offset, TilesetInfo, Tileset) ->
     lager:info("tileoffset: ~p ", [OffsetInfo]),
     [{<<"x">>, X}, {<<"y">>, Y}] = OffsetInfo,
     TileOffset = {X, Y},
-    process_tileset_data(Rest, TileOffset, FirstGid, Tileset);
-process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, FirstGid, Tileset) ->
+    process_tileset_data(Rest, TileOffset, TilesetInfo, Tileset);
+process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, TilesetInfo, Tileset) ->
     lager:info("TileData ~p", [TileData]),  
+    {FirstGid, TilesetName} = TilesetInfo,
     [{_, BinTileId}] = IdInfo,
     LocalTileId = binary_to_integer(BinTileId),
     TileId = FirstGid + LocalTileId,
     {X, Y} = TileOffset,
     
-    Image = process_tile_data(TileId, TileData, none),
+    Image = process_tile_data(TilesetName, TileId, TileData, none),
 
     NewTileset= [#{<<"tile">> => TileId,
                    <<"image">> => Image, 
                    <<"offsetx">> => X,
                    <<"offsety">> => Y} | Tileset],
     
-    process_tileset_data(Rest, TileOffset, FirstGid, NewTileset).
+    process_tileset_data(Rest, TileOffset, TilesetInfo, NewTileset).
 
-process_tile_data(_TileId, [], Image) ->
+process_tile_data(_TilesetName, _TileId, [], Image) ->
     Image;
-process_tile_data(TileId, [{<<"image">>, [_Width, _Height, Source], _Empty} | Rest], Image) ->
+process_tile_data(TilesetName, TileId, [{<<"image">>, [_Width, _Height, Source], _Empty} | Rest], Image) ->
     {_, BinFilePath} = Source,
     NewImage = BinFilePath,
     lager:info("Image: ~p", [Image]),
 
-    process_tile_data(TileId, Rest, NewImage);
-process_tile_data(TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
+    process_tile_data(TilesetName, TileId, Rest, NewImage);
+
+process_tile_data(<<"resources">>, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
     lager:info("PropertyData: ~p", [PropertiesData]), 
     Properties = process_property(PropertiesData, maps:new()),
     store_resource_def(TileId, Properties),
 
-    process_tile_data(TileId, Rest, Image).
+    process_tile_data(<<"resources">>, TileId, Rest, Image);
+
+process_tile_data(TilesetName, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
+    lager:info("PropertyData: ~p", [PropertiesData]), 
+    Properties = process_property(PropertiesData, maps:new()),
+    store_poi_def(TileId, Properties),
+
+    process_tile_data(TilesetName, TileId, Rest, Image).
 
 process_property([], Properties) ->
     lager:info("Done properties processing: ~p", [Properties]),
@@ -461,7 +470,6 @@ process_property([{<<"property">>, PropertyData, _} | Rest], Properties) ->
     [{<<"name">>, Name},{<<"value">>, Value}] = PropertyData,
     
     NewProperties = maps:put(Name, Value, Properties),
-
     process_property(Rest, NewProperties).
 
 store_resource_def(TileId, Properties) ->
@@ -473,16 +481,26 @@ store_resource_def(TileId, Properties) ->
                                  quantity = ResourceQuantity},
     db:write(ResourceDef).
 
+store_poi_def(TileId, Properties) ->
+    Name = maps:get(<<"name">>, Properties),
+    
+    PoiDef = #poi_def {tile = TileId,
+                       name = Name},
+    db:write(PoiDef).
+
 process_layers([]) ->
     lager:info("Done processing layers");
 process_layers([{<<"layer">>, [{<<"name">>,<<"base1">>} | _], LayerData} | Rest]) -> 
     process_layer_data(base,LayerData),
     process_layers(Rest);
 process_layers([{<<"layer">>, [{<<"name">>,<<"base2">>} | _], LayerData} | Rest]) ->
-    process_layer_data(base, LayerData),
+    process_layer_data(base,LayerData),
     process_layers(Rest);
 process_layers([{<<"layer">>, [{<<"name">>,<<"resource1">>} | _], LayerData} | Rest]) -> 
     process_layer_data(resource,LayerData),
+    process_layers(Rest);
+process_layers([{<<"layer">>, [{<<"name">>,<<"poi">>} | _], LayerData} | Rest]) -> 
+    process_layer_data(poi,LayerData),
     process_layers(Rest);
 process_layers([{<<"layer">>, LayerProp, LayerData} | Rest]) ->
     lager:info("Processing layer ~p", [LayerProp]),
@@ -513,7 +531,7 @@ store_tile_list(LayerType, ["0" | Rest], NumRow, NumCol) ->
     do_nothing,
     store_tile_list(LayerType, Rest, NumRow, NumCol + 1);
 store_tile_list(LayerType, [Tile | Rest], NumRow, NumCol) ->
-    lager:info("Storing tile ~p ~p ~p", [Tile, NumRow, NumCol]),
+    lager:info("Storing tile ~p ~p ~p ~p", [LayerType, Tile, NumRow, NumCol]),
     Pos = {NumCol, NumRow},
     store_tile(LayerType, Tile, Pos),    
 
@@ -543,6 +561,9 @@ store_tile(resource, Tile, Pos) ->
                           quantity = Quantity},
 
     db:dirty_write(Resource);
+store_tile(poi, Tile, Pos) ->
+    [PoiDef] = db:dirty_read(poi_def, list_to_integer(Tile)),
+    local:create({2,2}, none, Pos, -1, poi, <<"poi">>, PoiDef#poi_def.name, none);
 store_tile(none, Tile, Pos) ->
     case db:dirty_read(local_map, {1, Pos}) of
         [] ->

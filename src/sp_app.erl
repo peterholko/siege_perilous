@@ -30,16 +30,21 @@ start(_Type, _Args) ->
     lager:info("Inserting test data..."),
     db:reset_tables(),
 
+    lager:info("Starting mongodb..."),
+    mdb:start(),
+
+    lager:info("Starting game process..."),
+    game:start(),
+
     lager:info("Loading global map"),
     map:load_global(),
     lager:info("Loading local maps"),
     map:load_local(),
 
-    lager:info("Starting game process..."),
-    game:start(),
+    lager:info("Loading map tileset and data"),
+    map:tileset(),
+    map:xml_test(),
 
-    lager:info("Starting mongodb..."),
-    mdb:start(),
     lager:info("Starting map process"),
     map:start(),
 
@@ -57,8 +62,6 @@ start(_Type, _Args) ->
     lager:info("Starting Villager Manager"),
     villager:start(),
 
-    map:tileset(),
-    map:xml_test(),
     
     lager:info("Starting game loop"),
     spawn(fun() -> game_loop:loop(0, util:get_time(), global:whereis_name(game_pid)) end),

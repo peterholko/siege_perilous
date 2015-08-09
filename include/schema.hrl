@@ -23,6 +23,9 @@
                        name,
                        quantity}).
 
+-record(poi_def, {tile,
+                  name}).
+
 -record(obj, {id, 
               pos,
               last_pos = none,
