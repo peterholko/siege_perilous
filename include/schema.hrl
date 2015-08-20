@@ -45,7 +45,7 @@
                 source = none,
                 tick}).
 
--record(perception, {player,
+-record(perception, {entity,
                      data}).
 
 -record(battle_unit, {unit,

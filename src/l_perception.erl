@@ -91,14 +91,13 @@ do_recalculate(GlobalPos) ->
     %Calculate each player entity perception and store to process dict
     entity_perception(Entities, GlobalPos),
 
-    %Get all player perceptions from process dict
-    PlayerPerceptions = get(),
+    %Get all entity perceptions from process dict
+    EntityPerceptions = get(),
 
-    lager:debug("PlayerPerceptions ~p", [PlayerPerceptions]),
     %Compare new to previous perception
-    UpdatePlayers = compare_perception(PlayerPerceptions, []),
+    EntitiesToUpdate = compare_perception(EntityPerceptions, []),
 
-    lager:debug("Players to update: ~p", [UpdatePlayers]),
+    lager:debug("Entities to update: ~p", [EntitiesToUpdate]),
     send_perception(UpdatePlayers).
 
 filter_objs(AllObj) ->
@@ -109,18 +108,10 @@ entity_perception([], _GlobalPos) ->
     done;
 
 entity_perception([Entity | Rest], GlobalPos) ->
-    %Get current player perception from process dict
-    PlayerId = Entity#local_obj.player,
-    PlayerPerception = convert_undefined(get({PlayerId, GlobalPos})),
-
     lager:debug("Entity perception: ~p", [Entity]),    
     NearbyObjs = map:get_nearby_objs(Entity#local_obj.pos, {local_map,GlobalPos}, ?LOS),
     lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
-    NewPlayerPerception = util:unique_list(PlayerPerception ++ NearbyObjs),
-
-    lager:debug("PlayerId: ~p GlobalPos: ~p", [PlayerId, GlobalPos]),  
-    %Store new player perception to process dict
-    put({PlayerId, GlobalPos}, NewPlayerPerception),
+    put(Entity#local_obj.id, NearbyObjs),
 
     entity_perception(Rest, GlobalPos).
 
@@ -129,25 +120,20 @@ convert_undefined(undefined) ->
 convert_undefined(Data) ->
     Data.
 
-compare_perception([], UpdatePlayers) ->
-    UpdatePlayers;
+compare_perception([], EntitiesUpdated) ->
+    EntitiesUpdated;
 
-compare_perception([{random_seed, _} | Rest], UpdatePlayers) ->
-    compare_perception(Rest, UpdatePlayers);
+compare_perception([{random_seed, _} | Rest], EntitiesUpdated) ->
+    compare_perception(Rest, EntitiesUpdated);
 
-compare_perception([{{Player, GlobalPos}, NewObjPerception} | Rest], UpdatePlayers) ->
-    ExploredTiles = map:get_local_explored(Player, GlobalPos, new),
-    lager:debug("ExploredTiles ~p", [ExploredTiles]),
-    NewPerception = [{<<"explored">>, ExploredTiles},
-                     {<<"objs">>, NewObjPerception}],
-
-    OldPerception = db:dirty_read(perception, {Player, GlobalPos}),
+compare_perception([{EntityId, NewPerception} | Rest], EntitiesUpdated) ->
+    OldPerception = db:dirty_read(perception, EntityId),
 
     Result = perception_equal(NewPerception, OldPerception),
 
-    NewUpdatePlayers = store_perception(UpdatePlayers, {Player, GlobalPos}, NewPerception, Result),
+    NewEntitiesUpdated = store_perception(EntitiesUpdated, EntityId, NewPerception, Result),
 
-    compare_perception(Rest, NewUpdatePlayers).
+    compare_perception(Rest, NewEntitiesUpdated).
 
 perception_equal(_NewData, []) ->
     false;
@@ -155,12 +141,12 @@ perception_equal(_NewData, []) ->
 perception_equal(New, [Old]) ->
     New =:= Old#perception.data.
 
-store_perception(Players, {Player, GlobalPos}, NewPerception, false) ->
-    db:dirty_write(#perception {player={Player, GlobalPos}, data=NewPerception}),
-    [{Player, NewPerception} | Players];
+store_perception(Entities, EntityId, NewPerception, false) ->
+    db:dirty_write(#perception {entity=EntityId, data=NewPerception}),
+    [{EntityId, NewPerception} | Entities];
 
-store_perception(Players, _Player, _Perception, _Result) ->
-    Players.
+store_perception(Entities, _EntityId, _NewPerception, _Result) ->
+    Entities.
 
 send_perception([]) ->
     lager:debug("Sent all perception updates");
