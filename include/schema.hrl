@@ -11,6 +11,9 @@
 -record(connection, {player,
                      process = none}).
 
+-record(game, {perception,
+               explored}).
+
 -record(global_map, {pos,
                      tile}).
 

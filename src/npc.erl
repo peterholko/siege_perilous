@@ -81,19 +81,15 @@ handle_info({map_perception_disabled, Perception}, Data) ->
 
     {noreply, Data};
 
-handle_info({local_perception, Perception}, Data) ->
-    lager:info("Local perception received"),
-    
-    {_Explored, Objs} = new_perception(Perception),    
-    {NPCObjs, EnemyObjs} = split_objs(Objs, [], []),
-    
-    lager:debug("NPCObjs: ~p EnemyObjs: ~p", [NPCObjs, EnemyObjs]),
-    F = fun(NPCObj) ->
-            [NPC] = db:read(npc, NPCObj#local_obj.id),
-            process_npc(NPC#npc.objective, NPCObj, EnemyObjs)
-    end,
+handle_info({local_perception, {NPCId, Objs}}, Data) ->
+    lager:info("Local perception received."),
+    [NPC] = db:read(npc, NPCId),
+    [NPCObj] = db:read(local_obj, NPCId),
 
-    lists:foreach(F, NPCObjs),
+    TargetObjs = filter_targets(Objs, []),
+
+    process_npc(NPC#npc.objective, NPCObj, TargetObjs),
+
     lager:info("Local perception processing end."),
     {noreply, Data};
 
@@ -114,24 +110,26 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-new_perception([{<<"explored">>, Explored}, {<<"objs">>, Objs}]) ->
-    {Explored, Objs}.
+filter_targets([], Targets) ->
+    Targets;
 
-split_objs([], NPCObjs, EnemyObjs) ->
-    {NPCObjs, EnemyObjs};
-split_objs([Obj | Rest], NPCObjs, EnemyObjs) ->
+filter_targets([Obj | Rest], Targets) ->
     Player = get(player_id),
     ObjPlayer = maps:get(<<"player">>, Obj),
-    ComparePlayer = Player =:= ObjPlayer,
 
-    {NewNPCObjs, NewEnemyObjs} = add_npc_obj(Obj, NPCObjs, EnemyObjs, ComparePlayer),
+    NewTargets = case valid_target(Player, ObjPlayer) of
+                     true ->
+                         LocalObj = get_local_obj(Obj),
+                         [LocalObj | Targets];
+                     false ->
+                         Targets
+                 end,
 
-    split_objs(Rest, NewNPCObjs, NewEnemyObjs).
+    filter_targets(Rest, NewTargets).
 
-add_npc_obj(Obj, NPCObjs, EnemyObjs, true) ->
-    {[get_local_obj(Obj) | NPCObjs], EnemyObjs};
-add_npc_obj(Obj, NPCObjs, EnemyObjs, false) ->
-    {NPCObjs, [get_local_obj(Obj) | EnemyObjs]}.
+valid_target(_, -1) -> false;
+valid_target(Player, ObjPlayer) when Player =:= ObjPlayer -> false;
+valid_target(_, _) -> true.
 
 get_local_obj(Obj) ->
     Id = maps:get(<<"id">>, Obj),
@@ -208,7 +206,17 @@ do_attack(NPCObj, Target, Path) ->
             attack_unit(NPCObj, Target);
         _ ->
             nothing
-    end.
+    end,
+
+    store_objective(NPCObj#local_obj.id, {attack, Target, Path}).
+
+do_wander(NPCObj = #local_obj{global_pos = GlobalPos,
+                              pos = {X, Y}}) ->
+    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
+    NewPos = get_wander_pos(false, GlobalPos, none, Neighbours),
+    
+    move_unit(NPCObj, NewPos),
+    store_objective(NPCObj#local_obj.id, wander).
 
 process_path(Path) when length(Path) > 2 ->
     move;
@@ -272,13 +280,6 @@ remove_structures(ObjList) ->
         end,
     lists:filter(F, ObjList).
 
-do_wander(NPCObj = #local_obj{global_pos = GlobalPos,
-                              pos = {X, Y}}) ->
-    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    NewPos = get_wander_pos(false, GlobalPos, none, Neighbours),
-
-    move_unit(NPCObj, NewPos).
-
 get_wander_pos(_, _, _, []) ->
     none;
 get_wander_pos(true, _GlobalPos, RandomPos, _Neighbours) ->
@@ -301,4 +302,13 @@ check_wall(#local_obj{global_pos = GPos, pos = Pos, effect = Effect} = EnemyUnit
                     EnemyUnit
              end,
     lager:debug("Target: ~p", [Target]),
-    Target.
+    Target;
+
+check_wall(_) ->
+    none.
+
+store_objective(NPCId, Objective) ->
+    %TODO convert to transaction
+    [NPC] = db:dirty_read(npc, NPCId),
+    NewNPC = NPC#npc {objective = Objective},
+    db:dirty_write(NewNPC).

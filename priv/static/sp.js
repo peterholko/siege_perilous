@@ -549,16 +549,18 @@ function onMessage(evt) {
             setPlayerPos();
             drawMap();
             drawObjs();
-
         }
         else if(jsonData.packet == "local_perception") {
-            drawLocal(jsonData);
+            drawLocalObj(jsonData.objs);
+        }
+        else if(jsonData.packet == "local_map") {
+            drawLocalMap(jsonData.map);
         }
         else if(jsonData.packet == "explore") {
-            clearLocal();
-            drawExplore(jsonData);
-            drawLocal(jsonData);
-            drawPortrait();
+            clearLocalMap();
+            drawExplore(jsonData.objs);
+            drawLocalMap(jsonData.map);
+            drawLocalObj(jsonData.objs);
         }
         else if(jsonData.packet == "item_perception") {
             dialogPanel.visible = false;
@@ -732,27 +734,32 @@ function drawObjs() {
     }
 };
 
-function clearLocal() {
+function clearLocalMap() {
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
     var localShroudCont = localMapCont.getChildByName("localShroud");
+
+    localTilesCont.removeAllChildren();
+    localShroudCont.removeAllChildren();
+};
+
+function clearLocalObj() {
+    var localMapCont = localPanel.getChildByName("localMap");
     var localObjsCont1 = localMapCont.getChildByName("localObjs1"); 
     var localObjsCont2 = localMapCont.getChildByName("localObjs2"); 
     var selectHex = localMapCont.getChildByName("selectHex");
     
-    localTilesCont.removeAllChildren();
-    localShroudCont.removeAllChildren();
     localObjsCont1.removeAllChildren();
     localObjsCont2.removeAllChildren();
     
     selectHex.visible = false;
 };
 
-function drawExplore(jsonData) {
+function drawExplore(objs) {
     var localMapCont = localPanel.getChildByName("localMap");
 
-    for(var i = 0; i < jsonData.objs.length; i++) {
-        var obj = jsonData.objs[i];
+    for(var i = 0; i < objs.length; i++) {
+        var obj = objs[i];
         var pixel = hex_to_pixel(obj.x, obj.y);
 
         if(obj.player == playerId) {
@@ -767,21 +774,18 @@ function drawExplore(jsonData) {
     }
 };
 
-function drawLocal(jsonData) {
+function drawLocalMap(map) {
+    console.log("drawLocalMap");
     showLocalPanel();
-
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
-    var localShroudCont = localMapCont.getChildByName("localShroud"); 
-    var localObjsCont1 = localMapCont.getChildByName("localObjs1"); 
-    var localObjsCont2 = localMapCont.getChildByName("localObjs2"); 
-    
     var selectHex = localMapCont.getChildByName("selectHex");
-
-    for(var i = 0; i < jsonData.explored.length; i++) {
-        var tile = jsonData.explored[i];
+    var tiles = map;
+ 
+    for(var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
         var pixel = hex_to_pixel(tile.x, tile.y);
-        var tiles = tile.t.reverse();
+        var tileImages = tile.t.reverse();
 
         var icon = new createjs.Container();
 
@@ -808,8 +812,8 @@ function drawLocal(jsonData) {
 
         addChildLocalMap(icon, "localTiles");
 
-        for(var j = 0; j < tiles.length; j++) {
-            var tileImageId = tiles[j] - 1;
+        for(var j = 0; j < tileImages.length; j++) {
+            var tileImageId = tileImages[j] - 1;
             var imagePath = "/static/" + tileset[tileImageId].image;
             var offsetX = tileset[tileImageId].offsetx;
             var offsetY = -1 * tileset[tileImageId].offsety;
@@ -819,14 +823,25 @@ function drawLocal(jsonData) {
     
         addLocalTile(tile);
     }
- 
+};
+
+function drawLocalObj(objs) {
+    console.log("drawLocalObj");
+    showLocalPanel();
+
+    var localMapCont = localPanel.getChildByName("localMap");
+    var localObjsCont1 = localMapCont.getChildByName("localObjs1"); 
+    var localObjsCont2 = localMapCont.getChildByName("localObjs2"); 
+    var localShroudCont = localMapCont.getChildByName("localShroud"); 
+
     localObjsCont1.removeAllChildren();
     localObjsCont2.removeAllChildren();
+    localShroudCont.removeAllChildren();
 
     var visibleTiles = [];
 
-    for(var i = 0; i < jsonData.objs.length; i++) {
-        var obj = jsonData.objs[i];
+    for(var i = 0; i < objs.length; i++) {
+        var obj = objs[i];
         var pixel = hex_to_pixel(obj.x, obj.y);
         var unitName = obj.type;
         unitName = unitName.toLowerCase().replace(/ /g, '');
@@ -865,8 +880,6 @@ function drawLocal(jsonData) {
         localObjs[obj.id] = obj;
     }
 
-    localShroudCont.removeAllChildren();
-
     for(var tileKey in localTiles) {
         var tile = localTiles[tileKey];
 
@@ -878,7 +891,6 @@ function drawLocal(jsonData) {
             localShroudCont.addChild(bitmap);
         }
     }
-
 };
 
 function drawLocalSelectPanel(tileX, tileY) {
@@ -937,19 +949,21 @@ function drawLocalSelectPanel(tileX, tileY) {
 };
 
 function drawSelectedPortrait() {
-    var content = portraitPanel.getChildByName("content");
-    content.removeAllChildren();
-    
     if(selectedUnit) {    
-        selectedPortrait = selectedUnit;
+        var obj = localObjs[selectedUnit];
 
-        var objName = localObjs[selectedUnit].type;
-        objName = objName.toLowerCase().replace(/ /g, '');
-        var imagePath =  "/static/art/" + objName + ".png";
+        if(obj.player == playerId && obj.class == "unit") {
+            var content = portraitPanel.getChildByName("content");
+            content.removeAllChildren();
 
-        addImage({id: objName, path: imagePath, x: 0, y: 0, target: content});
+            selectedPortrait = selectedUnit;
+
+            var objName = obj.type.toLowerCase().replace(/ /g, '');
+            var imagePath =  "/static/art/" + objName + ".png";
+
+            addImage({id: objName, path: imagePath, x: 0, y: 0, target: content});
+        }
     }
-
 };
 
 function drawDmg(jsonData) {

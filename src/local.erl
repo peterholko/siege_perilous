@@ -155,7 +155,8 @@ move(Id, Pos) ->
         true ->
             map:add_local_explored(LocalObj#local_obj.player, 
                                    LocalObj#local_obj.global_pos,
-                                   Pos);
+                                   Pos),
+            game:trigger_explored(LocalObj#local_obj.player, LocalObj#local_obj.global_pos);
         false ->
             nothing
     end.

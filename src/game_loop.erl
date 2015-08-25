@@ -35,6 +35,12 @@ loop(NumTick, LastTime, GamePID) ->
     %Recalculate local perception 
     local_recalculate(LocalRecalc ++ LocalTriggered),
   
+    %Get triggered explored maps
+    Explored = game:get_explored(),
+
+    %Send out new explored maps
+    process_explored(Explored),
+
     %Execute NPC actions
     execute_npc(NumTick),
 
@@ -44,14 +50,12 @@ loop(NumTick, LastTime, GamePID) ->
     %Clean up
     clean_up(NumTick),
  
-    %Toggle off perception
-    game:reset_perception(),
+    %Toggle off perception and explored
+    game:reset(),
  
     %Update charge times
     BattleUnits = ets:tab2list(battle_unit),
     update_charge_times(BattleUnits),
-
-
 
     {NextTime, SleepTime} = calculate_sleep(LastTime),
 
@@ -205,6 +209,15 @@ local_recalculate([GlobalPos | Rest]) ->
     l_perception:recalculate(GlobalPos),
     local_recalculate(Rest).
 
+process_explored([]) ->
+    done;
+process_explored([{Player, GlobalPos} | Rest]) ->
+    [Conn] = db:dirty_read(connection, Player),
+    ExploredTiles = map:get_local_explored(Player, GlobalPos, new),
+    send_to_process(Conn#connection.process, local_map, ExploredTiles),
+
+    process_explored(Rest).
+
 update_charge_times([]) ->
     done;
 update_charge_times([BattleUnit | Rest]) ->
@@ -231,7 +244,10 @@ process_active_turn(false, _UnitId) ->
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:info("Sending ~p to ~p", [Message, Process]),
-    Process ! {MessageType, Message}.
+    Process ! {MessageType, Message};
+
+send_to_process(_, _, _) ->
+    none.
 
 execute_npc(NumTick) when (NumTick rem 100) =:= 0 ->
     npc:execute(99);

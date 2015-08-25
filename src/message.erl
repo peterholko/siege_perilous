@@ -156,7 +156,7 @@ message_handle(<<"explore">>, Message) ->
 
     {LocalMap, LocalObjs} = player:explore(BinId, {X, Y}),
     LocalPerception = [{<<"packet">>, <<"explore">>},
-                       {<<"explored">>, LocalMap},
+                       {<<"map">>, LocalMap},
                        {<<"objs">>, convert_id(LocalObjs, [])}],
     jsx:encode(LocalPerception);
 
@@ -335,11 +335,11 @@ prepare(map_perception, Message) ->
      ExploredTuple];
 
 prepare(local_perception, Message) ->
-    [ExploredTuple, {<<"objs">>, Objs}] = Message,
+    {EntityId, Objs} = Message,
     NewObjs = convert_id(Objs, []),
     [{<<"packet">>, <<"local_perception">>},
-     {<<"objs">>, NewObjs},
-     ExploredTuple];
+     {<<"entity">>, util:bin_to_hex(EntityId)},
+     {<<"objs">>, NewObjs}];
     
 prepare(battle_perception, Message) ->
     {BattleUnits, BattleMap} = Message,
@@ -352,6 +352,10 @@ prepare(item_perception, Message) ->
     ItemPerception = item_perception(Message, []),
     [{<<"packet">>, <<"item_perception">>},
      {<<"items">>, ItemPerception}]; 
+
+prepare(local_map, Message) ->
+    [{<<"packet">>, <<"local_map">>},
+     {<<"map">>, Message}];
 
 prepare(new_items, Message) ->
     ItemPerception = item_perception(Message, []),

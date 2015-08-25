@@ -98,7 +98,7 @@ do_recalculate(GlobalPos) ->
     EntitiesToUpdate = compare_perception(EntityPerceptions, []),
 
     lager:debug("Entities to update: ~p", [EntitiesToUpdate]),
-    send_perception(UpdatePlayers).
+    send_perception(EntitiesToUpdate).
 
 filter_objs(AllObj) ->
     F = fun(Obj) -> Obj#local_obj.vision end,
@@ -114,11 +114,6 @@ entity_perception([Entity | Rest], GlobalPos) ->
     put(Entity#local_obj.id, NearbyObjs),
 
     entity_perception(Rest, GlobalPos).
-
-convert_undefined(undefined) ->
-    [];
-convert_undefined(Data) ->
-    Data.
 
 compare_perception([], EntitiesUpdated) ->
     EntitiesUpdated;
@@ -151,9 +146,10 @@ store_perception(Entities, _EntityId, _NewPerception, _Result) ->
 send_perception([]) ->
     lager:debug("Sent all perception updates");
 
-send_perception([{PlayerId, NewPerception} | Players]) ->
-    [Conn] = db:dirty_read(connection, PlayerId),
-    send_to_process(Conn#connection.process, NewPerception),
+send_perception([{EntityId, NewPerception} | Players]) ->
+    [Entity] = db:dirty_read(local_obj, EntityId),
+    [Conn] = db:dirty_read(connection, Entity#local_obj.player),
+    send_to_process(Conn#connection.process, {EntityId, NewPerception}),
     send_perception(Players).
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
@@ -176,5 +172,16 @@ broadcast_to_objs(Objs, Message) ->
 get_unique_players([], Players) ->
     util:unique_list(Players);
 get_unique_players([Obj | Rest], Players) ->
-    NewPlayers = [maps:get(<<"player">>, Obj) | Players],
+    Player = maps:get(<<"player">>, Obj),
+    NewPlayers = case valid_player(Player) of
+                     true -> 
+                         [maps:get(<<"player">>, Obj) | Players];
+                     false ->
+                         Players
+                 end,
+
     get_unique_players(Rest, NewPlayers).
+
+valid_player(PlayerId) when PlayerId < 1 -> false;
+valid_player(_PlayerId) -> true.
+
