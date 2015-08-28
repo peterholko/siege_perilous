@@ -26,7 +26,7 @@
 -define(HILLS, 3).
 
 -define(PLAINS_MC, 1).
--define(MOUNTAINS_MC, 3).
+-define(MOUNTAINS_MC, 100).
 -define(FOREST_MC, 2).
 -define(HILLS_MC, 2).
 

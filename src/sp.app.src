@@ -17,7 +17,8 @@
         jsx,
         bson,
         mongodb,
-        parsexml
+        parsexml,
+        pqueue
 	]},
 	{mod, {sp_app, []}},
 	{env, []}

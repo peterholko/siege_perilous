@@ -75,7 +75,7 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 process('$end_of_table') ->
-    lager:info("Done processing villagers");
+    lager:debug("Done processing villagers");
 process(Id) ->
     [Villager] = db:dirty_read(villager, Id),
     [LocalObj] = db:dirty_read(local_obj, Id),
