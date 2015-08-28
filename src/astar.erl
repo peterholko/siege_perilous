@@ -3,7 +3,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([astar/2]).
+-export([astar/2, get_move_cost/1]).
 
 astar(Start, Goal) ->
     Frontier = pqueue2:in(Start, 0, pqueue2:new()),
@@ -54,7 +54,8 @@ heuristic(Start, End) ->
 
 get_move_cost(Pos) ->
     [Tile] = db:dirty_read(local_map, {1, Pos}),
-    MoveCost = case Tile#local_map.tile of
+    TileType = Tile#local_map.tile - 1,
+    MoveCost = case TileType of
                    ?PLAINS -> ?PLAINS_MC;
                    ?MOUNTAINS -> ?MOUNTAINS_MC;
                    ?HILLS -> ?HILLS_MC;
