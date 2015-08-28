@@ -82,7 +82,7 @@ handle_info({map_perception_disabled, Perception}, Data) ->
     {noreply, Data};
 
 handle_info({local_perception, {NPCId, Objs}}, Data) ->
-    lager:info("Local perception received."),
+    lager:debug("Local perception received."),
     [NPC] = db:read(npc, NPCId),
     [NPCObj] = db:read(local_obj, NPCId),
 
@@ -90,14 +90,10 @@ handle_info({local_perception, {NPCId, Objs}}, Data) ->
 
     process_npc(NPC#npc.objective, NPCObj, TargetObjs),
 
-    lager:info("Local perception processing end."),
+    lager:debug("Local perception processing end."),
     {noreply, Data};
 
-handle_info(Info, Data) ->
-    error_logger:info_report([{module, ?MODULE}, 
-                              {line, ?LINE},
-                              {self, self()}, 
-                              {message, Info}]),
+handle_info(_Info, Data) ->
     {noreply, Data}.
 
 code_change(_OldVsn, Data, _Extra) ->

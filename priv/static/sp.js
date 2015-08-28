@@ -1,5 +1,7 @@
 var websocket;
 var stage;
+var render = false;
+var lastRenderTime = 0;
 var loaderQueue;
 var imagesQueue = [];
 var spritesQueue = [];
@@ -186,6 +188,7 @@ function init() {
     createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
     createjs.Ticker.setFPS(30);
     createjs.Ticker.addEventListener("tick", stage);
+    createjs.Ticker.addEventListener("tick", handleRender);
 
     $('#server').val("ws://" + window.location.host + "/websocket");
     if(!("WebSocket" in window)){  
@@ -198,6 +201,17 @@ function init() {
     
     $("#connected").hide(); 	
     $("#content").hide(); 	
+};
+
+function handleRender(event) {
+    if(render) {
+        var currTime = createjs.Ticker.getTime();
+        if((currTime - lastRenderTime) >= 500) {
+            drawLocalObj();
+            lastRenderTime = currTime;
+            render = false;
+        }
+    }
 };
 
 function initImages() {
@@ -551,7 +565,7 @@ function onMessage(evt) {
             drawObjs();
         }
         else if(jsonData.packet == "local_perception") {
-            drawLocalObj(jsonData.objs);
+            updateLocalObj(jsonData.objs);
         }
         else if(jsonData.packet == "local_map") {
             drawLocalMap(jsonData.map);
@@ -560,7 +574,7 @@ function onMessage(evt) {
             clearLocalMap();
             drawExplore(jsonData.objs);
             drawLocalMap(jsonData.map);
-            drawLocalObj(jsonData.objs);
+            updateLocalObj(jsonData.objs);            
         }
         else if(jsonData.packet == "item_perception") {
             dialogPanel.visible = false;
@@ -825,7 +839,34 @@ function drawLocalMap(map) {
     }
 };
 
-function drawLocalObj(objs) {
+function updateLocalObj(objs) {
+    render = true;
+
+    for(var i = 0; i < objs.length; i++) {        
+        var obj = objs[i];
+        var op;
+
+        if(obj.id in localObjs) {
+            localObjs[obj.id].x = obj.x;
+            localObjs[obj.id].y = obj.y;
+            localObjs[obj.id].state = obj.state;
+            localObjs[obj.id].effect = obj.effect;
+            localObjs[obj.id].op = 'update';
+
+        } else {
+            localObjs[obj.id] = obj;
+            localObjs[obj.id].op = 'new';
+        }
+    }
+
+    for(var id in localObjs) {
+        if(localObjs[id].op == 'none') {
+            localObjs[id].op = 'remove';
+        }
+    }
+};
+
+function drawLocalObj() {
     console.log("drawLocalObj");
     showLocalPanel();
 
@@ -834,50 +875,72 @@ function drawLocalObj(objs) {
     var localObjsCont2 = localMapCont.getChildByName("localObjs2"); 
     var localShroudCont = localMapCont.getChildByName("localShroud"); 
 
-    localObjsCont1.removeAllChildren();
-    localObjsCont2.removeAllChildren();
     localShroudCont.removeAllChildren();
 
     var visibleTiles = [];
 
-    for(var i = 0; i < objs.length; i++) {
-        var obj = objs[i];
-        var pixel = hex_to_pixel(obj.x, obj.y);
-        var unitName = obj.type;
-        unitName = unitName.toLowerCase().replace(/ /g, '');
-        var imagePath =  "/static/art/" + unitName + ".json";
-        var icon = new createjs.Container();
+    for(var id in localObjs) {
+        var localObj = localObjs[id];
 
-        icon.x = pixel.x;
-        icon.y = pixel.y;
-        icon.player = obj.player;
-        icon.name = unitName;
-        icon.id = obj.id;
-        
-        if(obj.class == "structure") {             
-            addChildLocalMap(icon, "localObjs1");
-        }
-        else {
-            addChildLocalMap(icon, "localObjs2");
-        }
+        if(localObj.op == 'new') {
+            var pixel = hex_to_pixel(localObj.x, localObj.y);
+            var unitName = localObj.type;
+            unitName = unitName.toLowerCase().replace(/ /g, '');
+            var imagePath =  "/static/art/" + unitName + ".json";
+            var icon = new createjs.Container();
+            
+            icon.x = pixel.x;
+            icon.y = pixel.y;
+            icon.player = localObj.player;
+            icon.name = localObj.id;
+            
+            if(localObj.class == "structure") {             
+                addChildLocalMap(icon, "localObjs1");
+            }
+            else {
+                addChildLocalMap(icon, "localObjs2");
+            }
 
-        if(obj.player == playerId) {
+            if(localObj.player == playerId) {
+                if(is_hero(localObj.type)) {
+                    visibleTiles = range(localObj.x, localObj.y, 2);
+                    c_x = 640 - 36 - pixel.x;
+                    c_y = 400 - 36 - pixel.y;
 
+                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+                }
+            }
 
-            if(is_hero(obj.type)) {
+            addSprite({id: unitName + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: localObj.state}); 
 
-                visibleTiles = range(obj.x, obj.y, 2);
-                c_x = 640 - 36 - pixel.x;
-                c_y = 400 - 36 - pixel.y;
+            localObj.icon = icon;
+            localObj.op = 'none';
+        } 
+        else if(localObj.op == 'update')
+        {
+            var pixel = hex_to_pixel(localObj.x, localObj.y);
 
-                createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+            localObj.icon.x = pixel.x
+            localObj.icon.y = pixel.y
+
+            localObj.op = 'none';
+
+            if(localObj.player == playerId) {
+                if(is_hero(localObj.type)) {
+                    visibleTiles = range(localObj.x, localObj.y, 2);
+                    c_x = 640 - 36 - pixel.x;
+                    c_y = 400 - 36 - pixel.y;
+
+                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+                }
             }
         }
+        else if(localObj.op == 'remove') {
+            var cont = localObj.icon.parent;
+            cont.removeChild(localObj.icon);
 
-        addSprite({id: unitName + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: obj.state}); 
-
-        obj.icon = icon;
-        localObjs[obj.id] = obj;
+            delete localObjs[id];
+        }
     }
 
     for(var tileKey in localTiles) {
@@ -891,6 +954,7 @@ function drawLocalObj(objs) {
             localShroudCont.addChild(bitmap);
         }
     }
+
 };
 
 function drawLocalSelectPanel(tileX, tileY) {
@@ -1990,6 +2054,11 @@ function addChildLocalMap(item, childName) {
     child.addChild(item);
 };
 
+function removeChildLocalMap(item, childName) {
+    var localMapCont = localPanel.getChildByName('localMap');
+    var child = localMapCont.getChildByName(childName);
+    child.removeChild(item);
+};
 
 function addChildDialogPanel(item) {
     var content = dialogPanel.getChildByName('content');

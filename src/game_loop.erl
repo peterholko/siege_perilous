@@ -24,16 +24,13 @@ loop(NumTick, LastTime, GamePID) ->
     CurrentTick = counter:increment(tick),	
     
     %Process events
-    {GlobalRecalc, LocalRecalc} = process_events(CurrentTick),
+    {_GlobalRecalc, LocalRecalc} = process_events(CurrentTick),
 
     %Get triggered perception
-    {GlobalTriggered, LocalTriggered} = game:get_perception(),
+    {_GlobalTriggered, LocalTriggered} = game:get_perception(),
    
-    %Recalculate global perception
-    global_recalculate(GlobalRecalc or GlobalTriggered),
-
     %Recalculate local perception 
-    local_recalculate(LocalRecalc ++ LocalTriggered),
+    local_recalculate(util:unique_list(LocalRecalc ++ LocalTriggered)),
   
     %Get triggered explored maps
     Explored = game:get_explored(),
@@ -243,7 +240,7 @@ process_active_turn(false, _UnitId) ->
     none. 
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
-    lager:info("Sending ~p to ~p", [Message, Process]),
+    lager:debug("Sending ~p to ~p", [Message, Process]),
     Process ! {MessageType, Message};
 
 send_to_process(_, _, _) ->

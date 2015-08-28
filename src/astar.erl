@@ -1,142 +1,64 @@
 -module(astar).
 
--type cnode() :: {integer(), integer()}.
-
 -include("common.hrl").
+-include("schema.hrl").
 
--define(MINX, 0).
--define(MINY, 0).
--define(MAXX, 10).
--define(MAXY, 10).
+-export([astar/2]).
 
--export([
-         astar/2,
-         neighbour_nodes/2
-        ]).
-
-%% @doc Performs A* for finding a path from `Start' node to `Goal' node
--spec astar(cnode(), cnode()) -> list(cnode()) | failure.
 astar(Start, Goal) ->
-    ClosedSet = sets:new(),
-    OpenSet   = sets:add_element(Start, sets:new()),
+    Frontier = pqueue:in(Start, 0, pqueue:new()),
+    CameFrom = dict:store(Start, none, dict:new()),
+    CostSoFar = dict:store(Start, 0, dict:new()),
 
-    Fscore    = dict:store(Start, h_score(Start, Goal), dict:new()),
-    Gscore    = dict:store(Start, 0, dict:new()),
+    search(pqueue:is_empty(Frontier), Start, Goal, Frontier, CameFrom, CostSoFar).
 
-    CameFrom  = dict:store(Start, none, dict:new()),
+search(true, _Start, _Goal, _Frontier, CameFrom, CostSoFar) ->
+    {CameFrom, CostSoFar};
+search(false, Start, Goal, Frontier1, CameFrom, CostSoFar) ->
+    {{value, Current}, Frontier2} = pqueue:out(Frontier1),
 
-    astar_step(Goal, ClosedSet, OpenSet, Fscore, Gscore, CameFrom).
+    New = case Current =:= Goal of
+            true -> {Frontier2, CameFrom, CostSoFar};
+            false -> 
+                  {X, Y} = Current,
+                  Neighbours = map:get_neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
+                  check_neighbours(Neighbours, Current, Goal, Frontier2, CameFrom, CostSoFar)
+          end,
 
-%% @doc Performs a step of A*.
-%% Takes the best element from `OpenSet', evaluates neighbours, updates scores, etc..
--spec astar_step(cnode(), sets:set(), sets:set(), dict:dict(), dict:dict(), dict:dict()) -> list(cnode()) | failure.
-astar_step(Goal, ClosedSet, OpenSet, Fscore, Gscore, CameFrom) ->
-    case sets:size(OpenSet) of
-        0 ->
-            failure;
-        _ ->
-            BestStep = best_step(sets:to_list(OpenSet), Fscore, none, infinity),
-            if
-                Goal == BestStep ->
-                    lists:reverse(reconstruct_path(CameFrom, BestStep));
-                true ->
-                    Parent     = dict:fetch(BestStep, CameFrom),
-                    NextOpen   = sets:del_element(BestStep, OpenSet),
-                    NextClosed = sets:add_element(BestStep, ClosedSet),
-                    Neighbours = neighbour_nodes(BestStep, Parent),
+    {NewFrontier, NewCameFrom, NewCostSoFar} = New,
+    search(pqueue:is_empty(NewFrontier), Start, Goal, NewFrontier, NewCameFrom, NewCostSoFar).
 
-                    {NewOpen, NewF, NewG, NewFrom} = scan(Goal, BestStep, Neighbours, NextOpen, NextClosed, Fscore, Gscore, CameFrom),
-                    astar_step(Goal, NextClosed, NewOpen, NewF, NewG, NewFrom)
-            end
-    end.
+check_neighbours([], _Current, _Goal, NewFrontier, NewCameFrom, NewCostSoFar) ->
+    {NewFrontier, NewCameFrom, NewCostSoFar};
+check_neighbours([Neighbour | Rest], Current, Goal, Frontier, CameFrom, CostSoFar) ->
+    NewCost = dict:fetch(Current, CostSoFar) + get_move_cost(Neighbour),
+    Result = not dict:is_key(Neighbour, CostSoFar) orelse NewCost < dict:fetch(Neighbour, CostSoFar),
 
-%% @doc Returns the heuristic score from `Current' node to `Goal' node
--spec h_score(Current :: cnode(), Goal :: cnode()) -> Hscore :: number().
-h_score(Current, Goal) ->
-    dist_between(Current, Goal).
-
-%% @doc Returns the distance from `Current' node to `Goal' node
--spec dist_between(cnode(), cnode()) -> Distance :: number().
-dist_between(Current, Goal) ->
-    %TODO investigate why distance is not divided by 2
-    2 * map:distance(Current, Goal).
-
-%% @doc Returns the best next step from `OpenSetAsList'
-%% TODO: May be optimized by making OpenSet an ordered set.
--spec best_step(OpenSetAsList :: list(cnode()), Fscore :: dict(), BestNodeTillNow :: cnode() | none, BestCostTillNow :: number() | infinity) -> cnode().
-best_step([H|Open], Score, none, infinity) ->
-    V = dict:fetch(H, Score),
-    best_step(Open, Score, H, V);
-
-best_step([], _Score, Best, _BestValue) ->
-    Best;
-
-best_step([H|Open], Score, Best, BestValue) ->
-    Value = dict:fetch(H, Score),
-    case Value < BestValue of
-        true ->
-            best_step(Open, Score, H, Value);
-        false ->
-            best_step(Open, Score, Best, BestValue)
-    end.
-
-%% @doc Returns the neighbour nodes of `Node', and excluding its `Parent'.
--spec neighbour_nodes(cnode(), cnode() | none) -> list(cnode()).
-neighbour_nodes(Node, Parent) ->
-    {X, Y} = Node,
-    Neighbours = map:neighbours(X,Y, ?MAP_WIDTH, ?MAP_WIDTH),
-    %Remove parent
-    lists:delete(Parent, Neighbours).
-
-%% @doc Scans the `Neighbours' of `BestStep', and adds/updates the Scores and CameFrom dicts accordingly.
--spec scan(
-        Goal :: cnode(),
-        BestStep :: cnode(),
-        Neighbours :: list(cnode()),
-        NextOpen :: set(),
-        NextClosed :: set(),
-        Fscore :: dict(),
-        Gscore :: dict(),
-        CameFrom :: dict()
-       ) ->
-    {NewOpen :: set(), NewF :: dict(), NewG :: dict(), NewFrom :: dict()}.
-scan(_Goal, _X, [], Open, _Closed, F, G, From) ->
-    {Open, F, G, From};
-scan(Goal, X, [Y|N], Open, Closed, F, G, From) ->
-    case sets:is_element(Y, Closed) of
-        true ->
-            scan(Goal, X, N, Open, Closed, F, G, From);
-        false ->
-            G0 = dict:fetch(X, G),
-            TrialG = G0 + dist_between(X, Y),
-            case sets:is_element(Y, Open) of
-                true ->
-                    OldG = dict:fetch(Y, G),
-                    case TrialG < OldG of
-                        true ->
-                            NewFrom = dict:store(Y, X, From),
-                            NewG    = dict:store(Y, TrialG, G),
-                            NewF    = dict:store(Y, TrialG + h_score(Y, Goal), F), % Estimated total distance from start to goal through y.
-                            scan(Goal, X, N, Open, Closed, NewF, NewG, NewFrom);
-                        false ->
-                            scan(Goal, X, N, Open, Closed, F, G, From)
-                    end;
+    New = case Result of
+                true -> 
+                    Priority = NewCost + heuristic(Goal, Neighbour),
+                    Frontier2 = dict:store(Neighbour, Priority, Frontier),
+                    CameFrom2 = dict:store(Neighbour, Current, CameFrom),
+                    CostSoFar2 = dict:store(Neighbour, NewCost, CostSoFar),
+                    {Frontier2, CameFrom2, CostSoFar2};
                 false ->
-                    NewOpen = sets:add_element(Y, Open),
-                    NewFrom = dict:store(Y, X, From),
-                    NewG    = dict:store(Y, TrialG, G),
-                    NewF    = dict:store(Y, TrialG + h_score(Y, Goal), F), % Estimated total distance from start to goal through y.
-                    scan(Goal, X, N, NewOpen, Closed, NewF, NewG, NewFrom)
-            end
-    end.
+                    {Frontier, CameFrom, CostSoFar}
+          end,
 
-%% @doc Reconstructs the calculated path using the `CameFrom' dict
--spec reconstruct_path(dict(), cnode()) -> list(cnode()).
-reconstruct_path(CameFrom, Node) ->
-    case dict:fetch(Node, CameFrom) of
-        none ->
-            [Node];
-        Value ->
-            [Node | reconstruct_path(CameFrom, Value)]
-    end.
+    {NewFrontier, NewCameFrom, NewCostSoFar} = New,
+    check_neighbours(Rest, Current, Goal, NewFrontier, NewCameFrom, NewCostSoFar).
+
+heuristic(Start, End) ->
+    2 * map:distance(Start, End).
+
+get_move_cost(Pos) ->
+    [Tile] = db:dirty_read(local_map, {1, Pos}),
+    MoveCost = case Tile#local_map.tile of
+                   ?PLAINS -> ?PLAINS_MC;
+                   ?MOUNTAINS -> ?MOUNTAINS_MC;
+                   ?HILLS -> ?HILLS_MC;
+                   ?FOREST -> ?FOREST_MC
+               end,
+    MoveCost.
+
 

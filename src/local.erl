@@ -150,7 +150,7 @@ move(Id, Pos) ->
     update_wall_effect(AddOrRemove, NewLocalObj),
 
     %Add explored if object is granted vision
-    lager:info("Adding explored tiles"),
+    lager:debug("Adding explored tiles"),
     case LocalObj#local_obj.vision of
         true ->
             map:add_local_explored(LocalObj#local_obj.player, 
