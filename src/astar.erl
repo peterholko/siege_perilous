@@ -10,7 +10,10 @@ astar(Start, Goal) ->
     CameFrom = dict:store(Start, none, dict:new()),
     CostSoFar = dict:store(Start, 0, dict:new()),
 
-    search(pqueue2:is_empty(Frontier), Start, Goal, Frontier, CameFrom, CostSoFar).
+    {From, _Cost} = search(pqueue2:is_empty(Frontier), Start, Goal, Frontier, CameFrom, CostSoFar),
+    Next = dict:fetch(Goal, From),
+    Path = to_path(Start, Next, From, [Goal]),
+    Path.
 
 search(true, _Start, _Goal, _Frontier, CameFrom, CostSoFar) ->
     {CameFrom, CostSoFar};
@@ -37,7 +40,6 @@ check_neighbours([Neighbour | Rest], Current, Goal, Frontier, CameFrom, CostSoFa
     New = case Result of
                 true -> 
                     Priority = NewCost + heuristic(Goal, Neighbour),
-                    lager:info("Priority: ~p", [Priority]),
                     Frontier2 = pqueue2:in(Neighbour, Priority, Frontier),
                     CameFrom2 = dict:store(Neighbour, Current, CameFrom),
                     CostSoFar2 = dict:store(Neighbour, NewCost, CostSoFar),
@@ -63,4 +65,8 @@ get_move_cost(Pos) ->
                end,
     MoveCost.
 
-
+to_path(Start, Next, _From, Path) when Start =:= Next ->
+    [Start | Path];
+to_path(Start, Next, From, Path) ->    
+    NewNext = dict:fetch(Next, From),
+    to_path(Start, NewNext, From, [Next | Path]).
