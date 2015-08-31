@@ -10,7 +10,8 @@
 
 -export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1]).
 -export([create/8, remove/1, move/2, update_state/2, set_wall_effect/1, is_behind_wall/2]).
--export([is_exit_valid/1, is_empty/2]).
+-export([is_exit_valid/1, is_empty/1]).
+-export([movement_cost/2]).
 
 init_perception(PlayerId, GlobalPos, _TileType) ->
     LocalPlayerUnits = db:index_read(local_obj, PlayerId, #local_obj.player),
@@ -173,11 +174,10 @@ update_state(Id, State) ->
 
     NewLocalObj.
  
-is_empty(GlobalPos, LocalPos) ->
-    LocalObjs = db:index_read(local_obj, GlobalPos, #local_obj.global_pos),
+is_empty(LocalPos) ->
+    LocalObjs = db:index_read(local_obj, LocalPos, #local_obj.pos),
     Units = filter_units(LocalObjs),
-    Result = not lists:keymember(LocalPos, #local_obj.pos, Units),
-    Result.
+    Units =:= [].
 
 is_behind_wall(GlobalPos, LocalPos) ->
     MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos, 
@@ -226,6 +226,10 @@ update_wall_effect(remove, #local_obj{class = Class} = LocalObj) when Class =:= 
 
 update_wall_effect(_, _LocalObj) ->
     lager:info("Not applying wall effect to non-unit").
+
+movement_cost(_LocalObj, NextPos) ->
+    %Check unit skills 
+    map:movement_cost(NextPos) * 8.
 
 %
 % Internal functions

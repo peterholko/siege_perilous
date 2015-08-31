@@ -283,7 +283,7 @@ get_wander_pos(true, _GlobalPos, RandomPos, _Neighbours) ->
 get_wander_pos(false, GlobalPos, _, Neighbours) ->
     Random = random:uniform(length(Neighbours)),
     RandomPos = lists:nth(Random, Neighbours),
-    IsEmpty = local:is_empty(GlobalPos, RandomPos),
+    IsEmpty = local:is_empty(RandomPos),
     NewNeighbours = lists:delete(RandomPos, Neighbours),
 
     get_wander_pos(IsEmpty, GlobalPos, RandomPos, NewNeighbours).

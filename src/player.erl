@@ -107,13 +107,14 @@ attack_unit(SourceId, TargetId) ->
 
 move_unit(UnitId, Pos) ->
     Player = get(player_id),
-    NumTicks = 8,
     [Unit] = db:read(local_obj, UnitId),
+    NumTicks = local:movement_cost(Unit, Pos),
+    lager:info("NumTicks: ~p", [NumTicks]),
    
     ValidState = Unit#local_obj.state =/= dead, 
     ValidClass = Unit#local_obj.class =:= unit,
     ValidAdjacent = map:is_adjacent(Unit#local_obj.pos, Pos),
-    ValidPos = local:is_empty(Unit#local_obj.global_pos, Pos),
+    ValidPos = local:is_empty(Pos),
     NearbyHero = local_obj:is_nearby_hero(Unit, Player),
 
     lager:info("move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   

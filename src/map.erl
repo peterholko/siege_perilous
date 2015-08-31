@@ -19,6 +19,7 @@
          get_nearby_objs/4, xml_test/0, tileset/0]).
 -export([add_explored/2, add_local_explored/3, is_valid_pos/1]).
 -export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
+-export([movement_cost/1]).
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -68,6 +69,17 @@ is_adjacent(SourcePos, TargetPos) ->
     {SX, SY} = SourcePos,
     Neighbours = map:neighbours(SX, SY, 10, 10),
     lists:member(TargetPos, Neighbours).
+
+movement_cost(Pos) ->
+    [Tile] = db:dirty_read(local_map, {1, Pos}),
+    TileType = Tile#local_map.tile - 1,
+    MoveCost = case TileType of
+                   ?PLAINS -> ?PLAINS_MC;
+                   ?MOUNTAINS -> ?MOUNTAINS_MC;
+                   ?HILLS -> ?HILLS_MC;
+                   ?FOREST -> ?FOREST_MC
+               end,
+    MoveCost.   
 
 %% ====================================================================
 %% Server functions

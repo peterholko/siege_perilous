@@ -130,7 +130,12 @@ do_event(move_local_obj, EventData, _PlayerPid) ->
 
     {GlobalPos, _Player, Id, NewPos} = EventData,
 
-    local:move(Id, NewPos),
+    case local:is_empty(NewPos) of
+        true ->
+            local:move(Id, NewPos);
+        false ->
+            nothing
+    end,
 
     {false, {GlobalPos, true}};
 

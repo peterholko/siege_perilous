@@ -21,7 +21,7 @@ search(false, Start, Goal, Frontier1, CameFrom, CostSoFar) ->
             true -> {Frontier2, CameFrom, CostSoFar};
             false -> 
                   {X, Y} = Current,
-                  Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
+                  Neighbours = get_neighbours(X, Y),
                   check_neighbours(Neighbours, Current, Goal, Frontier2, CameFrom, CostSoFar)
           end,
 
@@ -37,7 +37,6 @@ check_neighbours([Neighbour | Rest], Current, Goal, Frontier, CameFrom, CostSoFa
     New = case Result of
                 true -> 
                     Priority = NewCost + heuristic(Goal, Neighbour),
-                    lager:info("Priority: ~p", [Priority]),
                     Frontier2 = pqueue2:in(Neighbour, Priority, Frontier),
                     CameFrom2 = dict:store(Neighbour, Current, CameFrom),
                     CostSoFar2 = dict:store(Neighbour, NewCost, CostSoFar),
@@ -52,15 +51,10 @@ check_neighbours([Neighbour | Rest], Current, Goal, Frontier, CameFrom, CostSoFa
 heuristic(Start, End) ->
     2 * map:distance(Start, End).
 
+get_neighbours(X, Y) ->
+    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
+    F = fun(Neighbour) -> local:is_empty(Neighbour) end,
+    lists:filter(F, Neighbours).
+    
 get_move_cost(Pos) ->
-    [Tile] = db:dirty_read(local_map, {1, Pos}),
-    TileType = Tile#local_map.tile - 1,
-    MoveCost = case TileType of
-                   ?PLAINS -> ?PLAINS_MC;
-                   ?MOUNTAINS -> ?MOUNTAINS_MC;
-                   ?HILLS -> ?HILLS_MC;
-                   ?FOREST -> ?FOREST_MC
-               end,
-    MoveCost.
-
-
+    map:movement_cost(Pos).
