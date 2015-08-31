@@ -9,7 +9,8 @@
 -include("schema.hrl").
 
 -export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1]).
--export([create/8, remove/1, move/2, update_state/2, set_wall_effect/1, is_behind_wall/2]).
+-export([create/8, remove/1, move/2, set_wall_effect/1, is_behind_wall/2]).
+-export([update_state/2, update_dead/1]).
 -export([is_exit_valid/1, is_empty/1]).
 -export([movement_cost/2]).
 
@@ -173,7 +174,19 @@ update_state(Id, State) ->
     game:trigger_local(LocalObj#local_obj.global_pos),
 
     NewLocalObj.
- 
+
+update_dead(Id) ->
+    [LocalObj] = db:read(local_obj, Id),
+    NewLocalObj = LocalObj#local_obj {class = corpse,
+                                      state = dead,
+                                      vision = false},
+    db:write(NewLocalObj),
+
+    %Trigger new perception
+    game:trigger_local(LocalObj#local_obj.global_pos),
+
+    NewLocalObj.
+
 is_empty(LocalPos) ->
     LocalObjs = db:index_read(local_obj, LocalPos, #local_obj.pos),
     Units = filter_units(LocalObjs),

@@ -244,8 +244,7 @@ process_unit_dead(_AtkObjId, _DefObjId, DefId) ->
     db:delete(action, DefId),
 
     lager:info("Updating unit state"),
-    %Remove unit from collection
-    NewLocalObj = local:update_state(DefId, dead),
+    NewLocalObj = local:update_dead(DefId),
 
     %Remove potential wall effect
     local:set_wall_effect(NewLocalObj).

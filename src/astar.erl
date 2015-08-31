@@ -6,11 +6,13 @@
 -export([astar/2, get_move_cost/1]).
 
 astar(Start, Goal) ->
+    lager:info("Start: ~p Goal: ~p", [Start, Goal]),
     Frontier = pqueue2:in(Start, 0, pqueue2:new()),
     CameFrom = dict:store(Start, none, dict:new()),
     CostSoFar = dict:store(Start, 0, dict:new()),
 
     {From, _Cost} = search(pqueue2:is_empty(Frontier), Start, Goal, Frontier, CameFrom, CostSoFar),
+
     Next = dict:fetch(Goal, From),
     Path = to_path(Start, Next, From, [Goal]),
     Path.
@@ -56,8 +58,9 @@ heuristic(Start, End) ->
 
 get_neighbours(X, Y) ->
     Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    F = fun(Neighbour) -> local:is_empty(Neighbour) end,
-    lists:filter(F, Neighbours).
+    %F = fun(Neighbour) -> local:is_empty(Neighbour) end,
+    %lists:filter(F, Neighbours),
+    Neighbours.
     
 get_move_cost(Pos) ->
     map:movement_cost(Pos).
