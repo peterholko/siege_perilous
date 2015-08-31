@@ -10,7 +10,10 @@ astar(Start, Goal) ->
     CameFrom = dict:store(Start, none, dict:new()),
     CostSoFar = dict:store(Start, 0, dict:new()),
 
-    search(pqueue2:is_empty(Frontier), Start, Goal, Frontier, CameFrom, CostSoFar).
+    {From, _Cost} = search(pqueue2:is_empty(Frontier), Start, Goal, Frontier, CameFrom, CostSoFar),
+    Next = dict:fetch(Goal, From),
+    Path = to_path(Start, Next, From, [Goal]),
+    Path.
 
 search(true, _Start, _Goal, _Frontier, CameFrom, CostSoFar) ->
     {CameFrom, CostSoFar};
@@ -58,3 +61,9 @@ get_neighbours(X, Y) ->
     
 get_move_cost(Pos) ->
     map:movement_cost(Pos).
+
+to_path(Start, Next, _From, Path) when Start =:= Next ->
+    [Start | Path];
+to_path(Start, Next, From, Path) ->    
+    NewNext = dict:fetch(Next, From),
+    to_path(Start, NewNext, From, [Next | Path]).
