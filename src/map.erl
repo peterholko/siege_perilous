@@ -467,12 +467,18 @@ process_tile_data(<<"resources">>, TileId, [{<<"properties">>, _, PropertiesData
 
     process_tile_data(<<"resources">>, TileId, Rest, Image);
 
-process_tile_data(TilesetName, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
+process_tile_data(<<"unit">>, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
+    lager:info("PropertyData: ~p", [PropertiesData]), 
+    Properties = process_property(PropertiesData, maps:new()),
+
+    process_tile_data(<<"unit">>, TileId, Rest, Image);
+
+process_tile_data(TileLayer, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
     lager:info("PropertyData: ~p", [PropertiesData]), 
     Properties = process_property(PropertiesData, maps:new()),
     store_poi_def(TileId, Properties),
 
-    process_tile_data(TilesetName, TileId, Rest, Image).
+    process_tile_data(TileLayer, TileId, Rest, Image).
 
 process_property([], Properties) ->
     lager:info("Done properties processing: ~p", [Properties]),
@@ -513,6 +519,9 @@ process_layers([{<<"layer">>, [{<<"name">>,<<"resource1">>} | _], LayerData} | R
     process_layers(Rest);
 process_layers([{<<"layer">>, [{<<"name">>,<<"poi">>} | _], LayerData} | Rest]) -> 
     process_layer_data(poi,LayerData),
+    process_layers(Rest);
+process_layers([{<<"layer">>, [{<<"name">>,<<"unit">>} | _], LayerData} | Rest]) ->
+    process_layer_data(unit,LayerData),
     process_layers(Rest);
 process_layers([{<<"layer">>, LayerProp, LayerData} | Rest]) ->
     lager:info("Processing layer ~p", [LayerProp]),

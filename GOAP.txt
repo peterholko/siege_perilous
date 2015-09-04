@@ -1,0 +1,51 @@
+Potential FSM:
+Idle
+MoveTo
+PerformAction
+
+1. Motive determines Goal
+2. Goal determines List of Actions
+
+1. Assume Goal Wander
+2. Determine List of Actions
+   a) Regressive Search
+
+      [Move Randomly]
+        TargetIsVisible false -> *Execute Move Randomly*
+        TargetIsVisible true -> [Attack Target]
+      [Attack Target] 
+        TargetIsVisible true
+        TargetIsDead true
+        TargetIsAdjacent true -> *Execute Attack Target*
+        TargetIsAdjacent false -> [Move to Target]
+      [Move to Target]
+        TargetIsVisible true
+        TargetIsDead false
+            
+            
+
+
+Goal - Wander
+Actions:
+Attack - "TargetIsVisible" - "TargetIsDead"
+Move to Target - "TargetIsVisible" - "TargetIsAdjacent"
+Move Randomly - "no enemies nearby" - "randomly move"
+
+Attack:
+TargetIsDead    false/true
+TargetIsAdjacent false/true
+TargetIsVisible true/true
+
+Move to Target:
+TargetIsAdjacent true/true
+TargetIsVisible true/true
+
+Move Randomly:
+TargetIsVisible false/false
+
+Goal - Guard X,Y
+Actions:
+Attack Enemy - "enemy nearby" - "damage enemy"
+Move to X,Y - "no enemies nearby" - "moves towards X,Y"
+
+

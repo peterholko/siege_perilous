@@ -38,8 +38,6 @@ start(_Type, _Args) ->
 
     lager:info("Loading global map"),
     map:load_global(),
-    lager:info("Loading local maps"),
-    map:load_local(),
 
     lager:info("Loading map tileset and data"),
     map:tileset(),

@@ -121,13 +121,14 @@ create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Subclass, Name, State) ->
     game:trigger_local(GlobalPos),
 
     %Check subclass for any other post creation tasks
-    create_subclass(LocalObj, Subclass),
+    create_subclass(LocalObjM, Subclass),
 
     %Return ID
     Id.
 
-create_subclass(LocalObj, <<"npc">>) ->
-    NPC = #npc {id = LocalObj#local_obj.id},
+create_subclass(LocalObjM, <<"npc">>) ->
+    {Id} = bson:lookup('_id', LocalObjM),
+    NPC = #npc {id = Id},
     db:write(NPC);
 create_subclass(_, _) ->
     nothing.

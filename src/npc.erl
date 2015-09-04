@@ -138,39 +138,31 @@ process_npc(_Objective, NPCObj, []) ->
     process_action(wander, NPCObj#local_obj.state, true, NPCObj);
 
 process_npc(Objective, NPCObj, AllEnemyUnits) ->
-    lager:debug("NPCObj: ~p", [NPCObj]),
-    lager:debug("EnemyUnits: ~p", [AllEnemyUnits]),
     
     NPCStats = local_obj:get_stats(NPCObj#local_obj.id),
     {Int} = bson:lookup(int, NPCStats),
     {Aggression} = bson:lookup(aggression, NPCStats),
 
-    NewObjective = determine_objective(NPCObj, Int, Aggression, AllEnemyUnits),
+    Target = find_target(NPCObj, Int, Aggression, AllEnemyUnits),
+    NewObjective = get_objective(NPCObj, Target),
     SameObjective = NewObjective =:= Objective,
 
     process_action(NewObjective, NPCObj#local_obj.state, SameObjective, NPCObj).
 
-determine_objective(NPCUnit, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
+find_target(NPCUnit, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
     EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
-    lager:debug("Current Target: ~p", [EnemyUnit]),
     Target = check_wall(EnemyUnit),
-
-    check_target(NPCUnit, Target);
-
-determine_objective(NPCUnit, <<"animal">>, <<"high">>, AllEnemyUnits) ->
-    lager:debug("AllEnemyUnits: ~p", [AllEnemyUnits]),
+    Target;
+find_target(NPCUnit, <<"animal">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
-    lager:debug("EnemyUnits: ~p", [EnemyUnits]),
     EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
-    lager:debug("Current Target: ~p", [EnemyUnit]),
-    
-    check_target(NPCUnit, EnemyUnit).
+    EnemyUnit.
 
-check_target(_NPCUnit, none) ->
+get_objective(_NPCUnit, none) ->
     lager:debug("No valid targets nearby, wandering..."),
     wander;
-check_target(NPCUnit, Target) ->
+get_objective(NPCUnit, Target) ->
     Result = astar:astar(NPCUnit#local_obj.pos, Target#local_obj.pos),
     Objective = case Result of
                     failure ->
