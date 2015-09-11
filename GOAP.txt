@@ -1,7 +1,107 @@
-Potential FSM:
-Idle
-MoveTo
-PerformAction
+Task Network Guard
+------------------
+
+SelectOne Task *
+SelectAll Task +
+Primative Task @
+GOTO Task !
+
+
+* Attack Enemy - Conditions: TargetVisible
+    + Return To Guard - Conditions: GuardDistance > 3
+        ! Guard
+    + Do Attack
+        @ Navigate To Target - Effects: TargetAdjacent
+        @ Melee Attack 
+
++ Guard - Conditions: Orders == Guard
+    @ Select Guard Pos
+    @ Move to Pos
+    
+        
+Task Network Wander
+-------------------
+* Attack Enemy - Conditions: TargetVisible
+    + Do Attack
+        @ Navigate To Target - Effects: TargetAdjacent
+        @ Melee Attack 
+
++ Wander
+    @ Select Random Pos
+    @ Move to Pos
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GoalWander
+Relevancy: If no enemies
+
+GoalGuard
+Relevancy: If no enemies
+
+GoalKillEnemy:
+Relevancy: If enemy is visible
+
+ActionAttackMelee
+-----------------
+Precondition: TargetInMeleeRange
+Effect: TargetIsDead
+
+Activated: Activates a melee attack
+Completes: When target is dead, target is out of melee range or if attack completes
+
+ActionAttackRange 
+-----------------
+Precondition: TargetInWeaponsRange
+Effect: TargetIsDead
+
+Activated: Activates a range attack
+Completes: When target is dead, target is out of weapons range or if attack completes
+
+ActionChase
+-----------
+Precondition: TargetOutOfRange
+Effect: TargetInMeleeRange/TargetInWeaponsRange
+
+Activated: Activates move in direction of Target
+Completes: When Target is in range
+
+ActionGotoPosBurstall Pass
+-------------
+Precondition: None
+Activated: Activates move to pos
+Completes: When position is reached
+
+ActionWander
+-----------
+Precondition: None
+Effects: None
+
+Activated: Activates random movement 
+Completes: When an event or target is detected
+
+ActionGuard
+-----------
+Precondition: IsTooFarFromGuard
+Effect: 
+
+Activated: Activates Guard 
+Completes: When an event or target is detected
+
 
 1. Motive determines Goal
 2. Goal determines List of Actions
@@ -47,5 +147,15 @@ Goal - Guard X,Y
 Actions:
 Attack Enemy - "enemy nearby" - "damage enemy"
 Move to X,Y - "no enemies nearby" - "moves towards X,Y"
+
+
+
+
+
+
+Potential FSM:
+Idle
+MoveTo
+PerformAction
 
 

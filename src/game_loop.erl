@@ -125,7 +125,7 @@ do_event(attack_obj, EventData, _PlayerPid) ->
 
     {true, false};
 
-do_event(move_local_obj, EventData, _PlayerPid) ->
+do_event(move_local_obj, EventData, PlayerPid) ->
     lager:info("Processing move_local_obj event: ~p", [EventData]),
 
     {GlobalPos, _Player, Id, NewPos} = EventData,
@@ -136,6 +136,8 @@ do_event(move_local_obj, EventData, _PlayerPid) ->
         false ->
             nothing
     end,
+    
+    send_to_process(PlayerPid, event_complete, {move_local_obj, Id}),
 
     {false, {GlobalPos, true}};
 
@@ -251,8 +253,9 @@ send_to_process(Process, MessageType, Message) when is_pid(Process) ->
 send_to_process(_, _, _) ->
     none.
 
-execute_npc(NumTick) when (NumTick rem 100) =:= 0 ->
-    npc:execute(99);
+execute_npc(NumTick) when (NumTick rem 10) =:= 0 ->
+    npc:replan(99),
+    npc:run_plan(99);
 execute_npc(_) ->
     nothing.
 

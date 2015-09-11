@@ -15,7 +15,9 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([execute/1, new_zombie/0, new_wolf/0, get_nearest/3]).
+-export([replan/1, run_plan/1, new_zombie/0, new_wolf/0, get_nearest/3]).
+-export([move_random_pos/1]).
+-export([target_visible/0, toofar/0]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -23,14 +25,23 @@
 start(PlayerId) ->
     gen_server:start({global, {npc, PlayerId}}, npc, [PlayerId], []).
 
-execute(PlayerId) ->
-    gen_server:cast({global, {npc, PlayerId}}, execute).
+replan(PlayerId) ->
+    gen_server:cast({global, {npc, PlayerId}}, replan).
+
+run_plan(PlayerId) ->
+    gen_server:cast({global, {npc, PlayerId}}, run_plan).
 
 new_zombie() ->
     local:create({2,2}, none, {2,2}, 99, unit, <<"npc">>, <<"Zombie">>, none).
 
 new_wolf() ->
     local:create({2,2}, none, {3,3}, 99, unit, <<"npc">>, <<"Wolf">>, none).
+
+target_visible() ->
+    false.
+
+toofar() ->
+    false.
 
 %% ====================================================================
 %% Server functions
@@ -51,17 +62,12 @@ handle_cast(create, Data) ->
     
     {noreply, Data};
 
-handle_cast(execute, Data) ->
-    %PlayerId = get(player_id),
-    %Units = db:index_read(local_obj, PlayerId, #local_obj.player),
+handle_cast(replan, Data) ->
+    process_replan(mnesia:dirty_first(npc)),
+    {noreply, Data};
 
-    %F = fun(Unit) ->
-    %        Perception = db:dirty_read(perception, {PlayerId, Unit#local_obj.global_pos}),
-    %        process_perception(Perception)
-    %    end,
-
-    %lists:foreach(F, Units),
-
+handle_cast(run_plan, Data) ->
+    process_run_plan(mnesia:dirty_first(npc)),
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -76,21 +82,43 @@ handle_call(Event, From, Data) ->
                              ]),
     {noreply, Data}.
 
-handle_info({map_perception_disabled, Perception}, Data) ->
-    lager:info("Map perception: ~p", [Perception]),
-
+handle_info({map_perception_disabled, _Perception}, Data) ->
     {noreply, Data};
 
 handle_info({local_perception, {NPCId, Objs}}, Data) ->
     lager:debug("Local perception received."),
-    [NPC] = db:read(npc, NPCId),
     [NPCObj] = db:read(local_obj, NPCId),
+    [NPC] = db:read(npc, NPCId),
+    NPCStats = local_obj:get_stats(NPCObj#local_obj.id),
 
-    TargetObjs = filter_targets(Objs, []),
+    %Remove from same player and non targetable objs
+    FilteredTargets = filter_targets(Objs, []),
 
-    process_npc(NPC#npc.objective, NPCObj, TargetObjs),
+    %Find target
+    Target = find_target(NPCObj, NPCStats, FilteredTargets),
+
+    %Store target
+    NewNPC = NPC#npc {target = Target},
+    db:write(NewNPC),
 
     lager:debug("Local perception processing end."),
+    {noreply, Data};
+
+handle_info({event_complete, {_Event, Id}}, Data) ->
+    [NPC] = db:read(npc, Id),
+    Length = length(NPC#npc.plan),
+    PlanIndex = NPC#npc.plan_index,
+    lager:info("Length ~p PlanIndex: ~p", [Length, PlanIndex]), 
+    NewNPC = case PlanIndex < Length of
+                 true ->
+                    NPC#npc {plan_state = next,
+                             plan_index = PlanIndex + 1};
+                 false ->
+                    NPC#npc {plan_state = none,
+                             plan_index = 1}
+             end,
+ 
+    db:write(NewNPC),
     {noreply, Data};
 
 handle_info(_Info, Data) ->
@@ -132,52 +160,43 @@ get_local_obj(Obj) ->
     [LocalObj] = db:read(local_obj, Id),
     LocalObj.
 
-process_npc(_Objective, NPCObj, []) ->
-    lager:debug("No enemies nearby, wandering..."),
-    %Set action wander and process
-    process_action(wander, NPCObj#local_obj.state, true, NPCObj);
+process_replan('$end_of_table') ->
+    done;
+process_replan(Id) ->
+    [NPC] = db:read(npc, Id),
 
-process_npc(Objective, NPCObj, AllEnemyUnits) ->
-    
-    NPCStats = local_obj:get_stats(NPCObj#local_obj.id),
-    {Int} = bson:lookup(int, NPCStats),
-    {Aggression} = bson:lookup(aggression, NPCStats),
+    CurrPlan = NPC#npc.plan,
+    NewPlan = htn:plan(NPC#npc.orders, Id),
 
-    Target = find_target(NPCObj, Int, Aggression, AllEnemyUnits),
-    NewObjective = get_objective(NPCObj, Target),
-    SameObjective = NewObjective =:= Objective,
+    case NewPlan =:= CurrPlan of
+        false ->
+            NewNPC = NPC#npc {plan = NewPlan,
+                              plan_state = none,
+                              plan_index = 1},
+            db:write(NewNPC);
+        true ->
+            nothing
+    end.
 
-    process_action(NewObjective, NPCObj#local_obj.state, SameObjective, NPCObj).
+process_run_plan('$end_of_table') ->
+    done;
+process_run_plan(Id) ->
+    [NPC] = db:read(npc, Id),
 
-find_target(NPCUnit, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
-    EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
-    EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
-    Target = check_wall(EnemyUnit),
-    Target;
-find_target(NPCUnit, <<"animal">>, <<"high">>, AllEnemyUnits) ->
-    EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
-    EnemyUnit = get_nearest(NPCUnit#local_obj.pos, EnemyUnits, {none, 1000}),
-    EnemyUnit.
+    case NPC#npc.plan_state of
+        none ->
+            game:cancel_event(Id),
+            [FirstTask | _Rest] = NPC#npc.plan,
+            erlang:apply(npc, FirstTask, [Id]),
+            NewNPC = NPC#npc {plan_state = running},
+            db:write(NewNPC);
+        next ->
+            NextTask = lists:nth(NPC#npc.plan_index, NPC#npc.plan),
+            erlang:apply(npc, NextTask, [Id]);
+        running ->
+            nothing
+    end.
 
-get_objective(_NPCUnit, none) ->
-    lager:debug("No valid targets nearby, wandering..."),
-    wander;
-get_objective(NPCUnit, Target) ->
-    Result = astar:astar(NPCUnit#local_obj.pos, Target#local_obj.pos),
-    Objective = case Result of
-                    failure ->
-                        wander;
-                    Path ->
-                        {attack, Target, Path}
-                end,
-    Objective.
-
-process_action(wander, moving, _, _NPCObj) -> 
-    nothing;
-process_action(wander, none, _, NPCObj) -> 
-    do_wander(NPCObj);
-process_action({attack, _Target, _Path}, moving, true, _NPCObj) ->
-    nothing;
 process_action({attack, Target, Path}, moving, false, NPCObj) ->
     game:cancel_event(NPCObj#local_obj.id),
     do_attack(NPCObj, Target, Path);
@@ -194,17 +213,7 @@ do_attack(NPCObj, Target, Path) ->
             attack_unit(NPCObj, Target);
         _ ->
             nothing
-    end,
-
-    store_objective(NPCObj#local_obj.id, {attack, Target, Path}).
-
-do_wander(NPCObj = #local_obj{global_pos = GlobalPos,
-                              pos = {X, Y}}) ->
-    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    NewPos = get_wander_pos(false, GlobalPos, none, Neighbours),
-    
-    move_unit(NPCObj, NewPos),
-    store_objective(NPCObj#local_obj.id, wander).
+    end.
 
 process_path(Path) when length(Path) > 2 ->
     move;
@@ -295,8 +304,32 @@ check_wall(#local_obj{global_pos = GPos, pos = Pos, effect = Effect} = EnemyUnit
 check_wall(_) ->
     none.
 
-store_objective(NPCId, Objective) ->
-    %TODO convert to transaction
+find_target(NPCObj, NPCStats, AllEnemyUnits) ->
+    {Int} = bson:lookup(int, NPCStats),
+    {Aggression} = bson:lookup(aggression, NPCStats),
+    find_target(NPCObj, Int, Aggression, AllEnemyUnits).
+
+find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
+    EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
+    EnemyUnit = get_nearest(NPCObj#local_obj.pos, EnemyUnits, {none, 1000}),
+    Target = check_wall(EnemyUnit),
+    Target;
+find_target(NPCObj, <<"animal">>, <<"high">>, AllEnemyUnits) ->
+    EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
+    EnemyUnit = get_nearest(NPCObj#local_obj.pos, EnemyUnits, {none, 1000}),
+    EnemyUnit. 
+
+move_random_pos(NPCId) ->
     [NPC] = db:dirty_read(npc, NPCId),
-    NewNPC = NPC#npc {objective = Objective},
-    db:dirty_write(NewNPC).
+    [NPCObj] = db:dirty_read(local_obj, NPCId),
+    {X, Y} = NPCObj#local_obj.pos,
+    GlobalPos = NPCObj#local_obj.global_pos,
+
+    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
+    NewPos = get_wander_pos(false, GlobalPos, none, Neighbours),
+    lager:info("NewPos: ~p", [NewPos]),
+   
+    NewNPC = NPC#npc {pos = NewPos},
+    db:dirty_write(NewNPC),
+
+    move_unit(NPCObj, NewPos).

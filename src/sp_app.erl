@@ -60,6 +60,8 @@ start(_Type, _Args) ->
     lager:info("Starting Villager Manager"),
     villager:start(),
 
+    lager:info("Loading NPC Task Definitions"),
+    htn:load(),
     
     lager:info("Starting game loop"),
     spawn(fun() -> game_loop:loop(0, util:get_time(), global:whereis_name(game_pid)) end),

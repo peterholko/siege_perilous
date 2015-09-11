@@ -81,8 +81,21 @@
                    task,
                    dwelling}).
 
--record(npc, {id, 
-              objective = wander}).
-
 -record(test, {attr,
                value}).
+
+-record(htn, {label,
+              index,
+              parent,
+              conditions = [],
+              effects = [],
+              type,
+              task = none}).
+
+-record(npc, {id,
+              target = none,
+              orders = wander,
+              plan = [],
+              plan_state = none,
+              plan_index = 0,
+              pos = none}).

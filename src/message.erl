@@ -365,6 +365,9 @@ prepare(new_items, Message) ->
 prepare(exit_local, _Message) ->
     [{<<"packet">>, <<"exit_local">>}];
 
+prepare(event_complete, {Event, _Id}) ->
+    [{<<"packet">>, atom_to_binary(Event, latin1)}];
+
 prepare(_MessageType, Message) ->
     Message.
 
