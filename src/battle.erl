@@ -38,6 +38,7 @@ move_unit(UnitId, Pos) ->
 %% ====================================================================
 
 init([]) ->
+    random:seed(erlang:now()),
     {ok, []}.
 
 handle_cast({active_turn, UnitId}, Data) ->

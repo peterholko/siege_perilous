@@ -96,6 +96,7 @@
               target = none,
               orders = wander,
               plan = [],
-              plan_state = none,
-              plan_index = 0,
-              pos = none}).
+              new_plan = false,
+              task_state = none,
+              task_index = 0,
+              path = none}).

@@ -16,8 +16,8 @@
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([replan/1, run_plan/1, new_zombie/0, new_wolf/0, get_nearest/3]).
--export([move_random_pos/1]).
--export([target_visible/0, toofar/0]).
+-export([target_visible/1]).
+-export([move_random_pos/1, move_to_target/1, melee_attack/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -37,11 +37,6 @@ new_zombie() ->
 new_wolf() ->
     local:create({2,2}, none, {3,3}, 99, unit, <<"npc">>, <<"Wolf">>, none).
 
-target_visible() ->
-    false.
-
-toofar() ->
-    false.
 
 %% ====================================================================
 %% Server functions
@@ -50,6 +45,10 @@ toofar() ->
 init([PlayerId]) ->
     %Store player id in process dict
     put(player_id, PlayerId),
+
+    %Store random seed
+    lager:info("Self init: ~p", [self()]),
+    random:seed(erlang:now()),
 
     %Store npc process in connection table
     [Connection] = db:dirty_read(connection, PlayerId),
@@ -94,9 +93,12 @@ handle_info({local_perception, {NPCId, Objs}}, Data) ->
     %Remove from same player and non targetable objs
     FilteredTargets = filter_targets(Objs, []),
 
+    lager:info("FilteredTargets: ~p", [FilteredTargets]),
+
     %Find target
     Target = find_target(NPCObj, NPCStats, FilteredTargets),
 
+    lager:info("Target: ~p", [Target]),
     %Store target
     NewNPC = NPC#npc {target = Target},
     db:write(NewNPC),
@@ -104,21 +106,20 @@ handle_info({local_perception, {NPCId, Objs}}, Data) ->
     lager:debug("Local perception processing end."),
     {noreply, Data};
 
-handle_info({event_complete, {_Event, Id}}, Data) ->
+handle_info({event_complete, {move_local_obj, Id}}, Data) ->
     [NPC] = db:read(npc, Id),
-    Length = length(NPC#npc.plan),
-    PlanIndex = NPC#npc.plan_index,
-    lager:info("Length ~p PlanIndex: ~p", [Length, PlanIndex]), 
-    NewNPC = case PlanIndex < Length of
-                 true ->
-                    NPC#npc {plan_state = next,
-                             plan_index = PlanIndex + 1};
-                 false ->
-                    NPC#npc {plan_state = none,
-                             plan_index = 1}
-             end,
+    Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
+
+    case Task of
+        move_random_pos ->
+            NewNPC = NPC#npc {task_state = completed},
+            db:write(NewNPC);
+        move_to_target ->
+            move_to_target(Id);
+        _ ->
+            nothing
+    end,
  
-    db:write(NewNPC),
     {noreply, Data};
 
 handle_info(_Info, Data) ->
@@ -140,7 +141,6 @@ filter_targets([], Targets) ->
 filter_targets([Obj | Rest], Targets) ->
     Player = get(player_id),
     ObjPlayer = maps:get(<<"player">>, Obj),
-
     NewTargets = case valid_target(Player, ObjPlayer) of
                      true ->
                          LocalObj = get_local_obj(Obj),
@@ -167,12 +167,13 @@ process_replan(Id) ->
 
     CurrPlan = NPC#npc.plan,
     NewPlan = htn:plan(NPC#npc.orders, Id),
-
+    lager:info("NewPlan: ~p", [NewPlan]),
     case NewPlan =:= CurrPlan of
         false ->
             NewNPC = NPC#npc {plan = NewPlan,
-                              plan_state = none,
-                              plan_index = 1},
+                              new_plan = true,
+                              task_state = completed,
+                              task_index = 0},
             db:write(NewNPC);
         true ->
             nothing
@@ -183,19 +184,31 @@ process_run_plan('$end_of_table') ->
 process_run_plan(Id) ->
     [NPC] = db:read(npc, Id),
 
-    case NPC#npc.plan_state of
-        none ->
-            game:cancel_event(Id),
-            [FirstTask | _Rest] = NPC#npc.plan,
-            erlang:apply(npc, FirstTask, [Id]),
-            NewNPC = NPC#npc {plan_state = running},
-            db:write(NewNPC);
-        next ->
-            NextTask = lists:nth(NPC#npc.plan_index, NPC#npc.plan),
-            erlang:apply(npc, NextTask, [Id]);
-        running ->
+    case NPC#npc.task_state of
+        completed ->
+            TaskIndex = NPC#npc.task_index,
+            PlanLength = length(NPC#npc.plan),
+
+            NextTask = get_next_task(TaskIndex, PlanLength),
+            case NextTask of
+                {next_task, NextTaskIndex} ->
+                    NewNPC = NPC#npc {task_index = NextTaskIndex},
+                    db:write(NewNPC),
+                    erlang:apply(npc, lists:nth(NextTaskIndex, NPC#npc.plan) , [Id]);
+                plan_completed ->
+                    NewNPC = NPC#npc { task_state = completed,
+                                       task_index = 0},
+                    db:write(NewNPC)
+            end;
+        inprogress ->
             nothing
     end.
+
+get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
+    NewTaskIndex = TaskIndex + 1,
+    {next_task, NewTaskIndex};
+get_next_task(_TaskIndex, _PlanLength) ->
+    plan_completed.
 
 process_action({attack, Target, Path}, moving, false, NPCObj) ->
     game:cancel_event(NPCObj#local_obj.id),
@@ -285,6 +298,7 @@ get_wander_pos(false, GlobalPos, _, Neighbours) ->
     Random = random:uniform(length(Neighbours)),
     RandomPos = lists:nth(Random, Neighbours),
     IsEmpty = local:is_empty(RandomPos),
+
     NewNeighbours = lists:delete(RandomPos, Neighbours),
 
     get_wander_pos(IsEmpty, GlobalPos, RandomPos, NewNeighbours).
@@ -309,27 +323,56 @@ find_target(NPCObj, NPCStats, AllEnemyUnits) ->
     {Aggression} = bson:lookup(aggression, NPCStats),
     find_target(NPCObj, Int, Aggression, AllEnemyUnits).
 
+find_target(_NPCObj, _, _, []) ->
+    none;
 find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
     EnemyUnit = get_nearest(NPCObj#local_obj.pos, EnemyUnits, {none, 1000}),
     Target = check_wall(EnemyUnit),
-    Target;
+    Target#local_obj.id;
 find_target(NPCObj, <<"animal">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
     EnemyUnit = get_nearest(NPCObj#local_obj.pos, EnemyUnits, {none, 1000}),
-    EnemyUnit. 
+    EnemyUnit#local_obj.id. 
 
 move_random_pos(NPCId) ->
-    [NPC] = db:dirty_read(npc, NPCId),
+    [NPC] = db:read(npc, NPCId),
     [NPCObj] = db:dirty_read(local_obj, NPCId),
     {X, Y} = NPCObj#local_obj.pos,
     GlobalPos = NPCObj#local_obj.global_pos,
 
     Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
     NewPos = get_wander_pos(false, GlobalPos, none, Neighbours),
-    lager:info("NewPos: ~p", [NewPos]),
    
-    NewNPC = NPC#npc {pos = NewPos},
-    db:dirty_write(NewNPC),
+    NewNPC = NPC#npc {task_state = inprogress},
+    db:write(NewNPC),
 
     move_unit(NPCObj, NewPos).
+
+target_visible(NPCId) ->
+    io:fwrite("Target Visible"),
+    [NPC] = db:read(npc, NPCId),
+    NPC#npc.target =/= none.
+
+move_to_target(NPCId) ->
+    [NPC] = db:read(npc, NPCId), 
+    [NPCObj] = db:read(local_obj, NPCId),
+    [TargetObj] = db:read(local_obj, NPC#npc.target),
+
+    IsAdjacent = map:is_adjacent(NPCObj#local_obj.pos, TargetObj#local_obj.pos),
+
+    case IsAdjacent of
+        false ->
+            Path = astar:astar(NPCObj#local_obj.pos, TargetObj#local_obj.pos),
+            NewNPC = NPC#npc {task_state = inprogress,
+                              path = Path},
+            db:write(NewNPC),
+
+            move_unit(NPCObj, lists:nth(2, Path));
+        true ->
+            NewNPC = NPC#npc {task_state = completed},
+            db:write(NewNPC)
+    end.
+    
+melee_attack(_NPCId) ->
+    lager:info("Melee attack~n").

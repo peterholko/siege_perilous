@@ -26,15 +26,15 @@ wander() ->
 
 guard() ->
     new(guard),
-    add_select_one(attack_enemy, guard, [target_visible], []),
-    add_select_all(return_to_guard, attack_enemy, [toofar], []),
-    add_primitive(select_guard, return_to_guard, [], [], select_guard_pos),
-    add_primitive(move_to, return_to_guard, [], [], move_to_pos),
-    add_select_all(do_attack, attack_enemy, [], []),
-    add_primitive(move_to_target, do_attack, [], [], move_to_target),
-    add_primitive(melee_attack, do_attack, [], [], melee_attack),
-    add_select_all(do_guard, guard, [], []),
-    add_primitive(select_guard, do_guard, [], [], select_guard_pos),
+%    add_select_one(attack_enemy, guard, [target_visible], []),
+%    add_select_all(return_to_guard, attack_enemy, [toofar], []),
+%    add_primitive(select_guard, return_to_guard, [], [], select_guard_pos),
+%    add_primitive(move_to, return_to_guard, [], [], move_to_pos),
+%    add_select_all(do_attack, attack_enemy, [], []),
+%    add_primitive(move_to_target, do_attack, [], [], move_to_target),
+%    add_primitive(melee_attack, do_attack, [], [], melee_attack),
+%    add_select_all(do_guard, guard, [], []),
+%    add_primitive(select_guard, do_guard, [], [], select_guard_pos),
     add_primitive(move_to, do_guard, [], [], move_to_pos).
 
 plan(PlanName, NPC) ->
@@ -42,7 +42,7 @@ plan(PlanName, NPC) ->
     Children = db:dirty_index_read(htn, PlanName, #htn.parent),
     SortedChildren = lists:keysort(#htn.index, Children),
 
-    erase(),
+    erase(plan),
     
     process_child(SortedChildren, Parent#htn.type, NPC),
 
@@ -74,6 +74,7 @@ process_child_selectone(_Children, {true, Child}, _NPC) ->
     Child;
 process_child_selectone([Child | Rest], _Result, NPC) ->
     Conditions = Child#htn.conditions,
+    lager:info("Conditions: ~p", [Conditions]),
     NewResult = eval(Conditions, NPC),
     process_child_selectone(Rest, {NewResult, Child}, NPC).
 
@@ -92,7 +93,8 @@ eval(_Conditions, false, _NPC) ->
 eval([], Result, _NPC) ->
     Result;
 eval([Condition | Rest], Result, NPC) ->
-    NewResult = erlang:apply(npc, Condition, []),
+    lager:info("Condition: ~p", [Condition]),
+    NewResult = erlang:apply(npc, Condition, [NPC]),
     eval(Rest, Result and NewResult, NPC).
 
 add_to_plan(Children) when is_list(Children) ->
