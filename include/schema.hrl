@@ -51,9 +51,6 @@
 -record(perception, {entity,
                      data}).
 
--record(battle_unit, {unit,
-                      speed}).
-
 -record(local_map, {index,
                     tile,
                     layers}).

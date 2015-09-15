@@ -106,7 +106,7 @@ handle_info({local_perception, {NPCId, Objs}}, Data) ->
     lager:debug("Local perception processing end."),
     {noreply, Data};
 
-handle_info({event_complete, {move_local_obj, Id}}, Data) ->
+handle_info({event_complete, {_EventId, Id}}, Data) ->
     [NPC] = db:read(npc, Id),
     Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
 
@@ -116,6 +116,9 @@ handle_info({event_complete, {move_local_obj, Id}}, Data) ->
             db:write(NewNPC);
         move_to_target ->
             move_to_target(Id);
+        melee_attack ->
+            NewNPC = NPC#npc {task_state = completed},
+            db:write(NewNPC);
         _ ->
             nothing
     end,
@@ -170,6 +173,10 @@ process_replan(Id) ->
     lager:info("NewPlan: ~p", [NewPlan]),
     case NewPlan =:= CurrPlan of
         false ->
+            %New plan cancel current event
+            game:cancel_event(Id),
+
+            %Reset NPC variables
             NewNPC = NPC#npc {plan = NewPlan,
                               new_plan = true,
                               task_state = completed,
@@ -222,8 +229,6 @@ do_attack(NPCObj, Target, Path) ->
     case process_path(Path) of
         move ->
             move_unit(NPCObj, lists:nth(2, Path));
-        attack ->
-            attack_unit(NPCObj, Target);
         _ ->
             nothing
     end.
@@ -232,9 +237,6 @@ process_path(Path) when length(Path) > 2 ->
     move;
 process_path(Path) when length(Path) =< 2 ->
     attack.
-
-attack_unit(Source, Target) ->
-    battle:attack_unit(Source#local_obj.id, Target#local_obj.id).
 
 move_unit(#local_obj {id = Id,
                       player = Player,
@@ -312,7 +314,7 @@ check_wall(#local_obj{global_pos = GPos, pos = Pos, effect = Effect} = EnemyUnit
                 false ->
                     EnemyUnit
              end,
-    lager:debug("Target: ~p", [Target]),
+    lager:info("Target: ~p", [Target]),
     Target;
 
 check_wall(_) ->
@@ -329,11 +331,16 @@ find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
     EnemyUnit = get_nearest(NPCObj#local_obj.pos, EnemyUnits, {none, 1000}),
     Target = check_wall(EnemyUnit),
-    Target#local_obj.id;
+    return_target(Target);
 find_target(NPCObj, <<"animal">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
     EnemyUnit = get_nearest(NPCObj#local_obj.pos, EnemyUnits, {none, 1000}),
-    EnemyUnit#local_obj.id. 
+    return_target(EnemyUnit). 
+
+return_target(Target) when is_record(Target, local_obj) ->
+    Target#local_obj.id;
+return_target(_) ->
+    none.
 
 move_random_pos(NPCId) ->
     [NPC] = db:read(npc, NPCId),
@@ -350,7 +357,6 @@ move_random_pos(NPCId) ->
     move_unit(NPCObj, NewPos).
 
 target_visible(NPCId) ->
-    io:fwrite("Target Visible"),
     [NPC] = db:read(npc, NPCId),
     NPC#npc.target =/= none.
 
@@ -374,5 +380,13 @@ move_to_target(NPCId) ->
             db:write(NewNPC)
     end.
     
-melee_attack(_NPCId) ->
-    lager:info("Melee attack~n").
+melee_attack(NPCId) ->
+    lager:info("Melee attack"),
+    [NPC] = db:read(npc, NPCId),
+
+    combat:attack(NPCId, NPC#npc.target),
+    game:add_event(self(), action, NPCId, NPCId, 16),
+
+    NewNPC = NPC#npc {task_state = inprogress},
+    db:write(NewNPC).
+

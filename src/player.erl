@@ -11,10 +11,8 @@
          get_info_obj/1,
          get_info_unit/1,
          get_info_item/1,
-         get_info_battle/1,
          move_obj/2,
          move_unit/2,
-         attack_obj/2,
          attack_unit/2,
          survey/1,
          harvest/2,
@@ -61,18 +59,6 @@ get_info_item(Item) ->
     lager:info("get_info_item ~p", [Item]),
     item:get(Item).
 
-get_info_battle(Id) ->
-    Player = get(player_id),
-    Info = case battle:check_player(Player, Id) of
-                true ->
-                    BattlePerception = battle:info(Id),
-                    {battle_perception, BattlePerception};
-                false ->
-                    ObjInfo = obj:get_info(Player, Id),
-                    {obj_info, ObjInfo} 
-           end,
-    Info.
-
 move_obj(Id, Pos) ->
     Player = get(player_id),
     NumTicks = 8,
@@ -93,17 +79,10 @@ move_obj(Id, Pos) ->
 
     add_move(Result, {Obj, Pos}, NumTicks).
 
-attack_obj(SourceId, TargetId) ->
-    Player = get(player_id),
-    NumTicks = 8,
-
-    %TODO add validation
-    Result = true,
-
-    add_attack_obj_event(Result, {SourceId, TargetId}, NumTicks).
-  
 attack_unit(SourceId, TargetId) ->
-    battle:attack_unit(SourceId, TargetId).
+    Result = true,
+    combat:attack(SourceId, TargetId),
+    add_action(Result, SourceId, 16).
 
 move_unit(UnitId, Pos) ->
     Player = get(player_id),
@@ -414,13 +393,11 @@ add_finish_build(true, {LocalObjId, GlobalPos, StructureId}, NumTicks) ->
 
     game:add_event(self(), finish_build, EventData, LocalObjId, NumTicks).
 
-add_attack_obj_event(false, _EventData, _Ticks) ->
-    lager:info("Attack failed"),
+add_action(false, _EventData, _Ticks) ->
+    lager:info("Action failed"),
     none;
-add_attack_obj_event(true, {SourceId, TargetId}, NumTicks) ->
-
-    EventData = {SourceId, TargetId},
-    game:add_event(self(), attack_obj, EventData, none, NumTicks).
+add_action(true, SourceId, NumTicks) ->
+    game:add_event(self(), action, SourceId, SourceId, NumTicks).
 
 add_move(false, _EventData, _Ticks) ->
     lager:info("Move failed"),

@@ -42,10 +42,8 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(explored_map, [{ram_copies, [node()]}, {attributes, record_info(fields, explored_map)}]),  
     {atomic, ok} = mnesia:create_table(perception, [{ram_copies, [node()]}, {attributes, record_info(fields, perception)}]),  
     {atomic, ok} = mnesia:create_table(event, [{disc_copies, [node()]}, {attributes, record_info(fields, event)}]),    
-    {atomic, ok} = mnesia:create_table(battle_unit, [{disc_copies, [node()]}, {attributes, record_info(fields, battle_unit)}]),    
     {atomic, ok} = mnesia:create_table(local_map, [{disc_copies, [node()]}, {attributes, record_info(fields, local_map)}]),    
     {atomic, ok} = mnesia:create_table(local_obj, [{disc_copies, [node()]}, {attributes, record_info(fields, local_obj)}]),    
-    {atomic, ok} = mnesia:create_table(charge_time, [{disc_copies, [node()]}, {attributes, record_info(fields, charge_time)}]),    
     {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource_def, [{disc_copies, [node()]}, {attributes, record_info(fields, resource_def)}]),
     {atomic, ok} = mnesia:create_table(poi_def, [{disc_copies, [node()]}, {attributes, record_info(fields, poi_def)}]),
@@ -63,7 +61,6 @@ create_schema() ->
     mnesia:add_table_index(obj, player),
     mnesia:add_table_index(event, tick),
     mnesia:add_table_index(event, source),
-    mnesia:add_table_index(action, battle),
     mnesia:add_table_index(local_obj, global_obj_id),
     mnesia:add_table_index(local_obj, global_pos),
     mnesia:add_table_index(local_obj, player),
@@ -75,7 +72,7 @@ create_schema() ->
 start() ->
     mnesia:start(),
     mnesia:wait_for_tables([counter, player, connection, global_map, obj, explored_map, perception,
-                            event, battle, battle_unit, charge_time, action, resource, local_map], 1000).
+                            event, action, resource, local_map], 1000).
 
 write(R) ->
     F = fun() -> mnesia:write(R) end,

@@ -50,10 +50,6 @@ loop(NumTick, LastTime, GamePID) ->
     %Toggle off perception and explored
     game:reset(),
  
-    %Update charge times
-    BattleUnits = ets:tab2list(battle_unit),
-    update_charge_times(BattleUnits),
-
     {NextTime, SleepTime} = calculate_sleep(LastTime),
 
     timer:sleep(SleepTime),
@@ -70,16 +66,15 @@ calculate_sleep(LastTime) ->
     check_sleep(CalcSleepTime, LastTime).
 
 check_sleep(CalcSleepTime, LastTime) ->
-    if
-        CalcSleepTime =< 0 ->
-            NextTime = LastTime + ?GAME_LOOP_TICK * 4,
-            SleepTime = 1;
-        true ->
-            NextTime = LastTime + ?GAME_LOOP_TICK,
-            SleepTime = CalcSleepTime            
-    end,
-
-    {NextTime, SleepTime}.
+    Next = if
+               CalcSleepTime =< 0 ->
+                   NextTime = LastTime + ?GAME_LOOP_TICK * 4,
+                   {NextTime, 1};
+               true ->
+                   NextTime = LastTime + ?GAME_LOOP_TICK,
+                   {NextTime, CalcSleepTime}
+           end,
+    Next.
 
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
@@ -115,15 +110,19 @@ do_event(move_obj, EventData, _PlayerPid) ->
 
     {true, false};
 
-do_event(attack_obj, EventData, _PlayerPid) ->
-    lager:info("Processing attack_obj event: ~p", [EventData]),
+do_event(action, EventData, PlayerPid) ->
+    lager:info("Processing action event: ~p", [EventData]),
+    Id = EventData,
 
-    {SourceId, TargetId} = EventData,
+    case db:read(action, Id) of
+        [Action] ->
+            combat:do_action(Action),
+            send_to_process(PlayerPid, event_complete, {Action#action.type, Id});
+        _ ->
+            nothing
+    end,
 
-    %Create battle with list of source and target
-    battle:create(SourceId, TargetId),
-
-    {true, false};
+    {false, false};
 
 do_event(move_local_obj, EventData, PlayerPid) ->
     lager:info("Processing move_local_obj event: ~p", [EventData]),
@@ -201,12 +200,6 @@ do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.
 
-global_recalculate(false) ->
-    nothing;
-
-global_recalculate(true) ->
-    g_perception:recalculate().
-
 local_recalculate([]) ->
     done;
 local_recalculate([GlobalPos | Rest]) ->
@@ -221,30 +214,6 @@ process_explored([{Player, GlobalPos} | Rest]) ->
     send_to_process(Conn#connection.process, local_map, ExploredTiles),
 
     process_explored(Rest).
-
-update_charge_times([]) ->
-    done;
-update_charge_times([BattleUnit | Rest]) ->
-    UnitId = BattleUnit#battle_unit.unit,
-    Speed = BattleUnit#battle_unit.speed,
-    
-    NewChargeTime = charge_time:increment(UnitId, Speed),
-    ActiveTurn = is_active_turn(NewChargeTime),
-    process_active_turn(ActiveTurn, UnitId),
-
-    update_charge_times(Rest).
-
-is_active_turn(ChargeTime) when ChargeTime < 100 ->
-    false;
-is_active_turn(ChargeTime) when ChargeTime >= 100 ->
-    true.
-
-process_active_turn(true, UnitId) ->
-    charge_time:reset(UnitId),
-    %lager:info("Active turn: ~p", [UnitId]),
-    battle:active_turn(UnitId);
-process_active_turn(false, _UnitId) ->
-    none. 
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [Message, Process]),
@@ -277,7 +246,6 @@ clean_up(NumTick) when (NumTick rem 200) =:= 0 ->
 
 clean_up(_) ->
     nothing. 
-
 
 remove(dead, LocalObj) ->
     local_obj:remove(LocalObj#local_obj.id),

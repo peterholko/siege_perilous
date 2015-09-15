@@ -55,7 +55,7 @@ start(_Type, _Args) ->
     npc_mgr:start_all_npc(),
 
     lager:info("Starting Battle Manager"),
-    battle:start(),
+    combat:start(),
 
     lager:info("Starting Villager Manager"),
     villager:start(),

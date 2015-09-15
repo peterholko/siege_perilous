@@ -1,10 +1,10 @@
-% -------------------------------------------------------------------
-%% Author  : Peter Holko
-%%% Description : Battle manager
+%%% -------------------------------------------------------------------
+%%% Author  : Peter Holko
+%%% Description : Combat manager
 %%%
 %%% Created : Dec 15, 2014
 %%% -------------------------------------------------------------------
--module(battle).
+-module(combat).
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -15,23 +15,20 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([active_turn/1, attack_unit/2, move_unit/2]).
+-export([do_action/1, attack/2]).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
 start() ->
-    gen_server:start({global, battle}, battle, [], []).
+    gen_server:start({global, combat}, combat, [], []).
 
-active_turn(UnitId) ->
-    gen_server:cast({global, battle}, {active_turn, UnitId}).
+do_action(Action) ->
+    gen_server:cast({global, combat}, {do_action, Action}).
 
-attack_unit(SourceId, TargetId) ->
-    gen_server:cast({global, battle}, {attack_unit, SourceId, TargetId}).
-
-move_unit(UnitId, Pos) ->
-    gen_server:cast({global, battle}, {move_unit, UnitId, Pos}).
+attack(SourceId, TargetId) ->
+    gen_server:cast({global, combat}, {attack, SourceId, TargetId}).
 
 %% ====================================================================
 %% Server functions
@@ -41,15 +38,12 @@ init([]) ->
     random:seed(erlang:now()),
     {ok, []}.
 
-handle_cast({active_turn, UnitId}, Data) ->
-    
-    Action = db:read(action, UnitId),
+handle_cast({do_action, Action}, Data) ->
     process_action(Action),
-
     {noreply, Data};
 
-handle_cast({attack_unit, SourceId, TargetId}, Data) ->
-    lager:info("Attack unit"), 
+handle_cast({attack, SourceId, TargetId}, Data) ->
+    lager:info("Attack"), 
     [SourceObj] = db:read(local_obj, SourceId),
     [TargetObj] = db:read(local_obj, TargetId),
 
@@ -92,33 +86,21 @@ terminate(_Reason, _) ->
 set_attack_unit(false, _, _) ->
     lager:info("set_attack_unit failed");
 set_attack_unit(true, SourceObj, TargetObj) ->
-    SourceObjStats = local_obj:get_stats(SourceObj#local_obj.id),
-    TargetObjStats = local_obj:get_stats(TargetObj#local_obj.id),
-
-    set_battle_unit(SourceObjStats),
-    
-    set_combat_state(SourceObjStats),
-    set_combat_state(TargetObjStats),
+    set_combat_state(SourceObj#local_obj.id),
+    set_combat_state(TargetObj#local_obj.id),
 
     Action = #action {source_id = SourceObj#local_obj.id,
                       type = attack,
                       data = TargetObj#local_obj.id},
     db:write(Action).
 
-process_action([Action]) ->
-
+process_action(Action) ->
     case Action#action.type of
         attack ->
             process_attack(Action);
-        move ->
-            process_move(Action);
         _ ->
             lager:info("Unknown action type: ~p", [Action#action.type]) 
-    end;
-
-process_action(_Action) ->
-    %lager:info("No action defined.").
-    none.
+    end.
 
 process_attack(Action) ->
     lager:info("Process attack"),
@@ -172,9 +154,6 @@ is_target_alive(dead) ->
     false;
 is_target_alive(_) -> 
     true.
-
-process_move(_Action) ->
-    none.
 
 broadcast_dmg(SourceId, TargetId, Dmg, State) ->
     %Convert id here as message is being built
@@ -239,9 +218,7 @@ is_unit_dead(_Hp) ->
 process_unit_dead(_AtkObjId, _DefObjId, DefId) ->
     lager:info("Unit ~p died.", [DefId]),
 
-    lager:info("Removing unit from battle_unit"),
-    %Remove unit from battle and action
-    db:delete(battle_unit, DefId),
+    %Remove action associated with dead unit
     db:delete(action, DefId),
 
     lager:info("Updating unit state"),
@@ -250,22 +227,12 @@ process_unit_dead(_AtkObjId, _DefObjId, DefId) ->
     %Remove potential wall effect
     local:set_wall_effect(NewLocalObj).
 
-set_battle_unit(LocalObj) ->
-    {Id} = bson:lookup('_id', LocalObj),
-    {Speed} = bson:lookup(base_speed, LocalObj),
-
-    BattleUnit = #battle_unit {unit = Id,
-                               speed = Speed},
-    lager:info("BattleUnit: ~p", [BattleUnit]),
-    db:write(BattleUnit).
-
-set_combat_state(LocalObj) ->
-    {Id} = bson:lookup('_id', LocalObj),
+set_combat_state(Id) ->
     local:update_state(Id, combat).
 
-is_state(ExpectedState, State) when ExpectedState =:= State -> true;
-is_state(_ExpectdState, _State) -> false.
+%is_state(ExpectedState, State) when ExpectedState =:= State -> true;
+%is_state(_ExpectdState, _State) -> false.
 
 is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
-is_state_not(_NotExpectedState, State) -> true.
+is_state_not(_NotExpectedState, _State) -> true.
 
