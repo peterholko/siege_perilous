@@ -16,8 +16,8 @@
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([replan/1, run_plan/1, new_zombie/0, new_wolf/0, get_nearest/3]).
--export([target_visible/1]).
--export([move_random_pos/1, move_to_target/1, melee_attack/1]).
+-export([target_visible/1, max_guard_dist/1]).
+-export([move_random_pos/1, move_to_target/1, melee_attack/1, move_guard_pos/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -116,6 +116,8 @@ handle_info({event_complete, {_EventId, Id}}, Data) ->
             db:write(NewNPC);
         move_to_target ->
             move_to_target(Id);
+        move_guard_pos ->
+            move_guard_pos(Id);
         melee_attack ->
             NewNPC = NPC#npc {task_state = completed},
             db:write(NewNPC);
@@ -216,27 +218,6 @@ get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
     {next_task, NewTaskIndex};
 get_next_task(_TaskIndex, _PlanLength) ->
     plan_completed.
-
-process_action({attack, Target, Path}, moving, false, NPCObj) ->
-    game:cancel_event(NPCObj#local_obj.id),
-    do_attack(NPCObj, Target, Path);
-process_action({attack, Target, Path}, none, _, NPCObj) ->
-    do_attack(NPCObj, Target, Path);
-process_action(_, _, _, _) ->
-    nothing.
-
-do_attack(NPCObj, Target, Path) ->
-    case process_path(Path) of
-        move ->
-            move_unit(NPCObj, lists:nth(2, Path));
-        _ ->
-            nothing
-    end.
-
-process_path(Path) when length(Path) > 2 ->
-    move;
-process_path(Path) when length(Path) =< 2 ->
-    attack.
 
 move_unit(#local_obj {id = Id,
                       player = Player,
@@ -390,3 +371,31 @@ melee_attack(NPCId) ->
     NewNPC = NPC#npc {task_state = inprogress},
     db:write(NewNPC).
 
+move_guard_pos(NPCId) ->
+    [NPC] = db:read(npc, NPCId),
+    [NPCObj] = db:read(local_obj, NPCId),
+
+    GuardPos = NPC#npc.orders_data,
+
+    case NPCObj#local_obj.pos =:= GuardPos of
+        false ->
+            Path = astar:astar(NPCObj#local_obj.pos, GuardPos),
+            NewNPC = NPC#npc {task_state = inprogress,
+                              path = Path},
+            db:write(NewNPC),
+
+            move_unit(NPCObj, lists:nth(2, Path));
+        true ->
+            NewNPC = NPC#npc {task_state = completed},
+            db:write(NewNPC)
+    end.
+
+max_guard_dist(NPCId) ->
+    lager:info("Check guard pos"),
+    [NPC] = db:read(npc, NPCId),
+    [NPCObj] = db:read(local_obj, NPCId),
+
+    GuardPos = NPC#npc.orders_data,
+    NPCPos = NPCObj#local_obj.pos,
+
+    map:distance(GuardPos, NPCPos) > 3. 

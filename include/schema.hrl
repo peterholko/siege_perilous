@@ -91,7 +91,8 @@
 
 -record(npc, {id,
               target = none,
-              orders = wander,
+              orders = guard,
+              orders_data = {3,3},
               plan = [],
               new_plan = false,
               task_state = none,

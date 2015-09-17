@@ -26,20 +26,18 @@ wander() ->
 
 guard() ->
     new(guard),
-%    add_select_one(attack_enemy, guard, [target_visible], []),
-%    add_select_all(return_to_guard, attack_enemy, [toofar], []),
-%    add_primitive(select_guard, return_to_guard, [], [], select_guard_pos),
-%    add_primitive(move_to, return_to_guard, [], [], move_to_pos),
-%    add_select_all(do_attack, attack_enemy, [], []),
-%    add_primitive(move_to_target, do_attack, [], [], move_to_target),
-%    add_primitive(melee_attack, do_attack, [], [], melee_attack),
-%    add_select_all(do_guard, guard, [], []),
-%    add_primitive(select_guard, do_guard, [], [], select_guard_pos),
-    add_primitive(move_to, do_guard, [], [], move_to_pos).
+    add_select_one(attack_enemy, guard, [target_visible], []),
+    add_select_all(return_to_guard, attack_enemy, [max_guard_dist], []),
+    add_primitive(move_guard_pos1, return_to_guard, [], [], move_guard_pos),
+    add_select_all(do_attack, attack_enemy, [], []),
+    add_primitive(move_to_target, do_attack, [], [], move_to_target),
+    add_primitive(melee_attack, do_attack, [], [], melee_attack),
+    add_select_all(do_guard, guard, [], []),
+    add_primitive(move_guard_pos2, do_guard, [], [], move_guard_pos).
 
 plan(PlanName, NPC) ->
-    [Parent] = db:dirty_read(htn, PlanName),
-    Children = db:dirty_index_read(htn, PlanName, #htn.parent),
+    [Parent] = db:dirty_read(htn, {PlanName, PlanName}),
+    Children = db:dirty_index_read(htn, {PlanName, PlanName}, #htn.parent),
     SortedChildren = lists:keysort(#htn.index, Children),
 
     erase(plan),
@@ -54,10 +52,9 @@ process_child([], primitive_task, _NPC) ->
 process_child(Children, select_one, NPC) ->
     NextChild = process_child_selectone(Children, {false, none}, NPC),
     add_to_plan(NextChild),
- 
+
     NextChildren = db:dirty_index_read(htn, NextChild#htn.label, #htn.parent),
     SortedChildren = lists:keysort(#htn.index, NextChildren),
-    
     process_child(SortedChildren, NextChild#htn.type, NPC);
 
 process_child(Children, select_all, NPC) ->
@@ -74,7 +71,7 @@ process_child_selectone(_Children, {true, Child}, _NPC) ->
     Child;
 process_child_selectone([Child | Rest], _Result, NPC) ->
     Conditions = Child#htn.conditions,
-    lager:info("Conditions: ~p", [Conditions]),
+    lager:debug("Conditions: ~p", [Conditions]),
     NewResult = eval(Conditions, NPC),
     process_child_selectone(Rest, {NewResult, Child}, NPC).
 
@@ -93,7 +90,7 @@ eval(_Conditions, false, _NPC) ->
 eval([], Result, _NPC) ->
     Result;
 eval([Condition | Rest], Result, NPC) ->
-    lager:info("Condition: ~p", [Condition]),
+    lager:debug("Condition: ~p", [Condition]),
     NewResult = erlang:apply(npc, Condition, [NPC]),
     eval(Rest, Result and NewResult, NPC).
 
@@ -115,7 +112,8 @@ get_plan(_) ->
     [].
 
 new(Label) ->
-    Htn = #htn{label = Label, index = 0, type = select_one},
+    put(plan_name, Label),
+    Htn = #htn{label = {Label, Label}, index = 0, type = select_one},
     db:dirty_write(Htn).
 
 add_select_one(Label, Parent, Conditions, Effects) ->
@@ -128,11 +126,12 @@ add_goto(Label, Parent, Conditions, Effects, GotoTask) ->
     write(Label, Parent, Conditions, Effects, goto, GotoTask).
 
 write(Label, Parent, Conditions, Effects, Type, Task) ->
-    Children = db:dirty_index_read(htn, Parent, #htn.parent),
+    PlanName = get(plan_name),
+    Children = db:dirty_index_read(htn, {PlanName, Parent}, #htn.parent),
 
-    Htn = #htn{label = Label, 
+    Htn = #htn{label = {PlanName, Label}, 
                index = length(Children),
-               parent = Parent,
+               parent = {PlanName, Parent},
                conditions = Conditions,
                effects = Effects,
                type = Type,
