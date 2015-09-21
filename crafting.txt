@@ -1,0 +1,20 @@
+Valleyrun Ore -> Valleyrun Ingot 2 ATK
+              -> Valleyrun Dust 
+
+Cragwood Wood -> Cragwood Lumber 3 DUR
+
+Generic Recipes:
+
+Dagger: 5x Ingots
+        2x Lumber
+
+Ex: Valleyrun Dagger (2ATK, 3DUR)
+
+Specific Recipes:
+Dagger of Night: 
+
+
+Specific Recipes can be found by Experimenting.
+
+
+    
