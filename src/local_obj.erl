@@ -55,6 +55,15 @@ create(ObjId, structure, TypeName) ->
     update(LocalObjId, hp, 1),
     [LocalObj];
 
+create(ObjId, unit, TypeName) ->
+    {LocalObjType} = find_type(TypeName),
+    [LocalObj] = insert(ObjId, LocalObjType),
+    {LocalObjId} = bson:lookup('_id', LocalObj),
+    {Stamina} = bson:lookup(base_stamina, LocalObjType),
+    {LocalObjId} = bson:lookup('_id', LocalObj),
+    update(LocalObjId, stamina, Stamina),
+    [LocalObj];
+
 create(ObjId, _Class, TypeName) ->
     {LocalObjType} = find_type(TypeName),
     insert(ObjId, LocalObjType).

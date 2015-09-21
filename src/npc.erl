@@ -93,12 +93,11 @@ handle_info({local_perception, {NPCId, Objs}}, Data) ->
     %Remove from same player and non targetable objs
     FilteredTargets = filter_targets(Objs, []),
 
-    lager:info("FilteredTargets: ~p", [FilteredTargets]),
-
     %Find target
     Target = find_target(NPCObj, NPCStats, FilteredTargets),
 
-    lager:info("Target: ~p", [Target]),
+    lager:debug("Find Target: ~p", [NPC]),
+
     %Store target
     NewNPC = NPC#npc {target = Target},
     db:write(NewNPC),
@@ -172,7 +171,6 @@ process_replan(Id) ->
 
     CurrPlan = NPC#npc.plan,
     NewPlan = htn:plan(NPC#npc.orders, Id),
-    lager:info("NewPlan: ~p", [NewPlan]),
     case NewPlan =:= CurrPlan of
         false ->
             %New plan cancel current event
@@ -186,7 +184,9 @@ process_replan(Id) ->
             db:write(NewNPC);
         true ->
             nothing
-    end.
+    end,
+
+    process_replan(mnesia:dirty_next(npc, Id)).
 
 process_run_plan('$end_of_table') ->
     done;
@@ -211,7 +211,9 @@ process_run_plan(Id) ->
             end;
         inprogress ->
             nothing
-    end.
+    end,
+
+    process_run_plan(mnesia:dirty_next(npc, Id)).
 
 get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
     NewTaskIndex = TaskIndex + 1,
@@ -219,10 +221,13 @@ get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
 get_next_task(_TaskIndex, _PlanLength) ->
     plan_completed.
 
+move_next_path(_NPCObj, []) -> nothing;
+move_next_path(NPCObj, Path) -> move_unit(NPCObj, lists:nth(2, Path)).
+
 move_unit(#local_obj {id = Id,
                       player = Player,
                       global_pos = GlobalPos}, NewPos) ->
-    NumTicks = 40,
+    NumTicks = ?TICKS_SEC * 8,
 
     %Update unit state
     local:update_state(Id, moving),
@@ -286,16 +291,17 @@ get_wander_pos(false, GlobalPos, _, Neighbours) ->
 
     get_wander_pos(IsEmpty, GlobalPos, RandomPos, NewNeighbours).
 
-check_wall(#local_obj{global_pos = GPos, pos = Pos, effect = Effect} = EnemyUnit) ->    
-    HasWall = lists:member(<<"wall">>, Effect),
-    lager:debug("HasWall: ~p", [HasWall]),
-    Target = case HasWall of
+check_wall(#local_obj{id = Id} = EnemyUnit) ->    
+    Effect = db:read(effect, {Id, <<"Wall">>}),
+
+    Target = case Effect =/= [] of
                 true ->
-                    local_obj:get_wall(GPos, Pos);
+                    WallId = Effect#effect.data,
+                    [Wall] = db:read(local_obj, WallId),
+                    Wall;
                 false ->
                     EnemyUnit
              end,
-    lager:info("Target: ~p", [Target]),
     Target;
 
 check_wall(_) ->
@@ -355,17 +361,16 @@ move_to_target(NPCId) ->
                               path = Path},
             db:write(NewNPC),
 
-            move_unit(NPCObj, lists:nth(2, Path));
+            move_next_path(NPCObj, Path);
         true ->
             NewNPC = NPC#npc {task_state = completed},
             db:write(NewNPC)
     end.
     
 melee_attack(NPCId) ->
-    lager:info("Melee attack"),
     [NPC] = db:read(npc, NPCId),
 
-    combat:attack(NPCId, NPC#npc.target),
+    combat:attack(basic, NPCId, NPC#npc.target),
     game:add_event(self(), action, NPCId, NPCId, 16),
 
     NewNPC = NPC#npc {task_state = inprogress},
@@ -384,14 +389,13 @@ move_guard_pos(NPCId) ->
                               path = Path},
             db:write(NewNPC),
 
-            move_unit(NPCObj, lists:nth(2, Path));
+            move_next_path(NPCObj, Path);
         true ->
             NewNPC = NPC#npc {task_state = completed},
             db:write(NewNPC)
     end.
 
 max_guard_dist(NPCId) ->
-    lager:info("Check guard pos"),
     [NPC] = db:read(npc, NPCId),
     [NPCObj] = db:read(local_obj, NPCId),
 

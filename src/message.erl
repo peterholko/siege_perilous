@@ -69,22 +69,37 @@ message_handle(<<"move_unit">>, Message) ->
 message_handle(<<"attack">>, Message) ->
     lager:info("message: attack"),
 
+    AttackTypeBin = map_get(<<"attacktype">>, Message),
     SourceId = map_get(<<"sourceid">>, Message),
     TargetId = map_get(<<"targetid">>, Message),
 
-    player:attack_obj(SourceId, TargetId),
-    <<"Attack added">>;
-
-message_handle(<<"attack_unit">>, Message) ->
-    lager:info("message: attack_unit"),
-
-    SourceId = map_get(<<"sourceid">>, Message),
-    TargetId = map_get(<<"targetid">>, Message),
+    AttackType = binary_to_atom(AttackTypeBin, latin1),
     SourceBinId = util:hex_to_bin(SourceId), 
     TargetBinId = util:hex_to_bin(TargetId), 
 
-    player:attack_unit(SourceBinId, TargetBinId),
-    <<"Attack unit added">>;
+    player:attack(AttackType, SourceBinId, TargetBinId),
+
+    jsx:encode([{<<"packet">>, <<"attack">>},
+                {<<"result">>, <<"Attack added">>}]);
+
+message_handle(<<"guard">>, Message) ->
+    lager:info("message: guard"),
+    SourceId = map_get(<<"sourceid">>, Message),
+    SourceBinId = util:hex_to_bin(SourceId), 
+    player:guard(SourceBinId),
+
+    jsx:encode([{<<"packet">>, <<"guard">>},
+                {<<"result">>, <<"Guard added">>}]);
+
+message_handle(<<"dodge">>, Message) ->
+    lager:info("message: dodge"),
+    SourceId = map_get(<<"sourceid">>, Message),
+    SourceBinId = util:hex_to_bin(SourceId), 
+    player:dodge(SourceBinId),
+
+    jsx:encode([{<<"packet">>, <<"dodge">>},
+                {<<"result">>, <<"Dodge added">>}]);
+
 
 message_handle(<<"survey">>, Message) ->
     lager:info("message: survey"),
@@ -366,6 +381,7 @@ prepare(exit_local, _Message) ->
     [{<<"packet">>, <<"exit_local">>}];
 
 prepare(event_complete, {Event, _Id}) ->
+    player:set_event_lock(false),
     [{<<"packet">>, atom_to_binary(Event, latin1)}];
 
 prepare(_MessageType, Message) ->
@@ -419,4 +435,3 @@ item_perception([], ItemPerception) ->
 item_perception([Item | Rest] , ItemPerception) ->
     NewItem = mdb:to_map(Item),
     item_perception(Rest, [NewItem | ItemPerception]).
-

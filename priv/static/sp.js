@@ -72,6 +72,8 @@ var detailsActive = new Image();
 var detailsRest = new Image();
 var detailsRoll = new Image();
 
+var guard = new Image();
+
 var buttonRestImg = new Image();
 var buttonHoverImg = new Image();
 var buttonClickedImg = new Image();
@@ -82,6 +84,8 @@ var btnBuildClickedImg = new Image();
 var btnCraftRestImg = new Image();
 var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
+
+var gravestone = new Image();
 
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
@@ -138,12 +142,16 @@ detailsActive.src = "/static/art/ab_details_active.png";
 detailsRest.src = "/static/art/ab_details_rest.png";
 detailsRoll.src = "/static/art/ab_details_roll.png";
 
+guard.src = "/static/art/guard.png"; 
+
 btnBuildRestImg.src = "/static/art/ButtonBuildRest.png";
 btnBuildClickedImg.src = "/static/art/ButtonBuildClicked.png";
 
 btnCraftRestImg.src = "/static/art/btn_craft_rest.png";
 btnSplitRestImg.src = "/static/art/btn_split_rest.png";
 btnAssignRestImg.src = "/static/art/btn_assign_rest.png";
+
+gravestone.src = "/static/art/gravestone.png";
 
 var zombie = {
     images: ['/static/art/zombie_ss.png'],
@@ -298,18 +306,26 @@ function addSprite(spriteTask) {
 
     if(spriteSheet) {
         console.log("Sprite loaded");
-
         if(spriteSheet.animations.length > 0) {
+            
             var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
-            //var sprite = new createjs.Sprite(spriteSheet);
             
             sprite.x = spriteTask.x;
             sprite.y = spriteTask.y;
             sprite.name = "sprite";
 
-            sprite.gotoAndPlay(spriteTask.animation);
-        
-            spriteTask.target.addChild(sprite);
+            if(!in_array(spriteSheet.animations, spriteTask.animation)) {
+                if(spriteTask.animation == 'dead') {
+                    spriteTask.target.addChild(new createjs.Bitmap(gravestone));
+                }
+                else {
+                    sprite.gotoAndPlay(spriteTask.animation);
+                    spriteTask.target.addChild(sprite);
+                }
+            } else {
+                sprite.gotoAndPlay(spriteTask.animation);
+                spriteTask.target.addChild(sprite);
+            }
         } 
         else {
             for(var i = 0; i < spriteSheet.getNumFrames(); i++) {
@@ -333,8 +349,19 @@ function addImage(imageTask) {
     var image = loaderQueue.getResult(imageTask.id);
 
     if(image) {
+        
         var bitmap = new createjs.Bitmap(image);
         
+        if(imageTask.hasOwnProperty("scale")) {
+            var rect = bitmap.getBounds();
+            
+            bitmap.regX = -1 * rect.width / 2 - 10;
+            bitmap.regY = -1 * rect.height / 2 - 10;
+
+            bitmap.scaleX = imageTask.scale;
+            bitmap.scaleY = imageTask.scale;
+        }
+
         bitmap.x = imageTask.x;
         bitmap.y = imageTask.y;
         
@@ -420,6 +447,21 @@ function sendMove(newX, newY) {
 function sendStructureList() {
     var e = '{"cmd": "structure_list"}';
     websocket.send(e);
+};
+
+function sendAttack(attackType) {
+    var attack = '{"cmd": "attack", "attacktype": "' + attackType + '", "sourceid": "' + selectedPortrait + '", "targetid": "' + selectedUnit + '"}';    
+    websocket.send(attack);
+};
+
+function sendGuard() {
+    var guard = '{"cmd": "guard", "sourceid": "' + selectedPortrait + '"}';    
+    websocket.send(guard);
+};
+
+function sendDodge() {
+    var dodge = '{"cmd": "dodge", "sourceid": "' + selectedPortrait + '"}';    
+    websocket.send(dodge);
 };
 
 function sendBuild(structureName) {
@@ -807,6 +849,8 @@ function drawLocalMap(map) {
         icon.y = pixel.y;
         icon.tileX = tile.x;
         icon.tileY = tile.y;
+        icon.tileImages = tileImages;
+
         icon.on("mousedown", function(evt) {
             if(evt.nativeEvent.button == 2) {
                 console.log("Right click");
@@ -820,7 +864,7 @@ function drawLocalMap(map) {
                 selectHex.y = this.y;
                 selectHex.visible = true;
 
-                drawLocalSelectPanel(this.tileX, this.tileY);
+                drawLocalSelectPanel(this.tileX, this.tileY, this.tileImages);
             }
         });
 
@@ -834,8 +878,6 @@ function drawLocalMap(map) {
          
             addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: j});
         }
-    
-        addLocalTile(tile);
     }
 };
 
@@ -957,7 +999,7 @@ function drawLocalObj() {
 
 };
 
-function drawLocalSelectPanel(tileX, tileY) {
+function drawLocalSelectPanel(tileX, tileY, tileImages) {
     var tile = getLocalTile(tileX, tileY);
     var localObjs = getLocalObjsAt(tileX, tileY);
     var icons = [];
@@ -965,25 +1007,33 @@ function drawLocalSelectPanel(tileX, tileY) {
     var content = selectPanel.getChildByName("content");
     content.removeAllChildren();
 
+ 
     for(var i = 0; i < localObjs.length; i++) {
         var unitName = localObjs[i].type;
         unitName = unitName.toLowerCase().replace(/ /g, '');
         var imagePath =  "/static/art/" + unitName + ".png";
 
         var icon = new createjs.Container();
-        var selectIcon = new createjs.Bitmap(selectIconImage);
 
         icon.x = 15 + i * 77; 
         icon.y = 5;
         icon.id = localObjs[i].id;
         icon.mouseChildren = false;
-
+        icon.type = "obj";
+        
+        var selectIcon = new createjs.Bitmap(selectIconImage);
+        
         selectIcon.x = 7;
         selectIcon.y = 7;
         selectIcon.name = "selectIcon";
         selectIcon.visible = false; 
-        
+     
         icon.addChild(selectIcon);
+
+        if(localObjs[i].player == playerId && localObjs[i].class == "unit") {
+            selectedUnit = localObjs[i].id;
+            drawSelectedPortrait();
+        }
 
         icon.on("mousedown", function(evt) {
             for(var i = 0; i < icons.length; i++) {
@@ -996,13 +1046,6 @@ function drawLocalSelectPanel(tileX, tileY) {
 
             selectedUnit = this.id;
             drawSelectedPortrait();
-
-            if(attackToggled) {
-                var attack_unit = '{"cmd": "attack_unit", "sourceid": "' + selectedPortrait + '", "targetid": "' + selectedUnit + '"}';    
-                websocket.send(attack_unit);
-
-                attackToggled = false;
-            }
         });
         
         content.addChild(icon);
@@ -1010,6 +1053,44 @@ function drawLocalSelectPanel(tileX, tileY) {
         
         icons.push(icon); 
     }
+
+    var icon = new createjs.Container();
+    var selectIcon = new createjs.Bitmap(selectIconImage);
+    
+    selectIcon.x = 7;
+    selectIcon.y = 7;
+    selectIcon.name = "selectIcon";
+    selectIcon.visible = false; 
+ 
+    icon.x = 15 + localObjs.length * 77; 
+    icon.y = 5;
+    icon.mouseChildren = false;
+    icon.type = "tile";
+    icon.tileX = tileX;
+    icon.tileY = tileY;
+   
+    icon.on("mousedown", function(evt) {
+        for(var i = 0; i < icons.length; i++) {
+            var selectIcon = icons[i].getChildByName("selectIcon");
+            selectIcon.visible = false;
+        }
+
+        var selectIcon = this.getChildByName("selectIcon");
+        selectIcon.visible = true;
+    });
+
+    icon.addChild(selectIcon);   
+
+    content.addChild(icon);
+
+    var tileImageId = tileImages[tileImages.length - 1] - 1;
+    var imagePath = "/static/" + tileset[tileImageId].image;
+    var offsetX = tileset[tileImageId].offsetx;
+    var offsetY = -1 * tileset[tileImageId].offsety;
+     
+    addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: 0, scale: 0.5});
+
+    icons.push(icon);
 };
 
 function drawSelectedPortrait() {
@@ -1044,20 +1125,26 @@ function drawDmg(jsonData) {
 
         if(jsonData.state == "dead") {
             var sprite = target.icon.getChildByName("sprite");
-            sprite.gotoAndPlay("die");
+
+            if(in_array(sprite.spriteSheet.animations, 'die')) {
+                sprite.gotoAndPlay("die");
+            } else {
+                target.icon.removeChild(sprite);
+                target.icon.addChild(new createjs.Bitmap(gravestone));
+            }
         }
     }
 };
 
 function drawLootDialog(jsonData) {
-    showDialogPanel();
+    showSmallDialogPanel();
 
     var title = new createjs.Text("Loot", h1Font, textColor);
-    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.x = Math.floor(smallDialogPanelBg.width / 2);
     title.y = 5;
     title.textAlign = "center";
 
-    addChildDialogPanel(title);
+    addChildSmallDialogPanel(title);
 
     for(var i = 0; i < jsonData.items.length; i++) {
         var itemName = jsonData.items[i].name;            
@@ -1077,10 +1164,10 @@ function drawLootDialog(jsonData) {
             }
         });
 
-        icon.x = dialogPanelBg.width / 2 - 24;
-        icon.y = dialogPanelBg.height / 2 + 5 - 24;
+        icon.x = smallDialogPanelBg.width / 2 - 24;
+        icon.y = smallDialogPanelBg.height / 2 + 5 - 24;
 
-        addChildDialogPanel(icon);
+        addChildSmallDialogPanel(icon);
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
@@ -1521,6 +1608,8 @@ function drawInfoUnit(jsonData) {
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
+    hideButtons();
+
     if(jsonData.class == "structure") {
         if(jsonData.state == "founded" || 
            jsonData.state == "under_construction") {
@@ -1534,25 +1623,23 @@ function drawInfoUnit(jsonData) {
             });
         }
         else if(jsonData.state == "none") {
-            var btnAssign = activeInfoPanel.getChildByName("btnAssign");
-            btnAssign.visible = true;
+            if(jsonData.subclass != "wall") {
+                var btnAssign = activeInfoPanel.getChildByName("btnAssign");
+                var btnCraft = activeInfoPanel.getChildByName("btnCraft");
 
-            btnAssign.on("mousedown", function(evt) {
-                sendAssign(selectedPortrait, jsonData._id);
-            });
-        
-            var btnCraft = activeInfoPanel.getChildByName("btnCraft");
-            btnCraft.visible = true;
-
-            btnCraft.on("mousedown", function(evt) {
-                sendRecipeList(jsonData._id);
-            });
+                btnAssign.visible = true;
+                btnCraft.visible = true;
+    
+                btnAssign.on("mousedown", function(evt) {
+                    sendAssign(selectedPortrait, jsonData._id);
+                });
+       
+                btnCraft.on("mousedown", function(evt) {
+                    sendRecipeList(jsonData._id);
+                }); 
+            }
         }
     } 
-    else {
-        var btnBuild = activeInfoPanel.getChildByName("btnBuild");
-        btnBuild.visible = false;
-    }
 };
 
 function drawInfoItem(jsonData) {
@@ -1747,7 +1834,11 @@ function initUI() {
     var detailsButton = new createjs.Container();
     var gatherButton = new createjs.Container();
     var buildButton = new createjs.Container();
-    var attackButton = new createjs.Container();
+    var weakButton = new createjs.Container();
+    var basicButton = new createjs.Container();
+    var fierceButton = new createjs.Container();
+    var guardButton = new createjs.Container();
+    var dodgeButton = new createjs.Container();
 
     actionBar.x = stageWidth / 2 - 492 / 2;
     actionBar.y = stageHeight - 231;
@@ -1767,10 +1858,30 @@ function initUI() {
     buildButton.mouseChildren = false;
     buildButton.addChild(new createjs.Bitmap(buildRest));
  
-    attackButton.x = 209;
-    attackButton.y = 96;
-    attackButton.mouseChildren = false;
-    attackButton.addChild(new createjs.Bitmap(attackRest));
+    weakButton.x = 286;
+    weakButton.y = 96;
+    weakButton.mouseChildren = false;
+    weakButton.addChild(new createjs.Bitmap(attackRest));
+
+    basicButton.x = 342;
+    basicButton.y = 96;
+    basicButton.mouseChildren = false;
+    basicButton.addChild(new createjs.Bitmap(attackRest));
+
+    fierceButton.x = 398;
+    fierceButton.y = 96;
+    fierceButton.mouseChildren = false;
+    fierceButton.addChild(new createjs.Bitmap(attackRest));
+
+    guardButton.x = 286;
+    guardButton.y = 150;
+    guardButton.mouseChildren = false;
+    guardButton.addChild(new createjs.Bitmap(guard));
+
+    dodgeButton.x = 342;
+    dodgeButton.y = 150;
+    dodgeButton.mouseChildren = false;
+    dodgeButton.addChild(new createjs.Bitmap(guard));
 
     detailsButton.on("mouseover", function(evt) {
         this.removeAllChildren();
@@ -1796,25 +1907,50 @@ function initUI() {
         sendStructureList();
     });
 
-    attackButton.on("mouseover", function(evt) {
-        this.removeAllChildren();
-        this.addChild(new createjs.Bitmap(attackRoll));
+    //attackButton.on("mouseover", function(evt) {
+    //    this.removeAllChildren();
+    //    this.addChild(new createjs.Bitmap(attackRoll));
+    //});
+
+    weakButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {           
+            sendAttack("weak");
+        }
     });
 
-    attackButton.on("mousedown", function(evt) {
+    basicButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
-            attackToggled = ! attackToggled;
+            sendAttack("basic");
         }
-        
-        this.removeAllChildren();
-        this.addChild(new createjs.Bitmap(attackActive));
+    });
+
+    fierceButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {           
+            sendAttack("fierce");
+        }
+    });
+
+    guardButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {           
+            sendGuard();
+        }
+    });
+
+    dodgeButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {           
+            sendDodge();
+        }
     });
 
     actionBar.addChild(actionBarBg);
     actionBar.addChild(detailsButton);
     actionBar.addChild(gatherButton);
     actionBar.addChild(buildButton);
-    actionBar.addChild(attackButton);
+    actionBar.addChild(weakButton);
+    actionBar.addChild(basicButton);
+    actionBar.addChild(fierceButton);
+    actionBar.addChild(guardButton);
+    actionBar.addChild(dodgeButton);
 
     stage.addChild(actionBar);
 
@@ -1965,7 +2101,7 @@ function initUI() {
 
     //Initialize smallDialogPanel
     smallDialogPanel = new createjs.Container();
-    smallDialogPanel.x = stageWidth / 2 - 150;
+    smallDialogPanel.x = stageWidth / 2 - 200;
     smallDialogPanel.y = stageHeight / 2 - 150; 
     smallDialogPanel.visible = false;
 
@@ -2265,3 +2401,21 @@ function is_hero(type) {
 
     return false;
 };
+
+function in_array(array, index) {
+    if(array.indexOf(index) >= 0) {
+        return true;
+    } else {
+        return false;
+    }
+};
+
+function hideButtons() {
+    var btnBuild = activeInfoPanel.getChildByName("btnBuild");
+    var btnCraft = activeInfoPanel.getChildByName("btnCraft");
+    var btnAssign = activeInfoPanel.getChildByName("btnAssign");
+
+    btnBuild.visible = false;
+    btnCraft.visible = false;
+    btnAssign.visible = false; 
+}

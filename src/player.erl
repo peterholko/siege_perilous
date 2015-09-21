@@ -13,7 +13,9 @@
          get_info_item/1,
          move_obj/2,
          move_unit/2,
-         attack_unit/2,
+         attack/3,
+         guard/1,
+         dodge/1,
          survey/1,
          harvest/2,
          loot/2,
@@ -28,7 +30,8 @@
          craft/2,
          equip/2,
          assign/2,
-         cancel/1]).
+         cancel/1,
+         set_event_lock/1]).
 
 init_perception(PlayerId) ->
 
@@ -79,10 +82,21 @@ move_obj(Id, Pos) ->
 
     add_move(Result, {Obj, Pos}, NumTicks).
 
-attack_unit(SourceId, TargetId) ->
-    Result = true,
-    combat:attack(SourceId, TargetId),
-    add_action(Result, SourceId, 16).
+attack(AttackType, SourceId, TargetId) ->
+    Result = not is_event_locked() andalso
+             combat:has_stamina(SourceId, {attack, AttackType}),
+
+    add_action(Result, attack, {AttackType, SourceId, TargetId}).
+
+guard(SourceId) ->
+    Result = not is_event_locked(),
+    add_action(Result, guard, SourceId).
+
+dodge(SourceId) ->
+    Result = not is_event_locked() andalso
+             combat:has_stamina(SourceId, dodge),
+
+    add_action(Result, dodge, SourceId). 
 
 move_unit(UnitId, Pos) ->
     Player = get(player_id),
@@ -393,10 +407,26 @@ add_finish_build(true, {LocalObjId, GlobalPos, StructureId}, NumTicks) ->
 
     game:add_event(self(), finish_build, EventData, LocalObjId, NumTicks).
 
-add_action(false, _EventData, _Ticks) ->
+add_action(false, _, _) ->
     lager:info("Action failed"),
     none;
-add_action(true, SourceId, NumTicks) ->
+add_action(true, attack, ActionData) -> 
+    set_event_lock(true),
+    {AttackType, SourceId, TargetId} = ActionData,
+    combat:attack(AttackType, SourceId, TargetId),
+    combat:sub_stamina(SourceId, combat:stamina_cost({attack, AttackType})),
+    NumTicks = combat:num_ticks({attack, AttackType}),
+    game:add_event(self(), action, SourceId, SourceId, NumTicks);
+add_action(true, guard, SourceId) ->
+    set_event_lock(true),
+    combat:guard(SourceId),
+    NumTicks = combat:num_ticks(guard),
+    game:add_event(self(), action, SourceId, SourceId, NumTicks);
+add_action(true, dodge, SourceId) ->
+    set_event_lock(true),
+    combat:dodge(SourceId),
+    combat:sub_stamina(SourceId, combat:stamina_cost(dodge)),
+    NumTicks = combat:num_ticks(dodge),
     game:add_event(self(), action, SourceId, SourceId, NumTicks).
 
 add_move(false, _EventData, _Ticks) ->
@@ -479,3 +509,15 @@ is_player_owned(ObjPlayer, Player) ->
 
 is_state(ExpectedState, State) when ExpectedState =:= State -> true;
 is_state(_ExpectdState, _State) -> false.
+
+set_event_lock(State) ->
+    put(event_lock, State).
+
+is_event_locked() ->
+    is_event_locked(get(event_lock)).
+is_event_locked(undefined) ->
+    false;
+is_event_locked(State) ->
+    State.
+
+

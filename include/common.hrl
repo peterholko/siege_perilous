@@ -17,6 +17,7 @@
 -define(GAME_LOOP_TICK, 200).
 -define(GAME_VISION_RANGE, 50).
 -define(GAME_NUM_HOURS_PER_DAY, 6).
+-define(TICKS_SEC, 5).
 
 -define(LOS, 2).
 
@@ -26,7 +27,7 @@
 -define(HILLS, 3).
 
 -define(PLAINS_MC, 1).
--define(MOUNTAINS_MC, 100).
+-define(MOUNTAINS_MC, 5).
 -define(FOREST_MC, 2).
 -define(HILLS_MC, 2).
 

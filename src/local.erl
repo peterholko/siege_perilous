@@ -187,7 +187,7 @@ update_dead(Id) ->
     NewLocalObj.
 
 is_empty(LocalPos) ->
-    LocalObjs = db:index_read(local_obj, LocalPos, #local_obj.pos),
+    LocalObjs = db:dirty_index_read(local_obj, LocalPos, #local_obj.pos),
     Units = filter_units(LocalObjs),
     Units =:= [].
 
@@ -198,12 +198,12 @@ is_behind_wall(GlobalPos, LocalPos) ->
                                        state = State,
                                        subclass = <<"wall">>}) when GPos =:= GlobalPos, 
                                                                     LPos =:= LocalPos,
-                                                                    %State =/= building,
                                                                     State =/= dead -> N end),
     LocalObjs = db:select(local_obj, MS),
     LocalObjs =/= [].
 
-set_wall_effect(_ = #local_obj{subclass = Subclass,
+set_wall_effect(_ = #local_obj{id = Id,
+                               subclass = Subclass,
                                state = State,
                                global_pos = GlobalPos,
                                pos = Pos}) when Subclass =:= <<"wall">> ->
@@ -221,20 +221,26 @@ set_wall_effect(_) ->
 
     nothing.
 
-is_add_remove_wall(none) -> add;
 is_add_remove_wall(true) -> add;
 is_add_remove_wall(false) -> remove;
-is_add_remove_wall(_) -> remove.
+is_add_remove_wall(_State = none) -> add;
+is_add_remove_wall(_State) -> remove.
 
-update_wall_effect(add, #local_obj{class = Class} = LocalObj) when Class =:= unit ->
-    NewEffects = [ <<"wall">> | LocalObj#local_obj.effect],
-    NewLocalObj = LocalObj#local_obj {effect = NewEffects},
-    db:write(NewLocalObj);
+update_wall_effect(add, #local_obj{id = Id,
+                                   global_pos = GPos,
+                                   pos = Pos,
+                                   class = Class}) when Class =:= unit ->
+    Wall = local_obj:get_wall(GPos, Pos),
 
-update_wall_effect(remove, #local_obj{class = Class} = LocalObj) when Class =:= unit ->
-    NewEffects = lists:delete(<<"wall">>, LocalObj#local_obj.effect),
-    NewLocalObj = LocalObj#local_obj {effect = NewEffects},
-    db:write(NewLocalObj);
+    Effect = #effect {key = {Id, <<"wall">>},
+                      type = <<"wall">>,
+                      data = Wall#local_obj.id},
+                            
+    db:write(Effect);
+
+update_wall_effect(remove, #local_obj{id = Id,
+                                      class = Class}) when Class =:= unit ->
+    db:delete(effect, {Id, <<"wall">>});
 
 update_wall_effect(_, _LocalObj) ->
     lager:info("Not applying wall effect to non-unit").
@@ -260,7 +266,7 @@ remove_all_objs([LocalObj | Rest]) ->
 get_visible_objs([], Objs, _GlobalPos) ->
     Objs;
 get_visible_objs([Obj | Rest], Objs, GlobalPos) ->
-    NearbyObjs = map:get_nearby_objs(Obj#local_obj.pos, {local_map, GlobalPos}, 4),
+    NearbyObjs = map:get_nearby_objs(Obj#local_obj.pos, {local_map, GlobalPos}, 2),
     NewObjs = Objs ++ NearbyObjs,
     get_visible_objs(Rest, NewObjs, GlobalPos).
 
