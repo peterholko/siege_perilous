@@ -92,9 +92,13 @@
 -record(npc, {id,
               target = none,
               orders = guard,
-              orders_data = {3,3},
+              orders_data = {2,7},
               plan = [],
               new_plan = false,
               task_state = none,
               task_index = 0,
               path = none}).
+
+-record(effect, {key,
+                 type,
+                 data}).

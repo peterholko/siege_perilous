@@ -67,7 +67,6 @@ handle_cast({create_obj, Player, Units}, Data) ->
     Connection = Data,
 
     Result = mongo:insert(Connection, <<"obj">>, [{player, Player, units, Units}]),
-    lager:info("Result: ~p", [Result]),
 
     {noreply, Data};
 
@@ -77,7 +76,6 @@ handle_cast({update, Collection, Id, Value}, Data) ->
     Cmd = {'$set', bson:exclude(['_id'], Value)},
     
     Result = mongo:update(Connection, Collection, {'_id', Id}, Cmd),
-    lager:info("Result: ~p", [Result]),
 
     {noreply, Data};
 

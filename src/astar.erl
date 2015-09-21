@@ -11,27 +11,35 @@ astar(Start, Goal) ->
     CameFrom = dict:store(Start, none, dict:new()),
     CostSoFar = dict:store(Start, 0, dict:new()),
 
-    {From, _Cost} = search(pqueue2:is_empty(Frontier), Start, Goal, Frontier, CameFrom, CostSoFar),
+    {From, _Cost} = search(pqueue2:is_empty(Frontier), search, Start, Goal, Frontier, CameFrom, CostSoFar),
 
-    Next = dict:fetch(Goal, From),
-    Path = to_path(Start, Next, From, [Goal]),
+    %Check if a path is found
+    Path = case dict:is_key(Goal, From) of
+                true ->
+                    Next = dict:fetch(Goal, From),
+                    to_path(Start, Next, From, [Goal]);
+                false ->
+                    []
+           end,
     Path.
-
-search(true, _Start, _Goal, _Frontier, CameFrom, CostSoFar) ->
+        
+search(true, _EarlyExit, _Start, _Goal, _Frontier, CameFrom, CostSoFar) ->
     {CameFrom, CostSoFar};
-search(false, Start, Goal, Frontier1, CameFrom, CostSoFar) ->
+search(_, early_exit, _Start, _Goal, _Frontier, CameFrom, CostSoFar) ->
+    {CameFrom, CostSoFar};    
+search(false, _EarlyExit, Start, Goal, Frontier1, CameFrom, CostSoFar) ->
     {{value, Current}, Frontier2} = pqueue2:out(Frontier1),
-    %lager:info("Current: ~p Frontier2: ~p", [Current, Frontier2]),
+
     New = case Current =:= Goal of
-            true -> {Frontier2, CameFrom, CostSoFar};
+            true -> {early_exit, {Frontier2, CameFrom, CostSoFar}};
             false -> 
                   {X, Y} = Current,
                   Neighbours = get_neighbours(X, Y),
-                  check_neighbours(Neighbours, Current, Goal, Frontier2, CameFrom, CostSoFar)
+                  {search, check_neighbours(Neighbours, Current, Goal, Frontier2, CameFrom, CostSoFar)}
           end,
 
-    {NewFrontier, NewCameFrom, NewCostSoFar} = New,
-    search(pqueue2:is_empty(NewFrontier), Start, Goal, NewFrontier, NewCameFrom, NewCostSoFar).
+    {NewEarlyExit, {NewFrontier, NewCameFrom, NewCostSoFar}} = New,
+    search(pqueue2:is_empty(NewFrontier), NewEarlyExit, Start, Goal, NewFrontier, NewCameFrom, NewCostSoFar).
 
 check_neighbours([], _Current, _Goal, NewFrontier, NewCameFrom, NewCostSoFar) ->
     {NewFrontier, NewCameFrom, NewCostSoFar};
@@ -57,13 +65,14 @@ heuristic(Start, End) ->
     2 * map:distance(Start, End).
 
 get_neighbours(X, Y) ->
-    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    %F = fun(Neighbour) -> local:is_empty(Neighbour) end,
-    %lists:filter(F, Neighbours),
-    Neighbours.
+    map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT). 
     
 get_move_cost(Pos) ->
-    map:movement_cost(Pos).
+    MoveCost = case local:is_empty(Pos) of
+                    true -> map:movement_cost(Pos);
+                    false -> 10
+               end,
+    MoveCost.
 
 to_path(Start, Next, _From, Path) when Start =:= Next ->
     [Start | Path];

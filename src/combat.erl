@@ -15,7 +15,8 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([do_action/1, attack/2]).
+-export([do_action/1, attack/3, guard/1, dodge/1]).
+-export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
 
 %% ====================================================================
 %% External functions
@@ -27,8 +28,14 @@ start() ->
 do_action(Action) ->
     gen_server:cast({global, combat}, {do_action, Action}).
 
-attack(SourceId, TargetId) ->
-    gen_server:cast({global, combat}, {attack, SourceId, TargetId}).
+attack(AttackType, SourceId, TargetId) ->
+    gen_server:cast({global, combat}, {attack, AttackType, SourceId, TargetId}).
+
+guard(SourceId) ->
+    gen_server:cast({global, combat}, {guard, SourceId}).
+
+dodge(SourceId) ->
+    gen_server:cast({global, combat}, {dodge, SourceId}).
 
 %% ====================================================================
 %% Server functions
@@ -42,16 +49,26 @@ handle_cast({do_action, Action}, Data) ->
     process_action(Action),
     {noreply, Data};
 
-handle_cast({attack, SourceId, TargetId}, Data) ->
-    lager:info("Attack"), 
+handle_cast({attack, AttackType, SourceId, TargetId}, Data) ->
+    lager:info("Attack ~p", [AttackType]), 
     [SourceObj] = db:read(local_obj, SourceId),
     [TargetObj] = db:read(local_obj, TargetId),
 
     Result = is_state_not(dead, SourceObj#local_obj.state) andalso
              is_state_not(dead, TargetObj#local_obj.state),
 
-    set_attack_unit(Result, SourceObj, TargetObj),
+    set_attack(Result, AttackType, SourceObj, TargetObj),
 
+    {noreply, Data};
+
+handle_cast({guard, SourceId}, Data) ->
+    lager:info("Guard ~p", [SourceId]),
+    set_guard(SourceId),
+    {noreply, Data};
+
+handle_cast({dodge, SourceId}, Data) ->
+    lager:info("dodge ~p", [SourceId]),
+    set_dodge(SourceId),
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -83,21 +100,44 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-set_attack_unit(false, _, _) ->
+set_attack(false, _, _, _) ->
     lager:info("set_attack_unit failed");
-set_attack_unit(true, SourceObj, TargetObj) ->
-    set_combat_state(SourceObj#local_obj.id),
-    set_combat_state(TargetObj#local_obj.id),
+set_attack(true, AttackType, SourceObj, TargetObj) ->
+    set_combat_state(SourceObj),
+    set_combat_state(TargetObj),
 
     Action = #action {source_id = SourceObj#local_obj.id,
                       type = attack,
-                      data = TargetObj#local_obj.id},
+                      data = {AttackType, TargetObj#local_obj.id}},
+    db:write(Action).
+
+set_guard(SourceId) ->
+    Action = #action {source_id = SourceId,
+                      type = guard,
+                      data = none},
+    db:write(Action).
+
+set_dodge(SourceId) ->
+    [SourceObj] = db:read(local_obj, SourceId),
+    Effect = SourceObj#local_obj.effect,
+    NewEffect = [ dodging | Effect],
+    NewSourceObj = SourceObj#local_obj {effect = NewEffect},
+
+    Action = #action {source_id = SourceId,
+                      type = dodge,
+                      data = none},
+    
+    db:write(NewSourceObj),    
     db:write(Action).
 
 process_action(Action) ->
     case Action#action.type of
         attack ->
             process_attack(Action);
+        guard ->
+            process_guard(Action);
+        dodge ->
+            process_dodge(Action);
         _ ->
             lager:info("Unknown action type: ~p", [Action#action.type]) 
     end.
@@ -105,7 +145,7 @@ process_action(Action) ->
 process_attack(Action) ->
     lager:info("Process attack"),
     SourceId = Action#action.source_id,
-    TargetId = Action#action.data,
+    {AttackType, TargetId} = Action#action.data,
 
     SourceObj = get_obj(db:read(local_obj, SourceId)), 
     TargetObj = get_obj(db:read(local_obj, TargetId)),
@@ -114,9 +154,26 @@ process_attack(Action) ->
              is_valid_obj(TargetObj) andalso
              is_adjacent(SourceObj, TargetObj) andalso
              is_target_alive(TargetObj#local_obj.state) andalso
-             is_targetable(TargetObj),
+             is_targetable(TargetObj) andalso
+             (not is_dodged(TargetObj)),
     
-    process_dmg(Result, SourceId, TargetId).
+    process_dmg(Result, AttackType, SourceObj, TargetObj).
+
+process_guard(Action) ->
+    lager:info("Process guard"),
+    SourceId = Action#action.source_id,
+    add_stamina(SourceId, 25).    
+
+process_dodge(Action) ->
+    lager:info("Process dodge"),
+    SourceId = Action#action.source_id,
+    [SourceObj] = db:read(local_obj, SourceId),
+    
+    Effect = SourceObj#local_obj.effect,
+    NewEffect = lists:delete(dodging, Effect),
+    
+    NewSourceObj = SourceObj#local_obj {effect = NewEffect},
+    db:write(NewSourceObj).
 
 get_obj([]) ->
     false;
@@ -149,11 +206,18 @@ is_targetable(#local_obj{effect = Effect} = LocalObj) ->
     lager:info("Targetable: ~p", [Targetable]),
     Targetable.
 
-is_target_alive(dead) -> 
-    lager:info("Target not alive"),
+is_target_alive(#local_obj {state = State}) when State =:= dead -> 
     false;
 is_target_alive(_) -> 
     true.
+
+is_dodged(#local_obj {effect = Effect}) ->
+    Result = case lists:member(dodging, Effect) of
+                true -> random:uniform() =< 0.5;
+                false -> false
+             end,
+    lager:info("IsDodge: ~p", [Result]),
+    Result.
 
 broadcast_dmg(SourceId, TargetId, Dmg, State) ->
     %Convert id here as message is being built
@@ -172,19 +236,16 @@ broadcast_dmg(SourceId, TargetId, Dmg, State) ->
 
     l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
 
-process_dmg(false, AtkId, _) ->
-    db:delete(action, AtkId),
-    local:update_state(AtkId, none),
+process_dmg(false, _, AtkObj, _) ->
+    db:delete(action, AtkObj#local_obj.id),
     lager:info("Invalid attack");      
-process_dmg(true, AtkId, DefId) ->
-    AtkUnit = local_obj:get_stats(AtkId),
-    DefUnit = local_obj:get_stats(DefId),
+process_dmg(true, AttackType, AtkObj, DefObj) ->
+    AtkUnit = local_obj:get_stats(AtkObj#local_obj.id),
+    DefUnit = local_obj:get_stats(DefObj#local_obj.id),
 
-    {AtkObjId} = bson:lookup(obj_id, AtkUnit),
+    {AtkStamina} = bson:lookup(stamina, AtkUnit),
     {DmgBase} = bson:lookup(base_dmg, AtkUnit),
     {DmgRange} = bson:lookup(dmg_range, AtkUnit),
-
-    {DefObjId} = bson:lookup(obj_id, DefUnit),
     {DefArmor} = bson:lookup(base_def, DefUnit),
     {DefHp} = bson:lookup(hp, DefUnit),
 
@@ -192,30 +253,38 @@ process_dmg(true, AtkId, DefId) ->
     
     DmgReduction = DefArmor / (DefArmor + 50),
 
-    Dmg = round(DmgRoll * (1 - DmgReduction)),
+    BaseDmg = round(DmgRoll * (1 - DmgReduction)),
+
+    Dmg = attack_type_mod(AttackType) * BaseDmg,
+
     NewHp = DefHp - Dmg,
+
+    %Update stamina
+    NewStamina = AtkStamina - attack_type_cost(AttackType),
+    local_obj:update(AtkObj#local_obj.id, 'stamina', NewStamina),
 
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
 
     %Broadcast damage
     lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
-    broadcast_dmg(AtkId, DefId, Dmg, UnitState),
+    broadcast_dmg(AtkObj#local_obj.id, DefObj#local_obj.id, Dmg, UnitState),
 
     %Check if unit is dead 
     case UnitState of
         <<"alive">> ->
-            local_obj:update(DefId, 'hp', NewHp);
+            local_obj:update(DefObj#local_obj.id, 'hp', NewHp);
         <<"dead">> ->
-            process_unit_dead(AtkObjId, DefObjId, DefId)
+            process_unit_dead(DefObj#local_obj.id)
     end.
+
 
 is_unit_dead(Hp) when Hp =< 0 ->
     <<"dead">>;
 is_unit_dead(_Hp) ->
     <<"alive">>.
 
-process_unit_dead(_AtkObjId, _DefObjId, DefId) ->
+process_unit_dead(DefId) ->
     lager:info("Unit ~p died.", [DefId]),
 
     %Remove action associated with dead unit
@@ -227,8 +296,11 @@ process_unit_dead(_AtkObjId, _DefObjId, DefId) ->
     %Remove potential wall effect
     local:set_wall_effect(NewLocalObj).
 
-set_combat_state(Id) ->
+set_combat_state(#local_obj{state = State}) when State =:= combat ->
+    nothing;
+set_combat_state(#local_obj{id = Id}) ->
     local:update_state(Id, combat).
+
 
 %is_state(ExpectedState, State) when ExpectedState =:= State -> true;
 %is_state(_ExpectdState, _State) -> false.
@@ -236,3 +308,33 @@ set_combat_state(Id) ->
 is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
 is_state_not(_NotExpectedState, _State) -> true.
 
+attack_type_mod(weak) -> 0.5;
+attack_type_mod(basic) -> 1;
+attack_type_mod(fierce) -> 1.5.
+
+attack_type_cost(weak) -> 5;
+attack_type_cost(basic) -> 10;
+attack_type_cost(fierce) -> 20.
+
+stamina_cost({attack, AttackType}) -> attack_type_cost(AttackType);
+stamina_cost(dodge) -> 25;
+stamina_cost(_) -> 0.
+
+has_stamina(AtkId, ActionData) ->
+    AtkUnit = local_obj:get_stats(AtkId),
+    {Stamina} = bson:lookup(stamina, AtkUnit),
+    StaminaCost = stamina_cost(ActionData),
+
+    Result = Stamina >= StaminaCost,
+    Result.
+
+sub_stamina(SourceId, Value) ->
+    add_stamina(SourceId, -1 * Value).
+add_stamina(SourceId, Value) ->
+    SourceObj = local_obj:get_stats(SourceId),
+    {Stamina} = bson:lookup(stamina, SourceObj),
+    local_obj:update(SourceId, 'stamina', Stamina + Value).
+
+num_ticks({attack, _AttackType}) -> ?TICKS_SEC * 10;
+num_ticks(guard) -> ?TICKS_SEC * 30;
+num_ticks(dodge) -> ?TICKS_SEC * 20. 

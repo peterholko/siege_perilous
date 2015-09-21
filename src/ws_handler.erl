@@ -9,8 +9,6 @@ init(Req, Opts) ->
 
 websocket_handle({text, Msg}, Req, State) ->
     Result = message:decode(Msg),
-    lager:info("Result: ~p", [Result]),
-
 	{reply, {text, Result}, Req, State};
 
 websocket_handle(_Data, Req, State) ->

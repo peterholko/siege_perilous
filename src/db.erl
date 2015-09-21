@@ -52,6 +52,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(villager, [{disc_copies, [node()]}, {attributes, record_info(fields, villager)}]),    
     {atomic, ok} = mnesia:create_table(htn, [{disc_copies, [node()]}, {attributes, record_info(fields, htn)}]),    
     {atomic, ok} = mnesia:create_table(npc, [{disc_copies, [node()]}, {attributes, record_info(fields, npc)}]),    
+    {atomic, ok} = mnesia:create_table(effect, [{disc_copies, [node()]}, {attributes, record_info(fields, effect)}]),    
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
@@ -61,6 +62,7 @@ create_schema() ->
     mnesia:add_table_index(obj, player),
     mnesia:add_table_index(event, tick),
     mnesia:add_table_index(event, source),
+    mnesia:add_table_index(event, type),
     mnesia:add_table_index(local_obj, global_obj_id),
     mnesia:add_table_index(local_obj, global_pos),
     mnesia:add_table_index(local_obj, player),
