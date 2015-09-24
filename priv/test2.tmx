@@ -76,10 +76,10 @@
   </tile>
   <tile id="3">
    <properties>
-    <property name="name" value="Valleyrun Copper"/>
+    <property name="name" value="Valleyrun Copper Ore"/>
     <property name="quantity" value="high"/>
    </properties>
-   <image width="48" height="48" source="valleyruncopper.png"/>
+   <image width="48" height="48" source="valleyruncopperore.png"/>
   </tile>
   <tile id="4">
    <properties>
@@ -90,10 +90,10 @@
   </tile>
   <tile id="5">
    <properties>
-    <property name="name" value="Stronghold Mithril"/>
+    <property name="name" value="Stronghold Mithril Ore"/>
     <property name="quantity" value="low"/>
    </properties>
-   <image width="48" height="48" source="strongholdmithril.png"/>
+   <image width="48" height="48" source="strongholdmithrilore.png"/>
   </tile>
  </tileset>
  <layer name="base1" width="10" height="10">

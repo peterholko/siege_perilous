@@ -27,11 +27,13 @@
          build/2,
          finish_build/2,
          recipe_list/1,
+         process_resource/1,
          craft/2,
          equip/2,
          assign/2,
          cancel/1,
-         set_event_lock/1]).
+         set_event_lock/2,
+         process_checks/1]).
 
 init_perception(PlayerId) ->
 
@@ -83,17 +85,17 @@ move_obj(Id, Pos) ->
     add_move(Result, {Obj, Pos}, NumTicks).
 
 attack(AttackType, SourceId, TargetId) ->
-    Result = not is_event_locked() andalso
+    Result = not is_event_locked(SourceId) andalso
              combat:has_stamina(SourceId, {attack, AttackType}),
 
     add_action(Result, attack, {AttackType, SourceId, TargetId}).
 
 guard(SourceId) ->
-    Result = not is_event_locked(),
+    Result = not is_event_locked(SourceId),
     add_action(Result, guard, SourceId).
 
 dodge(SourceId) ->
-    Result = not is_event_locked() andalso
+    Result = not is_event_locked(SourceId) andalso
              combat:has_stamina(SourceId, dodge),
 
     add_action(Result, dodge, SourceId). 
@@ -322,6 +324,26 @@ recipe_list(SourceId) ->
              end,
     Result.
 
+process_resource(StructureId) ->
+    Player = get(player_id),
+    [Structure] = db:read(local_obj, StructureId),
+    [Unit] = local_obj:get_unit_by_pos(Structure#local_obj.global_pos,
+                                       Structure#local_obj.pos),
+    NumTicks = ?TICKS_SEC * 10,
+
+    Checks = [{not is_event_locked(StructureId), "Event in progress"},
+              {Player =:= Structure#local_obj.player, "Structure not owned by player"},
+              {Player =:= Unit#local_obj.player, "Unit not owned by player"},
+              {structure:has_process_res(StructureId), "No resources in structure"}],
+
+    Result = process_checks(Checks),
+    lager:info("Process Resource: ~p", [Result]),
+    add_process_resource(Result, StructureId, Unit#local_obj.id, NumTicks),
+
+    Reply = to_reply(Result) ++ [{<<"process_time">>, NumTicks}],
+    lager:info("Reply: ~p", [Reply]),
+    Reply.
+    
 craft(SourceId, Recipe) ->
     Player = get(player_id),
     [LocalObj] = db:read(local_obj, SourceId),
@@ -407,23 +429,32 @@ add_finish_build(true, {LocalObjId, GlobalPos, StructureId}, NumTicks) ->
 
     game:add_event(self(), finish_build, EventData, LocalObjId, NumTicks).
 
+add_process_resource({false, Error}, _StructureId, _UnitId, _NumTicks) ->
+    lager:info("Process resource error: ~p", [Error]);
+add_process_resource(true, StructureId, UnitId, NumTicks) ->
+    EventData = {StructureId, UnitId, NumTicks},
+
+    local:update_state(UnitId, processing),
+
+    game:add_event(self(), process_resource, EventData, UnitId, NumTicks).
+
 add_action(false, _, _) ->
     lager:info("Action failed"),
     none;
 add_action(true, attack, ActionData) -> 
-    set_event_lock(true),
     {AttackType, SourceId, TargetId} = ActionData,
+    set_event_lock(SourceId, true),
     combat:attack(AttackType, SourceId, TargetId),
     combat:sub_stamina(SourceId, combat:stamina_cost({attack, AttackType})),
     NumTicks = combat:num_ticks({attack, AttackType}),
     game:add_event(self(), action, SourceId, SourceId, NumTicks);
 add_action(true, guard, SourceId) ->
-    set_event_lock(true),
+    set_event_lock(SourceId, true),
     combat:guard(SourceId),
     NumTicks = combat:num_ticks(guard),
     game:add_event(self(), action, SourceId, SourceId, NumTicks);
 add_action(true, dodge, SourceId) ->
-    set_event_lock(true),
+    set_event_lock(SourceId, true),
     combat:dodge(SourceId),
     combat:sub_stamina(SourceId, combat:stamina_cost(dodge)),
     NumTicks = combat:num_ticks(dodge),
@@ -510,14 +541,25 @@ is_player_owned(ObjPlayer, Player) ->
 is_state(ExpectedState, State) when ExpectedState =:= State -> true;
 is_state(_ExpectdState, _State) -> false.
 
-set_event_lock(State) ->
-    put(event_lock, State).
+set_event_lock(SourceId, State) ->
+    put({event_lock, SourceId}, State).
 
-is_event_locked() ->
-    is_event_locked(get(event_lock)).
-is_event_locked(undefined) ->
-    false;
-is_event_locked(State) ->
-    State.
+is_event_locked(SourceId) ->
+    EventLock = get({event_lock, SourceId}),
+    Result = case EventLock of
+                 undefined -> false;
+                 State -> State
+             end,
+    Result.
 
+process_checks([]) ->
+    true;
+process_checks([{false, Error} | _Rest]) ->
+    {false, Error};
+process_checks([_Check | Rest]) ->
+    process_checks(Rest).
 
+to_reply(true) ->
+    [{<<"result">>, <<"success">>}];
+to_reply({false, Error}) ->
+    [{<<"result">>, <<"failed">>}, {<<"errmsg">>, list_to_binary(Error)}].

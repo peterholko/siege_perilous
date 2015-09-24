@@ -11,7 +11,7 @@
 -export([get/1, get_info/1, get_type/1, get_stats/1, units_from_obj/1, units_stats_from_obj/1]).
 -export([create/3, update/3, remove/1]).
 -export([find_type/1, is_nearby_hero/2, readtest/1]).
--export([get_by_pos/2, get_wall/2]).
+-export([get_by_pos/2, get_unit_by_pos/2, get_wall/2]).
 
 get(Id) ->
     LocalObj = find(Id),
@@ -78,6 +78,15 @@ get_by_pos(GlobalPos, LocalPos) ->
     MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos,
                                        pos = LPos}) when GPos =:= GlobalPos,
                                                          LPos =:= LocalPos -> N end),
+    LocalObjs = db:select(local_obj, MS),
+    LocalObjs.
+
+get_unit_by_pos(GlobalPos, LocalPos) ->
+    MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos,
+                                       pos = LPos,
+                                       class = Class}) when GPos =:= GlobalPos,
+                                                            LPos =:= LocalPos,
+                                                            Class =:= unit -> N end),
     LocalObjs = db:select(local_obj, MS),
     LocalObjs.
 

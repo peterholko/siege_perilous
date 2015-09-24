@@ -239,6 +239,16 @@ message_handle(<<"recipe_list">>, Message) ->
     jsx:encode([{<<"packet">>, <<"recipe_list">>},
                 {<<"result">>, RecipeMap}]);
 
+message_handle(<<"process_resource">>, Message) ->
+    lager:info("message: process_resource"),
+    StructureId = map_get(<<"structureid">>, Message),
+    StructureBinId = util:hex_to_bin(StructureId),
+
+    Reply = player:process_resource(StructureBinId),
+
+    jsx:encode([{<<"packet">>, <<"process_resource">>},
+                {<<"reply">>, Reply}]);
+
 message_handle(<<"craft">>, Message) ->
     lager:info("message: craft"),
 
@@ -380,8 +390,8 @@ prepare(new_items, Message) ->
 prepare(exit_local, _Message) ->
     [{<<"packet">>, <<"exit_local">>}];
 
-prepare(event_complete, {Event, _Id}) ->
-    player:set_event_lock(false),
+prepare(event_complete, {Event, Id}) ->
+    player:set_event_lock(Id, false),
     [{<<"packet">>, atom_to_binary(Event, latin1)}];
 
 prepare(_MessageType, Message) ->

@@ -5,7 +5,8 @@
 
 -include("schema.hrl").
 
--export([get/1, get_by_name/1, get_type/1, get_by_owner/1, transfer/2, split/2, update/2, create/3, equip/1]).
+-export([get/1, get_by_name/1, get_type/1, get_by_owner/1, get_by_subclass/2]).
+-export([transfer/2, split/2, update/2, create/3, equip/1]).
 -export([obj_perception/1, find/1, find_type/2]).
 
 
@@ -25,6 +26,10 @@ get_by_owner(OwnerId) ->
     Items = find(owner, OwnerId),
     Items.
 
+get_by_subclass(OwnerId, SubClass) ->
+    Items = find({owner, OwnerId, subclass, SubClass}),
+    Items.
+
 transfer(ItemId, TargetId) ->
     mdb:update(<<"item">>, ItemId, {owner, TargetId}).
 
@@ -42,7 +47,6 @@ split(Item, NewQuantity) ->
 
 equip(ItemId) ->
     mdb:update(<<"item">>, ItemId, {equip, <<"true">>}).
-
 
 update(ItemId, 0) ->
     mdb:delete(<<"item">>, ItemId);

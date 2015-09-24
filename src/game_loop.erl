@@ -172,14 +172,7 @@ do_event(harvest, EventData, PlayerPid) ->
             local:update_state(LocalObjId, none)
     end,
  
-    [LocalObj] = db:read(local_obj, LocalObjId),
-    case local_obj:is_nearby_hero(LocalObj, LocalObj#local_obj.player) of
-        true ->
-            %Send item perception to player pid
-            send_to_process(PlayerPid, new_items, NewItems);
-        false ->
-            nothing
-    end,
+    send_update_items(LocalObjId, NewItems, PlayerPid),
    
     {false, false};
 
@@ -195,6 +188,21 @@ do_event(finish_build, EventData, _PlayerPid) ->
     local_obj:update(StructureId, <<"hp">>, 1000),
 
     {false, {GlobalPos, true}};
+
+do_event(process_resource, EventData, PlayerPid) ->
+    lager:info("Processing process_resource event: ~p", [EventData]),
+    {StructureId, UnitId, NumTicks} = EventData,
+
+    case structure:has_process_res(StructureId) of
+        true ->
+            NewItems = structure:process(StructureId),    
+            send_update_items(StructureId, NewItems, PlayerPid),
+            game:add_event(PlayerPid, process_resource, EventData, UnitId, NumTicks);
+        false ->
+            local:update_state(UnitId, none)
+    end,
+
+    {false, false};
 
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
@@ -250,3 +258,14 @@ clean_up(_) ->
 remove(dead, LocalObj) ->
     local_obj:remove(LocalObj#local_obj.id),
     local:remove(LocalObj).
+
+send_update_items(LocalObjId, NewItems, PlayerPid) ->
+    [LocalObj] = db:read(local_obj, LocalObjId),
+    case local_obj:is_nearby_hero(LocalObj, LocalObj#local_obj.player) of
+        true ->
+            %Send item perception to player pid
+            send_to_process(PlayerPid, new_items, NewItems);
+        false ->
+            nothing
+    end.
+

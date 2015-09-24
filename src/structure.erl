@@ -8,8 +8,9 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([start_build/4, check_req/1, valid_location/3]).
--export([list/0, recipe_list/1, craft/2]).
+-export([start_build/4, valid_location/3]).
+-export([list/0, recipe_list/1, process/1, craft/2]).
+-export([check_req/1, has_process_res/1]).
 
 start_build(PlayerId, GlobalPos, LocalPos, StructureType) ->
     {Name} = bson:lookup(name, StructureType),
@@ -32,6 +33,12 @@ check_req(Structure) ->
 
     process_req(true, ReqList, Items).
 
+has_process_res(StructureId) ->
+    StructureStats = local_obj:get_stats(StructureId),
+    {Process} = bson:lookup(process, StructureStats),
+    Items = item:get_by_subclass(StructureId, Process),
+    Items =/= [].
+
 list() ->
     Structures = find_type(level, 0),
     Structures.
@@ -39,6 +46,26 @@ list() ->
 recipe_list(LocalObj) ->
     Recipes = get_recipes(LocalObj#local_obj.name),
     Recipes.
+
+process(StructureId) ->
+    StructureStats = local_obj:get_stats(StructureId),
+    {Process} = bson:lookup(process, StructureStats),
+    
+    [Item | _Rest] = item:get_by_subclass(StructureId, Process),
+    {Id} = bson:lookup('_id', Item),
+    {Quantity} = bson:lookup(quantity, Item),
+    {Produces} = bson:lookup(produces, Item),
+    
+    item:update(Id, Quantity - 1),
+
+    F = fun(NewItemName) ->
+            item:create(StructureId, NewItemName, 1)
+        end,
+
+    lists:foreach(F, Produces),
+
+    %Requery items after new items and update
+    item:get_by_owner(StructureId).
 
 craft(LocalObj, RecipeName) ->
     Items = item:get_by_owner(LocalObj#local_obj.id),
@@ -86,11 +113,12 @@ valid_location(_, GlobalPos, LocalPos) ->
 %
 
 
-
+process_req(false, _Reqs, _Items) ->
+    false;
 process_req(Result, [], _Items) ->
     Result;
 process_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
-    F = fun(Item, HasReq) ->
+    F = fun(Item) ->
             {ItemName} = bson:lookup(name, Item),
             {ItemSubClass} = bson:lookup(subclass, Item),
             {ItemQuantity} = bson:lookup(quantity, Item),
@@ -104,10 +132,10 @@ process_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
 
             ItemMatch = ItemNameMatch or ItemSubClassMatch,
             lager:info("ItemMatch: ~p", [ItemMatch]),
-            ItemMatch and QuantityMatch or HasReq
+            ItemMatch and QuantityMatch
         end,
 
-    ReqMatch = lists:foldl(F, false, Items),
+    ReqMatch = lists:any(F, Items),
     NewResult = Result and ReqMatch,
 
     process_req(NewResult, Rest, Items).
@@ -159,4 +187,3 @@ get_recipe(ItemName) ->
     mc_cursor:close(Cursor),
     Recipe.
 
-   

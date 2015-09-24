@@ -475,6 +475,12 @@ function sendFinishBuild(structureid) {
     websocket.send(e);
 };
 
+function sendProcess() {
+    console.log("sendProcess");
+    var e = '{"cmd": "process_resource", "structureid": "' + selectedUnit + '"}';
+    websocket.send(e);
+};
+
 function sendRecipeList(sourceid) {
     var e = '{"cmd": "recipe_list", "sourceid": "' + sourceid + '"}';
     websocket.send(e);
@@ -1276,24 +1282,24 @@ function drawCraftListDialog(jsonData) {
 
     for(var i = 0; i < jsonData.result.length; i++) {
         var recipe = jsonData.result[i];
-        var recipeImage = recipe.item.toLowerCase().replace(/ /g, '');
+        var recipeImage = recipe.name.toLowerCase().replace(/ /g, '');
         var imagePath = "/static/art/" + recipeImage + ".png";
 
         var icon = new createjs.Container();
-        icon.item = recipe.item;
+        icon.name = recipe.name;
 
         icon.x = 25 + i * 75;
         icon.y = 50;
 
         icon.on("mousedown", function(evt) {
-            sendCraft(selectedUnit, this.item);
+            sendCraft(selectedUnit, this.name);
             dialogPanel.visible = false;
         });
 
         addChildDialogPanel(icon);
         addImage({id: recipeImage, path: imagePath, x: 0, y: 0, target: icon});
 
-        var name = new createjs.Text(recipe.item, h1Font, textColor);
+        var name = new createjs.Text(recipe.name, h1Font, textColor);
         
         name.x = 25 + i * 75;
         name.y = 130;
