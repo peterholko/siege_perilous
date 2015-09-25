@@ -30,8 +30,7 @@ check_req(Structure) ->
     {StructureId} = bson:lookup('_id', Structure),
     {ReqList} = bson:lookup(req, Structure),
     Items = item:get_by_owner(StructureId),
-
-    process_req(true, ReqList, Items).
+    has_req(ReqList, Items).
 
 has_process_res(StructureId) ->
     StructureStats = local_obj:get_stats(StructureId),
@@ -74,11 +73,13 @@ craft(LocalObj, RecipeName) ->
     {NewItem} = bson:lookup(item, Recipe),
     {ReqList} = bson:lookup(req, Recipe),
 
-    Result = process_req(true, ReqList, Items),
-
-    lager:info("process_req: ~p", [Result]),
-
-    consume_req(ReqList, Items).
+    case has_req(ReqList, Items) of
+        true ->
+            MatchReq = find_match_req(ReqList, Items),
+            lager:info("MatchReq: ~p", [MatchReq]);
+        false ->
+            lager:info("Do not have all reqs")
+    end.
 
 valid_location(<<"wall">>, GlobalPos, LocalPos) ->
     lager:info("Valid location for wall"),
@@ -112,33 +113,55 @@ valid_location(_, GlobalPos, LocalPos) ->
 % Internal functions
 %
 
-
-process_req(false, _Reqs, _Items) ->
+has_req(Reqs, Items) ->
+    has_req(true, Reqs, Items).
+has_req(false, _Reqs, _Items) ->
     false;
-process_req(Result, [], _Items) ->
+has_req(Result, [], _Items) ->
     Result;
-process_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
+has_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
     F = fun(Item) ->
-            {ItemName} = bson:lookup(name, Item),
-            {ItemSubClass} = bson:lookup(subclass, Item),
-            {ItemQuantity} = bson:lookup(quantity, Item),
-
-            QuantityMatch = ReqQuantity =< ItemQuantity,            
-            ItemNameMatch = ReqType =:= ItemName,
-            ItemSubClassMatch = ReqType =:= ItemSubClass,
-
-            lager:info("NameMatch ~p ~p ~p", [ReqType, ItemName, ItemSubClass]),
-            lager:info("QuantityMatch ~p ~p", [ReqQuantity, ItemQuantity]),
-
-            ItemMatch = ItemNameMatch or ItemSubClassMatch,
-            lager:info("ItemMatch: ~p", [ItemMatch]),
-            ItemMatch and QuantityMatch
+            match_req(Item, ReqType, ReqQuantity)
         end,
 
     ReqMatch = lists:any(F, Items),
     NewResult = Result and ReqMatch,
 
-    process_req(NewResult, Rest, Items).
+    has_req(NewResult, Rest, Items).
+
+find_match_req(Reqs, Items) ->
+    find_match_req(Reqs, Items, []).
+
+find_match_req([], Items, ReqMatchItems) ->
+    ReqMatchItems;
+find_match_req([{type, ReqType, quantity, ReqQuantity} | Rest], Items, ReqMatchItems) ->
+    F = fun(Item) ->
+            match_req(Item, ReqType, ReqQuantity)
+        end,
+
+    AllReqMatchItems = lists:filter(F, Items),
+    NewReqMatchItems = add_req_match(AllReqMatchItems, ReqMatchItems),  
+
+    find_match_req(Rest, Items, NewReqMatchItems).
+
+add_req_match([], ReqMatchItems) -> ReqMatchItems;
+add_req_match([Head | _Rest], ReqMatchItems) -> [Head | ReqMatchItems].
+
+match_req(Item, ReqType, ReqQuantity) ->
+    {ItemName} = bson:lookup(name, Item),
+    {ItemSubClass} = bson:lookup(subclass, Item),
+    {ItemQuantity} = bson:lookup(quantity, Item),
+
+    QuantityMatch = ReqQuantity =< ItemQuantity,            
+    ItemNameMatch = ReqType =:= ItemName,
+    ItemSubClassMatch = ReqType =:= ItemSubClass,
+
+    lager:info("NameMatch ~p ~p ~p", [ReqType, ItemName, ItemSubClass]),
+    lager:info("QuantityMatch ~p ~p", [ReqQuantity, ItemQuantity]),
+
+    ItemMatch = ItemNameMatch or ItemSubClassMatch,
+    lager:info("ItemMatch: ~p", [ItemMatch]),
+    ItemMatch and QuantityMatch.
 
 consume_req([], _Items) ->
     lager:info("Completed consuming items");
