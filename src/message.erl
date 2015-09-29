@@ -229,6 +229,7 @@ message_handle(<<"recipe_list">>, Message) ->
     SourceBinId = util:hex_to_bin(HexId),
 
     RecipeListBSON = player:recipe_list(SourceBinId),
+    lager:info("RecipeList: ~p", [RecipeListBSON]),
     
     F = fun(Recipe, Map) ->
             [mdb:to_map(Recipe) | Map]

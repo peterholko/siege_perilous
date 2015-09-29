@@ -204,6 +204,22 @@ do_event(process_resource, EventData, PlayerPid) ->
 
     {false, false};
 
+do_event(craft, EventData, PlayerPid) ->
+    lager:info("Processing craft event: ~p", [EventData]),
+    {StructureId, UnitId, Recipe} = EventData,
+
+    case structure:check_recipe_req(StructureId, Recipe) of
+        true ->
+            NewItem = structure:craft(StructureId, Recipe),
+            send_update_items(StructureId, [NewItem], PlayerPid);
+        false ->
+            nothing
+    end,
+
+    local:update_state(UnitId, none),
+
+    {false, false};
+
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.

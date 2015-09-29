@@ -10,7 +10,8 @@
 
 -export([start_build/4, valid_location/3]).
 -export([list/0, recipe_list/1, process/1, craft/2]).
--export([check_req/1, has_process_res/1]).
+-export([check_req/1, has_process_res/1, check_recipe_req/2]).
+-export([combine_stats/2, craft_item_name/2]).
 
 start_build(PlayerId, GlobalPos, LocalPos, StructureType) ->
     {Name} = bson:lookup(name, StructureType),
@@ -38,6 +39,14 @@ has_process_res(StructureId) ->
     Items = item:get_by_subclass(StructureId, Process),
     Items =/= [].
 
+check_recipe_req(LocalObjId, RecipeName) ->
+    Items = item:get_by_owner(LocalObjId),
+
+    Recipe = get_recipe(RecipeName),
+    {ReqList} = bson:lookup(req, Recipe),
+
+    has_req(ReqList, Items).
+ 
 list() ->
     Structures = find_type(level, 0),
     Structures.
@@ -66,20 +75,19 @@ process(StructureId) ->
     %Requery items after new items and update
     item:get_by_owner(StructureId).
 
-craft(LocalObj, RecipeName) ->
-    Items = item:get_by_owner(LocalObj#local_obj.id),
+craft(LocalObjId, RecipeName) ->
+    Items = item:get_by_owner(LocalObjId),
 
     Recipe = get_recipe(RecipeName),
-    {NewItem} = bson:lookup(item, Recipe),
+    {RecipeItem} = bson:lookup(item, Recipe),
+    {Class} = bson:lookup(class, Recipe),
     {ReqList} = bson:lookup(req, Recipe),
 
-    case has_req(ReqList, Items) of
-        true ->
-            MatchReq = find_match_req(ReqList, Items),
-            lager:info("MatchReq: ~p", [MatchReq]);
-        false ->
-            lager:info("Do not have all reqs")
-    end.
+    MatchReq = find_match_req(ReqList, Items),
+    lager:info("MatchReq: ~p", [MatchReq]),
+
+    %consume_req(ReqList, MatchReq),
+    craft_item(LocalObjId, RecipeItem, Class, lists:reverse(MatchReq)).
 
 valid_location(<<"wall">>, GlobalPos, LocalPos) ->
     lager:info("Valid location for wall"),
@@ -132,7 +140,7 @@ has_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
 find_match_req(Reqs, Items) ->
     find_match_req(Reqs, Items, []).
 
-find_match_req([], Items, ReqMatchItems) ->
+find_match_req([], _Items, ReqMatchItems) ->
     ReqMatchItems;
 find_match_req([{type, ReqType, quantity, ReqQuantity} | Rest], Items, ReqMatchItems) ->
     F = fun(Item) ->
@@ -162,6 +170,41 @@ match_req(Item, ReqType, ReqQuantity) ->
     ItemMatch = ItemNameMatch or ItemSubClassMatch,
     lager:info("ItemMatch: ~p", [ItemMatch]),
     ItemMatch and QuantityMatch.
+
+craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
+   F = fun(MatchReq, ItemStats) ->
+            Stats = [{damage, bson:lookup(damage, MatchReq)},
+                     {durability, bson:lookup(durability, MatchReq)},
+                     {speed, bson:lookup(speed, MatchReq)}],
+
+            combine_stats(Stats, ItemStats)
+        end,
+
+    AllItemStats = lists:foldl(F, {}, MatchReqList),
+    
+    ItemName = craft_item_name(RecipeName, MatchReqList),
+
+    FinalItem = bson:merge({owner, OwnerId, class, <<"Weapon">>, name, ItemName, quantity, 1}, AllItemStats),
+    InsertedItem = item:create(FinalItem),
+    InsertedItem;
+craft_item(_, _, _, _) ->
+    nothing.
+ 
+combine_stats([], Item) ->
+    Item;
+combine_stats([{StatName, StatValue} | Rest], Item) ->
+    NewItem = add_stat(StatName, StatValue, Item),
+    combine_stats(Rest, NewItem).
+
+add_stat(_StatName, {}, ItemStats) -> ItemStats;
+add_stat(StatName, {StatValue}, ItemStats) -> bson:update(StatName, StatValue, ItemStats).
+
+craft_item_name(RecipeName, MatchReqList) ->
+    [FirstReq | _] = MatchReqList,
+    {PrimaryReqName} = bson:lookup(name, FirstReq),
+    [FirstPart | _] = binary:split(PrimaryReqName, <<" ">>, []),
+   
+    <<FirstPart/binary, <<" ">>/binary, RecipeName/binary>>.
 
 consume_req([], _Items) ->
     lager:info("Completed consuming items");

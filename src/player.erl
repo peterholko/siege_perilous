@@ -344,19 +344,25 @@ process_resource(StructureId) ->
     lager:info("Reply: ~p", [Reply]),
     Reply.
     
-craft(SourceId, Recipe) ->
+craft(StructureId, Recipe) ->
     Player = get(player_id),
-    [LocalObj] = db:read(local_obj, SourceId),
+    [Structure] = db:read(local_obj, StructureId),
+    [Unit] = local_obj:get_unit_by_pos(Structure#local_obj.global_pos,
+                                       Structure#local_obj.pos),
 
-    ValidPlayer = Player =:= LocalObj#local_obj.player,
+    Checks = [{not is_event_locked(StructureId), "Event in process"},
+              {Player =:= Structure#local_obj.player, "Structure not owned by player"},
+              {Player =:= Unit#local_obj.player, "Unit not owned by player"},
+              {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"}],
 
-    Result = case ValidPlayer of
-                true ->
-                    structure:craft(LocalObj, Recipe);
-                false ->
-                    <<"Source not owned by player">>
-             end,
-    Result.
+    NumTicks = ?TICKS_SEC * 10,
+
+    Result = process_checks(Checks),
+
+    add_craft(Result, StructureId, Unit#local_obj.id, Recipe, NumTicks),
+
+    Reply = to_reply(Result) ++ [{<<"process_time">>, NumTicks}],
+    Reply.
 
 equip(Id, ItemId) ->
     Player = get(player_id),
@@ -430,13 +436,21 @@ add_finish_build(true, {LocalObjId, GlobalPos, StructureId}, NumTicks) ->
     game:add_event(self(), finish_build, EventData, LocalObjId, NumTicks).
 
 add_process_resource({false, Error}, _StructureId, _UnitId, _NumTicks) ->
-    lager:info("Process resource error: ~p", [Error]);
+    lager:info("Process_resource error: ~p", [Error]);
 add_process_resource(true, StructureId, UnitId, NumTicks) ->
     EventData = {StructureId, UnitId, NumTicks},
 
     local:update_state(UnitId, processing),
 
     game:add_event(self(), process_resource, EventData, UnitId, NumTicks).
+
+add_craft({false, Error}, _StructureId, _UnitId, _Recipe, _NumTicks) ->
+    lager:info("Craft error: ~p", [Error]);
+add_craft(true, StructureId, UnitId, Recipe, NumTicks) ->
+    EventData = {StructureId, UnitId, Recipe},
+
+    local:update_state(UnitId, crafting),
+    game:add_event(self(), craft, EventData, UnitId, NumTicks).
 
 add_action(false, _, _) ->
     lager:info("Action failed"),

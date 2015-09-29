@@ -1282,11 +1282,11 @@ function drawCraftListDialog(jsonData) {
 
     for(var i = 0; i < jsonData.result.length; i++) {
         var recipe = jsonData.result[i];
-        var recipeImage = recipe.name.toLowerCase().replace(/ /g, '');
+        var recipeImage = recipe.item.toLowerCase().replace(/ /g, '');
         var imagePath = "/static/art/" + recipeImage + ".png";
 
         var icon = new createjs.Container();
-        icon.name = recipe.name;
+        icon.name = recipe.item;
 
         icon.x = 25 + i * 75;
         icon.y = 50;
@@ -1299,7 +1299,7 @@ function drawCraftListDialog(jsonData) {
         addChildDialogPanel(icon);
         addImage({id: recipeImage, path: imagePath, x: 0, y: 0, target: icon});
 
-        var name = new createjs.Text(recipe.name, h1Font, textColor);
+        var name = new createjs.Text(recipe.item, h1Font, textColor);
         
         name.x = 25 + i * 75;
         name.y = 130;
