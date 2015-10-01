@@ -42,7 +42,6 @@ dodge(SourceId) ->
 %% ====================================================================
 
 init([]) ->
-    random:seed(erlang:now()),
     {ok, []}.
 
 handle_cast({do_action, Action}, Data) ->

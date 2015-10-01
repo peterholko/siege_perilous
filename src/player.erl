@@ -371,14 +371,16 @@ equip(Id, ItemId) ->
     [Item] = item:get(ItemId),
     {ItemOwner} = bson:lookup(owner, Item),
 
-    ValidPlayer = is_player_owned(LocalObj#local_obj.player, Player),
-    ValidState = is_state(LocalObj#local_obj.state, none),
-    ValidItem = Id == ItemOwner,
+    Checks = [{Player =:= LocalObj#local_obj.player, "Unit not owned by player"},
+              {Id =:= ItemOwner, "Item not owned by unit"},
+              {is_state(LocalObj#local_obj.state, none), "Unit is busy"}],
 
-    Result = ValidItem and ValidState and ValidPlayer,
+    Result = process_checks(Checks),
 
-    ReturnMsg = add_equip(Result, ItemId),
-    ReturnMsg.
+    add_equip(Result, ItemId),
+
+    Reply = to_reply(Result),
+    Reply.
 
 assign(SourceId, TargetId) ->
     Player = get(player_id),
@@ -519,8 +521,7 @@ add_exit_local(false, _, _) ->
     none.
 
 add_equip(false, _EventData) ->
-    lager:info("Equip failed"),
-    none;
+    lager:info("Equip failed");
 add_equip(true, ItemId) ->
     item:equip(ItemId).
 
