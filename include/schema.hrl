@@ -102,3 +102,6 @@
 -record(effect, {key,
                  type,
                  data}).
+
+-record(combat, {id, 
+                 attacks}).

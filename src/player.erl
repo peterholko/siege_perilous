@@ -29,7 +29,7 @@
          recipe_list/1,
          process_resource/1,
          craft/2,
-         equip/2,
+         equip/1,
          assign/2,
          cancel/1,
          set_event_lock/2,
@@ -364,15 +364,14 @@ craft(StructureId, Recipe) ->
     Reply = to_reply(Result) ++ [{<<"process_time">>, NumTicks}],
     Reply.
 
-equip(Id, ItemId) ->
+equip(ItemId) ->
     Player = get(player_id),
 
-    [LocalObj] = db:read(local_obj, Id),
     [Item] = item:get(ItemId),
     {ItemOwner} = bson:lookup(owner, Item),
+    [LocalObj] = db:read(local_obj, ItemOwner),
 
     Checks = [{Player =:= LocalObj#local_obj.player, "Unit not owned by player"},
-              {Id =:= ItemOwner, "Item not owned by unit"},
               {is_state(LocalObj#local_obj.state, none), "Unit is busy"}],
 
     Result = process_checks(Checks),
@@ -520,8 +519,8 @@ add_exit_local(false, _, _) ->
     lager:info("Exit failed"),
     none.
 
-add_equip(false, _EventData) ->
-    lager:info("Equip failed");
+add_equip({false, Error}, _EventData) ->
+    lager:info("Equip failed error: ~p", [Error]);
 add_equip(true, ItemId) ->
     item:equip(ItemId).
 

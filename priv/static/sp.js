@@ -501,6 +501,11 @@ function sendLoot(sourceid, item) {
     websocket.send(e);
 };
 
+function sendEquip(item) {
+    var e = '{"cmd": "equip", "item": "' + item + '"}';
+    websocket.send(e);
+};
+
 function sendItemTransfer(targetid, item) {
     console.log("targetid: " + targetid);
     var e = '{"cmd": "item_transfer", "targetid": "' + targetid + '", "item": "' + item + '"}';
@@ -1614,7 +1619,6 @@ function drawInfoUnit(jsonData) {
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
-    hideButtons();
 
     if(jsonData.class == "structure") {
         if(jsonData.state == "founded" || 
@@ -1685,6 +1689,12 @@ function drawInfoItem(jsonData) {
     
     addChildInfoPanel(statsText);
      
+    var btnEquip = activeInfoPanel.getChildByName("btnAssign");
+    btnEquip.visible = true;
+    btnEquip.on("mousedown", function(evt) {
+        sendEquip(jsonData._id);
+    });
+ 
 };
 
 function drawItemSplit(itemId, itemName, quantity) {
@@ -2165,6 +2175,7 @@ function showInfoPanel() {
     }
 
     activeInfoPanel.visible = true;    
+    hideButtons();
 };
 
 function showDialogPanel() {

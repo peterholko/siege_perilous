@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get/1, get_by_name/1, get_by_owner/1, get_by_subclass/2]).
+-export([get/1, get_by_name/1, get_by_owner/1, get_by_subclass/2, get_equiped/1]).
 -export([transfer/2, split/2, update/2, create/1, create/3, equip/1]).
 -export([obj_perception/1, find/1, find_type/2]).
 
@@ -24,6 +24,10 @@ get_by_owner(OwnerId) ->
 
 get_by_subclass(OwnerId, SubClass) ->
     Items = find({owner, OwnerId, subclass, SubClass}),
+    Items.
+
+get_equiped(OwnerId) ->
+    Items = find({owner, OwnerId, equip, <<"true">>}),
     Items.
 
 transfer(ItemId, TargetId) ->

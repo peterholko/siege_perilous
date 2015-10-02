@@ -18,6 +18,10 @@
 -export([do_action/1, attack/3, guard/1, dodge/1]).
 -export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
 
+%-ifdef(TEST).
+-compile(export_all).
+%-endif.
+
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -242,20 +246,28 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     AtkUnit = local_obj:get_stats(AtkObj#local_obj.id),
     DefUnit = local_obj:get_stats(DefObj#local_obj.id),
 
+    AtkItems = item:get_equiped(AtkObj#local_obj.id),
+    DefItems = item:get_equiped(DefObj#local_obj.id),
+
     {AtkStamina} = bson:lookup(stamina, AtkUnit),
-    {DmgBase} = bson:lookup(base_dmg, AtkUnit),
+    {BaseDmg} = bson:lookup(base_dmg, AtkUnit),
     {DmgRange} = bson:lookup(dmg_range, AtkUnit),
-    {DefArmor} = bson:lookup(base_def, DefUnit),
+    {BaseDef} = bson:lookup(base_def, DefUnit),
     {DefHp} = bson:lookup(hp, DefUnit),
 
-    DmgRoll = random:uniform(DmgRange) + DmgBase,
-    
-    DmgReduction = DefArmor / (DefArmor + 50),
+    %Check for combos
+    ComboDmg = check_combos(AttackType, AtkObj#local_obj.id),
 
-    BaseDmg = round(DmgRoll * (1 - DmgReduction)),
+    %Add item stats
+    TotalDmg = (BaseDmg + get_item_value(damage, AtkItems)) * ComboDmg,
+    TotalArmor = BaseDef + get_item_value(armor, DefItems),
 
-    Dmg = attack_type_mod(AttackType) * BaseDmg,
+    %Random roll and armor reduction
+    DmgRoll = random:uniform(DmgRange) + TotalDmg,
+    ArmorReduction = TotalArmor / (TotalArmor + 50),
 
+    %Apply attack type modifier
+    Dmg = round(DmgRoll * (1 - ArmorReduction)) * attack_type_mod(AttackType),
     NewHp = DefHp - Dmg,
 
     %Update stamina
@@ -264,6 +276,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
 
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
+
 
     %Broadcast damage
     lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
@@ -337,3 +350,60 @@ add_stamina(SourceId, Value) ->
 num_ticks({attack, _AttackType}) -> ?TICKS_SEC * 10;
 num_ticks(guard) -> ?TICKS_SEC * 30;
 num_ticks(dodge) -> ?TICKS_SEC * 20. 
+
+get_item_value(_, []) ->
+    0;
+get_item_value(Attr, Items) ->
+    F = fun(Item, Total) ->
+            case bson:lookup(Attr, Item) of
+                {Value} ->
+                    Total + Value;
+                {} ->
+                    Total
+            end
+        end,
+
+    lists:foldl(F, 0, Items).
+
+to_str(weak) -> "w";
+to_str(basic) -> "b";
+to_str(fierce) -> "f".
+
+check_combos(AttackType, ObjId) ->
+    case db:dirty_read(combat, ObjId) of
+        [Combat] ->
+            Attacks = Combat#combat.attacks ++ to_str(AttackType),
+
+            case check_attacks(Attacks) of
+                [{_, ComboName, ComboDmg}] ->
+                    NewCombat = Combat#combat {attacks = ""},
+                    db:dirty_write(NewCombat),
+                    {ComboName, ComboDmg};
+                _ -> 
+                    NewCombat = Combat#combat {attacks = Attacks},
+                    db:dirty_write(NewCombat),
+                    {none, 0}
+            end;
+        _ ->
+            Combat = #combat {id = ObjId,
+                              attacks = to_str(AttackType)},
+            db:dirty_write(Combat),
+            {none, 0}
+    end.
+
+check_attacks(Attacks) ->
+    F = fun({ComboAttacks, _ComboName, _ComboDmg}) ->
+            case string:str(Attacks, ComboAttacks) of
+                0 -> false;
+                _ -> true
+            end
+        end,
+
+    lists:filter(F, combos()).
+
+combos() ->
+    [{"wwf", <<"Shrouded Strike">>, 1.25},
+     {"fff", <<"Shatter Strike">>, 1.5},
+     {"wbf", <<"Rupture Strike">>, 2},
+     {"wbwf", <<"Nightmare Strike">>, 3}].
+

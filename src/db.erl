@@ -53,6 +53,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(htn, [{disc_copies, [node()]}, {attributes, record_info(fields, htn)}]),    
     {atomic, ok} = mnesia:create_table(npc, [{disc_copies, [node()]}, {attributes, record_info(fields, npc)}]),    
     {atomic, ok} = mnesia:create_table(effect, [{disc_copies, [node()]}, {attributes, record_info(fields, effect)}]),    
+    {atomic, ok} = mnesia:create_table(combat, [{ram_copies, [node()]}, {attributes, record_info(fields, combat)}]),  
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),

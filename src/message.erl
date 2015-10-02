@@ -266,10 +266,9 @@ message_handle(<<"craft">>, Message) ->
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
 
-    Id = util:hex_to_bin(map_get(<<"id">>, Message)),
     ItemId = util:hex_to_bin(map_get(<<"item">>, Message)),
 
-    Result = player:equip(Id, ItemId),
+    Result = player:equip(ItemId),
 
     jsx:encode([{<<"packet">>, <<"equip">>},
                 {<<"result">>, Result}]);    
