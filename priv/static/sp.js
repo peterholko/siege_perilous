@@ -153,18 +153,6 @@ btnAssignRestImg.src = "/static/art/btn_assign_rest.png";
 
 gravestone.src = "/static/art/gravestone.png";
 
-var zombie = {
-    images: ['/static/art/zombie_ss.png'],
-    frames: {width:72, height:72},
-    animations: {
-        die:[0,3,"dead", 0.05],
-        dead:[3],
-        stand:[4]
-    }
-};
-
-var zombieSS;
-
 $(document).ready(init);
 
 function init() {
@@ -188,8 +176,6 @@ function init() {
 
     stage.addChild(map)
 
-    zombieSS = new createjs.SpriteSheet(zombie);
- 
     initImages();
     initUI();
 
@@ -889,6 +875,8 @@ function drawLocalMap(map) {
          
             addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: j});
         }
+
+        addLocalTile(tile);
     }
 };
 
@@ -983,7 +971,7 @@ function drawLocalObj() {
                     visibleTiles = range(localObj.x, localObj.y, 2);
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
-
+                    
                     createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
                 }
             }
@@ -1129,10 +1117,10 @@ function drawDmg(jsonData) {
         var origX = source.icon.x;
         var origY = source.icon.y;
 
-        if(source && target) {
+        /*if(source && target) {
             createjs.Tween.get(source.icon).to({x: target.icon.x, y: target.icon.y}, 500, createjs.Ease.getPowInOut(4))
                                            .to({x: origX, y: origY}, 100, createjs.Ease.getPowInOut(2));
-        }
+        }*/
 
         if(jsonData.state == "dead") {
             var sprite = target.icon.getChildByName("sprite");

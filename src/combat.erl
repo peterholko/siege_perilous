@@ -256,7 +256,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     {DefHp} = bson:lookup(hp, DefUnit),
 
     %Check for combos
-    ComboDmg = check_combos(AttackType, AtkObj#local_obj.id),
+    {_ComboName, ComboDmg} = check_combos(AttackType, AtkObj#local_obj.id),
 
     %Add item stats
     TotalDmg = (BaseDmg + get_item_value(damage, AtkItems)) * ComboDmg,
