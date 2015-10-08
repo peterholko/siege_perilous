@@ -239,6 +239,21 @@ broadcast_dmg(SourceId, TargetId, Dmg, State) ->
 
     l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
 
+broadcast_combo(SourceId, TargetId, Combo) ->
+    Message = #{<<"packet">> => <<"combo">>,
+                <<"sourceid">> => util:bin_to_hex(SourceId),
+                <<"targetid">> => util:bin_to_hex(TargetId),
+                <<"combo">> => Combo},
+
+    [SourceObj] = db:read(local_obj, SourceId),
+    [TargetObj] = db:read(local_obj, TargetId),
+
+    GlobalPos = SourceObj#local_obj.global_pos,
+    SourcePos = SourceObj#local_obj.pos,
+    TargetPos = TargetObj#local_obj.pos,
+
+    l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
+
 process_dmg(false, _, AtkObj, _) ->
     db:delete(action, AtkObj#local_obj.id),
     lager:info("Invalid attack");      
@@ -256,7 +271,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     {DefHp} = bson:lookup(hp, DefUnit),
 
     %Check for combos
-    {_ComboName, ComboDmg} = check_combos(AttackType, AtkObj#local_obj.id),
+    {ComboName, ComboDmg} = check_combos(AttackType, AtkObj#local_obj.id),
 
     %Add item stats
     TotalDmg = (BaseDmg + get_item_value(damage, AtkItems)) * ComboDmg,
@@ -277,10 +292,15 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
 
-
     %Broadcast damage
     lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
     broadcast_dmg(AtkObj#local_obj.id, DefObj#local_obj.id, Dmg, UnitState),
+
+    %Broadcast combo
+    case ComboName of
+        none -> nothing;
+        _ -> broadcast_combo(AtkObj#local_obj.id, DefObj#local_obj.id, ComboName)
+    end,
 
     %Check if unit is dead 
     case UnitState of
