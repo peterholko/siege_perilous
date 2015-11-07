@@ -278,12 +278,17 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     TotalArmor = BaseDef + get_item_value(armor, DefItems),
 
     %Random roll and armor reduction
-    DmgRoll = random:uniform(DmgRange) + TotalDmg,
+    RandomDmg = random:uniform(DmgRange) + TotalDmg,
+    DmgRoll = RandomDmg + TotalDmg,
     ArmorReduction = TotalArmor / (TotalArmor + 50),
 
     %Apply attack type modifier
     Dmg = round(DmgRoll * (1 - ArmorReduction)) * attack_type_mod(AttackType),
     NewHp = DefHp - Dmg,
+
+    %Check for skill increases
+    skill_gain_combo(AtkObj#local_obj.id, ComboName),
+    skill_gain_atk(AtkObj#local_obj.id, RandomDmg, DmgRange, Dmg),
 
     %Update stamina
     NewStamina = AtkStamina - attack_type_cost(AttackType),
@@ -426,4 +431,11 @@ combos() ->
      {"fff", <<"Shatter Strike">>, 1.5},
      {"wbf", <<"Rupture Strike">>, 2},
      {"wbwf", <<"Nightmare Strike">>, 3}].
+
+skill_gain_combo(_AtkId, none) -> nothing;
+skill_gain_combo(AtkId, ComboName) ->
+    skill:update(AtkId, ComboName, 1).
+
+skill_gain_atk(_AtkId, _RandomDmg, DmgRange, Dmg) when Dmg < (DmgRange * 0.1) -> nothing;
+skill_gain_atk(_AtkId, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (DmgRange - 1)
 

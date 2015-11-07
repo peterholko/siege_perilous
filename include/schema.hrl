@@ -105,3 +105,9 @@
 
 -record(combat, {id, 
                  attacks}).
+
+-record(skill, {id, 
+                skill,
+                value}).
+
+-record(xp, {id, value}).
