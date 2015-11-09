@@ -19,7 +19,7 @@
 -export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
 
 %-ifdef(TEST).
--compile(export_all).
+%-compile(export_all).
 %-endif.
 
 %% ====================================================================
@@ -258,11 +258,16 @@ process_dmg(false, _, AtkObj, _) ->
     db:delete(action, AtkObj#local_obj.id),
     lager:info("Invalid attack");      
 process_dmg(true, AttackType, AtkObj, DefObj) ->
-    AtkUnit = local_obj:get_stats(AtkObj#local_obj.id),
-    DefUnit = local_obj:get_stats(DefObj#local_obj.id),
+    AtkId = AtkObj#local_obj.id,
+    DefId = DefObj#local_obj.id,
 
-    AtkItems = item:get_equiped(AtkObj#local_obj.id),
-    DefItems = item:get_equiped(DefObj#local_obj.id),
+    AtkUnit = local_obj:get_stats(AtkId),
+    DefUnit = local_obj:get_stats(DefId),
+
+    AtkItems = item:get_equiped(AtkId),
+    DefItems = item:get_equiped(DefId),
+
+    AtkWeapons = item:get_equiped_weapon(AtkId),
 
     {AtkStamina} = bson:lookup(stamina, AtkUnit),
     {BaseDmg} = bson:lookup(base_dmg, AtkUnit),
@@ -271,7 +276,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     {DefHp} = bson:lookup(hp, DefUnit),
 
     %Check for combos
-    {ComboName, ComboDmg} = check_combos(AttackType, AtkObj#local_obj.id),
+    {ComboName, ComboDmg} = check_combos(AttackType, AtkId),
 
     %Add item stats
     TotalDmg = (BaseDmg + get_item_value(damage, AtkItems)) * ComboDmg,
@@ -287,8 +292,8 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     NewHp = DefHp - Dmg,
 
     %Check for skill increases
-    skill_gain_combo(AtkObj#local_obj.id, ComboName),
-    skill_gain_atk(AtkObj#local_obj.id, RandomDmg, DmgRange, Dmg),
+    skill_gain_combo(AtkId, ComboName),
+    skill_gain_atk(AtkId, AtkWeapons, RandomDmg, DmgRange, Dmg),
 
     %Update stamina
     NewStamina = AtkStamina - attack_type_cost(AttackType),
@@ -299,20 +304,20 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
 
     %Broadcast damage
     lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
-    broadcast_dmg(AtkObj#local_obj.id, DefObj#local_obj.id, Dmg, UnitState),
+    broadcast_dmg(AtkId, DefId, Dmg, UnitState),
 
     %Broadcast combo
     case ComboName of
         none -> nothing;
-        _ -> broadcast_combo(AtkObj#local_obj.id, DefObj#local_obj.id, ComboName)
+        _ -> broadcast_combo(AtkId, DefId, ComboName)
     end,
 
     %Check if unit is dead 
     case UnitState of
         <<"alive">> ->
-            local_obj:update(DefObj#local_obj.id, 'hp', NewHp);
+            local_obj:update(DefId, 'hp', NewHp);
         <<"dead">> ->
-            process_unit_dead(DefObj#local_obj.id)
+            process_unit_dead(DefId)
     end.
 
 
@@ -436,6 +441,17 @@ skill_gain_combo(_AtkId, none) -> nothing;
 skill_gain_combo(AtkId, ComboName) ->
     skill:update(AtkId, ComboName, 1).
 
-skill_gain_atk(_AtkId, _RandomDmg, DmgRange, Dmg) when Dmg < (DmgRange * 0.1) -> nothing;
-skill_gain_atk(_AtkId, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (DmgRange - 1)
+skill_gain_atk(_AtkId, [], _RandomDmg, _DmgRange, _Dmg) -> nothing;
+skill_gain_atk(_AtkId, _Weapons, _RandomDmg, DmgRange, Dmg) when Dmg < (DmgRange * 0.1) -> nothing;
+skill_gain_atk(AtkId, Weapons, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (DmgRange - 1) -> 
+    lager:info("Skill gain weapons: ~p", [Weapons]), 
+    F = fun(Weapon) ->
+            {Subclass} = bson:lookup(subclass, Weapon),
+            skill:update(AtkId, Subclass, 1)
+        end,
+
+    lists:foreach(F, Weapons);
+skill_gain_atk(_AtkId, _Weapons, _RandomDmg, _DmgRange, _Dmg) -> nothing.
+    
+    
 

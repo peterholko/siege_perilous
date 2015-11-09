@@ -1117,10 +1117,18 @@ function drawDmg(jsonData) {
         var origX = source.icon.x;
         var origY = source.icon.y;
 
-        /*if(source && target) {
+        var dmgText = new createjs.Text(jsonData.dmg, 'bold 18px Verdana', '#FF0000');
+        dmgText.x = target.icon.x + 33;
+        dmgText.y = target.icon.y - 10;         
+        dmgText.textAlign = "center";
+
+        addChildLocalMap(dmgText, "textLayer");
+        createjs.Tween.get(dmgText).to({alpha: 0},3000);
+
+        if(source && target) {
             createjs.Tween.get(source.icon).to({x: target.icon.x, y: target.icon.y}, 500, createjs.Ease.getPowInOut(4))
                                            .to({x: origX, y: origY}, 100, createjs.Ease.getPowInOut(2));
-        }*/
+        }
 
         if(jsonData.state == "dead") {
             var sprite = target.icon.getChildByName("sprite");
@@ -1796,6 +1804,7 @@ function initUI() {
     var localObjsCont1 = new createjs.Container();
     var localObjsCont2 = new createjs.Container();
     var localShroudCont = new createjs.Container();
+    var textLayer = new createjs.Container();
 
     var selectHex = new createjs.Bitmap(selectHexImage);
 
@@ -1816,6 +1825,7 @@ function initUI() {
     localShroudCont.name = "localShroud";
     localObjsCont1.name = "localObjs1";
     localObjsCont2.name = "localObjs2";
+    textLayer.name = "textLayer";
 
     selectHex.name = "selectHex";
     selectHex.visible = false;
@@ -1829,6 +1839,7 @@ function initUI() {
     localMapCont.addChild(localObjsCont1);
     localMapCont.addChild(localObjsCont2);
     localMapCont.addChild(selectHex);
+    localMapCont.addChild(textLayer);
 
     stage.addChild(localPanel);
 
