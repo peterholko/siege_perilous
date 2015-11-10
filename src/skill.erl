@@ -9,22 +9,44 @@
 -export([update/3]).
 
 update(Id, SkillName, Value) ->
-    NewSkill = case db:index_read(skill, SkillName, #skill.skill_name) of
-                    [Skill] ->
-                        NewValue = Skill#skill.value + Value,
-                        Skill#skill {value = NewValue};
-                    [] ->
-                        #skill {key = {Id, SkillName},
-                                id = Id,
-                                skill_name = SkillName,
-                                value = Value}
-                end,
-    
-    db:write(NewSkill),
+    [SkillType] = find_type(name, SkillName),
 
+    NewValue = case find(owner, Id) of
+                    [] ->
+                        NewSkill = bson:exclude(['_id'], SkillType),
+                        NewSkill2 = bson:merge({owner, Id, SkillName, Value}, NewSkill),
+                        InsertedSkill = mongo:insert(mdb:get_conn(), <<"skill">>, NewSkill2),
+                        lager:info("InsertedSkill: ~p", [InsertedSkill]),
+                        Value;
+                    [Skill] ->
+                        {SkillId} = bson:lookup('_id', Skill),
+                        {SkillValue} = bson:lookup(SkillName, Skill),
+                        UpdatedValue = SkillValue = Value,
+                        UpdatedSkill = bson:update(SkillName, UpdatedValue),
+                        lager:info("UpdatedSkill: ~p", [UpdatedSkill]),
+                        mdb:update(<<"skill">>, SkillId, UpdatedSkill),
+                        UpdatedValue
+               end,
+
+    Player = get_player(Id),
+
+    send_to_client(Player, skill_update, message(Id, SkillName, NewValue)).
+
+get_player(Id) ->
     [Obj] = db:read(local_obj, Id),
-    Player = Obj#local_obj.player,
-    send_to_client(Player, skill_update, message(Id, SkillName, NewSkill#skill.value)).
+    Obj#local_obj.player.
+
+find(Key, Value) ->
+    Cursor = mongo:find(mdb:get_conn(), <<"skill">>, {Key, Value}),
+    Skills = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Skills.
+
+find_type(Key, Value) ->
+    Cursor = mongo:find(mdb:get_conn(), <<"skill_type">>, {Key, Value}),
+    SkillTypes = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    SkillTypes.
 
 message(SourceId, SkillName, Value) ->
     Message = #{<<"packet">> => <<"skill_update">>,
