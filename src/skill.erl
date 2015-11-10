@@ -21,7 +21,7 @@ update(Id, SkillName, Value) ->
                     [Skill] ->
                         {SkillId} = bson:lookup('_id', Skill),
                         {SkillValue} = bson:lookup(SkillName, Skill),
-                        UpdatedValue = SkillValue = Value,
+                        UpdatedValue = SkillValue + Value,
                         UpdatedSkill = bson:update(SkillName, UpdatedValue),
                         lager:info("UpdatedSkill: ~p", [UpdatedSkill]),
                         mdb:update(<<"skill">>, SkillId, UpdatedSkill),
