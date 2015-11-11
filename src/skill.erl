@@ -6,24 +6,30 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([update/3]).
+-export([get_by_owner/1, update/3, find/2, find_type/2]).
+
+get_by_owner(Id) ->
+    Skills = find(owner, Id),
+    Skills.
 
 update(Id, SkillName, Value) ->
+    lager:info("skill:update id ~p skillname ~p value ~p", [Id, SkillName, Value]),
     [SkillType] = find_type(name, SkillName),
 
     NewValue = case find(owner, Id) of
                     [] ->
-                        NewSkill = bson:exclude(['_id'], SkillType),
-                        NewSkill2 = bson:merge({owner, Id, SkillName, Value}, NewSkill),
-                        InsertedSkill = mongo:insert(mdb:get_conn(), <<"skill">>, NewSkill2),
+                        NewSkill = {owner, Id, SkillName, Value},
+                        InsertedSkill = mongo:insert(mdb:get_conn(), <<"skill">>, NewSkill),
                         lager:info("InsertedSkill: ~p", [InsertedSkill]),
                         Value;
                     [Skill] ->
-                        {SkillId} = bson:lookup('_id', Skill),
-                        {SkillValue} = bson:lookup(SkillName, Skill),
-                        UpdatedValue = SkillValue + Value,
-                        UpdatedSkill = bson:update(SkillName, UpdatedValue),
+                        UpdatedValue = case bson:lookup(binary_to_atom(SkillName, latin1), Skill) of
+                                           {} -> Value;
+                                           {CurrentValue} -> CurrentValue + Value
+                                       end,
+                        UpdatedSkill = bson:update(SkillName, UpdatedValue, Skill),
                         lager:info("UpdatedSkill: ~p", [UpdatedSkill]),
+                        {SkillId} = bson:lookup('_id', Skill),
                         mdb:update(<<"skill">>, SkillId, UpdatedSkill),
                         UpdatedValue
                end,

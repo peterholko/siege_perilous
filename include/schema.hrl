@@ -105,10 +105,3 @@
 
 -record(combat, {id, 
                  attacks}).
-
--record(skill, {key, %key = {id, skill_name}
-                id, 
-                skill_name,
-                value}).
-
--record(xp, {id, value}).

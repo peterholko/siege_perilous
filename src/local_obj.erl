@@ -151,14 +151,18 @@ stats(LocalObj) ->
 info(LocalObjM) ->
     LocalObjStats = stats(LocalObjM),
     {Id} = bson:lookup('_id', LocalObjStats),
-    Items = item:get_by_owner(Id),
 
     %Get state from local obj table
     [LocalObj] = db:read(local_obj, Id),
+    Stats1 = bson:update(state, LocalObj#local_obj.state, LocalObjStats),
 
-    LocalObjStats2 = bson:update(items, Items, LocalObjStats),
-    LocalObjStats3 = bson:update(state, LocalObj#local_obj.state, LocalObjStats2),
-    LocalObjStats3.
+    %Get items & skills
+    Items = item:get_by_owner(Id),
+    Skills = skills:get_by_owner(Id),
+
+    Stats2 = bson:update(items, Items, Stats1),
+    Stats3 = bson:update(skills, Skills, Stats2),
+    Stats3.
 
 test() ->
     {Result, _} = timer:tc(local_obj, readtest, [100]),
