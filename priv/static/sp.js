@@ -1,6 +1,6 @@
 var websocket;
 var stage;
-var render = false;
+var render = 0;
 var lastRenderTime = 0;
 var loaderQueue;
 var imagesQueue = [];
@@ -198,12 +198,12 @@ function init() {
 };
 
 function handleRender(event) {
-    if(render) {
+    if(render > 0) {
         var currTime = createjs.Ticker.getTime();
         if((currTime - lastRenderTime) >= 500) {
             drawLocalObj();
             lastRenderTime = currTime;
-            render = false;
+            render--;
         }
     }
 };
@@ -881,7 +881,7 @@ function drawLocalMap(map) {
 };
 
 function updateLocalObj(objs) {
-    render = true;
+    render++;
 
     for(var i = 0; i < objs.length; i++) {        
         var obj = objs[i];
@@ -923,7 +923,7 @@ function drawLocalObj() {
     for(var id in localObjs) {
         var localObj = localObjs[id];
 
-        if(localObj.op == 'new') {
+        if(!localObj.hasOwnProperty('icon')) {
             var pixel = hex_to_pixel(localObj.x, localObj.y);
             var unitName = localObj.type;
             unitName = unitName.toLowerCase().replace(/ /g, '');
@@ -957,7 +957,7 @@ function drawLocalObj() {
             localObj.icon = icon;
             localObj.op = 'none';
         } 
-        else if(localObj.op == 'update')
+        else if(localObj.hasOwnProperty('icon'))
         {
             var pixel = hex_to_pixel(localObj.x, localObj.y);
 
@@ -1114,32 +1114,35 @@ function drawDmg(jsonData) {
     if(localPanel.visible) {
         var source = getLocalObj(jsonData.sourceid);
         var target = getLocalObj(jsonData.targetid);
-        var origX = source.icon.x;
-        var origY = source.icon.y;
 
-        var dmgText = new createjs.Text(jsonData.dmg, 'bold 18px Verdana', '#FF0000');
-        dmgText.x = target.icon.x + 33;
-        dmgText.y = target.icon.y - 10;         
-        dmgText.textAlign = "center";
+        if(source.hasOwnProperty("icon")) {
+            var origX = source.icon.x;
+            var origY = source.icon.y;
 
-        addChildLocalMap(dmgText, "textLayer");
-        createjs.Tween.get(dmgText).to({alpha: 0},3000);
+            var dmgText = new createjs.Text(jsonData.dmg, 'bold 18px Verdana', '#FF0000');
+            dmgText.x = target.icon.x + 33;
+            dmgText.y = target.icon.y - 10;         
+            dmgText.textAlign = "center";
 
-        if(source && target) {
-            createjs.Tween.get(source.icon).to({x: target.icon.x, y: target.icon.y}, 500, createjs.Ease.getPowInOut(4))
-                                           .to({x: origX, y: origY}, 100, createjs.Ease.getPowInOut(2));
-        }
+            addChildLocalMap(dmgText, "textLayer");
+            createjs.Tween.get(dmgText).to({alpha: 0},3000);
 
-        if(jsonData.state == "dead") {
-            var sprite = target.icon.getChildByName("sprite");
-
-            if(in_array(sprite.spriteSheet.animations, 'die')) {
-                sprite.gotoAndPlay("die");
-            } else {
-                target.icon.removeChild(sprite);
-                target.icon.addChild(new createjs.Bitmap(gravestone));
+            if(source && target) {
+                createjs.Tween.get(source.icon).to({x: target.icon.x, y: target.icon.y}, 500, createjs.Ease.getPowInOut(4))
+                                               .to({x: origX, y: origY}, 100, createjs.Ease.getPowInOut(2));
             }
-        }
+
+            if(jsonData.state == "dead") {
+                var sprite = target.icon.getChildByName("sprite");
+
+                if(in_array(sprite.spriteSheet.animations, 'die')) {
+                    sprite.gotoAndPlay("die");
+                } else {
+                    target.icon.removeChild(sprite);
+                    target.icon.addChild(new createjs.Bitmap(gravestone));
+                }
+            }
+        }        
     }
 };
 
@@ -1510,16 +1513,18 @@ function drawInfoUnit(jsonData) {
     var imagePath =  "/static/art/" + unitName + ".png";
 
     imagesQueue.push({id: unitName, 
-                      x: Math.floor(infoPanelBg.width / 2) - 24, 
+                      x: Math.floor(infoPanelBg.width / 2) - 45, 
                       y: 50, target: getInfoPanelContent()});
     loaderQueue.loadFile({id: unitName, src: imagePath});
 
-    var stats = "State: " + jsonData.state + "\n" 
+    var stats = "--- Stats --- \n"
               + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
               + "Damage: " + jsonData.base_dmg + " - " + jsonData.dmg_range + "\n" 
               + "Defense: " + jsonData.base_def + "\n"
-              + "Speed: " + jsonData.base_speed + "\n";
-           
+              + "Speed: " + jsonData.base_speed + "\n"
+              + "State: " + jsonData.state + "\n"
+              + "Xp: " + jsonData.xp + "\n";
+
     var statsText = new createjs.Text(stats, h1Font, textColor);
 
     statsText.lineHeight = 20;
@@ -1528,8 +1533,25 @@ function drawInfoUnit(jsonData) {
     
     addChildInfoPanel(statsText);
 
+    var skills = "--- Skills ---\n";
+
+    for(var i = 0; i < jsonData.skills.length; i++) {
+        var skillName = jsonData.skills[i].name;
+        var skillValue = jsonData.skills[i].value;
+
+        var text = skillName + ": " + skillValue + "\n";
+        skills += text;
+    }
+
+    var skillsText = new createjs.Text(skills, h1Font, textColor);
+    skillsText.lineHeight = 20;
+    skillsText.x = 200;
+    skillsText.y = 125;
+
+    addChildInfoPanel(skillsText);
+
     if(jsonData.hasOwnProperty("req")) {
-        var req = "Requirements: \n";
+        var req = "--- Requirements ---\n";
 
         for(var i = 0; i < jsonData.req.length; i++) {
             req += "  " + jsonData.req[i].quantity + " " + jsonData.req[i].type + "\n";
@@ -1544,7 +1566,7 @@ function drawInfoUnit(jsonData) {
         addChildInfoPanel(reqText);
     }
 
-    var itemText = new createjs.Text("Items: ", h1Font, textColor);
+    var itemText = new createjs.Text("--- Items --- ", h1Font, textColor);
     itemText.x = 10;
     itemText.y = 300;
     

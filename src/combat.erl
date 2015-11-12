@@ -156,7 +156,7 @@ process_attack(Action) ->
     Result = is_valid_obj(SourceObj) andalso
              is_valid_obj(TargetObj) andalso
              is_adjacent(SourceObj, TargetObj) andalso
-             is_target_alive(TargetObj#local_obj.state) andalso
+             is_target_alive(TargetObj) andalso
              is_targetable(TargetObj) andalso
              (not is_dodged(TargetObj)),
     
@@ -201,12 +201,10 @@ is_adjacent(SourceObj, TargetObj) ->
             false
     end.
 
-is_targetable(#local_obj{effect = Effect} = LocalObj) ->
-    lager:info("LocalObj: ~p", [LocalObj]),
+is_targetable(#local_obj{effect = Effect} = _LocalObj) ->
     HasWall = lists:member(<<"wall">>, Effect),
-    
     Targetable = not HasWall,
-    lager:info("Targetable: ~p", [Targetable]),
+    lager:info("is_targetable: ~p", [Targetable]),
     Targetable.
 
 is_target_alive(#local_obj {state = State}) when State =:= dead -> 
@@ -317,6 +315,9 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
         <<"alive">> ->
             local_obj:update(DefId, 'hp', NewHp);
         <<"dead">> ->
+            AtkXp = bson:lookup(xp, AtkUnit),
+            DefKillXp = bson:lookup(kill_xp, DefUnit),
+            xp_gain(AtkId, AtkXp, DefKillXp),
             process_unit_dead(DefId)
     end.
 
@@ -453,5 +454,8 @@ skill_gain_atk(AtkId, Weapons, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (Dmg
     lists:foreach(F, Weapons);
 skill_gain_atk(_AtkId, _Weapons, _RandomDmg, _DmgRange, _Dmg) -> nothing.
     
-    
-
+xp_gain(_AtkId, _AtkXp, {}) -> nothing;
+xp_gain(AtkId, {}, {DefKillXp}) ->
+    local_obj:update(AtkId, xp, DefKillXp);
+xp_gain(AtkId, {AtkXp}, {DefKillXp}) ->
+    local_obj:update(AtkId, xp, AtkXp + DefKillXp).

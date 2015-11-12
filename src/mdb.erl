@@ -17,6 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([get_conn/0, create_obj/2]).
 -export([update/3, delete/2, lookup/2, to_bin_id/1]).
+-export([find/2, find_one/2]).
 -export([to_map/1]).
 %% ====================================================================
 %% External functions
@@ -36,6 +37,15 @@ delete(Collection, Id) ->
 
 create_obj(Player, Units) ->
     gen_server:cast({global, mdb_pid}, {create_obj, Player, Units}).
+
+find(Collection, Selector) ->
+    Cursor = mongo:find(mdb:get_conn(), Collection, Selector),
+    ListResult = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    ListResult.
+
+find_one(Collection, Selector) ->
+    mongo:find_one(mdb:get_conn(), Collection, Selector).
 
 lookup(Attr, Doc) when is_map(Doc) ->
     maps:get(atom_to_binary(Attr, latin1), Doc);

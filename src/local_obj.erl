@@ -158,7 +158,7 @@ info(LocalObjM) ->
 
     %Get items & skills
     Items = item:get_by_owner(Id),
-    Skills = skills:get_by_owner(Id),
+    Skills = skill:get_by_owner(Id),
 
     Stats2 = bson:update(items, Items, Stats1),
     Stats3 = bson:update(skills, Skills, Stats2),
