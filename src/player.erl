@@ -8,10 +8,8 @@
 
 -export([init_perception/1, 
          get_info_tile/1,
-         get_info_obj/1,
          get_info_unit/1,
          get_info_item/1,
-         move_obj/2,
          move_unit/2,
          attack/3,
          guard/1,
@@ -21,7 +19,6 @@
          loot/2,
          item_transfer/2,
          item_split/2,
-         explore/2,
          exit_local/0,
          structure_list/0,
          build/2,
@@ -53,36 +50,12 @@ get_info_tile(_Pos) ->
     %TODO check if player can see Pos
     lager:info("info_tile").
 
-get_info_obj(Id) ->
-    Player = get(player_id),
-    obj:get_info(Player, Id).
-
 get_info_unit(Id) ->
-    local_obj:get_info(Id).
+    obj:get_info(Id).
 
 get_info_item(Item) ->
     lager:info("get_info_item ~p", [Item]),
     item:get(Item).
-
-move_obj(Id, Pos) ->
-    Player = get(player_id),
-    NumTicks = 8,
-
-    %Get Obj
-    Obj = obj:get_map_obj(Id),
-
-    %Validate obj state
-    ValidState = is_valid_state(Obj#obj.state),
-
-    %Validate player owned obj
-    ValidPlayer = is_player_owned(Obj#obj.player, Player),
-    
-    %Validate position
-    ValidPos = map:is_valid_pos(Pos),
-
-    Result = ValidState and ValidPlayer and ValidPos,
-
-    add_move(Result, {Obj, Pos}, NumTicks).
 
 attack(AttackType, SourceId, TargetId) ->
     Result = not is_event_locked(SourceId) andalso
@@ -102,15 +75,15 @@ dodge(SourceId) ->
 
 move_unit(UnitId, Pos) ->
     Player = get(player_id),
-    [Unit] = db:read(local_obj, UnitId),
+    [Unit] = db:read(obj, UnitId),
     NumTicks = local:movement_cost(Unit, Pos),
     lager:info("NumTicks: ~p", [NumTicks]),
    
-    ValidState = Unit#local_obj.state =/= dead, 
-    ValidClass = Unit#local_obj.class =:= unit,
-    ValidAdjacent = map:is_adjacent(Unit#local_obj.pos, Pos),
+    ValidState = Unit#obj.state =/= dead, 
+    ValidClass = Unit#obj.class =:= unit,
+    ValidAdjacent = map:is_adjacent(Unit#obj.pos, Pos),
     ValidPos = local:is_empty(Pos),
-    NearbyHero = local_obj:is_nearby_hero(Unit, Player),
+    NearbyHero = obj:is_nearby_hero(Unit, Player),
 
     lager:info("move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   
  
@@ -122,41 +95,41 @@ move_unit(UnitId, Pos) ->
     
     add_move_unit(Result, {Unit, Pos}, NumTicks).
 
-survey(LocalObjId) ->
-    lager:info("Survey: ~p", [LocalObjId]),
+survey(ObjId) ->
+    lager:info("Survey: ~p", [ObjId]),
     Player = get(player_id),
-    [LocalObj] = db:read(local_obj, LocalObjId),
+    [Obj] = db:read(obj, ObjId),
 
-    ValidPlayer = is_player_owned(LocalObj#local_obj.player, Player),
+    ValidPlayer = is_player_owned(Obj#obj.player, Player),
     
     Result = case ValidPlayer of
                  true ->
-                     resource:survey(LocalObj#local_obj.pos);
+                     resource:survey(Obj#obj.pos);
                  false -> 
                      <<"Invalid obj">>
              end,
     Result.
 
-harvest(LocalObjId, Resource) ->
+harvest(ObjId, Resource) ->
     Player = get(player_id),
     NumTicks = 20,
 
-    [LocalObj] = db:read(local_obj, LocalObjId),
+    [Obj] = db:read(obj, ObjId),
 
-    ValidPlayer = is_player_owned(LocalObj#local_obj.player, Player),
-    ValidState = is_state(LocalObj#local_obj.state, none),
-    ValidResource = resource:is_valid(LocalObj#local_obj.pos, Resource),
+    ValidPlayer = is_player_owned(Obj#obj.player, Player),
+    ValidState = is_state(Obj#obj.state, none),
+    ValidResource = resource:is_valid(Obj#obj.pos, Resource),
 
     Result = ValidPlayer andalso
              ValidState andalso
              ValidResource,
 
     %Get objs on the same tile
-    LocalObjs = db:index_read(local_obj, LocalObj#local_obj.pos, #local_obj.pos),
+    Objs = db:index_read(obj, Obj#obj.pos, #obj.pos),
 
-    AutoHarvest = resource:is_auto(LocalObjs, Resource),
+    AutoHarvest = resource:is_auto(Objs, Resource),
 
-    add_harvest_event(Result, {LocalObjId, Resource, AutoHarvest}, NumTicks).
+    add_harvest_event(Result, {ObjId, Resource, AutoHarvest}, NumTicks).
 
 loot(SourceId, ItemId) ->
     %TODO add validation
@@ -168,11 +141,11 @@ item_transfer(TargetId, ItemId) ->
     Player = get(player_id),
     [Item] = item:get(ItemId),
     {Owner} = bson:lookup(owner, Item),
-    [OwnerObj] = db:read(local_obj, Owner),   
-    [TargetObj] = db:read(local_obj, TargetId), 
+    [OwnerObj] = db:read(obj, Owner),   
+    [TargetObj] = db:read(obj, TargetId), 
 
-    ValidOwner = Player =:= OwnerObj#local_obj.player andalso
-                 OwnerObj#local_obj.pos =:= TargetObj#local_obj.pos,
+    ValidOwner = Player =:= OwnerObj#obj.player andalso
+                 OwnerObj#obj.pos =:= TargetObj#obj.pos,
 
     case ValidOwner of 
         true ->
@@ -190,9 +163,9 @@ item_split(ItemId, Quantity) ->
     {Owner} = bson:lookup(owner, Item),
     {CurrentQuantity} = bson:lookup(quantity, Item),
 
-    [OwnerObj] = db:read(local_obj, Owner),
+    [OwnerObj] = db:read(obj, Owner),
 
-    ValidSplit = Player =:= OwnerObj#local_obj.player andalso
+    ValidSplit = Player =:= OwnerObj#obj.player andalso
                  CurrentQuantity > 1 andalso
                  CurrentQuantity > Quantity,
 
@@ -207,25 +180,6 @@ item_split(ItemId, Quantity) ->
             lager:info("Player does not own item: ~p", [ItemId]),
             <<"Player does not own item">>
     end.
-
-explore(_Id, _GlobalPos) ->
-    %TODO add validation
-    PlayerId = get(player_id),
-
-    [Obj] = db:index_read(obj, PlayerId, #obj.player),
-    lager:info("Obj: ~p", [Obj]),
-
-    case Obj#obj.state of
-        none ->
-            game:trigger_global(),
-            obj:update_state(Obj, local),
-            local:enter_map(PlayerId, Obj#obj.id, Obj#obj.pos, Obj#obj.last_pos);
-        _ ->
-            nothing
-    end,
-
-    InitPerception = local:init_perception(PlayerId, Obj#obj.pos, 1),
-    InitPerception.
 
 exit_local() ->
     %TODO add validation
@@ -243,29 +197,27 @@ structure_list() ->
     _PlayerId = get(player_id),
     structure:list().
 
-build(LocalObjId, Structure) ->
-    lager:info("Build ~p ~p", [LocalObjId, Structure]),
+build(ObjId, Structure) ->
+    lager:info("Build ~p ~p", [ObjId, Structure]),
     PlayerId = get(player_id),
 
-    %Validates LocalObj and Structure, player process will crash if not valid
-    [LocalObj] = db:read(local_obj, LocalObjId),
-    lager:info("LocalObj: ~p", [LocalObj]),
-    StructureType = local_obj:get_type(Structure),
+    %Validates Obj and Structure, player process will crash if not valid
+    [Obj] = db:read(obj, ObjId),
+    lager:info("Obj: ~p", [Obj]),
+    StructureType = obj:get_type(Structure),
     lager:info("StructureType: ~p", [StructureType]),
     {StructureSubclass} = bson:lookup(subclass, StructureType),    
     lager:info("StructureSubclass: ~p", [StructureSubclass]),
-    ValidPlayer = PlayerId =:= LocalObj#local_obj.player,
+    ValidPlayer = PlayerId =:= Obj#obj.player,
     ValidLocation = structure:valid_location(StructureSubclass,
-                                             LocalObj#local_obj.global_pos,
-                                             LocalObj#local_obj.pos),
+                                             Obj#obj.pos),
 
     ValidBuild = ValidPlayer andalso ValidLocation,
 
     case ValidBuild of
         true ->
             structure:start_build(PlayerId, 
-                                  LocalObj#local_obj.global_pos, 
-                                  LocalObj#local_obj.pos, 
+                                  Obj#obj.pos, 
                                   StructureType);
         false ->
             lager:info("Build failed")
@@ -274,51 +226,49 @@ build(LocalObjId, Structure) ->
 finish_build(SourceId, StructureId) ->
     PlayerId = get(player_id),
 
-    [Source] = db:read(local_obj, SourceId),
-    [Structure] = db:read(local_obj, StructureId),
+    [Source] = db:read(obj, SourceId),
+    [Structure] = db:read(obj, StructureId),
 
-    lager:info("Structure state: ~p", [Structure#local_obj.state]),
+    lager:info("Structure state: ~p", [Structure#obj.state]),
 
     finish_build(PlayerId, Source, Structure).
 
-finish_build(PlayerId, Source, Structure = #local_obj {state = founded}) -> 
-    StructureM = local_obj:get_stats(Structure#local_obj.id),
+finish_build(PlayerId, Source, Structure = #obj {state = founded}) -> 
+    StructureM = obj:get_stats(Structure#obj.id),
     {NumTicks} = bson:lookup(build_time, StructureM),
     
-    ValidFinish = Source#local_obj.pos =:= Structure#local_obj.pos andalso
-                  Structure#local_obj.player =:= PlayerId andalso
+    ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
+                  Structure#obj.player =:= PlayerId andalso
                   structure:check_req(StructureM),
 
-    add_finish_build(ValidFinish, {Source#local_obj.id, 
-                                   Structure#local_obj.global_pos, 
-                                   Structure#local_obj.id}, NumTicks),
+    add_finish_build(ValidFinish, {Source#obj.id, 
+                                   Structure#obj.id}, NumTicks),
 
     [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
     {<<"build_time">>, NumTicks * 4}];
 
-finish_build(PlayerId, Source, Structure = #local_obj {state = under_construction}) ->
-    StructureM = local_obj:get_stats(Structure#local_obj.id),
+finish_build(PlayerId, Source, Structure = #obj {state = under_construction}) ->
+    StructureM = obj:get_stats(Structure#obj.id),
     {NumTicks} = bson:lookup(build_time, StructureM),
 
-    ValidFinish = Source#local_obj.pos =:= Structure#local_obj.pos andalso
-                  Structure#local_obj.player =:= PlayerId,
+    ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
+                  Structure#obj.player =:= PlayerId,
  
-     add_finish_build(ValidFinish, {Source#local_obj.id, 
-                                   Structure#local_obj.global_pos, 
-                                   Structure#local_obj.id}, NumTicks),
+     add_finish_build(ValidFinish, {Source#obj.id, 
+                                   Structure#obj.id}, NumTicks),
 
     [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
     {<<"build_time">>, NumTicks}].
 
 recipe_list(SourceId) ->
     Player = get(player_id),
-    [LocalObj] = db:read(local_obj, SourceId),
+    [Obj] = db:read(obj, SourceId),
 
-    ValidPlayer = Player =:= LocalObj#local_obj.player,
+    ValidPlayer = Player =:= Obj#obj.player,
 
     Result = case ValidPlayer of
                 true ->
-                    structure:recipe_list(LocalObj);
+                    structure:recipe_list(Obj);
                 false ->
                     <<"Source not owned by player">>
              end,
@@ -326,19 +276,18 @@ recipe_list(SourceId) ->
 
 process_resource(StructureId) ->
     Player = get(player_id),
-    [Structure] = db:read(local_obj, StructureId),
-    [Unit] = local_obj:get_unit_by_pos(Structure#local_obj.global_pos,
-                                       Structure#local_obj.pos),
+    [Structure] = db:read(obj, StructureId),
+    [Unit] = obj:get_unit_by_pos(Structure#obj.pos),
     NumTicks = ?TICKS_SEC * 10,
 
     Checks = [{not is_event_locked(StructureId), "Event in progress"},
-              {Player =:= Structure#local_obj.player, "Structure not owned by player"},
-              {Player =:= Unit#local_obj.player, "Unit not owned by player"},
+              {Player =:= Structure#obj.player, "Structure not owned by player"},
+              {Player =:= Unit#obj.player, "Unit not owned by player"},
               {structure:has_process_res(StructureId), "No resources in structure"}],
 
     Result = process_checks(Checks),
     lager:info("Process Resource: ~p", [Result]),
-    add_process_resource(Result, StructureId, Unit#local_obj.id, NumTicks),
+    add_process_resource(Result, StructureId, Unit#obj.id, NumTicks),
 
     Reply = to_reply(Result) ++ [{<<"process_time">>, NumTicks}],
     lager:info("Reply: ~p", [Reply]),
@@ -346,20 +295,19 @@ process_resource(StructureId) ->
     
 craft(StructureId, Recipe) ->
     Player = get(player_id),
-    [Structure] = db:read(local_obj, StructureId),
-    [Unit] = local_obj:get_unit_by_pos(Structure#local_obj.global_pos,
-                                       Structure#local_obj.pos),
+    [Structure] = db:read(obj, StructureId),
+    [Unit] = obj:get_unit_by_pos(Structure#obj.pos),
 
     Checks = [{not is_event_locked(StructureId), "Event in process"},
-              {Player =:= Structure#local_obj.player, "Structure not owned by player"},
-              {Player =:= Unit#local_obj.player, "Unit not owned by player"},
+              {Player =:= Structure#obj.player, "Structure not owned by player"},
+              {Player =:= Unit#obj.player, "Unit not owned by player"},
               {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"}],
 
     NumTicks = ?TICKS_SEC * 10,
 
     Result = process_checks(Checks),
 
-    add_craft(Result, StructureId, Unit#local_obj.id, Recipe, NumTicks),
+    add_craft(Result, StructureId, Unit#obj.id, Recipe, NumTicks),
 
     Reply = to_reply(Result) ++ [{<<"process_time">>, NumTicks}],
     Reply.
@@ -369,10 +317,10 @@ equip(ItemId) ->
 
     [Item] = item:get(ItemId),
     {ItemOwner} = bson:lookup(owner, Item),
-    [LocalObj] = db:read(local_obj, ItemOwner),
+    [Obj] = db:read(obj, ItemOwner),
 
-    Checks = [{Player =:= LocalObj#local_obj.player, "Unit not owned by player"},
-              {is_state(LocalObj#local_obj.state, none), "Unit is busy"}],
+    Checks = [{Player =:= Obj#obj.player, "Unit not owned by player"},
+              {is_state(Obj#obj.state, none), "Unit is busy"}],
 
     Result = process_checks(Checks),
 
@@ -384,12 +332,12 @@ equip(ItemId) ->
 assign(SourceId, TargetId) ->
     Player = get(player_id),
     
-    [SourceObj] = db:read(local_obj, SourceId),
-    [TargetObj] = db:read(local_obj, TargetId),
+    [SourceObj] = db:read(obj, SourceId),
+    [TargetObj] = db:read(obj, TargetId),
 
-    ValidPlayer1 = is_player_owned(SourceObj#local_obj.player, Player),
-    ValidPlayer2 = is_player_owned(TargetObj#local_obj.player, Player),
-    NearbyHero = local_obj:is_nearby_hero(SourceObj, Player),
+    ValidPlayer1 = is_player_owned(SourceObj#obj.player, Player),
+    ValidPlayer2 = is_player_owned(TargetObj#obj.player, Player),
+    NearbyHero = obj:is_nearby_hero(SourceObj, Player),
     
     Result = ValidPlayer1 and ValidPlayer2 and NearbyHero,
 
@@ -403,9 +351,9 @@ assign(SourceId, TargetId) ->
 
 cancel(SourceId) ->
     PlayerId = get(player_id),
-    [LocalObj] = db:read(local_obj, SourceId),
+    [Obj] = db:read(obj, SourceId),
 
-    ValidOwner = PlayerId =:= LocalObj#local_obj.player,
+    ValidOwner = PlayerId =:= Obj#obj.player,
     
     cancel_event(ValidOwner, SourceId).
 %
@@ -415,26 +363,26 @@ cancel(SourceId) ->
 add_harvest_event(false, _EventData, _Ticks) ->
     lager:info("Harvest failed"),
     none;
-add_harvest_event(true, {LocalObjId, Resource, Auto}, NumTicks) ->
+add_harvest_event(true, {ObjId, Resource, Auto}, NumTicks) ->
     %Update obj state
-    local:update_state(LocalObjId, harvesting),
+    local:update_state(ObjId, harvesting),
 
-    EventData = {LocalObjId, Resource, NumTicks, Auto},
-    game:add_event(self(), harvest, EventData, LocalObjId, NumTicks).
+    EventData = {ObjId, Resource, NumTicks, Auto},
+    game:add_event(self(), harvest, EventData, ObjId, NumTicks).
 
 add_finish_build(false, _EventData, _Ticks) ->
     lager:info("Finish Build failed"),
     none;
 
-add_finish_build(true, {LocalObjId, GlobalPos, StructureId}, NumTicks) ->
-    game:cancel_event(LocalObjId),
+add_finish_build(true, {ObjId, GlobalPos, StructureId}, NumTicks) ->
+    game:cancel_event(ObjId),
 
-    EventData = {LocalObjId, GlobalPos, StructureId},
+    EventData = {ObjId, GlobalPos, StructureId},
 
-    local:update_state(LocalObjId, building),
+    local:update_state(ObjId, building),
     local:update_state(StructureId, under_construction),
 
-    game:add_event(self(), finish_build, EventData, LocalObjId, NumTicks).
+    game:add_event(self(), finish_build, EventData, ObjId, NumTicks).
 
 add_process_resource({false, Error}, _StructureId, _UnitId, _NumTicks) ->
     lager:info("Process_resource error: ~p", [Error]);
@@ -475,36 +423,19 @@ add_action(true, dodge, SourceId) ->
     NumTicks = combat:num_ticks(dodge),
     game:add_event(self(), action, SourceId, SourceId, NumTicks).
 
-add_move(false, _EventData, _Ticks) ->
-    lager:info("Move failed"),
-    none;
-add_move(true, {Obj, NewPos}, NumTicks) ->
-
-
-    %Update obj state
-    obj:update_state(Obj, moving),
-
-    %Create event data 
-    EventData = {Obj#obj.player,
-                 Obj#obj.id,
-                 NewPos},
-
-    game:add_event(self(), move_obj, EventData, none, NumTicks).
-
 add_move_unit(true, {Unit, NewPos}, NumTicks) ->
     %Cancel any events associated with previous state
-    game:cancel_event(Unit#local_obj.id),
+    game:cancel_event(Unit#obj.id),
 
     %Update unit state
-    local:update_state(Unit#local_obj.id, moving),
+    local:update_state(Unit#obj.id, moving),
     
     %Create event data
-    EventData = {Unit#local_obj.global_pos,
-                 Unit#local_obj.player,
-                 Unit#local_obj.id,
+    EventData = {Unit#obj.player,
+                 Unit#obj.id,
                  NewPos},
 
-    game:add_event(self(), move_local_obj, EventData, Unit#local_obj.id, NumTicks);
+    game:add_event(self(), move_obj, EventData, Unit#obj.id, NumTicks);
 
 add_move_unit(false, _, _) ->
     lager:info("Move unit failed"),
@@ -543,11 +474,6 @@ get_visible_objs([Obj | Rest], Objs) ->
     NewObjs = NearbyObjs ++ Objs,
 
     get_visible_objs(Rest, NewObjs).
-
-is_valid_state(none) ->
-    true;
-is_valid_state(_State) ->
-    false.
 
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.

@@ -41,15 +41,14 @@ login([], [Name, Pass, Socket]) ->
                               process = Socket},
 
     ExploredMap = #explored_map {player = PlayerId,
-                                 tiles = [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}],
+                                 tiles = [],
                                  new_tiles = []}, 
 
     db:write(Player),
     db:write(Connection),
     db:write(ExploredMap),
     
-    ObjId = obj:create(PlayerId, {2,2}, entity, <<"heromage">>, none, []),
-    local_obj:create(ObjId, unit, <<"Hero Mage">>),
+    obj:create(unit, <<"Hero Mage">>),
 
     {success, PlayerId};
 

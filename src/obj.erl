@@ -1,81 +1,91 @@
 %% Author: Peter
 %% Created: Jan 15, 2015
-%% Description: Handles access to unit data
+%% Description: Handles access to local obj mongodb data
 -module(obj).
 
+-include_lib("stdlib/include/ms_transform.hrl").
+
 -include("schema.hrl").
+-include("common.hrl").
 
--export([get_obj/1, get_info/2, create/6, remove/1]).
--export([get_obj_by_pos/1, get_map_obj/1, move/2, update_state/2]).
+-export([get/1, get_info/1, get_type/1, get_stats/1]).
+-export([create/2, update/3, remove/1]).
+-export([find_type/1, is_nearby_hero/2, readtest/1]).
+-export([get_by_pos/1, get_unit_by_pos/1, get_wall/1]).
 
-get_obj(Id) ->
+get(Id) ->
     Obj = find(Id),
     Obj.
 
-get_info(Requester, Id) ->
+get_info(Id) ->
     ObjInfo = case find(Id) of
-                  [Obj] ->
-                      {PlayerId} = bson:lookup(player, Obj),
-                      info(Requester == PlayerId, Obj);
-                  _ ->
-                      none
-              end,
-    lager:info("ObjInfo: ~p", [ObjInfo]),
+                [Obj] ->
+                    %TODO compare requester id to unit player id
+                    info(Obj);
+                _ ->
+                    none
+               end,
     ObjInfo.
 
-create(Player, Pos, Class, Type, State, Units) ->
-    lager:info("Create: ~p ~p ~p ~p", [Player, Pos, Type, Units]),
+get_type(TypeName) ->
+    {ObjType} = find_type(TypeName),
+    ObjType.
 
-    %Insert obj
-    Id = insert(Player),
+get_stats(Id) ->
+    Obj = find(Id),
+    stats(Obj).
 
-    %Insert units
-    insert_units(Id, Units),
+create(structure, TypeName) ->
+    {_ObjType} = find_type(TypeName),
+    ObjType = bson:update(hp, 1, _ObjType),
 
-    %Create new map obj
-    NewObj = #obj {id = Id,
-                   player = Player,
-                   pos = Pos,
-                   class = Class,
-                   type = Type,
-                   state = State},
+    insert(ObjType); %Returns [Obj]
 
-    db:write(NewObj),
+create(unit, TypeName) ->
+    {ObjType} = find_type(TypeName),
+    insert(ObjType); %Returns [Obj]
 
-    %game:set_perception(true),
-    %Return ID
-    Id.
+create(_Class, TypeName) ->
+    {ObjType} = find_type(TypeName),
+    insert(ObjType).
 
-remove(ObjId) ->
-    db:delete(obj, ObjId),
-    mdb:delete(<<"obj">>, ObjId).
+update(Id, Attr, Val) ->
+    mdb:update(<<"obj">>, Id, {Attr, Val}).
 
-%%% Map obj interface
-get_obj_by_pos(Pos) ->
-    db:index_read(obj, Pos, #obj.pos).
+remove(Id) ->
+    mdb:delete(<<"obj">>, Id).
 
-get_map_obj(Id) ->
-    [Obj] = db:read(obj, Id),
-    Obj.
+get_by_pos(QueryPos) ->
+    MS = ets:fun2ms(fun(N = #obj{pos = Pos}) when Pos =:= QueryPos -> N end),
+    Objs = db:select(obj, MS),
+    Objs.
 
-move(Id, Pos) ->
-    %TODO convert to transaction
-    [Obj] = mnesia:dirty_read(obj, Id),
-    LastPos = Obj#obj.pos,
-    NewObj = Obj#obj {pos = Pos,
-                      last_pos = LastPos,
-                      state = none},
-    mnesia:dirty_write(NewObj).
+get_unit_by_pos(QueryPos) ->
+    MS = ets:fun2ms(fun(N = #obj{pos = Pos,
+                                 class = Class}) when Pos =:= QueryPos,
+                                                      Class =:= unit -> N end),
+    Objs = db:select(obj, MS),
+    Objs.
 
-update_state(Obj, State) when is_record(Obj, obj) ->
-    NewObj = Obj#obj { state = State},
-    db:write(NewObj);
+get_wall(QueryPos) ->
+    MS = ets:fun2ms(fun(N = #obj{pos = Pos,
+                                 subclass = SubClass}) when Pos =:= QueryPos,
+                                                            SubClass =:= <<"wall">> -> N end),
+    [Wall] = db:select(obj, MS),
+    Wall.
 
-update_state(ObjId, State) ->
-    Obj = get_map_obj(ObjId),
-    update_state(Obj, State).
+is_nearby_hero(_Target = #obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
+    true;
+is_nearby_hero(Target, HeroPlayer) ->
+    MS = ets:fun2ms(fun(N = #obj{player = Player,
+                                 subclass = Subclass}) when Player =:= HeroPlayer,
+                                                            Subclass =:= <<"hero">> -> N end),
+    [Hero] = db:select(obj, MS),
+    Distance = map:distance(Hero#obj.pos, Target#obj.pos),
+    Distance =< ?LOS.
 
-%%% Internal only 
+%%Internal function
+%%
 
 find(Id) ->
     Cursor = mongo:find(mdb:get_conn(), <<"obj">>, {'_id', Id}),
@@ -83,26 +93,45 @@ find(Id) ->
     mc_cursor:close(Cursor),
     Obj.
 
+find_type(Name) ->
+    mongo:find_one(mdb:get_conn(), <<"obj_type">>, {name, Name}).
 
-info(_IsPlayers = false, Obj) ->
-    Obj;
-info(_IsPlayers = true, Obj) ->
-    {ObjId} = bson:lookup('_id', Obj),
-    Units = local_obj:units_stats_from_obj(ObjId),
-    Items = item:get_by_owner(ObjId),
-    ObjUnits = bson:update(units, Units, Obj),
-    ObjUnitsItems = bson:update(items, Items, ObjUnits),
-    ObjUnitsItems.
+insert(Type) ->
+    NewType = bson:exclude(['_id'], Type),
+    Obj = mongo:insert(mdb:get_conn(), <<"obj">>, [NewType]),
+    Obj.
 
-insert(Player) ->
-    Obj = {player, Player},
-    [NewObj] = mongo:insert(mdb:get_conn(), <<"obj">>, [Obj]),
-    {ObjId} = bson:lookup('_id', NewObj),
-    ObjId.
+stats([]) ->
+    false;
 
-insert_units(_ObjId, []) ->
+stats([Obj]) ->
+    stats(Obj);
+
+stats(Obj) ->
+    {TypeName} = bson:lookup(type_name, Obj),
+    {ObjType} = find_type(TypeName),
+    bson:merge(Obj, ObjType).
+
+info(ObjM) ->
+    ObjStats = stats(ObjM),
+    {Id} = bson:lookup('_id', ObjStats),
+
+    %Get state from local obj table
+    [Obj] = db:read(obj, Id),
+    Stats1 = bson:update(state, Obj#obj.state, ObjStats),
+
+    %Get items & skills
+    Items = item:get_by_owner(Id),
+    Skills = skill:get_by_owner(Id),
+
+    Stats2 = bson:update(items, Items, Stats1),
+    Stats3 = bson:update(skills, Skills, Stats2),
+    Stats3.
+
+readtest(0) ->
     done;
-insert_units(ObjId, [{UnitType, UnitSize} | Rest]) ->
-    local_obj:create(ObjId, UnitType, UnitSize), 
+readtest(N) ->
+    Id = {<<84,219,228,71,15,76,42,231,31,114,99,13>>},
+    lager:info("~p", [get_stats(Id)]),
 
-    insert_units(ObjId, Rest).
+    readtest(N - 1).

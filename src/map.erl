@@ -15,11 +15,12 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load_global/0, load_local/0, get_tile/1, get_tile/2, get_explored/1, get_local_explored/3, get_nearby_objs/3, get_tiles/1,
-         get_nearby_objs/4, xml_test/0, tileset/0]).
--export([add_explored/2, add_local_explored/3, is_valid_pos/1]).
+-export([load_map/0, get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/3]).
+-export([get_nearby_objs/4, tileset/0]).
+-export([add_explored/2, is_valid_pos/1]).
 -export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -export([movement_cost/1]).
+
 -record(module_data, {}).
 %% ====================================================================
 %% External functions
@@ -28,28 +29,14 @@
 start() ->
     gen_server:start({global, map}, map, [], []).
 
-load_global() ->
-    {ok, File} = file:open(?MAP_FILE, [read]),
-    load_map(File, 0, global_map).
-
-load_local() ->
-    {ok, File} = file:open(?BATTLE_MAP_FILE, [read]),
-    load_map(File, 0, {local_map, 1}).
-
 get_tile({X, Y}) ->
     get_tile(X, Y).
 
 get_tile(X, Y) ->
     gen_server:call({global, map}, {get_tile, {X,Y}}).
 
-get_explored(PlayerId) ->
-    gen_server:call({global, map}, {get_explored, PlayerId}).
-
-get_local_explored(PlayerId, GlobalPos, All) ->
-    gen_server:call({global, map}, {get_local_explored, PlayerId, GlobalPos, All}).
-
-get_tiles(TileIds) ->
-    gen_server:call({global, map}, {get_tiles, TileIds}).
+get_explored(PlayerId, All) ->
+    gen_server:call({global, map}, {get_explored, PlayerId, All}).
 
 get_nearby_objs({X, Y}, MapType, Dist) ->
     get_nearby_objs(X, Y, MapType, Dist).
@@ -58,9 +45,6 @@ get_nearby_objs(X, Y, MapType, Dist) ->
 
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
-
-add_local_explored(Player, GlobalPos, Pos) ->
-    gen_server:cast({global, map}, {add_local_explored, Player, GlobalPos, Pos}).
 
 is_valid_pos({X, Y}) ->
     is_valid_coord({X, Y}, {?MAP_WIDTH, ?MAP_HEIGHT}).
@@ -71,8 +55,8 @@ is_adjacent(SourcePos, TargetPos) ->
     lists:member(TargetPos, Neighbours).
 
 movement_cost(Pos) ->
-    [Tile] = db:dirty_read(local_map, {1, Pos}),
-    TileType = Tile#local_map.tile - 1,
+    [Tile] = db:dirty_read(map, {1, Pos}),
+    TileType = Tile#map.tile - 1,
     MoveCost = case TileType of
                    ?PLAINS -> ?PLAINS_MC;
                    ?MOUNTAINS -> ?MOUNTAINS_MC;
@@ -93,17 +77,8 @@ handle_cast(none, Data) ->
     {noreply, Data};
 
 handle_cast({add_explored, Player, {X, Y}}, Data) ->
+    lager:debug("add_explored: ~p ~p", [X, Y]),
     ExploredMap = db:read(explored_map, Player),
-    Neighbours = neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    NewTiles = new_explored_tiles(ExploredMap, Neighbours, [{X, Y}]),
-    NewExploredMap = #explored_map {player = Player, tiles = NewTiles}, 
-    db:write(NewExploredMap),
-
-    {noreply, Data};
-
-handle_cast({add_local_explored, Player, GlobalPos, {X, Y}}, Data) ->
-    lager:debug("add_local_explored: ~p ~p", [X, Y]),
-    ExploredMap = db:read(explored_map, {Player, GlobalPos}),
     
     ExploredTiles = get_explored_tiles(ExploredMap),
     Neighbours = neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
@@ -118,7 +93,7 @@ handle_cast({add_local_explored, Player, GlobalPos, {X, Y}}, Data) ->
     SetNewTiles = sets:subtract(SetLatestTiles, SetExploredTiles),
     SetNewExploredTiles = sets:union(SetExploredTiles, SetLatestTiles),
 
-    NewExploredMap = #explored_map {player = {Player, GlobalPos}, 
+    NewExploredMap = #explored_map {player = Player, 
                                     tiles = sets:to_list(SetNewExploredTiles),
                                     new_tiles = sets:to_list(SetNewTiles)},
     db:write(NewExploredMap),
@@ -128,25 +103,15 @@ handle_cast({add_local_explored, Player, GlobalPos, {X, Y}}, Data) ->
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
-handle_call({get_explored, PlayerId}, _From, Data) ->
+handle_call({get_explored, PlayerId, All}, _From, Data) ->
     ExploredMap = db:read(explored_map, PlayerId),
-    ExploredTiles = explored_map(ExploredMap, none, all), 
-
-    {reply, ExploredTiles, Data};
-
-handle_call({get_local_explored, PlayerId, GlobalPos, All}, _From, Data) ->
-    ExploredMap = db:read(explored_map, {PlayerId, GlobalPos}),
-    Exploredtiles = explored_map(ExploredMap, GlobalPos, All),
+    Exploredtiles = explored_map(ExploredMap, All),
 
     {reply, Exploredtiles, Data};
 
 handle_call({get_tile, TileIndex}, _From, Data) ->
     Tile = db:dirty_read(global_map, TileIndex),
     {reply, Tile, Data};
-
-handle_call({get_tiles, TileIds}, _From, Data) ->
-    Tiles = tiles_msg_format(TileIds, [], none),
-    {reply, Tiles, Data};
 
 handle_call({get_nearby_objs, {X,Y}, MapType, Dist}, _From, Data) ->
     Objects = nearby_objs({X,Y}, MapType, Dist),
@@ -176,47 +141,32 @@ terminate(_Reason, _) ->
 
 %% --------------------------------------------------------------------
 %%% Internal functions
-explored_map([], _, _) ->
+explored_map([], _) ->
     [];
-explored_map([ExploredMap], GlobalPos, all) ->
+explored_map([ExploredMap], all) ->
     TileIds = ExploredMap#explored_map.tiles,
-    Tiles = tiles_msg_format(TileIds, [], GlobalPos),
+    Tiles = tiles_msg_format(TileIds, []),
     Tiles;
-explored_map([ExploredMap], GlobalPos, new) ->
+explored_map([ExploredMap], new) ->
     TileIds = ExploredMap#explored_map.new_tiles,
-    Tiles = tiles_msg_format(TileIds, [], GlobalPos),
+    Tiles = tiles_msg_format(TileIds, []),
     Tiles.
 
-new_explored_tiles([], NewExploredTiles, Pos) ->
-    util:unique_list(NewExploredTiles ++ Pos);
-new_explored_tiles([ExploredMap], NewExploredTiles, CurrPos) ->
-    util:unique_list(ExploredMap#explored_map.tiles ++ NewExploredTiles ++ CurrPos).
-    
 get_explored_tiles([]) ->
     [];
 get_explored_tiles([ExploredMap]) ->
     ExploredMap#explored_map.tiles.
 
-tiles_msg_format([], Tiles, _) ->
+tiles_msg_format([], Tiles) ->
     Tiles;
-
-tiles_msg_format([TileId | Rest], Tiles, none) ->
-    [Map] = db:dirty_read(global_map, TileId),
-    {X, Y} = TileId,
-    NewTiles = [#{<<"x">> => X, 
-                  <<"y">> => Y,
-                  <<"t">> => Map#global_map.tile} | Tiles],
-
-    tiles_msg_format(Rest, NewTiles, none);
-tiles_msg_format([TileId | Rest], Tiles, GlobalPos) ->
-    %Fix GlobalPos
-    [Map] = db:dirty_read(local_map, {1, TileId}),
+tiles_msg_format([TileId | Rest], Tiles) ->
+    [Map] = db:dirty_read(map, TileId),
     {X, Y} = TileId,
     NewTiles = [#{<<"x">> => X,
                   <<"y">> => Y,
-                  <<"t">> => Map#local_map.layers} | Tiles],
+                  <<"t">> => Map#map.layers} | Tiles],
 
-    tiles_msg_format(Rest, NewTiles, GlobalPos).
+    tiles_msg_format(Rest, NewTiles).
 
 neighbours_two([], List) ->
     List;
@@ -259,20 +209,9 @@ add_neighbour(true, NeighbourOddQ, Neighbours) ->
 add_neighbour(false, _NeighbourOddQ, Neighbours) ->
     Neighbours.
 
-nearby_objs(SourcePos, global_map, LOSDist) ->
+nearby_objs(SourcePos, map, LOSDist) ->
     T = fun() ->
-            F = fun(Obj, NearbyObjs) ->
-                    build_nearby_list(SourcePos, Obj, NearbyObjs, LOSDist)
-                end,
-            mnesia:foldl(F, [], obj)
-        end,
-
-    {atomic, Result} = mnesia:transaction(T),
-    Result;
-
-nearby_objs(SourcePos, {local_map, GlobalPos}, LOSDist) ->
-    T = fun() ->
-            AllObjs = db:index_read(local_obj, GlobalPos, #local_obj.global_pos),
+            AllObjs = ets:tab2list(map),
 
             F = fun(MapObj, NearbyObjs) ->
                     build_nearby_list(SourcePos, MapObj, NearbyObjs, LOSDist)
@@ -284,37 +223,7 @@ nearby_objs(SourcePos, {local_map, GlobalPos}, LOSDist) ->
     Result.
 
 build_nearby_list(SourcePos, MapObj, Objs, LOSDist) ->
-    MapObjPos = get_pos(MapObj),
-    check_distance(distance(SourcePos, MapObjPos), LOSDist, MapObj, Objs).
-
-get_pos(MapObj) when is_record(MapObj, obj) ->
-    MapObj#obj.pos;
-get_pos(MapObj) when is_record(MapObj, local_obj) ->
-    MapObj#local_obj.pos.
-get_player(MapObj) when is_record(MapObj, obj) ->
-    MapObj#obj.player;
-get_player(MapObj) when is_record(MapObj, local_obj) ->
-    MapObj#local_obj.player.
-get_type(MapObj) when is_record(MapObj, obj) ->
-    MapObj#obj.type;
-get_type(MapObj) when is_record(MapObj, local_obj) ->
-    MapObj#local_obj.name.
-get_state(MapObj) when is_record(MapObj, obj) ->
-    MapObj#obj.state;
-get_state(MapObj) when is_record(MapObj, local_obj) ->
-    MapObj#local_obj.state.
-get_id(MapObj) when is_record(MapObj, obj) ->
-    MapObj#obj.id;
-get_id(MapObj) when is_record(MapObj, local_obj) ->
-    MapObj#local_obj.id.
-get_effect(MapObj) when is_record(MapObj, obj) ->
-    [];
-get_effect(MapObj) when is_record(MapObj, local_obj) ->
-    MapObj#local_obj.effect.
-get_class(MapObj) when is_record(MapObj, obj) ->
-    MapObj#obj.class;
-get_class(MapObj) when is_record(MapObj, local_obj) ->
-    MapObj#local_obj.class.
+    check_distance(distance(SourcePos, MapObj#obj.pos), LOSDist, MapObj, Objs).
 
 check_distance(Distance, Range, MapObj, Objs) when Distance =< Range ->
     build_message(MapObj, Objs);
@@ -322,15 +231,15 @@ check_distance(Distance, Range, _MapObj, Objs) when Distance > Range ->
     Objs.
 
 build_message(MapObj, Objs) ->
-    {X, Y} = get_pos(MapObj),
-    [ #{<<"id">> => get_id(MapObj), 
-        <<"player">> => get_player(MapObj), 
+    {X, Y} = MapObj#obj.pos,
+    [ #{<<"id">> => MapObj#obj.id, 
+        <<"player">> => MapObj#obj.player, 
         <<"x">> => X,
         <<"y">> => Y,
-        <<"class">> => get_class(MapObj),
-        <<"type">> => get_type(MapObj),
-        <<"state">> => get_state(MapObj),
-        <<"effect">> => get_effect(MapObj)} | Objs].
+        <<"class">> => MapObj#obj.class,
+        <<"type">> => MapObj#obj.name, %TODO fix client to accept name instead of type
+        <<"state">> => MapObj#obj.state,
+        <<"effect">> => MapObj#obj.effect} | Objs].
 
 distance(SourcePos, TargetPos) ->
     SourceCube = odd_q_to_cube(SourcePos),
@@ -365,36 +274,7 @@ odd_q_to_cube({Q, R}) ->
     Y = -X-Z,
     {X, Y, Z}.
 
-load_map(File, RowNum, MapType) ->
-    case file:read_line(File) of
-        eof ->
-            done;
-        {error, Reason} ->
-            lager:info("Error: ~p", [Reason]),
-            error;
-        {ok, RawLine} ->
-            Line = string:strip(RawLine, right, $\n),
-            TypeList = string:tokens(Line, ","),
-            store_global_tile(TypeList, 0, RowNum, MapType),
-            load_map(File, RowNum + 1, MapType)
-     end.
-
-store_global_tile([], _ColNum, _RowNum, _MapType) ->
-    lager:info("Done storing tiles");
-store_global_tile([TileType | Rest], ColNum, RowNum, MapType) ->
-    case MapType of
-        global_map ->
-            Tile = #global_map {pos = {ColNum, RowNum},
-                                tile = list_to_integer(TileType)},
-
-            db:dirty_write(Tile);
-        _ ->
-            nothing
-    end,
-            
-    store_global_tile(Rest, ColNum + 1, RowNum, MapType).
-
-xml_test() ->
+load_map() ->
     lager:info("Parsing map"),
     {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
@@ -469,7 +349,7 @@ process_tile_data(<<"resources">>, TileId, [{<<"properties">>, _, PropertiesData
 
 process_tile_data(<<"unit">>, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
     lager:info("PropertyData: ~p", [PropertiesData]), 
-    Properties = process_property(PropertiesData, maps:new()),
+    _Properties = process_property(PropertiesData, maps:new()),
 
     process_tile_data(<<"unit">>, TileId, Rest, Image);
 
@@ -559,16 +439,16 @@ store_tile_list(LayerType, [Tile | Rest], NumRow, NumCol) ->
     store_tile_list(LayerType, Rest, NumRow, NumCol + 1).
 
 store_tile(base, Tile, Pos) ->
-    case db:dirty_read(local_map, {1, Pos}) of
+    case db:dirty_read(map, Pos) of
         [] ->
-            NewTile = #local_map {index = {1, Pos},
-                                  tile = list_to_integer(Tile),
-                                  layers = [list_to_integer(Tile)]},
+            NewTile = #map {index = Pos,
+                            tile = list_to_integer(Tile),
+                            layers = [list_to_integer(Tile)]},
             db:dirty_write(NewTile);
         [LocalTile] ->
-            NewLayers = [list_to_integer(Tile) | LocalTile#local_map.layers],
-            NewTile = LocalTile#local_map { tile = list_to_integer(Tile),
-                                            layers = NewLayers},
+            NewLayers = [list_to_integer(Tile) | LocalTile#map.layers],
+            NewTile = LocalTile#map { tile = list_to_integer(Tile),
+                                      layers = NewLayers},
             db:dirty_write(NewTile)
     end;
 store_tile(resource, Tile, Pos) ->
@@ -576,7 +456,7 @@ store_tile(resource, Tile, Pos) ->
     [ResourceDef] = db:dirty_read(resource_def, list_to_integer(Tile)),
     Quantity = resource:quantity(ResourceDef#resource_def.quantity),
 
-    Resource = #resource {index = {1, Pos},
+    Resource = #resource {index = Pos,
                           name = ResourceDef#resource_def.name,
                           max = Quantity,
                           quantity = Quantity},
@@ -584,16 +464,16 @@ store_tile(resource, Tile, Pos) ->
     db:dirty_write(Resource);
 store_tile(poi, Tile, Pos) ->
     [PoiDef] = db:dirty_read(poi_def, list_to_integer(Tile)),
-    local:create({2,2}, none, Pos, -1, poi, <<"poi">>, PoiDef#poi_def.name, none);
+    local:create(Pos, -1, poi, <<"poi">>, PoiDef#poi_def.name, none);
 store_tile(none, Tile, Pos) ->
-    case db:dirty_read(local_map, {1, Pos}) of
+    case db:dirty_read(map, Pos) of
         [] ->
-            NewTile = #local_map {index = {1, Pos},
-                                  layers = [list_to_integer(Tile)]},
+            NewTile = #map {index = Pos,
+                            layers = [list_to_integer(Tile)]},
             db:dirty_write(NewTile);
         [LocalTile] ->
-            NewLayers = [list_to_integer(Tile) | LocalTile#local_map.layers],
-            NewTile = LocalTile#local_map { layers = NewLayers},
+            NewLayers = [list_to_integer(Tile) | LocalTile#map.layers],
+            NewTile = LocalTile#map { layers = NewLayers},
             db:dirty_write(NewTile)
     end.
 

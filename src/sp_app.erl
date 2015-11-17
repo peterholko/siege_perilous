@@ -36,9 +36,6 @@ start(_Type, _Args) ->
     lager:info("Starting game process..."),
     game:start(),
 
-    lager:info("Loading global map"),
-    map:load_global(),
-
     lager:info("Loading map tileset and data"),
     map:tileset(),
     map:xml_test(),

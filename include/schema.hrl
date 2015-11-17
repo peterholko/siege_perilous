@@ -14,9 +14,6 @@
 -record(game, {perception,
                explored}).
 
--record(global_map, {pos,
-                     tile}).
-
 -record(resource, {index, 
                    name,
                    max,
@@ -28,14 +25,6 @@
 
 -record(poi_def, {tile,
                   name}).
-
--record(obj, {id, 
-              pos,
-              last_pos = none,
-              player,
-              class,
-              type,
-              state}).
 
 -record(explored_map, {player,
                        tiles,
@@ -51,22 +40,20 @@
 -record(perception, {entity,
                      data}).
 
--record(local_map, {index,
-                    tile,
-                    layers}).
+-record(map, {index,
+              tile,
+              layers}).
 
--record(local_obj, {id,
-                    global_obj_id,
-                    global_pos,
-                    pos,
-                    player,
-                    class,
-                    subclass = none,
-                    name,
-                    state,
-                    effect = [],
-                    vision = false}).
-                    
+-record(obj, {id,
+              pos,
+              player,
+              class,
+              subclass = none,
+              name,
+              state,
+              effect = [],
+              vision = false}).
+            
 -record(charge_time, {unit_id,
                       charge_time}).
 

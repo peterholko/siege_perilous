@@ -8,51 +8,23 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([init_perception/3, has_entered/2, has_entered/1, enter_map/4, exit_map/1]).
+-export([init_perception/1, enter_map/4, exit_map/1]).
 -export([create/8, remove/1, move/2, set_wall_effect/1, is_behind_wall/2]).
 -export([update_state/2, update_dead/1]).
 -export([is_exit_valid/1, is_empty/1]).
 -export([movement_cost/2]).
 
-init_perception(PlayerId, GlobalPos, _TileType) ->
-    LocalPlayerUnits = db:index_read(local_obj, PlayerId, #local_obj.player),
+init_perception(PlayerId) ->
+    PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
 
-    LocalExploredMap = map:get_local_explored(PlayerId, GlobalPos, all),
-    LocalObjData = util:unique_list(get_visible_objs(LocalPlayerUnits, [], GlobalPos)),
+    ExploredMap = map:get_explored(PlayerId, all),
+    ObjData = util:unique_list(get_visible_objs(PlayerUnits, []),
 
-    lager:info("LocalExploredMap: ~p", [LocalExploredMap]), 
-    lager:info("LocalObjData: ~p", [LocalObjData]), 
-    {LocalExploredMap, LocalObjData}.
+    lager:info("LocalExploredMap: ~p", [ExploredMap]), 
+    lager:info("LocalObjData: ~p", [ObjData]), 
+    {ExploredMap, ObjData}.
 
-is_exit_valid(GlobalObjId) ->
-    lager:info("is_exit_valid: ~p", [GlobalObjId]),
-    LocalObjs = db:index_read(local_obj, GlobalObjId, #local_obj.global_obj_id),
-    
-    F = fun(LocalObj, ExitValid) ->
-            lager:info("LocalObj: ~p ~p", [LocalObj, ExitValid]),
-            OnEdge = is_on_edge(LocalObj#local_obj.pos),
-            ExitValid and OnEdge
-        end,
-    
-    lists:foldl(F, true, LocalObjs).
-
-has_entered(GlobalObjId, GlobalPos) ->
-    LocalObjs = db:index_read(local_obj, GlobalObjId, #local_obj.global_obj_id),
-    lists:keymember(GlobalPos, #local_obj.global_pos, LocalObjs).
-
-has_entered(GlobalObjId) ->
-    case db:index_read(local_obj, GlobalObjId, #local_obj.global_obj_id) of
-        [] ->
-            false;
-        _LocalObjs ->
-            true
-    end.
-
-enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
-    lager:info("Enter map: ~p", [{GlobalObjId, GlobalPos, LastPos}]),
-    Units = local_obj:units_stats_from_obj(GlobalObjId),
-    lager:info("Units from obj: ~p", [Units]), 
-    EnterPos = get_enter_pos(GlobalPos, LastPos),
+enter(PlayerId, Pos) ->
     map:add_local_explored(PlayerId, GlobalPos, EnterPos),
  
     F = fun(Unit) ->
@@ -60,7 +32,8 @@ enter_map(PlayerId, GlobalObjId, GlobalPos, LastPos) ->
                 {Id} = bson:lookup('_id', Unit), 
                 {TypeName} = bson:lookup(type_name, Unit),
                 {Subclass} = bson:lookup(subclass, Unit),
-                enter_obj(GlobalPos, GlobalObjId, Id, EnterPos, PlayerId, unit, Subclass, TypeName, none)
+                {Vision} = bson:lookup(vision, Unit),
+                enter_obj(GlobalPos, GlobalObjId, Id, EnterPos, PlayerId, unit, Subclass, TypeName, none, Vision)
         end,
 
     lists:foreach(F, Units).
@@ -78,10 +51,8 @@ exit_map(GlobalObjId) ->
             true
     end.
 
-enter_obj(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Subclass, Name, State) ->
+enter_obj(GlobalPos, GlobalObjId, Id, Pos, PlayerId, Class, Subclass, Name, State, Vision) ->
     lager:info("Enter obj ~p", [Pos]),
-
-    Vision = has_vision(Subclass),
 
     LocalObj = #local_obj {id = Id,
                            global_obj_id = GlobalObjId,
@@ -101,10 +72,9 @@ create(GlobalPos, GlobalObjId, Pos, PlayerId, Class, Subclass, Name, State) ->
     lager:info("Creating ~p", [Name]),
 
     %Create mongo db local obj
-    [LocalObjM] = local_obj:create(GlobalObjId, Class, Name),
+    [LocalObjM] = local_obj:create(Class, Name),
     {Id} = bson:lookup('_id', LocalObjM),
-
-    Vision = has_vision(Subclass),
+    {Vision} = bson:lookup(vision, LocalObjM),
 
     %Create mnesia local obj
     LocalObj = #local_obj {id = Id,
@@ -269,24 +239,6 @@ get_visible_objs([Obj | Rest], Objs, GlobalPos) ->
     NearbyObjs = map:get_nearby_objs(Obj#local_obj.pos, {local_map, GlobalPos}, 2),
     NewObjs = Objs ++ NearbyObjs,
     get_visible_objs(Rest, NewObjs, GlobalPos).
-
-get_enter_pos(_Pos, none) ->
-    %TODO fix after debugging
-    {0,7};
-get_enter_pos(Pos, LastPos) ->
-    CubePos = map:odd_q_to_cube(Pos),
-    LastCubePos = map:odd_q_to_cube(LastPos),
-    {X, Y, Z} = CubePos,
-    {LX, LY, LZ} = LastCubePos,    
-
-    DiffX = X - LX,
-    DiffY = Y - LY,
-    DiffZ = Z - LZ,
-
-    lager:info("Diff: ~p ~p ~p", [DiffX, DiffY, DiffZ]),
-
-    Direction = get_direction(DiffX, DiffY, DiffZ),
-    enter_pos(Direction).
 
 get_direction(-1, 1, 0) -> se;
 get_direction(0, 1, -1) -> s;

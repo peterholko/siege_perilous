@@ -37,13 +37,11 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(counter, [{disc_copies, [node()]}, {attributes, record_info(fields, counter)}]),    
     {atomic, ok} = mnesia:create_table(player, [{disc_copies, [node()]}, {attributes, record_info(fields, player)}]),
     {atomic, ok} = mnesia:create_table(connection, [{disc_copies, [node()]}, {attributes, record_info(fields, connection)}]),
-    {atomic, ok} = mnesia:create_table(global_map, [{ram_copies, [node()]}, {attributes, record_info(fields, global_map)}]),  
-    {atomic, ok} = mnesia:create_table(obj, [{disc_copies, [node()]}, {attributes, record_info(fields, obj)}]),    
     {atomic, ok} = mnesia:create_table(explored_map, [{ram_copies, [node()]}, {attributes, record_info(fields, explored_map)}]),  
     {atomic, ok} = mnesia:create_table(perception, [{ram_copies, [node()]}, {attributes, record_info(fields, perception)}]),  
     {atomic, ok} = mnesia:create_table(event, [{disc_copies, [node()]}, {attributes, record_info(fields, event)}]),    
-    {atomic, ok} = mnesia:create_table(local_map, [{disc_copies, [node()]}, {attributes, record_info(fields, local_map)}]),    
-    {atomic, ok} = mnesia:create_table(local_obj, [{disc_copies, [node()]}, {attributes, record_info(fields, local_obj)}]),    
+    {atomic, ok} = mnesia:create_table(map, [{disc_copies, [node()]}, {attributes, record_info(fields, map)}]),    
+    {atomic, ok} = mnesia:create_table(obj, [{disc_copies, [node()]}, {attributes, record_info(fields, obj)}]),    
     {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource_def, [{disc_copies, [node()]}, {attributes, record_info(fields, resource_def)}]),
     {atomic, ok} = mnesia:create_table(poi_def, [{disc_copies, [node()]}, {attributes, record_info(fields, poi_def)}]),
@@ -58,24 +56,19 @@ create_schema() ->
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
     mnesia:add_table_index(connection, socket),
-    mnesia:add_table_index(obj, pos),
-    mnesia:add_table_index(obj, class),
-    mnesia:add_table_index(obj, player),
     mnesia:add_table_index(event, tick),
     mnesia:add_table_index(event, source),
     mnesia:add_table_index(event, type),
-    mnesia:add_table_index(local_obj, global_obj_id),
-    mnesia:add_table_index(local_obj, global_pos),
-    mnesia:add_table_index(local_obj, player),
-    mnesia:add_table_index(local_obj, pos),
+    mnesia:add_table_index(obj, player),
+    mnesia:add_table_index(obj, pos),
     mnesia:add_table_index(htn, parent),
 
     mnesia:stop().
 
 start() ->
     mnesia:start(),
-    mnesia:wait_for_tables([counter, player, connection, global_map, obj, explored_map, perception,
-                            event, action, resource, local_map], 1000).
+    mnesia:wait_for_tables([counter, player, connection, map, obj, explored_map, perception,
+                            event, action, resource], 1000).
 
 write(R) ->
     F = fun() -> mnesia:write(R) end,
