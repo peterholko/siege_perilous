@@ -259,7 +259,7 @@ execute_villager(_) ->
 
 clean_up(NumTick) when (NumTick rem 200) =:= 0 ->
     lager:debug("Cleaning up dead local objs"),
-    LocalObjs = db:index_read(local_obj, 1, #local_obj.global_pos),
+    LocalObjs = ets:tab2list(obj),
 
     F = fun(LocalObj) ->
             remove(LocalObj#local_obj.state, LocalObj)

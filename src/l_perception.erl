@@ -4,7 +4,7 @@
 %%%
 %%% Created : Dec 15, 2014
 %%% -------------------------------------------------------------------
--module(l_perception).
+-module(percetion).
 
 -behaviour(gen_server).
 %% --------------------------------------------------------------------
@@ -22,13 +22,13 @@
 %% ====================================================================
 
 start() ->
-    gen_server:start({global, l_perception_pid}, l_perception, [], []).
+    gen_server:start({global, percetion_pid}, percetion, [], []).
 
 recalculate(GlobalPos) ->
-    gen_server:cast({global, l_perception_pid}, {recalculate, GlobalPos}).
+    gen_server:cast({global, percetion_pid}, {recalculate, GlobalPos}).
 
 broadcast(GlobalPos, SourcePos, TargetPos, MessageData) ->
-    gen_server:cast({global, l_perception_pid}, {broadcast, GlobalPos, SourcePos, TargetPos, MessageData}).
+    gen_server:cast({global, percetion_pid}, {broadcast, GlobalPos, SourcePos, TargetPos, MessageData}).
 
 %% ====================================================================
 %% Server functions
@@ -84,7 +84,7 @@ do_recalculate(GlobalPos) ->
     erase(),
 
     %Get all entities
-    AllObj = db:index_read(local_obj, GlobalPos, #local_obj.global_pos),
+    AllObj = db:index_read(obj, true, #obj.online),
     Entities = filter_objs(AllObj),
 
     lager:debug("Calculate perceptions ~p", [Entities]),
@@ -101,7 +101,7 @@ do_recalculate(GlobalPos) ->
     send_perception(EntitiesToUpdate).
 
 filter_objs(AllObj) ->
-    F = fun(Obj) -> Obj#local_obj.vision end,
+    F = fun(Obj) -> Obj#obj.vision end,
     lists:filter(F, AllObj).
 
 entity_perception([], _GlobalPos) ->
@@ -109,9 +109,9 @@ entity_perception([], _GlobalPos) ->
 
 entity_perception([Entity | Rest], GlobalPos) ->
     lager:debug("Entity perception: ~p", [Entity]),    
-    NearbyObjs = map:get_nearby_objs(Entity#local_obj.pos, {local_map,GlobalPos}, ?LOS),
+    NearbyObjs = map:get_nearby_objs(Entity#obj.pos, {local_map,GlobalPos}, ?LOS),
     lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
-    put(Entity#local_obj.id, NearbyObjs),
+    put(Entity#obj.id, NearbyObjs),
 
     entity_perception(Rest, GlobalPos).
 
@@ -147,14 +147,14 @@ send_perception([]) ->
     lager:debug("Sent all perception updates");
 
 send_perception([{EntityId, NewPerception} | Players]) ->
-    [Entity] = db:dirty_read(local_obj, EntityId),
-    [Conn] = db:dirty_read(connection, Entity#local_obj.player),
+    [Entity] = db:dirty_read(obj, EntityId),
+    [Conn] = db:dirty_read(connection, Entity#obj.player),
     send_to_process(Conn#connection.process, {EntityId, NewPerception}),
     send_perception(Players).
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [NewPerception, Process]),
-    Process ! {local_perception, NewPerception};
+    Process ! {locapercetion, NewPerception};
 send_to_process(_Process, _NewPerception) ->
     none.
 
