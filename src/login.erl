@@ -50,6 +50,7 @@ login([], [Name, Pass, Socket]) ->
     db:write(ExploredMap),
     
     obj:create({2,7}, PlayerId, unit, <<"hero">>, <<"Hero Mage">>, none),
+    map:add_explored(PlayerId, {2,7}),
 
     {success, PlayerId};
 

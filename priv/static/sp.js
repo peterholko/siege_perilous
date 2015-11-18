@@ -586,8 +586,10 @@ function onMessage(evt) {
             objs = jsonData.objs;
 
             setPlayerPos();
-            //drawMap();
-            //drawObjs();
+            clearLocalMap();
+            drawExplore(jsonData.objs);
+            drawLocalMap(jsonData.map);
+            updateLocalObj(jsonData.objs);            
         }
         else if(jsonData.packet == "map_perception") {
             explored = jsonData.explored;
