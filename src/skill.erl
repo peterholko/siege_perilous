@@ -35,8 +35,8 @@ update(Id, SkillName, Value) ->
     send_to_client(Player, skill_update, message(Id, SkillName, NewValue)).
 
 get_player(Id) ->
-    [Obj] = db:read(local_obj, Id),
-    Obj#local_obj.player.
+    [Obj] = db:read(obj, Id),
+    Obj#obj.player.
 
 message(SourceId, SkillName, Value) ->
     Message = #{<<"packet">> => <<"skill_update">>,

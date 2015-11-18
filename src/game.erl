@@ -15,7 +15,7 @@
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([add_event/5, cancel_event/1]).
--export([trigger_global/0, trigger_local/1, trigger_explored/2]).
+-export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
 
 %%
@@ -47,14 +47,11 @@ cancel_event(EventSource) ->
             nothing
     end.
 
-trigger_global() ->
-    gen_server:cast({global, game_pid}, trigger_global).
+trigger_perception() ->
+    gen_server:cast({global, game_pid}, trigger_perception).
 
-trigger_local(Global) ->
-    gen_server:cast({global, game_pid}, {trigger_local, Global}).
-
-trigger_explored(Player, Global) ->
-    gen_server:cast({global, game_pid}, {trigger_explored, Player, Global}).
+trigger_explored(Player) ->
+    gen_server:cast({global, game_pid}, {trigger_explored, Player}).
 
 get_perception() ->
     gen_server:call({global, game_pid}, get_perception).
@@ -71,10 +68,7 @@ reset() ->
 
 
 init([]) -> 
-
-    GlobalPerception = false,
-    LocalPerception = [],
-    Perception = {GlobalPerception, LocalPerception},
+    Perception = false,
     Explored = [],
 
     Data = #game {perception = Perception,
@@ -84,35 +78,21 @@ init([]) ->
 terminate(_Reason, _) ->
     ok.
 
-handle_cast(trigger_global, #game{perception = Perception,
+handle_cast(trigger_perception, #game{perception = _Perception,
                                   explored = Explored}) ->
-    {_GPerception, LPerception} = Perception,
-    NewPerception = {true, LPerception},
-    NewData = #game {perception = NewPerception,
+    NewData = #game {perception = true,
                      explored = Explored},
     {noreply, NewData};
 
-handle_cast({trigger_local, GlobalPos}, #game{perception = Perception,
-                                              explored = Explored}) ->
-    {GPerception, LPerception} = Perception,
-    NewLPerception = [GlobalPos | LPerception],
-    NewPerception = {GPerception, NewLPerception},
-    NewData = #game {perception = NewPerception,
-                     explored = Explored},
-    {noreply, NewData};
-
-handle_cast({trigger_explored, Player, GlobalPos}, #game{perception = Perception,
-                                                         explored = Explored} ) ->
-    NewExplored = [{Player, GlobalPos} | Explored],
+handle_cast({trigger_explored, Player}, #game{perception = Perception,
+                                              explored = Explored} ) ->
+    NewExplored = [Player | Explored],
     NewData = #game {perception = Perception,
                      explored = NewExplored},
     {noreply, NewData};
 
 handle_cast(reset_perception, _Data) ->
-    GlobalPerception = false,
-    LocalPerception = [],
-    NewPerception = {GlobalPerception, LocalPerception},
-    NewData = #game{perception = NewPerception,
+    NewData = #game{perception = false,
                     explored = []},
     {noreply, NewData};
 

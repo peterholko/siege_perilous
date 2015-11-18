@@ -514,11 +514,6 @@ function sendHarvest(sourceid, resource) {
     websocket.send(e);
 };
 
-function sendExplore() {
-    var e = '{"cmd": "explore", "sourceid": "123123", "x": 1, "y": 1}';
-    websocket.send(e);
-};
-
 function sendExitLocal() {
     var e = '{"cmd": "exit_local", "attr": "val"}';
     websocket.send(e);
@@ -591,7 +586,6 @@ function onMessage(evt) {
             objs = jsonData.objs;
 
             setPlayerPos();
-            sendExplore();
             //drawMap();
             //drawObjs();
         }

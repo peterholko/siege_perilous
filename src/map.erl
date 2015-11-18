@@ -15,8 +15,8 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load_map/0, get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/3]).
--export([get_nearby_objs/4, tileset/0]).
+-export([load/0, get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/2]).
+-export([get_nearby_objs/3, tileset/0]).
 -export([add_explored/2, is_valid_pos/1]).
 -export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -export([movement_cost/1]).
@@ -38,10 +38,10 @@ get_tile(X, Y) ->
 get_explored(PlayerId, All) ->
     gen_server:call({global, map}, {get_explored, PlayerId, All}).
 
-get_nearby_objs({X, Y}, MapType, Dist) ->
-    get_nearby_objs(X, Y, MapType, Dist).
-get_nearby_objs(X, Y, MapType, Dist) ->
-    gen_server:call({global, map}, {get_nearby_objs, {X,Y}, MapType, Dist}).    
+get_nearby_objs({X, Y}, Dist) ->
+    get_nearby_objs(X, Y, Dist).
+get_nearby_objs(X, Y, Dist) ->
+    gen_server:call({global, map}, {get_nearby_objs, {X,Y}, Dist}).    
 
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
@@ -110,11 +110,11 @@ handle_call({get_explored, PlayerId, All}, _From, Data) ->
     {reply, Exploredtiles, Data};
 
 handle_call({get_tile, TileIndex}, _From, Data) ->
-    Tile = db:dirty_read(global_map, TileIndex),
+    Tile = db:dirty_read(map, TileIndex),
     {reply, Tile, Data};
 
-handle_call({get_nearby_objs, {X,Y}, MapType, Dist}, _From, Data) ->
-    Objects = nearby_objs({X,Y}, MapType, Dist),
+handle_call({get_nearby_objs, {X,Y}, Dist}, _From, Data) ->
+    Objects = nearby_objs({X,Y}, Dist),
     {reply, Objects, Data};
 
 handle_call(Event, From, Data) ->
@@ -209,9 +209,9 @@ add_neighbour(true, NeighbourOddQ, Neighbours) ->
 add_neighbour(false, _NeighbourOddQ, Neighbours) ->
     Neighbours.
 
-nearby_objs(SourcePos, map, LOSDist) ->
+nearby_objs(SourcePos, LOSDist) ->
     T = fun() ->
-            AllObjs = ets:tab2list(map),
+            AllObjs = ets:tab2list(obj),
 
             F = fun(MapObj, NearbyObjs) ->
                     build_nearby_list(SourcePos, MapObj, NearbyObjs, LOSDist)
@@ -274,7 +274,7 @@ odd_q_to_cube({Q, R}) ->
     Y = -X-Z,
     {X, Y, Z}.
 
-load_map() ->
+load() ->
     lager:info("Parsing map"),
     {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
@@ -464,7 +464,7 @@ store_tile(resource, Tile, Pos) ->
     db:dirty_write(Resource);
 store_tile(poi, Tile, Pos) ->
     [PoiDef] = db:dirty_read(poi_def, list_to_integer(Tile)),
-    local:create(Pos, -1, poi, <<"poi">>, PoiDef#poi_def.name, none);
+    obj:create(Pos, -1, poi, <<"poi">>, PoiDef#poi_def.name, none);
 store_tile(none, Tile, Pos) ->
     case db:dirty_read(map, Pos) of
         [] ->

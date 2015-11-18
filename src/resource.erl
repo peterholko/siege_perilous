@@ -33,13 +33,13 @@ is_valid(Pos, Resource) ->
 
     lists:any(F, Resources).
 
-is_auto(LocalObjs, Resource) ->
+is_auto(Objs, _Resource) ->
     
-    F = fun(LocalObj) ->
-            LocalObj#local_obj.name =:= <<"Lumbermill">>
+    F = fun(Obj) ->
+            Obj#obj.name =:= <<"Lumbermill">>
         end,
 
-    lists:any(F, LocalObjs).
+    lists:any(F, Objs).
 
 quantity(<<"high">>) -> 50;
 quantity(<<"average">>) -> 25;

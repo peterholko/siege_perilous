@@ -68,7 +68,7 @@ get_neighbours(X, Y) ->
     map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT). 
     
 get_move_cost(Pos) ->
-    MoveCost = case local:is_empty(Pos) of
+    MoveCost = case obj:is_empty(Pos) of
                     true -> map:movement_cost(Pos);
                     false -> 10
                end,

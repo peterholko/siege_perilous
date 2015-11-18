@@ -129,21 +129,11 @@ do(Q) ->
 
 test_tables() ->
     [
-     {connection, 1, none},
-     {connection, 2, none},
-     {connection, 3, none},
-     {connection, 4, none},     
      {connection, 99, none},     
      {connection, 100, none},     
-     {player, 1, <<"test1">>, <<"123123">>, 0, false, false},
-     {player, 2, <<"test2">>, <<"123123">>, 0, false, false},
-     {player, 3, <<"test3">>, <<"123123">>, 0, false, false},
-     {player, 4, <<"peter">>, <<"123123">>, 0, false, false},
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
-     {counter, player, 1000},
-     {explored_map, 1, [{2,2},{2,1},{1,0},{0,1},{0,2},{1,2},{1,1}], []},
-     {obj, {<<84,130,44,203,28,147,177,96,56,16,143,37>>}, {2,2}, none, 1, entity, <<"heromage">>, none}
+     {counter, player, 1000}
     ].
 
 reset_tables() ->

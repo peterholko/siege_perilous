@@ -160,27 +160,6 @@ message_handle(<<"item_split">>, Message) ->
     jsx:encode([{<<"packet">>, <<"item_split">>},
                 {<<"result">>, Result}]);
 
-message_handle(<<"explore">>, Message) ->
-    lager:info("message: explore"),
-
-    HexId = map_get(<<"sourceid">>, Message),
-    BinId = util:hex_to_bin(HexId),
-    
-    X = map_get(<<"x">>, Message),
-    Y = map_get(<<"y">>, Message),
-
-    {LocalMap, LocalObjs} = player:explore(BinId, {X, Y}),
-    LocalPerception = [{<<"packet">>, <<"explore">>},
-                       {<<"map">>, LocalMap},
-                       {<<"objs">>, convert_id(LocalObjs, [])}],
-    jsx:encode(LocalPerception);
-
-message_handle(<<"exit_local">>, _Message) ->
-    lager:info("message: exit_local"),
-    player:exit_local(),
-
-    <<"Exit added">>;
-
 message_handle(<<"structure_list">>, _Message) ->
     lager:info("message: structure_list"),
 
@@ -359,10 +338,10 @@ prepare(map_perception, Message) ->
      {<<"objs">>, NewObjs},
      ExploredTuple];
 
-prepare(local_perception, Message) ->
+prepare(perception, Message) ->
     {EntityId, Objs} = Message,
     NewObjs = convert_id(Objs, []),
-    [{<<"packet">>, <<"local_perception">>},
+    [{<<"packet">>, <<"perception">>},
      {<<"entity">>, util:bin_to_hex(EntityId)},
      {<<"objs">>, NewObjs}];
     
@@ -378,17 +357,14 @@ prepare(item_perception, Message) ->
     [{<<"packet">>, <<"item_perception">>},
      {<<"items">>, ItemPerception}]; 
 
-prepare(local_map, Message) ->
-    [{<<"packet">>, <<"local_map">>},
+prepare(map, Message) ->
+    [{<<"packet">>, <<"map">>},
      {<<"map">>, Message}];
 
 prepare(new_items, Message) ->
     ItemPerception = item_perception(Message, []),
     [{<<"packet">>, <<"new_items">>},
      {<<"items">>, ItemPerception}]; 
-
-prepare(exit_local, _Message) ->
-    [{<<"packet">>, <<"exit_local">>}];
 
 prepare(event_complete, {Event, Id}) ->
     player:set_event_lock(Id, false),
@@ -413,19 +389,6 @@ convert_id([Obj | Rest], ConvertedIds) ->
     NewConvertedIds = [NewObj | ConvertedIds],
 
     convert_id(Rest, NewConvertedIds).
-
-convert_local_id([], ConvertedIds) ->
-    ConvertedIds;
-convert_local_id([Obj | Rest], ConvertedIds) ->
-    BinGlobalId = maps:get(<<"id">>, Obj),
-    HexGlobalId = util:bin_to_hex(BinGlobalId),
-    BinId = maps:get(<<"id">>, Obj),
-    HexId = util:bin_to_hex(BinId),
-    NewObj1 = maps:update(<<"global_id">>, HexGlobalId, Obj),
-    NewObj2 = maps:update(<<"id">>, HexId, NewObj1),
-    NewConvertedIds = [NewObj2 | ConvertedIds],
-
-    convert_local_id(Rest, NewConvertedIds).
 
 convert_battle_id([], ConvertedIds) ->
     ConvertedIds;

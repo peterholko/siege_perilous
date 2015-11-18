@@ -32,10 +32,10 @@ run_plan(PlayerId) ->
     gen_server:cast({global, {npc, PlayerId}}, run_plan).
 
 new_zombie() ->
-    local:create({2,2}, none, {2,2}, 99, unit, <<"npc">>, <<"Zombie">>, none).
+    obj:create({2,2}, 99, unit, <<"npc">>, <<"Zombie">>, none).
 
 new_wolf() ->
-    local:create({2,2}, none, {3,3}, 99, unit, <<"npc">>, <<"Wolf">>, none).
+    obj:create({3,3}, 99, unit, <<"npc">>, <<"Wolf">>, none).
 
 
 %% ====================================================================
@@ -84,11 +84,11 @@ handle_call(Event, From, Data) ->
 handle_info({map_perception_disabled, _Perception}, Data) ->
     {noreply, Data};
 
-handle_info({local_perception, {NPCId, Objs}}, Data) ->
-    lager:debug("Local perception received."),
-    [NPCObj] = db:read(local_obj, NPCId),
+handle_info({perception, {NPCId, Objs}}, Data) ->
+    lager:debug("Perception received."),
+    [NPCObj] = db:read(obj, NPCId),
     [NPC] = db:read(npc, NPCId),
-    NPCStats = local_obj:get_stats(NPCObj#local_obj.id),
+    NPCStats = obj:get_stats(NPCObj#obj.id),
 
     %Remove from same player and non targetable objs
     FilteredTargets = filter_targets(Objs, []),
@@ -102,7 +102,7 @@ handle_info({local_perception, {NPCId, Objs}}, Data) ->
     NewNPC = NPC#npc {target = Target},
     db:write(NewNPC),
 
-    lager:debug("Local perception processing end."),
+    lager:debug("Perception processing end."),
     {noreply, Data};
 
 handle_info({event_complete, {_EventId, Id}}, Data) ->
@@ -147,8 +147,8 @@ filter_targets([Obj | Rest], Targets) ->
     ObjPlayer = maps:get(<<"player">>, Obj),
     NewTargets = case valid_target(Player, ObjPlayer) of
                      true ->
-                         LocalObj = get_local_obj(Obj),
-                         [LocalObj | Targets];
+                         Obj = get_obj(Obj),
+                         [Obj | Targets];
                      false ->
                          Targets
                  end,
@@ -159,10 +159,10 @@ valid_target(_, -1) -> false;
 valid_target(Player, ObjPlayer) when Player =:= ObjPlayer -> false;
 valid_target(_, _) -> true.
 
-get_local_obj(Obj) ->
+get_obj(Obj) ->
     Id = maps:get(<<"id">>, Obj),
-    [LocalObj] = db:read(local_obj, Id),
-    LocalObj.
+    [Obj] = db:read(obj, Id),
+    Obj.
 
 process_replan('$end_of_table') ->
     done;
@@ -224,26 +224,23 @@ get_next_task(_TaskIndex, _PlanLength) ->
 move_next_path(_NPCObj, []) -> nothing;
 move_next_path(NPCObj, Path) -> move_unit(NPCObj, lists:nth(2, Path)).
 
-move_unit(#local_obj {id = Id,
-                      player = Player,
-                      global_pos = GlobalPos}, NewPos) ->
+move_unit(#obj {id = Id, player = Player}, NewPos) ->
     NumTicks = ?TICKS_SEC * 8,
 
     %Update unit state
-    local:update_state(Id, moving),
+    obj:update_state(Id, moving),
     
     %Create event data
-    EventData = {GlobalPos,
-                 Player,
+    EventData = {Player,
                  Id,
                  NewPos},
 
-    game:add_event(self(), move_local_obj, EventData, Id, NumTicks).
+    game:add_event(self(), move_obj, EventData, Id, NumTicks).
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
     EnemyUnit;
 get_nearest(NPCPos, [NewEnemyUnit | EnemyUnits], {EnemyUnit, Distance}) ->
-    NewEnemyUnitPos = NewEnemyUnit#local_obj.pos,
+    NewEnemyUnitPos = NewEnemyUnit#obj.pos,
 
     CalcDistance = map:distance(NPCPos, NewEnemyUnitPos),
     {TargetEnemyUnit, NewDistance} = compare_distance(CalcDistance,
@@ -260,7 +257,7 @@ compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance -
 
 remove_walled(ObjList) ->
     F = fun(Obj) ->
-            ObjEffect = Obj#local_obj.effect,
+            ObjEffect = Obj#obj.effect,
             IsWalled = lists:member(<<"wall">>, ObjEffect),
             not IsWalled
         end,
@@ -268,36 +265,36 @@ remove_walled(ObjList) ->
 
 remove_dead(ObjList) ->
     F = fun(Obj) ->
-            Obj#local_obj.state =/= dead
+            Obj#obj.state =/= dead
         end,
     lists:filter(F, ObjList).
 
 remove_structures(ObjList) ->
     F = fun(Obj) ->
-            Obj#local_obj.class =/= structure
+            Obj#obj.class =/= structure
         end,
     lists:filter(F, ObjList).
 
-get_wander_pos(_, _, _, []) ->
+get_wander_pos(_, _, []) ->
     none;
-get_wander_pos(true, _GlobalPos, RandomPos, _Neighbours) ->
+get_wander_pos(true, RandomPos, _Neighbours) ->
     RandomPos;
-get_wander_pos(false, GlobalPos, _, Neighbours) ->
+get_wander_pos(false,  _, Neighbours) ->
     Random = random:uniform(length(Neighbours)),
     RandomPos = lists:nth(Random, Neighbours),
-    IsEmpty = local:is_empty(RandomPos),
+    IsEmpty = obj:is_empty(RandomPos),
 
     NewNeighbours = lists:delete(RandomPos, Neighbours),
 
-    get_wander_pos(IsEmpty, GlobalPos, RandomPos, NewNeighbours).
+    get_wander_pos(IsEmpty, RandomPos, NewNeighbours).
 
-check_wall(#local_obj{id = Id} = EnemyUnit) ->    
+check_wall(#obj{id = Id} = EnemyUnit) ->    
     Effect = db:read(effect, {Id, <<"Wall">>}),
 
     Target = case Effect =/= [] of
                 true ->
                     WallId = Effect#effect.data,
-                    [Wall] = db:read(local_obj, WallId),
+                    [Wall] = db:read(obj, WallId),
                     Wall;
                 false ->
                     EnemyUnit
@@ -316,27 +313,26 @@ find_target(_NPCObj, _, _, []) ->
     none;
 find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
-    EnemyUnit = get_nearest(NPCObj#local_obj.pos, EnemyUnits, {none, 1000}),
+    EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
     Target = check_wall(EnemyUnit),
     return_target(Target);
 find_target(NPCObj, <<"animal">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
-    EnemyUnit = get_nearest(NPCObj#local_obj.pos, EnemyUnits, {none, 1000}),
+    EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
     return_target(EnemyUnit). 
 
-return_target(Target) when is_record(Target, local_obj) ->
-    Target#local_obj.id;
+return_target(Target) when is_record(Target, obj) ->
+    Target#obj.id;
 return_target(_) ->
     none.
 
 move_random_pos(NPCId) ->
     [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:dirty_read(local_obj, NPCId),
-    {X, Y} = NPCObj#local_obj.pos,
-    GlobalPos = NPCObj#local_obj.global_pos,
+    [NPCObj] = db:dirty_read(obj, NPCId),
+    {X, Y} = NPCObj#obj.pos,
 
     Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
-    NewPos = get_wander_pos(false, GlobalPos, none, Neighbours),
+    NewPos = get_wander_pos(false, none, Neighbours),
    
     NewNPC = NPC#npc {task_state = inprogress},
     db:write(NewNPC),
@@ -349,14 +345,14 @@ target_visible(NPCId) ->
 
 move_to_target(NPCId) ->
     [NPC] = db:read(npc, NPCId), 
-    [NPCObj] = db:read(local_obj, NPCId),
-    [TargetObj] = db:read(local_obj, NPC#npc.target),
+    [NPCObj] = db:read(obj, NPCId),
+    [TargetObj] = db:read(obj, NPC#npc.target),
 
-    IsAdjacent = map:is_adjacent(NPCObj#local_obj.pos, TargetObj#local_obj.pos),
+    IsAdjacent = map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos),
 
     case IsAdjacent of
         false ->
-            Path = astar:astar(NPCObj#local_obj.pos, TargetObj#local_obj.pos),
+            Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos),
             NewNPC = NPC#npc {task_state = inprogress,
                               path = Path},
             db:write(NewNPC),
@@ -378,13 +374,13 @@ melee_attack(NPCId) ->
 
 move_guard_pos(NPCId) ->
     [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(local_obj, NPCId),
+    [NPCObj] = db:read(obj, NPCId),
 
     GuardPos = NPC#npc.orders_data,
 
-    case NPCObj#local_obj.pos =:= GuardPos of
+    case NPCObj#obj.pos =:= GuardPos of
         false ->
-            Path = astar:astar(NPCObj#local_obj.pos, GuardPos),
+            Path = astar:astar(NPCObj#obj.pos, GuardPos),
             NewNPC = NPC#npc {task_state = inprogress,
                               path = Path},
             db:write(NewNPC),
@@ -397,9 +393,9 @@ move_guard_pos(NPCId) ->
 
 max_guard_dist(NPCId) ->
     [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(local_obj, NPCId),
+    [NPCObj] = db:read(obj, NPCId),
 
     GuardPos = NPC#npc.orders_data,
-    NPCPos = NPCObj#local_obj.pos,
+    NPCPos = NPCObj#obj.pos,
 
     map:distance(GuardPos, NPCPos) > 3. 

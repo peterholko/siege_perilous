@@ -19,7 +19,6 @@
          loot/2,
          item_transfer/2,
          item_split/2,
-         exit_local/0,
          structure_list/0,
          build/2,
          finish_build/2,
@@ -33,13 +32,12 @@
          process_checks/1]).
 
 init_perception(PlayerId) ->
-
-    %Get armies
-    Armies = get_armies(PlayerId),
+    %Get objs
+    AllObjs = db:index_read(obj, PlayerId, #obj.player),
 
     %Get explored tile list
-    Explored = map:get_explored(PlayerId),
-    Objs = get_visible_objs(Armies, []),
+    Explored = map:get_explored(PlayerId, all),
+    Objs = get_visible_objs(AllObjs, []),
 
     lager:info("Explored: ~p", [Explored]),
     lager:info("Objs: ~p", [Objs]),
@@ -76,13 +74,13 @@ dodge(SourceId) ->
 move_unit(UnitId, Pos) ->
     Player = get(player_id),
     [Unit] = db:read(obj, UnitId),
-    NumTicks = local:movement_cost(Unit, Pos),
+    NumTicks = obj:movement_cost(Unit, Pos),
     lager:info("NumTicks: ~p", [NumTicks]),
    
     ValidState = Unit#obj.state =/= dead, 
     ValidClass = Unit#obj.class =:= unit,
     ValidAdjacent = map:is_adjacent(Unit#obj.pos, Pos),
-    ValidPos = local:is_empty(Pos),
+    ValidPos = obj:is_empty(Pos),
     NearbyHero = obj:is_nearby_hero(Unit, Player),
 
     lager:info("move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   
@@ -180,18 +178,6 @@ item_split(ItemId, Quantity) ->
             lager:info("Player does not own item: ~p", [ItemId]),
             <<"Player does not own item">>
     end.
-
-exit_local() ->
-    %TODO add validation
-    PlayerId = get(player_id),
-    [Obj] = db:index_read(obj, PlayerId, #obj.player),
-    lager:info("Obj: ~p", [Obj]),
-    NumTicks = 16,
-
-    ValidExit = is_state(local, Obj#obj.state) andalso
-                local:is_exit_valid(Obj#obj.id),
-
-    add_exit_local(ValidExit, {Obj#obj.id, Obj#obj.pos}, NumTicks).
 
 structure_list() ->
     _PlayerId = get(player_id),
@@ -365,7 +351,7 @@ add_harvest_event(false, _EventData, _Ticks) ->
     none;
 add_harvest_event(true, {ObjId, Resource, Auto}, NumTicks) ->
     %Update obj state
-    local:update_state(ObjId, harvesting),
+    obj:update_state(ObjId, harvesting),
 
     EventData = {ObjId, Resource, NumTicks, Auto},
     game:add_event(self(), harvest, EventData, ObjId, NumTicks).
@@ -374,13 +360,13 @@ add_finish_build(false, _EventData, _Ticks) ->
     lager:info("Finish Build failed"),
     none;
 
-add_finish_build(true, {ObjId, GlobalPos, StructureId}, NumTicks) ->
+add_finish_build(true, {ObjId, StructureId}, NumTicks) ->
     game:cancel_event(ObjId),
 
-    EventData = {ObjId, GlobalPos, StructureId},
+    EventData = {ObjId, StructureId},
 
-    local:update_state(ObjId, building),
-    local:update_state(StructureId, under_construction),
+    obj:update_state(ObjId, building),
+    obj:update_state(StructureId, under_construction),
 
     game:add_event(self(), finish_build, EventData, ObjId, NumTicks).
 
@@ -389,7 +375,7 @@ add_process_resource({false, Error}, _StructureId, _UnitId, _NumTicks) ->
 add_process_resource(true, StructureId, UnitId, NumTicks) ->
     EventData = {StructureId, UnitId, NumTicks},
 
-    local:update_state(UnitId, processing),
+    obj:update_state(UnitId, processing),
 
     game:add_event(self(), process_resource, EventData, UnitId, NumTicks).
 
@@ -398,7 +384,7 @@ add_craft({false, Error}, _StructureId, _UnitId, _Recipe, _NumTicks) ->
 add_craft(true, StructureId, UnitId, Recipe, NumTicks) ->
     EventData = {StructureId, UnitId, Recipe},
 
-    local:update_state(UnitId, crafting),
+    obj:update_state(UnitId, crafting),
     game:add_event(self(), craft, EventData, UnitId, NumTicks).
 
 add_action(false, _, _) ->
@@ -428,7 +414,7 @@ add_move_unit(true, {Unit, NewPos}, NumTicks) ->
     game:cancel_event(Unit#obj.id),
 
     %Update unit state
-    local:update_state(Unit#obj.id, moving),
+    obj:update_state(Unit#obj.id, moving),
     
     %Create event data
     EventData = {Unit#obj.player,
@@ -441,15 +427,6 @@ add_move_unit(false, _, _) ->
     lager:info("Move unit failed"),
     none.
 
-add_exit_local(true, {GlobalObjId, GlobalPos}, NumTicks) ->
-    EventData = {GlobalObjId, GlobalPos},
-    
-    game:add_event(self(), exit_local, EventData, GlobalObjId, NumTicks);
-
-add_exit_local(false, _, _) ->
-    lager:info("Exit failed"),
-    none.
-
 add_equip({false, Error}, _EventData) ->
     lager:info("Equip failed error: ~p", [Error]);
 add_equip(true, ItemId) ->
@@ -458,11 +435,8 @@ add_equip(true, ItemId) ->
 cancel_event(false, _SourceId) ->
     <<"Invalid sourceid">>;
 cancel_event(true, SourceId) ->
-    local:update_state(SourceId, none),
+    obj:update_state(SourceId, none),
     game:cancel_event(SourceId).
-
-get_armies(PlayerId) ->
-    db:index_read(obj, PlayerId, #obj.player).
 
 get_visible_objs([], Objs) ->
     Objs;
@@ -470,7 +444,7 @@ get_visible_objs([], Objs) ->
 get_visible_objs([Obj | Rest], Objs) ->
 
     {X, Y} = Obj#obj.pos,
-    NearbyObjs = map:get_nearby_objs(X, Y, global_map, 2),
+    NearbyObjs = map:get_nearby_objs(X, Y, 2),
     NewObjs = NearbyObjs ++ Objs,
 
     get_visible_objs(Rest, NewObjs).

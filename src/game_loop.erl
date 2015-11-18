@@ -24,13 +24,13 @@ loop(NumTick, LastTime, GamePID) ->
     CurrentTick = counter:increment(tick),	
     
     %Process events
-    {_GlobalRecalc, LocalRecalc} = process_events(CurrentTick),
+    EventsRecalc = process_events(CurrentTick),
 
     %Get triggered perception
-    {_GlobalTriggered, LocalTriggered} = game:get_perception(),
+    TriggeredRecalc = game:get_perception(),
    
-    %Recalculate local perception 
-    local_recalculate(util:unique_list(LocalRecalc ++ LocalTriggered)),
+    %Recalculate perception 
+    recalculate(EventsRecalc or TriggeredRecalc),
   
     %Get triggered explored maps
     Explored = game:get_explored(),
@@ -57,7 +57,6 @@ loop(NumTick, LastTime, GamePID) ->
 %%
 %% Local Functions
 %%
-%%
 
 calculate_sleep(LastTime) ->
     CurrentTime = util:get_time(),
@@ -78,37 +77,20 @@ check_sleep(CalcSleepTime, LastTime) ->
 
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
-    check_events(Events, false, []).
+    check_events(Events, false).
 
-check_events([], GlobalRecalc, LocalRecalc) ->
-    {GlobalRecalc, LocalRecalc};
-    
-check_events([Event | Rest], PrevGlobalRecalc, PrevLocalRecalc) ->
-    {GlobalRecalc, LocalRecalc}  = do_event(Event#event.type,
-                                            Event#event.data,
-                                            Event#event.player_process),
-    NewGlobalRecalc = GlobalRecalc or PrevGlobalRecalc,
-    NewLocalRecalc = add_local_recalc(PrevLocalRecalc, LocalRecalc),
+check_events([], Recalc) ->
+    Recalc;
+check_events([Event | Rest], PrevRecalc) ->
+    Recalc  = do_event(Event#event.type,
+                       Event#event.data,
+                       Event#event.player_process),
+
+    NewRecalc = Recalc or PrevRecalc,
 
     db:dirty_delete(event, Event#event.id),
 
-    check_events(Rest, NewGlobalRecalc, NewLocalRecalc).
-
-add_local_recalc(PrevLocalRecalc, {GlobalPos, true}) ->
-    [GlobalPos | PrevLocalRecalc];
-add_local_recalc(PrevLocalRecalc, _) ->
-    PrevLocalRecalc.
-
-do_event(move_obj, EventData, _PlayerPid) ->
-    lager:info("Processing move_obj event: ~p", [EventData]),
-
-    {Player, Id, GlobalPos} = EventData,
-
-    %Move global obj and add explored
-    obj:move(Id, GlobalPos),
-    map:add_explored(Player, GlobalPos),
-
-    {true, false};
+    check_events(Rest, NewRecalc).
 
 do_event(action, EventData, PlayerPid) ->
     lager:info("Processing action event: ~p", [EventData]),
@@ -122,72 +104,54 @@ do_event(action, EventData, PlayerPid) ->
             nothing
     end,
 
-    {false, false};
+    false;
 
-do_event(move_local_obj, EventData, PlayerPid) ->
-    lager:info("Processing move_local_obj event: ~p", [EventData]),
+do_event(move_obj, EventData, PlayerPid) ->
+    lager:info("Processing move_obj event: ~p", [EventData]),
 
-    {GlobalPos, _Player, Id, NewPos} = EventData,
+    {_Player, Id, NewPos} = EventData,
 
-    case local:is_empty(NewPos) of
+    case obj:is_empty(NewPos) of
         true ->
-            local:move(Id, NewPos);
+            obj:move(Id, NewPos);
         false ->
             nothing
     end,
     
-    send_to_process(PlayerPid, event_complete, {move_local_obj, Id}),
+    send_to_process(PlayerPid, event_complete, {move_obj, Id}),
 
-    {false, {GlobalPos, true}};
-
-do_event(exit_local, EventData, PlayerPid) ->
-    lager:info("Processing exit_local event: ~p", [EventData]),
-    
-    {GlobalObjId, GlobalPos} = EventData,
-
-    local:exit_map(GlobalObjId),
-    obj:update_state(GlobalObjId, none),
-
-    %Remove any local objs from local map and 
-    %check if local perception update is needed
-    local:exit_map(GlobalObjId),
-    
-    %Send exit local to player pid
-    send_to_process(PlayerPid, exit_local, GlobalObjId),
-
-    {true, {GlobalPos, true}};    
+    true;
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
-    {LocalObjId, Resource, NumTicks, Repeat} = EventData,
+    {ObjId, Resource, NumTicks, Repeat} = EventData,
 
     %Create/update item
-    NewItems = resource:harvest(LocalObjId, Resource),
+    NewItems = resource:harvest(ObjId, Resource),
     
     case Repeat of
         true ->
-            game:add_event(PlayerPid, harvest, EventData, LocalObjId, NumTicks);
+            game:add_event(PlayerPid, harvest, EventData, ObjId, NumTicks);
         false ->
             %Update obj state
-            local:update_state(LocalObjId, none)
+            obj:update_state(ObjId, none)
     end,
  
-    send_update_items(LocalObjId, NewItems, PlayerPid),
-   
-    {false, false};
+    send_update_items(ObjId, NewItems, PlayerPid),
+    false; 
 
 do_event(finish_build, EventData, _PlayerPid) ->
     lager:info("Processing build event: ~p", [EventData]),
-    {LocalObjId, GlobalPos, StructureId} = EventData,
+    {ObjId, StructureId} = EventData,
 
-    local:update_state(LocalObjId, none),
-    NewStructure = local:update_state(StructureId, none), 
+    obj:update_state(ObjId, none),
+    NewStructure = obj:update_state(StructureId, none), 
 
-    local:set_wall_effect(NewStructure), 
+    obj:set_wall_effect(NewStructure), 
     
-    local_obj:update(StructureId, <<"hp">>, 1000),
+    obj:update(StructureId, <<"hp">>, 1000),
 
-    {false, {GlobalPos, true}};
+    true;
 
 do_event(process_resource, EventData, PlayerPid) ->
     lager:info("Processing process_resource event: ~p", [EventData]),
@@ -199,10 +163,10 @@ do_event(process_resource, EventData, PlayerPid) ->
             send_update_items(StructureId, NewItems, PlayerPid),
             game:add_event(PlayerPid, process_resource, EventData, UnitId, NumTicks);
         false ->
-            local:update_state(UnitId, none)
+            obj:update_state(UnitId, none)
     end,
 
-    {false, false};
+    false;
 
 do_event(craft, EventData, PlayerPid) ->
     lager:info("Processing craft event: ~p", [EventData]),
@@ -216,26 +180,25 @@ do_event(craft, EventData, PlayerPid) ->
             nothing
     end,
 
-    local:update_state(UnitId, none),
+    obj:update_state(UnitId, none),
 
-    {false, false};
+    false;
 
 do_event(_Unknown, _Data, _Pid) ->
     lager:info("Unknown event"),
     false.
 
-local_recalculate([]) ->
+recalculate(false) ->
     done;
-local_recalculate([GlobalPos | Rest]) ->
-    l_perception:recalculate(GlobalPos),
-    local_recalculate(Rest).
+recalculate(true) ->
+    perception:recalculate().
 
 process_explored([]) ->
     done;
-process_explored([{Player, GlobalPos} | Rest]) ->
+process_explored([Player | Rest]) ->
     [Conn] = db:dirty_read(connection, Player),
-    ExploredTiles = map:get_local_explored(Player, GlobalPos, new),
-    send_to_process(Conn#connection.process, local_map, ExploredTiles),
+    ExploredTiles = map:get_explored(Player, new),
+    send_to_process(Conn#connection.process, map, ExploredTiles),
 
     process_explored(Rest).
 
@@ -258,26 +221,27 @@ execute_villager(_) ->
     nothing.
 
 clean_up(NumTick) when (NumTick rem 200) =:= 0 ->
-    lager:debug("Cleaning up dead local objs"),
-    LocalObjs = ets:tab2list(obj),
+    lager:debug("Cleaning up dead objs"),
+    Objs = ets:tab2list(obj),
 
-    F = fun(LocalObj) ->
-            remove(LocalObj#local_obj.state, LocalObj)
+    F = fun(Obj) ->
+            remove(Obj#obj.state, Obj)
         end,
 
 
-    lists:foreach(F, LocalObjs);    
+    lists:foreach(F, Objs);    
 
 clean_up(_) ->
     nothing. 
 
-remove(dead, LocalObj) ->
-    local_obj:remove(LocalObj#local_obj.id),
-    local:remove(LocalObj).
+remove(dead, Obj) ->
+    obj:remove(Obj#obj.id);
+remove(_, _Obj) ->
+    nothing.
 
-send_update_items(LocalObjId, NewItems, PlayerPid) ->
-    [LocalObj] = db:read(local_obj, LocalObjId),
-    case local_obj:is_nearby_hero(LocalObj, LocalObj#local_obj.player) of
+send_update_items(ObjId, NewItems, PlayerPid) ->
+    [Obj] = db:read(obj, ObjId),
+    case obj:is_nearby_hero(Obj, Obj#obj.player) of
         true ->
             %Send item perception to player pid
             send_to_process(PlayerPid, new_items, NewItems);

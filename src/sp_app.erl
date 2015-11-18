@@ -38,12 +38,12 @@ start(_Type, _Args) ->
 
     lager:info("Loading map tileset and data"),
     map:tileset(),
-    map:xml_test(),
+    map:load(),
 
     lager:info("Starting map process"),
     map:start(),
 
-    lager:info("Starting global and local perception"),
+    lager:info("Starting perception"),
     g_perception:start(),
     l_perception:start(),
 

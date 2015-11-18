@@ -54,11 +54,11 @@ handle_cast({do_action, Action}, Data) ->
 
 handle_cast({attack, AttackType, SourceId, TargetId}, Data) ->
     lager:info("Attack ~p", [AttackType]), 
-    [SourceObj] = db:read(local_obj, SourceId),
-    [TargetObj] = db:read(local_obj, TargetId),
+    [SourceObj] = db:read(obj, SourceId),
+    [TargetObj] = db:read(obj, TargetId),
 
-    Result = is_state_not(dead, SourceObj#local_obj.state) andalso
-             is_state_not(dead, TargetObj#local_obj.state),
+    Result = is_state_not(dead, SourceObj#obj.state) andalso
+             is_state_not(dead, TargetObj#obj.state),
 
     set_attack(Result, AttackType, SourceObj, TargetObj),
 
@@ -109,9 +109,9 @@ set_attack(true, AttackType, SourceObj, TargetObj) ->
     set_combat_state(SourceObj),
     set_combat_state(TargetObj),
 
-    Action = #action {source_id = SourceObj#local_obj.id,
+    Action = #action {source_id = SourceObj#obj.id,
                       type = attack,
-                      data = {AttackType, TargetObj#local_obj.id}},
+                      data = {AttackType, TargetObj#obj.id}},
     db:write(Action).
 
 set_guard(SourceId) ->
@@ -121,10 +121,10 @@ set_guard(SourceId) ->
     db:write(Action).
 
 set_dodge(SourceId) ->
-    [SourceObj] = db:read(local_obj, SourceId),
-    Effect = SourceObj#local_obj.effect,
+    [SourceObj] = db:read(obj, SourceId),
+    Effect = SourceObj#obj.effect,
     NewEffect = [ dodging | Effect],
-    NewSourceObj = SourceObj#local_obj {effect = NewEffect},
+    NewSourceObj = SourceObj#obj {effect = NewEffect},
 
     Action = #action {source_id = SourceId,
                       type = dodge,
@@ -150,8 +150,8 @@ process_attack(Action) ->
     SourceId = Action#action.source_id,
     {AttackType, TargetId} = Action#action.data,
 
-    SourceObj = get_obj(db:read(local_obj, SourceId)), 
-    TargetObj = get_obj(db:read(local_obj, TargetId)),
+    SourceObj = get_obj(db:read(obj, SourceId)), 
+    TargetObj = get_obj(db:read(obj, TargetId)),
     
     Result = is_valid_obj(SourceObj) andalso
              is_valid_obj(TargetObj) andalso
@@ -170,12 +170,12 @@ process_guard(Action) ->
 process_dodge(Action) ->
     lager:info("Process dodge"),
     SourceId = Action#action.source_id,
-    [SourceObj] = db:read(local_obj, SourceId),
+    [SourceObj] = db:read(obj, SourceId),
     
-    Effect = SourceObj#local_obj.effect,
+    Effect = SourceObj#obj.effect,
     NewEffect = lists:delete(dodging, Effect),
     
-    NewSourceObj = SourceObj#local_obj {effect = NewEffect},
+    NewSourceObj = SourceObj#obj {effect = NewEffect},
     db:write(NewSourceObj).
 
 get_obj([]) ->
@@ -184,14 +184,14 @@ get_obj([Obj]) ->
     Obj.
 
 is_valid_obj(false) ->
-    lager:info("Invalid local obj"),
+    lager:info("Invalid obj"),
     false;
 is_valid_obj(_Obj) ->
     true.
 
 is_adjacent(SourceObj, TargetObj) ->
-    {SX, SY} = SourceObj#local_obj.pos,
-    TargetPos = TargetObj#local_obj.pos,
+    {SX, SY} = SourceObj#obj.pos,
+    TargetPos = TargetObj#obj.pos,
     Neighbours = map:neighbours(SX, SY, 32, 38), 
     case lists:member(TargetPos, Neighbours) of
         true ->
@@ -201,18 +201,18 @@ is_adjacent(SourceObj, TargetObj) ->
             false
     end.
 
-is_targetable(#local_obj{effect = Effect} = _LocalObj) ->
+is_targetable(#obj{effect = Effect} = _Obj) ->
     HasWall = lists:member(<<"wall">>, Effect),
     Targetable = not HasWall,
     lager:info("is_targetable: ~p", [Targetable]),
     Targetable.
 
-is_target_alive(#local_obj {state = State}) when State =:= dead -> 
+is_target_alive(#obj {state = State}) when State =:= dead -> 
     false;
 is_target_alive(_) -> 
     true.
 
-is_dodged(#local_obj {effect = Effect}) ->
+is_dodged(#obj {effect = Effect}) ->
     Result = case lists:member(dodging, Effect) of
                 true -> random:uniform() =< 0.5;
                 false -> false
@@ -228,14 +228,13 @@ broadcast_dmg(SourceId, TargetId, Dmg, State) ->
                 <<"dmg">> => Dmg,
                 <<"state">> => State},
 
-    [SourceObj] = db:read(local_obj, SourceId),
-    [TargetObj] = db:read(local_obj, TargetId),
+    [SourceObj] = db:read(obj, SourceId),
+    [TargetObj] = db:read(obj, TargetId),
 
-    GlobalPos = SourceObj#local_obj.global_pos,
-    SourcePos = SourceObj#local_obj.pos,
-    TargetPos = TargetObj#local_obj.pos,
+    SourcePos = SourceObj#obj.pos,
+    TargetPos = TargetObj#obj.pos,
 
-    l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
+    perception:broadcast(SourcePos, TargetPos, Message).
 
 broadcast_combo(SourceId, TargetId, Combo) ->
     Message = #{<<"packet">> => <<"combo">>,
@@ -243,24 +242,23 @@ broadcast_combo(SourceId, TargetId, Combo) ->
                 <<"targetid">> => util:bin_to_hex(TargetId),
                 <<"combo">> => Combo},
 
-    [SourceObj] = db:read(local_obj, SourceId),
-    [TargetObj] = db:read(local_obj, TargetId),
+    [SourceObj] = db:read(obj, SourceId),
+    [TargetObj] = db:read(obj, TargetId),
 
-    GlobalPos = SourceObj#local_obj.global_pos,
-    SourcePos = SourceObj#local_obj.pos,
-    TargetPos = TargetObj#local_obj.pos,
+    SourcePos = SourceObj#obj.pos,
+    TargetPos = TargetObj#obj.pos,
 
-    l_perception:broadcast(GlobalPos, SourcePos, TargetPos, Message).
+    perception:broadcast(SourcePos, TargetPos, Message).
 
 process_dmg(false, _, AtkObj, _) ->
-    db:delete(action, AtkObj#local_obj.id),
+    db:delete(action, AtkObj#obj.id),
     lager:info("Invalid attack");      
 process_dmg(true, AttackType, AtkObj, DefObj) ->
-    AtkId = AtkObj#local_obj.id,
-    DefId = DefObj#local_obj.id,
+    AtkId = AtkObj#obj.id,
+    DefId = DefObj#obj.id,
 
-    AtkUnit = local_obj:get_stats(AtkId),
-    DefUnit = local_obj:get_stats(DefId),
+    AtkUnit = obj:get_stats(AtkId),
+    DefUnit = obj:get_stats(DefId),
 
     AtkItems = item:get_equiped(AtkId),
     DefItems = item:get_equiped(DefId),
@@ -295,7 +293,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
 
     %Update stamina
     NewStamina = AtkStamina - attack_type_cost(AttackType),
-    local_obj:update(AtkObj#local_obj.id, 'stamina', NewStamina),
+    obj:update(AtkObj#obj.id, 'stamina', NewStamina),
 
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
@@ -313,7 +311,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     %Check if unit is dead 
     case UnitState of
         <<"alive">> ->
-            local_obj:update(DefId, 'hp', NewHp);
+            obj:update(DefId, 'hp', NewHp);
         <<"dead">> ->
             AtkXp = bson:lookup(xp, AtkUnit),
             DefKillXp = bson:lookup(kill_xp, DefUnit),
@@ -334,16 +332,15 @@ process_unit_dead(DefId) ->
     db:delete(action, DefId),
 
     lager:info("Updating unit state"),
-    NewLocalObj = local:update_dead(DefId),
+    NewObj = obj:update_dead(DefId),
 
     %Remove potential wall effect
-    local:set_wall_effect(NewLocalObj).
+    obj:set_wall_effect(NewObj).
 
-set_combat_state(#local_obj{state = State}) when State =:= combat ->
+set_combat_state(#obj{state = State}) when State =:= combat ->
     nothing;
-set_combat_state(#local_obj{id = Id}) ->
-    local:update_state(Id, combat).
-
+set_combat_state(#obj{id = Id}) ->
+    obj:update_state(Id, combat).
 
 %is_state(ExpectedState, State) when ExpectedState =:= State -> true;
 %is_state(_ExpectdState, _State) -> false.
@@ -364,7 +361,7 @@ stamina_cost(dodge) -> 25;
 stamina_cost(_) -> 0.
 
 has_stamina(AtkId, ActionData) ->
-    AtkUnit = local_obj:get_stats(AtkId),
+    AtkUnit = obj:get_stats(AtkId),
     {Stamina} = bson:lookup(stamina, AtkUnit),
     StaminaCost = stamina_cost(ActionData),
 
@@ -374,9 +371,9 @@ has_stamina(AtkId, ActionData) ->
 sub_stamina(SourceId, Value) ->
     add_stamina(SourceId, -1 * Value).
 add_stamina(SourceId, Value) ->
-    SourceObj = local_obj:get_stats(SourceId),
+    SourceObj = obj:get_stats(SourceId),
     {Stamina} = bson:lookup(stamina, SourceObj),
-    local_obj:update(SourceId, 'stamina', Stamina + Value).
+    obj:update(SourceId, 'stamina', Stamina + Value).
 
 num_ticks({attack, _AttackType}) -> ?TICKS_SEC * 10;
 num_ticks(guard) -> ?TICKS_SEC * 30;
@@ -456,6 +453,6 @@ skill_gain_atk(_AtkId, _Weapons, _RandomDmg, _DmgRange, _Dmg) -> nothing.
     
 xp_gain(_AtkId, _AtkXp, {}) -> nothing;
 xp_gain(AtkId, {}, {DefKillXp}) ->
-    local_obj:update(AtkId, xp, DefKillXp);
+    obj:update(AtkId, xp, DefKillXp);
 xp_gain(AtkId, {AtkXp}, {DefKillXp}) ->
-    local_obj:update(AtkId, xp, AtkXp + DefKillXp).
+    obj:update(AtkId, xp, AtkXp + DefKillXp).

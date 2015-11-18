@@ -78,65 +78,64 @@ process('$end_of_table') ->
     lager:debug("Done processing villagers");
 process(Id) ->
     [Villager] = db:dirty_read(villager, Id),
-    [LocalObj] = db:dirty_read(local_obj, Id),
+    [Obj] = db:dirty_read(obj, Id),
 
-    process_state(Villager, LocalObj),
+    process_state(Villager, Obj),
     
     process(mnesia:dirty_next(villager, Id)).
 
-process_state(Villager, LocalObj = #local_obj {state = State}) when State =:= none ->
+process_state(Villager, Obj = #obj {state = State}) when State =:= none ->
     Task = Villager#villager.task,
-    process_task(Task, Villager, LocalObj);
-process_state(_Villager, _LocalObj) ->
+    process_task(Task, Villager, Obj);
+process_state(_Villager, _Obj) ->
     nothing.
 
-process_task({structure, StructureId}, Villager, LocalObj) ->
-    [Structure] = db:dirty_read(local_obj, StructureId),
+process_task({structure, StructureId}, Villager, Obj) ->
+    [Structure] = db:dirty_read(obj, StructureId),
 
     %Check same position    
-    SamePos = Structure#local_obj.pos =:= LocalObj#local_obj.pos,
+    SamePos = Structure#obj.pos =:= Obj#obj.pos,
     
     %Assign action
     Action = case SamePos of
                 true ->
-                    {harvest, Structure#local_obj.id};
+                    {harvest, Structure#obj.id};
                 false ->
-                    {move_dest, Structure#local_obj.pos}
+                    {move_dest, Structure#obj.pos}
              end,
 
-    process_action(Action, Villager, LocalObj);
+    process_action(Action, Villager, Obj);
 
 process_task(_, _, _) ->
     nothing.
 
-process_action({move_dest, Dest}, _Villager, LocalObj) ->
-    Pathfinding = astar:astar(LocalObj#local_obj.pos, Dest),
+process_action({move_dest, Dest}, _Villager, Obj) ->
+    Pathfinding = astar:astar(Obj#obj.pos, Dest),
     
     case Pathfinding of 
         failure ->
-            lager:info("~p could not find path", [LocalObj#local_obj.id]);
+            lager:info("~p could not find path", [Obj#obj.id]);
         PathList ->
             NextPos = lists:nth(2, PathList),
-            add_move_unit(LocalObj, NextPos)
+            add_move_unit(Obj, NextPos)
     end;
-process_action({harvest, _StructureId}, _Villager, LocalObj) ->
-    local:update_state(LocalObj#local_obj.id, harvesting),
-    EventData = {LocalObj#local_obj.id, <<"Cragroot Popular">>, 50, true},
-    game:add_event(self(), harvest, EventData, LocalObj#local_obj.id, 50);
+process_action({harvest, _StructureId}, _Villager, Obj) ->
+    obj:update_state(Obj#obj.id, harvesting),
+    EventData = {Obj#obj.id, <<"Cragroot Popular">>, 50, true},
+    game:add_event(self(), harvest, EventData, Obj#obj.id, 50);
  
 process_action(_, _, _) ->
     nothing.
     
-add_move_unit(LocalObj, NewPos) ->
+add_move_unit(Obj, NewPos) ->
     %Update unit state
-    local:update_state(LocalObj#local_obj.id, moving),
+    obj:update_state(Obj#obj.id, moving),
     
     %Create event data
-    EventData = {LocalObj#local_obj.global_pos,
-                 LocalObj#local_obj.player,
-                 LocalObj#local_obj.id,
+    EventData = {Obj#obj.player,
+                 Obj#obj.id,
                  NewPos},
 
     NumTicks = 30,
 
-    game:add_event(self(), move_local_obj, EventData, LocalObj#local_obj.id, NumTicks).
+    game:add_event(self(), move_obj, EventData, Obj#obj.id, NumTicks).

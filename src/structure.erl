@@ -8,23 +8,21 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([start_build/4, valid_location/3]).
+-export([start_build/3, valid_location/2]).
 -export([list/0, recipe_list/1, process/1, craft/2]).
 -export([check_req/1, has_process_res/1, check_recipe_req/2]).
 -export([combine_stats/2, craft_item_name/2]).
 
-start_build(PlayerId, GlobalPos, LocalPos, StructureType) ->
+start_build(PlayerId, Pos, StructureType) ->
     {Name} = bson:lookup(name, StructureType),
     {Subclass} = bson:lookup(subclass, StructureType),
 
-    StructureId = local:create(GlobalPos, 
-                               none,
-                               LocalPos, 
-                               PlayerId,
-                               structure,
-                               Subclass,
-                               Name, 
-                               founded),
+    StructureId = obj:create(Pos, 
+                             PlayerId,
+                             structure,
+                             Subclass,
+                             Name, 
+                             founded),
     StructureId.
 
 check_req(Structure) ->
@@ -34,13 +32,13 @@ check_req(Structure) ->
     has_req(ReqList, Items).
 
 has_process_res(StructureId) ->
-    StructureStats = local_obj:get_stats(StructureId),
+    StructureStats = obj:get_stats(StructureId),
     {Process} = bson:lookup(process, StructureStats),
     Items = item:get_by_subclass(StructureId, Process),
     Items =/= [].
 
-check_recipe_req(LocalObjId, RecipeName) ->
-    Items = item:get_by_owner(LocalObjId),
+check_recipe_req(ObjId, RecipeName) ->
+    Items = item:get_by_owner(ObjId),
 
     Recipe = get_recipe(RecipeName),
     {ReqList} = bson:lookup(req, Recipe),
@@ -51,12 +49,12 @@ list() ->
     Structures = find_type(level, 0),
     Structures.
 
-recipe_list(LocalObj) ->
-    Recipes = get_recipes(LocalObj#local_obj.name),
+recipe_list(Obj) ->
+    Recipes = get_recipes(Obj#obj.name),
     Recipes.
 
 process(StructureId) ->
-    StructureStats = local_obj:get_stats(StructureId),
+    StructureStats = obj:get_stats(StructureId),
     {Process} = bson:lookup(process, StructureStats),
     
     [Item | _Rest] = item:get_by_subclass(StructureId, Process),
@@ -75,8 +73,8 @@ process(StructureId) ->
     %Requery items after new items and update
     item:get_by_owner(StructureId).
 
-craft(LocalObjId, RecipeName) ->
-    Items = item:get_by_owner(LocalObjId),
+craft(ObjId, RecipeName) ->
+    Items = item:get_by_owner(ObjId),
 
     Recipe = get_recipe(RecipeName),
     {RecipeItem} = bson:lookup(item, Recipe),
@@ -86,37 +84,31 @@ craft(LocalObjId, RecipeName) ->
     MatchReq = find_match_req(ReqList, Items),
     lager:info("MatchReq: ~p", [MatchReq]),
 
-    %consume_req(ReqList, MatchReq),
-    craft_item(LocalObjId, RecipeItem, Class, lists:reverse(MatchReq)).
+    consume_req(ReqList, MatchReq),
+    craft_item(ObjId, RecipeItem, Class, lists:reverse(MatchReq)).
 
-valid_location(<<"wall">>, GlobalPos, LocalPos) ->
+valid_location(<<"wall">>, QueryPos) ->
     lager:info("Valid location for wall"),
     %TODO determine atom vs binary for class and subclass
-    MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos, 
-                                       pos = LPos, 
+    MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
                                        class = structure,
-                                       subclass = <<"wall">>}) when GPos =:= GlobalPos, 
-                                                                    LPos =:= LocalPos -> N end),
-    LocalObjs = db:select(local_obj, MS),
+                                       subclass = <<"wall">>}) when Pos =:= QueryPos -> N end),
+    Objs = db:select(obj, MS),
 
-    % True if no local_objs, False if Wall local_objs
-    LocalObjs =:= [];
+    % True if no objs, False if Wall objs
+    Objs =:= [];
 
-valid_location(_, GlobalPos, LocalPos) ->
+valid_location(_, QueryPos) ->
     %TODO determine atom vs binary for class and subclass
-    MS = ets:fun2ms(fun(N = #local_obj{global_pos = GPos, 
-                                       pos = LPos, 
-                                       class = structure,
-                                       subclass = Subclass}) when Subclass =/= <<"wall">>,
-                                                                  GPos =:= GlobalPos, 
-                                                                  LPos =:= LocalPos -> N end),
-    LocalObjs = db:select(local_obj, MS),
-    lager:info("LocalObjs: ~p", [LocalObjs]),
+    MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
+                                 class = structure,
+                                 subclass = Subclass}) when Subclass =/= <<"wall">>,
+                                                            Pos =:= QueryPos -> N end),
+    Objs = db:select(obj, MS),
+    lager:info("Objs: ~p", [Objs]),
 
-    % True if no local_objs, False if Wall local_objs
-    LocalObjs =:= [].
-
-
+    % True if no objs, False if Wall objs
+    Objs =:= [].
 %
 % Internal functions
 %
@@ -236,7 +228,7 @@ consume_item(true, ItemId, Quantity) ->
     item:update(ItemId, Quantity).
 
 find_type(Key, Value) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"local_obj_type">>, {Key, Value}),
+    Cursor = mongo:find(mdb:get_conn(), <<"obj_type">>, {Key, Value}),
     Structures = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Structures.

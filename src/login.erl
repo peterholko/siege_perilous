@@ -7,7 +7,7 @@
 %% Include files
 %%
 
--include("packet.hrl").
+-include("common.hrl").
 -include("schema.hrl").
 
 %%
@@ -37,6 +37,7 @@ login([], [Name, Pass, Socket]) ->
     Player = #player {id = PlayerId,
                       name = Name,
                       password = Pass},
+
     Connection = #connection {player = PlayerId,
                               process = Socket},
 
@@ -48,7 +49,7 @@ login([], [Name, Pass, Socket]) ->
     db:write(Connection),
     db:write(ExploredMap),
     
-    obj:create(unit, <<"Hero Mage">>),
+    obj:create({2,7}, PlayerId, unit, <<"hero">>, <<"Hero Mage">>, none),
 
     {success, PlayerId};
 
