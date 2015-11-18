@@ -587,7 +587,6 @@ function onMessage(evt) {
 
             setPlayerPos();
             clearLocalMap();
-            drawExplore(jsonData.objs);
             drawLocalMap(jsonData.map);
             updateLocalObj(jsonData.objs);            
         }
@@ -599,10 +598,10 @@ function onMessage(evt) {
             drawMap();
             drawObjs();
         }
-        else if(jsonData.packet == "local_perception") {
+        else if(jsonData.packet == "perception") {
             updateLocalObj(jsonData.objs);
         }
-        else if(jsonData.packet == "local_map") {
+        else if(jsonData.packet == "map") {
             drawLocalMap(jsonData.map);
         }
         else if(jsonData.packet == "explore") {

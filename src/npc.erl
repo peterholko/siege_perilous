@@ -142,12 +142,12 @@ terminate(_Reason, _) ->
 filter_targets([], Targets) ->
     Targets;
 
-filter_targets([Obj | Rest], Targets) ->
+filter_targets([PerceptionObj | Rest], Targets) ->
     Player = get(player_id),
-    ObjPlayer = maps:get(<<"player">>, Obj),
+    ObjPlayer = maps:get(<<"player">>, PerceptionObj),
     NewTargets = case valid_target(Player, ObjPlayer) of
                      true ->
-                         Obj = get_obj(Obj),
+                         Obj = get_obj(PerceptionObj),
                          [Obj | Targets];
                      false ->
                          Targets
@@ -159,8 +159,8 @@ valid_target(_, -1) -> false;
 valid_target(Player, ObjPlayer) when Player =:= ObjPlayer -> false;
 valid_target(_, _) -> true.
 
-get_obj(Obj) ->
-    Id = maps:get(<<"id">>, Obj),
+get_obj(PerceptionObj) ->
+    Id = maps:get(<<"id">>, PerceptionObj),
     [Obj] = db:read(obj, Id),
     Obj.
 

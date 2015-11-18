@@ -101,7 +101,7 @@ do_recalculate() ->
     send_perception(EntitiesToUpdate).
 
 filter_objs(AllObj) ->
-    F = fun(Obj) -> Obj#obj.vision end,
+    F = fun(Obj) -> Obj#obj.vision > 0 end,
     lists:filter(F, AllObj).
 
 entity_perception([]) ->

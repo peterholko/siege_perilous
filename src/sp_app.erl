@@ -44,8 +44,7 @@ start(_Type, _Args) ->
     map:start(),
 
     lager:info("Starting perception"),
-    g_perception:start(),
-    l_perception:start(),
+    perception:start(),
 
     lager:info("Starting NPC manager"),
     npc_mgr:start(),

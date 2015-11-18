@@ -87,7 +87,7 @@ check_events([Event | Rest], PrevRecalc) ->
                        Event#event.player_process),
 
     NewRecalc = Recalc or PrevRecalc,
-
+    
     db:dirty_delete(event, Event#event.id),
 
     check_events(Rest, NewRecalc).

@@ -55,7 +55,7 @@ is_adjacent(SourcePos, TargetPos) ->
     lists:member(TargetPos, Neighbours).
 
 movement_cost(Pos) ->
-    [Tile] = db:dirty_read(map, {1, Pos}),
+    [Tile] = db:dirty_read(map, Pos),
     TileType = Tile#map.tile - 1,
     MoveCost = case TileType of
                    ?PLAINS -> ?PLAINS_MC;

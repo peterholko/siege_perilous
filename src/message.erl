@@ -38,10 +38,10 @@ message_handle(<<"login">>, Message) ->
             %Stored player id in process dict for easy access
             put(player_id, PlayerId),
 
-            {PlayerId, Explored, Objs} = player:init_perception(PlayerId),
+            {PlayerId, ExploredMap, Objs} = player:init_perception(PlayerId),
             Perception = [{<<"packet">>, <<"login">>},
                           {<<"player">>, PlayerId},
-                          {<<"explored">>, Explored},
+                          {<<"map">>, ExploredMap},
                           {<<"objs">>, convert_id(Objs, [])}],
             jsx:encode(Perception)
     end;

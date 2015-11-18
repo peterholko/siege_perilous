@@ -63,7 +63,7 @@ move(Id, Pos) ->
     [Obj] = db:read(obj, Id),
 
     NewObj = Obj#obj {pos = Pos,
-                           state = none},
+                      state = none},
     db:write(NewObj),
 
     %Update wall effect
@@ -74,7 +74,7 @@ move(Id, Pos) ->
 
     %Add explored if object is granted vision
     lager:debug("Adding explored tiles"),
-    case Obj#obj.vision of
+    case Obj#obj.vision > 0 of
         true ->
             map:add_explored(Obj#obj.player, Pos),
             game:trigger_explored(Obj#obj.player);
@@ -98,7 +98,7 @@ update_dead(Id) ->
     [Obj] = db:read(obj, Id),
     NewObj = Obj#obj {class = corpse,
                       state = dead,
-                      vision = false},
+                      vision = 0},
     db:write(NewObj),
 
     %Trigger new perception
@@ -230,6 +230,7 @@ update_wall_effect(_, _Obj) ->
 
 movement_cost(_Obj, NextPos) ->
     %Check unit skills 
+    lager:info("NextPos: ~p", [NextPos]),
     map:movement_cost(NextPos) * 8.
 
 remove(Id) ->
@@ -296,8 +297,8 @@ stats([Obj]) ->
     stats(Obj);
 
 stats(Obj) ->
-    {TypeName} = bson:lookup(type_name, Obj),
-    {ObjType} = find_type(TypeName),
+    {Name} = bson:lookup(name, Obj),
+    {ObjType} = find_type(Name),
     bson:merge(Obj, ObjType).
 
 info(ObjM) ->
