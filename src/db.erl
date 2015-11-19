@@ -52,6 +52,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(npc, [{disc_copies, [node()]}, {attributes, record_info(fields, npc)}]),    
     {atomic, ok} = mnesia:create_table(effect, [{disc_copies, [node()]}, {attributes, record_info(fields, effect)}]),    
     {atomic, ok} = mnesia:create_table(combat, [{ram_copies, [node()]}, {attributes, record_info(fields, combat)}]),  
+    {atomic, ok} = mnesia:create_table(world, [{disc_copies, [node()]}, {attributes, record_info(fields, world)}]),  
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
@@ -68,7 +69,7 @@ create_schema() ->
 start() ->
     mnesia:start(),
     mnesia:wait_for_tables([counter, player, connection, map, obj, explored_map, perception,
-                            event, action, resource], 1000).
+                            event, action, resource, world], 1000).
 
 write(R) ->
     F = fun() -> mnesia:write(R) end,
@@ -133,7 +134,8 @@ test_tables() ->
      {connection, 100, none},     
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
-     {counter, player, 1000}
+     {counter, player, 1000},
+     {world, timeofday, day}
     ].
 
 reset_tables() ->

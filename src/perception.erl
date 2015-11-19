@@ -109,7 +109,7 @@ entity_perception([]) ->
 
 entity_perception([Entity | Rest]) ->
     lager:debug("Entity perception: ~p", [Entity]),    
-    NearbyObjs = map:get_nearby_objs(Entity#obj.pos, ?LOS),
+    NearbyObjs = map:get_nearby_objs(Entity#obj.pos, Entity#obj.vision),
     lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
     put(Entity#obj.id, NearbyObjs),
 

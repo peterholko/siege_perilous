@@ -14,6 +14,9 @@
 -record(game, {perception,
                explored}).
 
+-record(world, {attr,
+                value}).
+
 -record(resource, {index, 
                    name,
                    max,
@@ -78,8 +81,8 @@
 
 -record(npc, {id,
               target = none,
-              orders = guard,
-              orders_data = {2,7},
+              orders = wander,
+              orders_data = none,
               plan = [],
               new_plan = false,
               task_state = none,

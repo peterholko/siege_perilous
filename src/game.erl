@@ -18,6 +18,7 @@
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
 
+
 %%
 %% API Functions
 %%
@@ -73,6 +74,8 @@ init([]) ->
 
     Data = #game {perception = Perception,
                   explored = Explored},
+
+
     {ok, Data}.
 
 terminate(_Reason, _) ->

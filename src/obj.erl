@@ -197,7 +197,7 @@ is_nearby_hero(Target, HeroPlayer) ->
                                                             Subclass =:= <<"hero">> -> N end),
     [Hero] = db:select(obj, MS),
     Distance = map:distance(Hero#obj.pos, Target#obj.pos),
-    Distance =< ?LOS.
+    Distance =< Hero#obj.vision.
 
 process_subclass(Id, <<"npc">>) ->
     NPC = #npc {id = Id},

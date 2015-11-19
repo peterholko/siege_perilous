@@ -38,6 +38,9 @@ loop(NumTick, LastTime, GamePID) ->
     %Send out new explored maps
     process_explored(Explored),
 
+    %Check day/night transition
+    process_transition(NumTick),
+
     %Execute NPC actions
     execute_npc(NumTick),
 
@@ -202,6 +205,20 @@ process_explored([Player | Rest]) ->
 
     process_explored(Rest).
 
+process_transition(0) -> nothing;
+process_transition(NumTick) when (NumTick rem 600) =:= 0 ->
+    Objs = ets:tab2list(obj),
+    [TimeOfDay] = db:read(world, timeofday),
+    NewTimeOfDay = TimeOfDay#world { value = timeofday(TimeOfDay#world.value)},
+    db:write({world, timeofday, NewTimeOfDay}),
+
+    F = fun(Obj) ->
+            apply_transition(NewTimeOfDay#world.value, Obj)
+        end,
+
+    lists:foreach(F, Objs);
+process_transition(_) -> nothing.
+
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [Message, Process]),
     Process ! {MessageType, Message};
@@ -219,8 +236,8 @@ execute_villager(NumTick) when (NumTick rem 50) =:= 0 ->
     villager:check_task();
 execute_villager(_) ->
     nothing.
-
-clean_up(NumTick) when (NumTick rem 200) =:= 0 ->
+%TODO Fix the frequency of the clean up, should be based off when the obj dies
+clean_up(NumTick) when (NumTick rem 2000) =:= 0 ->
     lager:debug("Cleaning up dead objs"),
     Objs = ets:tab2list(obj),
 
@@ -249,3 +266,14 @@ send_update_items(ObjId, NewItems, PlayerPid) ->
             nothing
     end.
 
+apply_transition(night, Obj = #obj {name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
+    NewObj = Obj#obj {vision = Vision * 10},
+    db:write(NewObj);
+apply_transition(day, Obj = #obj {name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
+    NewObj = Obj#obj {vision = Vision / 10},
+    db:write(NewObj);
+apply_transition(_, _) ->
+    nothing.
+
+timeofday(day) -> night;
+timeofday(night) -> day.
