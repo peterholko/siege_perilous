@@ -206,11 +206,14 @@ process_explored([Player | Rest]) ->
     process_explored(Rest).
 
 process_transition(0) -> nothing;
-process_transition(NumTick) when (NumTick rem 600) =:= 0 ->
-    Objs = ets:tab2list(obj),
+process_transition(NumTick) when (NumTick rem 100) =:= 0 ->
+    lager:info("Processing transition"),
     [TimeOfDay] = db:read(world, timeofday),
-    NewTimeOfDay = TimeOfDay#world { value = timeofday(TimeOfDay#world.value)},
-    db:write({world, timeofday, NewTimeOfDay}),
+    NewValue = timeofday(TimeOfDay#world.value),
+    NewTimeOfDay = TimeOfDay#world { value = NewValue},
+    db:write(NewTimeOfDay),
+
+    Objs = ets:tab2list(obj),
 
     F = fun(Obj) ->
             apply_transition(NewTimeOfDay#world.value, Obj)
@@ -266,11 +269,23 @@ send_update_items(ObjId, NewItems, PlayerPid) ->
             nothing
     end.
 
-apply_transition(night, Obj = #obj {name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
-    NewObj = Obj#obj {vision = Vision * 10},
+apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
+    %Increase hp x 10
+    [ObjM] = obj:get(Id),
+    {Hp} = bson:lookup(hp, ObjM),
+    obj:update(Id, hp, Hp * 10),
+
+    %Increase vision x 10
+    NewObj = Obj#obj {vision = erlang:trunc(Vision * 10)},
     db:write(NewObj);
-apply_transition(day, Obj = #obj {name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
-    NewObj = Obj#obj {vision = Vision / 10},
+apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
+    %Decrease hp x 10
+    [ObjM] = obj:get(Id),
+    {Hp} = bson:lookup(hp, ObjM),
+    obj:update(Id, hp, Hp / 10),
+
+    %Decrease vision / 10
+    NewObj = Obj#obj {vision = erlang:trunc(Vision / 10)},
     db:write(NewObj);
 apply_transition(_, _) ->
     nothing.
