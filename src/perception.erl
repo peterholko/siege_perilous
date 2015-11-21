@@ -89,16 +89,7 @@ do_recalculate() ->
 
     lager:debug("Calculate perceptions ~p", [Entities]),
     %Calculate each player entity perception and store to process dict
-    entity_perception(Entities),
-
-    %Get all entity perceptions from process dict
-    EntityPerceptions = get(),
-
-    %Compare new to previous perception
-    EntitiesToUpdate = compare_perception(EntityPerceptions, []),
-
-    lager:debug("Entities to update: ~p", [EntitiesToUpdate]),
-    send_perception(EntitiesToUpdate).
+    entity_perception(Entities, AllObj).
 
 filter_objs(AllObj) ->
     F = fun(Obj) -> Obj#obj.vision > 0 end,
@@ -107,28 +98,24 @@ filter_objs(AllObj) ->
 entity_perception([]) ->
     done;
 
-entity_perception([Entity | Rest]) ->
+entity_perception([Entity | Rest], AllObj) ->
     lager:debug("Entity perception: ~p", [Entity]),    
     NearbyObjs = map:get_nearby_objs(Entity#obj.pos, Entity#obj.vision),
     lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
-    put(Entity#obj.id, NearbyObjs),
 
-    entity_perception(Rest).
+    %Get old perception
+    OldPerception = db:dirty_read(perception, Entity#obj.id),
 
-compare_perception([], EntitiesUpdated) ->
-    EntitiesUpdated;
+    %Check if new perception equals old perception
+    Result = perception_equal(NearbyObjs, OldPerception),
 
-compare_perception([{random_seed, _} | Rest], EntitiesUpdated) ->
-    compare_perception(Rest, EntitiesUpdated);
+    %Store new perception if is different than old perception
+    store_perception(Result, Entity#obj.id, NearbyObjs),
+    
+    %Send new perception if different than old perception
+    send_perception(Result, Entity#obj.player, Entity#obj.id, NearbyObjs),    
 
-compare_perception([{EntityId, NewPerception} | Rest], EntitiesUpdated) ->
-    OldPerception = db:dirty_read(perception, EntityId),
-
-    Result = perception_equal(NewPerception, OldPerception),
-
-    NewEntitiesUpdated = store_perception(EntitiesUpdated, EntityId, NewPerception, Result),
-
-    compare_perception(Rest, NewEntitiesUpdated).
+    entity_perception(Rest, AllObj).
 
 perception_equal(_NewData, []) ->
     false;
@@ -136,21 +123,16 @@ perception_equal(_NewData, []) ->
 perception_equal(New, [Old]) ->
     New =:= Old#perception.data.
 
-store_perception(Entities, EntityId, NewPerception, false) ->
-    db:dirty_write(#perception {entity=EntityId, data=NewPerception}),
-    [{EntityId, NewPerception} | Entities];
+store_perception(false, EntityId, NewPerception) ->
+    db:dirty_write(#perception {entity=EntityId, data=NewPerception});
+store_perception(_Result, _EntityId, _NewPerception) ->
+    nothing.
 
-store_perception(Entities, _EntityId, _NewPerception, _Result) ->
-    Entities.
-
-send_perception([]) ->
-    lager:debug("Sent all perception updates");
-
-send_perception([{EntityId, NewPerception} | Players]) ->
-    [Entity] = db:dirty_read(obj, EntityId),
-    [Conn] = db:dirty_read(connection, Entity#obj.player),
-    send_to_process(Conn#connection.process, {EntityId, NewPerception}),
-    send_perception(Players).
+send_perception(true, _PlayerId, _EntityId, _NewPerception) ->
+    nothing;
+send_perception(false, PlayerId, EntityId, NewPerception) ->
+    [Conn] = db:dirty_read(connection, PlayerId),
+    send_to_process(Conn#connection.process, {EntityId, NewPerception}).
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [NewPerception, Process]),
@@ -185,3 +167,19 @@ get_unique_players([Obj | Rest], Players) ->
 valid_player(PlayerId) when PlayerId < 1 -> false;
 valid_player(_PlayerId) -> true.
 
+visible_objs(AllObjs, Entity) -> 
+    VisibleObjs = filter_visible(AllObjs, Entity),
+
+
+
+filter_visible(AllObjs, #obj {player = Player}) when Player =:= 99 ->
+    F = fun(Obj, VisibleObjs) ->
+            NewVisibleObjs = case obj:has_effect(Obj#obj.id, <<"sanctuary">>) of
+                                 true ->
+                                     VisibleObjs;
+                                 false ->
+
+        end,
+
+
+    lists:foldl(F, [], AllObjs);

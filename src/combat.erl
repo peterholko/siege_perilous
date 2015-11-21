@@ -122,16 +122,14 @@ set_guard(SourceId) ->
 
 set_dodge(SourceId) ->
     [SourceObj] = db:read(obj, SourceId),
-    Effect = SourceObj#obj.effect,
-    NewEffect = [ dodging | Effect],
-    NewSourceObj = SourceObj#obj {effect = NewEffect},
 
     Action = #action {source_id = SourceId,
                       type = dodge,
                       data = none},
-    
-    db:write(NewSourceObj),    
-    db:write(Action).
+    db:write(Action),
+
+    %Add Dodging effect
+    obj:add_effect(SourceObj#obj.id, <<"dodging">>, none).
 
 process_action(Action) ->
     case Action#action.type of
@@ -158,7 +156,7 @@ process_attack(Action) ->
              is_adjacent(SourceObj, TargetObj) andalso
              is_target_alive(TargetObj) andalso
              is_targetable(TargetObj) andalso
-             (not is_dodged(TargetObj)),
+             (not is_attack_dodged(TargetObj)),
     
     process_dmg(Result, AttackType, SourceObj, TargetObj).
 
@@ -170,13 +168,8 @@ process_guard(Action) ->
 process_dodge(Action) ->
     lager:info("Process dodge"),
     SourceId = Action#action.source_id,
-    [SourceObj] = db:read(obj, SourceId),
-    
-    Effect = SourceObj#obj.effect,
-    NewEffect = lists:delete(dodging, Effect),
-    
-    NewSourceObj = SourceObj#obj {effect = NewEffect},
-    db:write(NewSourceObj).
+
+    obj:remove_effect(SourceId, <<"dodging">>).
 
 get_obj([]) ->
     false;
@@ -201,25 +194,28 @@ is_adjacent(SourceObj, TargetObj) ->
             false
     end.
 
-is_targetable(#obj{effect = Effect} = _Obj) ->
-    HasWall = lists:member(<<"wall">>, Effect),
-    Targetable = not HasWall,
-    lager:info("is_targetable: ~p", [Targetable]),
-    Targetable.
+is_targetable(#obj{id = Id}) ->
+    HasWall = obj:has_effect(Id, <<"wall">>),
+    IsTargetable = not HasWall,
+    lager:info("is_targetable: ~p", [IsTargetable]),
+    IsTargetable.
 
 is_target_alive(#obj {state = State}) when State =:= dead -> 
     false;
 is_target_alive(_) -> 
     true.
 
-is_dodged(#obj {effect = Effect}) ->
-    Result = case lists:member(dodging, Effect) of
-                true -> random:uniform() =< 0.5;
-                false -> false
+is_attack_dodged(#obj {id = Id}) ->
+    IsDodging = obj:has_effect(Id, <<"dodging">>),
+    Result = case IsDodging of
+                 true -> 
+                     random:uniform() =< 0.5;
+                 false ->
+                     false
              end,
     lager:info("IsDodge: ~p", [Result]),
     Result.
-
+                               
 broadcast_dmg(SourceId, TargetId, Dmg, State) ->
     %Convert id here as message is being built
     Message = #{<<"packet">> => <<"dmg">>,

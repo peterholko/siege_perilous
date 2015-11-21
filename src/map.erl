@@ -18,8 +18,9 @@
 -export([load/0, get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/2]).
 -export([get_nearby_objs/3, tileset/0]).
 -export([add_explored/2, is_valid_pos/1]).
--export([neighbours/4, distance/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
+-export([neighbours/4, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -export([movement_cost/1]).
+-export([check_distance/4, distance/2]).
 
 -record(module_data, {}).
 %% ====================================================================

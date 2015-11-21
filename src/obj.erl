@@ -10,10 +10,11 @@
 
 -export([init_perception/1]).
 -export([create/6, remove/1, move/2]).
--export([set_wall_effect/1, is_behind_wall/1]).
+-export([set_wall_effect/1]).
 -export([update_state/2, update_dead/1]).
+-export([add_effect/3, remove_effect/2, has_effect/2]).
 -export([is_empty/1, movement_cost/2]).
--export([get_by_pos/1, get_unit_by_pos/1, get_wall/1]).
+-export([get_by_pos/1, get_unit_by_pos/1]).
 -export([is_nearby_hero/2]).
 
 %% MongoDB functions
@@ -105,6 +106,19 @@ update_dead(Id) ->
     game:trigger_perception(),
 
     NewObj.
+
+add_effect(Id, EffectType, EffectData) ->
+    Effect = #effect {key = {Id, EffectType},
+                      type = EffectType,
+                      data = EffectData},
+    db:write(Effect).
+   
+remove_effect(Id, EffectType) ->
+    db:delete(effect, {Id, EffectType}).
+
+has_effect(Id, EffectType) ->
+    Result = db:dirty_read(effect, {Id, EffectType}),
+    length(Result) > 0.
 
 is_empty(Pos) ->
     Objs = db:dirty_index_read(obj, Pos, #obj.pos),
@@ -210,21 +224,11 @@ is_add_remove_wall(false) -> remove;
 is_add_remove_wall(_State = none) -> add;
 is_add_remove_wall(_State) -> remove.
 
-update_wall_effect(add, #obj{id = Id,
-                             pos = Pos,
-                             class = Class}) when Class =:= unit ->
-    Wall = obj:get_wall(Pos),
-
-    Effect = #effect {key = {Id, <<"wall">>},
-                      type = <<"wall">>,
-                      data = Wall#obj.id},
-                            
-    db:write(Effect);
-
-update_wall_effect(remove, #obj{id = Id,
-                                class = Class}) when Class =:= unit ->
-    db:delete(effect, {Id, <<"wall">>});
-
+update_wall_effect(add, #obj{id = Id, pos = Pos, class = Class}) when Class =:= unit ->
+    Wall = get_wall(Pos),
+    add_effect(Id, <<"wall">>, Wall#obj.id);
+update_wall_effect(remove, #obj{id = Id, class = Class}) when Class =:= unit ->
+    remove_effect(Id, <<"wall">>);
 update_wall_effect(_, _Obj) ->
     lager:info("Not applying wall effect to non-unit").
 
