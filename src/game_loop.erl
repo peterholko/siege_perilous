@@ -270,7 +270,9 @@ send_update_items(ObjId, NewItems, PlayerPid) ->
     end.
 
 apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
-    %Increase hp x 10
+    %Apply night effect 
+    obj:add_effect(Id, <<"night_undead">>, none),
+
     [ObjM] = obj:get(Id),
     {Hp} = bson:lookup(hp, ObjM),
     obj:update(Id, hp, Hp * 10),
@@ -279,14 +281,22 @@ apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when
     NewObj = Obj#obj {vision = erlang:trunc(Vision * 10)},
     db:write(NewObj);
 apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
-    %Decrease hp x 10
-    [ObjM] = obj:get(Id),
-    {Hp} = bson:lookup(hp, ObjM),
-    obj:update(Id, hp, Hp / 10),
+    %Check if night undead is applied 
+    case obj:has_effect(Id, <<"night_undead">>) of
+        true ->
+            obj:remove_effect(Id, <<"night_undead">>),
 
-    %Decrease vision / 10
-    NewObj = Obj#obj {vision = erlang:trunc(Vision / 10)},
-    db:write(NewObj);
+            %Decrease hp x 10
+            [ObjM] = obj:get(Id),
+            {Hp} = bson:lookup(hp, ObjM),
+            obj:update(Id, hp, Hp / 10),
+
+            %Decrease vision / 10
+            NewObj = Obj#obj {vision = erlang:trunc(Vision / 10)},
+            db:write(NewObj);
+        false ->
+            nothing
+    end;
 apply_transition(_, _) ->
     nothing.
 

@@ -153,6 +153,7 @@ process_attack(Action) ->
     
     Result = is_valid_obj(SourceObj) andalso
              is_valid_obj(TargetObj) andalso
+             is_visible(SourceObj, TargetObj) andalso
              is_adjacent(SourceObj, TargetObj) andalso
              is_target_alive(TargetObj) andalso
              is_targetable(TargetObj) andalso
@@ -181,6 +182,9 @@ is_valid_obj(false) ->
     false;
 is_valid_obj(_Obj) ->
     true.
+
+is_visible(SourceObj, TargetObj) ->
+    perception:is_visible(SourceObj#obj.id, TargetObj#obj.id).
 
 is_adjacent(SourceObj, TargetObj) ->
     {SX, SY} = SourceObj#obj.pos,

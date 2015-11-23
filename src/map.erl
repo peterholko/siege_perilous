@@ -239,8 +239,7 @@ build_message(MapObj, Objs) ->
         <<"y">> => Y,
         <<"class">> => MapObj#obj.class,
         <<"type">> => MapObj#obj.name, %TODO fix client to accept name instead of type
-        <<"state">> => MapObj#obj.state,
-        <<"effect">> => MapObj#obj.effect} | Objs].
+        <<"state">> => MapObj#obj.state} | Objs].
 
 distance(SourcePos, TargetPos) ->
     SourceCube = odd_q_to_cube(SourcePos),

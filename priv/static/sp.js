@@ -1,6 +1,6 @@
 var websocket;
 var stage;
-var render = 0;
+var render = false;
 var lastRenderTime = 0;
 var loaderQueue;
 var imagesQueue = [];
@@ -198,12 +198,12 @@ function init() {
 };
 
 function handleRender(event) {
-    if(render > 0) {
+    if(render) {
         var currTime = createjs.Ticker.getTime();
-        if((currTime - lastRenderTime) >= 500) {
+        if((currTime - lastRenderTime) >= 100) {
             drawLocalObj();
             lastRenderTime = currTime;
-            render--;
+            render = false;
         }
     }
 };
@@ -876,7 +876,7 @@ function drawLocalMap(map) {
 };
 
 function updateLocalObj(objs) {
-    render++;
+    render = true;
 
     for(var i = 0; i < objs.length; i++) {        
         var obj = objs[i];
@@ -954,28 +954,29 @@ function drawLocalObj() {
         } 
         else if(localObj.hasOwnProperty('icon'))
         {
-            var pixel = hex_to_pixel(localObj.x, localObj.y);
+            if(localObj.op == 'remove') {
+               var cont = localObj.icon.parent;
+                cont.removeChild(localObj.icon);
 
-            localObj.icon.x = pixel.x
-            localObj.icon.y = pixel.y
+                delete localObjs[id];
+            } else {               
+                var pixel = hex_to_pixel(localObj.x, localObj.y);
 
-            localObj.op = 'none';
+                localObj.icon.x = pixel.x
+                localObj.icon.y = pixel.y
 
-            if(localObj.player == playerId) {
-                if(is_hero(localObj.type)) {
-                    visibleTiles = range(localObj.x, localObj.y, 2);
-                    c_x = 640 - 36 - pixel.x;
-                    c_y = 400 - 36 - pixel.y;
-                    
-                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+                localObj.op = 'none';
+
+                if(localObj.player == playerId) {
+                    if(is_hero(localObj.type)) {
+                        visibleTiles = range(localObj.x, localObj.y, 2);
+                        c_x = 640 - 36 - pixel.x;
+                        c_y = 400 - 36 - pixel.y;
+                        
+                        createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+                    }
                 }
             }
-        }
-        else if(localObj.op == 'remove') {
-            var cont = localObj.icon.parent;
-            cont.removeChild(localObj.icon);
-
-            delete localObjs[id];
         }
     }
 

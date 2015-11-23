@@ -257,8 +257,7 @@ compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance -
 
 remove_walled(ObjList) ->
     F = fun(Obj) ->
-            ObjEffect = Obj#obj.effect,
-            IsWalled = lists:member(<<"wall">>, ObjEffect),
+            IsWalled = obj:has_effect(Obj#obj.id, <<"wall">>),
             not IsWalled
         end,
     lists:filter(F, ObjList).

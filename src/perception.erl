@@ -16,6 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([recalculate/0, broadcast/3]).
+-export([is_visible/2]).
 
 %% ====================================================================
 %% External functions
@@ -29,6 +30,16 @@ recalculate() ->
 
 broadcast(SourcePos, TargetPos, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, MessageData}).
+
+is_visible(SourceId, TargetId) ->
+    [Perception] = db:read(perception, SourceId),
+
+    F = fun(MapObj) ->
+           MapObjId = maps:get(<<"id">>, MapObj),
+           TargetId =:= MapObjId
+        end,
+
+    lists:any(F, Perception#perception.data).
 
 %% ====================================================================
 %% Server functions
@@ -95,12 +106,12 @@ filter_objs(AllObj) ->
     F = fun(Obj) -> Obj#obj.vision > 0 end,
     lists:filter(F, AllObj).
 
-entity_perception([]) ->
+entity_perception([], _AllObj) ->
     done;
 
 entity_perception([Entity | Rest], AllObj) ->
     lager:debug("Entity perception: ~p", [Entity]),    
-    NearbyObjs = map:get_nearby_objs(Entity#obj.pos, Entity#obj.vision),
+    NearbyObjs = visible_objs(AllObj, Entity),
     lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
 
     %Get old perception
@@ -131,7 +142,7 @@ store_perception(_Result, _EntityId, _NewPerception) ->
 send_perception(true, _PlayerId, _EntityId, _NewPerception) ->
     nothing;
 send_perception(false, PlayerId, EntityId, NewPerception) ->
-    [Conn] = db:dirty_read(connection, PlayerId),
+    [Conn] = db:read(connection, PlayerId),
     send_to_process(Conn#connection.process, {EntityId, NewPerception}).
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
@@ -144,7 +155,7 @@ broadcast_to_objs(Objs, Message) ->
     Players = get_unique_players(Objs, []),
     
     F = fun(Player) ->
-            [Conn] = db:dirty_read(connection, Player),
+            [Conn] = db:read(connection, Player),
             lager:debug("Broadcasting ~p to ~p", [Message, Player]),
             Conn#connection.process ! {broadcast, Message}
         end,
@@ -167,19 +178,38 @@ get_unique_players([Obj | Rest], Players) ->
 valid_player(PlayerId) when PlayerId < 1 -> false;
 valid_player(_PlayerId) -> true.
 
-visible_objs(AllObjs, Entity) -> 
-    VisibleObjs = filter_visible(AllObjs, Entity),
-
-
-
-filter_visible(AllObjs, #obj {player = Player}) when Player =:= 99 ->
-    F = fun(Obj, VisibleObjs) ->
-            NewVisibleObjs = case obj:has_effect(Obj#obj.id, <<"sanctuary">>) of
-                                 true ->
-                                     VisibleObjs;
-                                 false ->
-
+visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= 99 ->
+    F = fun(Target, Visible) ->
+            Result = map:distance(Pos, Target#obj.pos) =< Vision andalso
+                     not obj:has_effect(Target#obj.id, <<"sanctuary">>),
+            
+            case Result of
+                true -> [build_message(Target) | Visible];
+                false -> Visible
+            end
         end,
 
-
     lists:foldl(F, [], AllObjs);
+
+visible_objs(AllObjs, #obj {pos = Pos, vision = Vision}) ->
+    F = fun(Target, Visible) ->
+            Result = map:distance(Pos, Target#obj.pos) =< Vision,
+
+            case Result of
+                true -> [build_message(Target) | Visible];
+                false -> Visible
+            end
+        end,
+
+    lists:foldl(F, [], AllObjs).
+
+build_message(MapObj) ->
+    {X, Y} = MapObj#obj.pos,
+    #{<<"id">> => MapObj#obj.id, 
+      <<"player">> => MapObj#obj.player, 
+      <<"x">> => X,
+      <<"y">> => Y,
+      <<"class">> => MapObj#obj.class,
+      <<"type">> => MapObj#obj.name, %TODO fix client to accept name instead of type
+      <<"state">> => MapObj#obj.state}.
+
