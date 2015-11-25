@@ -62,6 +62,7 @@ create_schema() ->
     mnesia:add_table_index(event, type),
     mnesia:add_table_index(obj, player),
     mnesia:add_table_index(obj, pos),
+    mnesia:add_table_index(obj, subclass),
     mnesia:add_table_index(htn, parent),
 
     mnesia:stop().

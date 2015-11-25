@@ -32,9 +32,9 @@
   </tile>
   <tile id="2">
    <properties>
-    <property name="name" value="Graveyard"/>
+    <property name="name" value="Monolith"/>
    </properties>
-   <image width="72" height="72" source="coffin-closed.png"/>
+   <image width="72" height="72" source="monolith.png"/>
   </tile>
   <tile id="3">
    <properties>

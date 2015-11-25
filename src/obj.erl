@@ -15,7 +15,7 @@
 -export([add_effect/3, remove_effect/2, has_effect/2]).
 -export([is_empty/1, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1]).
--export([is_nearby_hero/2]).
+-export([is_hero_nearby/2, is_monolith_nearby/1]).
 
 %% MongoDB functions
 -export([get/1, get_info/1, get_type/1, get_stats/1]).
@@ -68,13 +68,14 @@ move(Id, Pos) ->
     db:write(NewObj),
 
     %Update wall effect
-    lager:debug("Updating wall effect"),
     IsBehindWall = is_behind_wall(Pos),
-    AddOrRemove = is_add_remove_wall(IsBehindWall),
-    update_wall_effect(AddOrRemove, NewObj),
+    apply_wall(IsBehindWall, NewObj),
+
+    %Update sanctuary effect
+    IsNearbyMonolith = is_monolith_nearby(Pos),
+    apply_sanctuary(IsNearbyMonolith, NewObj),
 
     %Add explored if object is granted vision
-    lager:debug("Adding explored tiles"),
     case Obj#obj.vision > 0 of
         true ->
             map:add_explored(Obj#obj.player, Pos),
@@ -125,14 +126,8 @@ is_empty(Pos) ->
     Units = filter_units(Objs),
     Units =:= [].
 
-is_behind_wall(QueryPos) ->
-    MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
-                                 class = structure,
-                                 state = State,
-                                 subclass = <<"wall">>}) when Pos =:= QueryPos,
-                                                              State =/= dead -> N end),
-    Objs = db:select(obj, MS),
-    Objs =/= [].
+
+
 
 set_wall_effect(_ = #obj{id = _Id,
                          subclass = Subclass,
@@ -203,15 +198,52 @@ get_wall(QueryPos) ->
     [Wall] = db:select(obj, MS),
     Wall.
 
-is_nearby_hero(_Target = #obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
+is_hero_nearby(_Target = #obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
     true;
-is_nearby_hero(Target, HeroPlayer) ->
+is_hero_nearby(Target, HeroPlayer) ->
     MS = ets:fun2ms(fun(N = #obj{player = Player,
                                  subclass = Subclass}) when Player =:= HeroPlayer,
                                                             Subclass =:= <<"hero">> -> N end),
     [Hero] = db:select(obj, MS),
     Distance = map:distance(Hero#obj.pos, Target#obj.pos),
     Distance =< Hero#obj.vision.
+
+is_behind_wall(QueryPos) ->
+    MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
+                                 class = structure,
+                                 state = State,
+                                 subclass = <<"wall">>}) when Pos =:= QueryPos,
+                                                              State =/= dead -> N end),
+    Objs = db:select(obj, MS),
+    Objs =/= [].
+
+is_monolith_nearby(QueryPos) ->
+    Monoliths = db:index_read(obj, <<"monolith">>, #obj.subclass),
+
+    F = fun(Monolith) ->
+            Radius = get_monolith_radius(Monolith#obj.name),
+            Distance = map:distance(Monolith#obj.pos, QueryPos),
+            Distance =< Radius    
+        end,
+
+    lists:any(F, Monoliths).
+
+
+apply_wall(false, #obj {id = Id}) ->
+    case has_effect(Id, <<"wall">>) of
+        true -> remove_effect(Id, <<"wall">>);
+        false -> nothing
+    end;
+apply_wall(true, #obj {id = Id}) ->
+    add_effect(Id, <<"wall">>, none).
+
+apply_sanctuary(false, #obj {id = Id}) ->
+    case has_effect(Id, <<"sanctuary">>) of
+        true -> remove_effect(Id, <<"sanctuary">>);
+        false -> nothing
+    end;
+apply_sanctuary(true, #obj{id = Id}) ->
+    add_effect(Id, <<"sanctuary">>, none).
 
 process_subclass(Id, <<"npc">>) ->
     NPC = #npc {id = Id},
@@ -264,6 +296,8 @@ get_vision({Value}) -> Value.
 %get_direction(1, -1, 0) -> nw;
 %get_direction(_, _, _) -> nw.
 
+get_monolith_radius(<<"Monolith">>) -> 1;
+get_monolith_radius(<<"Greater Monolith">>) -> 2.
 
 %%
 %% Internal MongoDB functions
@@ -320,3 +354,6 @@ info(ObjM) ->
     Stats2 = bson:update(items, Items, Stats1),
     Stats3 = bson:update(skills, Skills, Stats2),
     Stats3.
+
+
+

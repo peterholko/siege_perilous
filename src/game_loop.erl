@@ -206,7 +206,7 @@ process_explored([Player | Rest]) ->
     process_explored(Rest).
 
 process_transition(0) -> nothing;
-process_transition(NumTick) when (NumTick rem 100) =:= 0 ->
+process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 30)) =:= 0 ->
     lager:info("Processing transition"),
     [TimeOfDay] = db:read(world, timeofday),
     NewValue = timeofday(TimeOfDay#world.value),
@@ -261,7 +261,7 @@ remove(_, _Obj) ->
 
 send_update_items(ObjId, NewItems, PlayerPid) ->
     [Obj] = db:read(obj, ObjId),
-    case obj:is_nearby_hero(Obj, Obj#obj.player) of
+    case obj:is_hero_nearby(Obj, Obj#obj.player) of
         true ->
             %Send item perception to player pid
             send_to_process(PlayerPid, new_items, NewItems);

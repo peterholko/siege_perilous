@@ -81,7 +81,7 @@ move_unit(UnitId, Pos) ->
     ValidClass = Unit#obj.class =:= unit,
     ValidAdjacent = map:is_adjacent(Unit#obj.pos, Pos),
     ValidPos = obj:is_empty(Pos),
-    NearbyHero = obj:is_nearby_hero(Unit, Player),
+    NearbyHero = obj:is_hero_nearby(Unit, Player),
 
     lager:info("move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   
  
@@ -323,7 +323,7 @@ assign(SourceId, TargetId) ->
 
     ValidPlayer1 = is_player_owned(SourceObj#obj.player, Player),
     ValidPlayer2 = is_player_owned(TargetObj#obj.player, Player),
-    NearbyHero = obj:is_nearby_hero(SourceObj, Player),
+    NearbyHero = obj:is_hero_nearby(SourceObj, Player),
     
     Result = ValidPlayer1 and ValidPlayer2 and NearbyHero,
 

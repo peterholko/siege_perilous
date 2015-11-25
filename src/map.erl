@@ -464,7 +464,8 @@ store_tile(resource, Tile, Pos) ->
     db:dirty_write(Resource);
 store_tile(poi, Tile, Pos) ->
     [PoiDef] = db:dirty_read(poi_def, list_to_integer(Tile)),
-    obj:create(Pos, -1, poi, <<"poi">>, PoiDef#poi_def.name, none);
+    Subclass = get_poi_subclass(PoiDef#poi_def.name),
+    obj:create(Pos, -1, poi, Subclass, PoiDef#poi_def.name, none);
 store_tile(none, Tile, Pos) ->
     case db:dirty_read(map, Pos) of
         [] ->
@@ -477,3 +478,5 @@ store_tile(none, Tile, Pos) ->
             db:dirty_write(NewTile)
     end.
 
+get_poi_subclass(<<"Monolith">>) -> <<"monolith">>;
+get_poi_subclass(_) -> <<"poi">>.
