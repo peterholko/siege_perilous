@@ -36,10 +36,6 @@ start(_Type, _Args) ->
     lager:info("Starting game process..."),
     game:start(),
 
-    lager:info("Loading map tileset and data"),
-    map:tileset(),
-    map:load(),
-
     lager:info("Starting map process"),
     map:start(),
 

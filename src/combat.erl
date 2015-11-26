@@ -189,7 +189,7 @@ is_visible(SourceObj, TargetObj) ->
 is_adjacent(SourceObj, TargetObj) ->
     {SX, SY} = SourceObj#obj.pos,
     TargetPos = TargetObj#obj.pos,
-    Neighbours = map:neighbours(SX, SY, 32, 38), 
+    Neighbours = map:neighbours(SX, SY), 
     case lists:member(TargetPos, Neighbours) of
         true ->
             true;

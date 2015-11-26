@@ -7,13 +7,28 @@
 -include("schema.hrl").
 
 -export([harvest/3, survey/1, is_valid/2, is_auto/2, quantity/1]).
--export([create/3]).
+-export([create/4]).
 
 harvest(ObjId, ResourceType, Pos) ->
     [Resource] = db:read(resource, Pos),
     Quantity = Resource#resource.quantity,
-    NewResource = Resource#resource {quantity = Quantity - 1},
-    db:write(NewResource),
+    
+    NewQuantity = Quantity - 1,
+
+    case NewQuantity =< 0 of
+        true ->
+            case Resource#resource.obj =/= none of
+                true ->
+                    obj:remove(Resource#resource.obj);
+                false ->
+                    nothing
+            end,
+
+            db:delete(resource, Resource#resource.index);
+        false ->
+            NewResource = Resource#resource {quantity = NewQuantity},
+            db:write(NewResource)
+    end,
 
     NewItem = item:create(ObjId, ResourceType, 1),
     [NewItem].
@@ -55,11 +70,20 @@ quantity(Quantity) when Quantity > 10 -> <<"average">>;
 quantity(Quantity) when Quantity >  0 -> <<"low">>;
 quantity(_) -> lager:info("Error converting quantity").
 
-create(ResourceType, Quantity, Pos) ->
+create(ResourceType, Quantity, Pos, WithObj) ->
+    lager:info("Creating resource: (~p / ~p / ~p)", [ResourceType, Quantity, Pos]), 
+    ObjId = case WithObj of
+                true ->    
+                    obj:create(Pos, -1, resource, ResourceType, ResourceType, none);
+                false ->
+                    none
+            end,
+
     Resource = #resource {index = Pos,
                           name = ResourceType,
                           max = Quantity,
-                          quantity = Quantity},
+                          quantity = Quantity,
+                          obj = ObjId},
 
     db:write(Resource).
 

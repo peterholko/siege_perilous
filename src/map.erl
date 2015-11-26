@@ -15,14 +15,15 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([load/0, get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/2]).
--export([get_nearby_objs/3, tileset/0]).
--export([add_explored/2, is_valid_pos/1]).
--export([neighbours/4, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
+-export([get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/2]).
+-export([get_nearby_objs/3]).
+-export([add_explored/2]).
+-export([neighbours/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -export([movement_cost/1]).
 -export([check_distance/4, distance/2]).
+-export([range/2, filter_pos/1]).
 
--record(module_data, {}).
+-record(data, {}).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -47,12 +48,9 @@ get_nearby_objs(X, Y, Dist) ->
 add_explored(Player, {X, Y}) ->
     gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
 
-is_valid_pos({X, Y}) ->
-    is_valid_coord({X, Y}, {?MAP_WIDTH, ?MAP_HEIGHT}).
-
 is_adjacent(SourcePos, TargetPos) ->
     {SX, SY} = SourcePos,
-    Neighbours = map:neighbours(SX, SY, 10, 10),
+    Neighbours = map:neighbours(SX, SY),
     lists:member(TargetPos, Neighbours).
 
 movement_cost(Pos) ->
@@ -71,7 +69,11 @@ movement_cost(Pos) ->
 %% ====================================================================
 
 init([]) ->
-    Data = #module_data{},
+    Data = #data{},
+
+    tileset(),
+    load(),
+
     {ok, Data}.
 
 handle_cast(none, Data) ->  
@@ -82,7 +84,7 @@ handle_cast({add_explored, Player, {X, Y}}, Data) ->
     ExploredMap = db:read(explored_map, Player),
     
     ExploredTiles = get_explored_tiles(ExploredMap),
-    Neighbours = neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
+    Neighbours = neighbours(X, Y),
     NeighboursTwo = neighbours_two(Neighbours, []),
     lager:debug("NeighboursTwo: ~p", [NeighboursTwo]),
     LatestTiles = NeighboursTwo ++ [{X, Y}],
@@ -172,24 +174,24 @@ tiles_msg_format([TileId | Rest], Tiles) ->
 neighbours_two([], List) ->
     List;
 neighbours_two([{X, Y} | Rest], List) ->
-    NewList = neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT) ++ List,
+    NewList = neighbours(X, Y) ++ List,
     neighbours_two(Rest, NewList).
 
 %From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
-neighbours(Q, R, W, H) ->
+neighbours(Q, R) ->
 
     CubeCoords = odd_q_to_cube({Q,R}),
     ConversionTable = conversion_table(),
 
-    find_neighbours(ConversionTable, CubeCoords, [], {W, H}).
+    find_neighbours(ConversionTable, CubeCoords, []).
 
 conversion_table() ->
     [{1,-1,0}, {1,0,-1}, {0,1,-1}, {-1,1,0}, {-1,0,1}, {0,-1,1}].
 
-find_neighbours([], _CubeCoords, Neighbours, _Dimensions) ->
+find_neighbours([], _CubeCoords, Neighbours) ->
     Neighbours;
 
-find_neighbours([Conversion | Rest], CubeCoords, Neighbours, Dimensions) ->
+find_neighbours([Conversion | Rest], CubeCoords, Neighbours) ->
 
     %Use Cube coords as it is easier to find neighbours
     {X, Y, Z} = CubeCoords,
@@ -200,15 +202,26 @@ find_neighbours([Conversion | Rest], CubeCoords, Neighbours, Dimensions) ->
     NeighbourOddQ = cube_to_odd_q(NeighbourCube),
    
     %Check if neighbour is within map
-    ValidCoord = is_valid_coord(NeighbourOddQ, Dimensions),
+    ValidCoord = is_valid_coord(NeighbourOddQ),
     NewNeighbours = add_neighbour(ValidCoord, NeighbourOddQ, Neighbours),
 
-    find_neighbours(Rest, CubeCoords, NewNeighbours, Dimensions).
+    find_neighbours(Rest, CubeCoords, NewNeighbours).
 
 add_neighbour(true, NeighbourOddQ, Neighbours) ->
     [NeighbourOddQ | Neighbours];
 add_neighbour(false, _NeighbourOddQ, Neighbours) ->
     Neighbours.
+
+range(Pos, N) ->
+    {CX, CY, CZ} = odd_q_to_cube(Pos),
+    S = lists:seq(-1 * N, N), 
+    [cube_to_odd_q({CX + X, CY + Y, CZ + Z}) || X <- S, Y <- S, Z <- S, X + Y + Z  == 0].
+
+filter_pos(ListOfPos) ->
+    F = fun(Pos) ->
+            is_valid_coord(Pos)
+        end,
+    lists:filter(F, ListOfPos).
 
 nearby_objs(SourcePos, LOSDist) ->
     T = fun() ->
@@ -250,18 +263,14 @@ distance(SourcePos, TargetPos) ->
 
     (abs(SX - TX) + abs(SY - TY) + abs(SZ - TZ)) div 2.
 
-is_valid_coord({X, Y}, {Width, Height}) ->
-    GuardX = (X >= 0) and (X < Width),
-    GuardY = (Y >= 0) and (Y < Height),
-    
-    Result = if
-                (GuardX and GuardY) ->
-                    true;
-                true ->
-                    false
-                end,
-    
-    Result.
+is_valid_coord({X, Y}) ->
+    is_valid_coord(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT).
+
+is_valid_coord(X, Y, Width, Height) when (X >= 0) and (X < Width) and 
+                                         (Y >= 0) and (Y < Height) ->
+    true;
+is_valid_coord(_, _, _, _) ->
+    false.
 
 cube_to_odd_q({X, _Y, Z}) ->
     Q = X,
@@ -274,13 +283,6 @@ odd_q_to_cube({Q, R}) ->
     Y = -X-Z,
     {X, Y, Z}.
 
-load() ->
-    lager:info("Parsing map"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
-    {_T, _A, C} = parsexml:parse(Bin),
-    lager:info("Processing layers"),
-    process_layers(C).
-
 tileset() ->
     lager:info("Parsing tileset"),
     {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
@@ -289,6 +291,26 @@ tileset() ->
     JSON = jsx:encode(TilesetList),
     {ok, F} = file:open("tileset.json", write),
     file:write(F, JSON).
+
+load() ->
+    lager:info("Parsing map"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
+    {_T, A, C} = parsexml:parse(Bin),
+    lager:info("Processing map properties..."),
+    process_map_properties(A),
+
+    lager:info("Processing layers..."),
+    process_layers(C).
+
+process_map_properties(MapProperties) ->
+    {<<"width">>, WidthBin} = lists:keyfind(<<"width">>, 1, MapProperties),
+    {<<"height">>, HeightBin} = lists:keyfind(<<"height">>, 1, MapProperties),
+    
+    Width = binary_to_integer(WidthBin),
+    Height = binary_to_integer(HeightBin),
+
+    put(map_width, Width),
+    put(map_height, Height).
 
 process_tileset([], TilesetList) ->
     lager:info("Done processing tileset"),
@@ -478,5 +500,5 @@ store_tile(none, Tile, Pos) ->
             db:dirty_write(NewTile)
     end.
 
-get_poi_subclass(<<"Monolith">>) -> <<"monolith">>;
+get_poi_subclass(<<"Monolith">>) -> <<"Monolith">>;
 get_poi_subclass(_) -> <<"poi">>.

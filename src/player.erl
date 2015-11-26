@@ -127,7 +127,7 @@ harvest(ObjId, Resource) ->
 
     AutoHarvest = resource:is_auto(Objs, Resource),
 
-    add_harvest_event(Result, {ObjId, Obj#obj.pos, Resource, AutoHarvest}, NumTicks).
+    add_harvest_event(Result, {ObjId, Resource, Obj#obj.pos, AutoHarvest}, NumTicks).
 
 loot(SourceId, ItemId) ->
     %TODO add validation
@@ -349,11 +349,11 @@ cancel(SourceId) ->
 add_harvest_event(false, _EventData, _Ticks) ->
     lager:info("Harvest failed"),
     none;
-add_harvest_event(true, {ObjId, Resource, Auto}, NumTicks) ->
+add_harvest_event(true, {ObjId, Resource, Pos, Auto}, NumTicks) ->
     %Update obj state
     obj:update_state(ObjId, harvesting),
 
-    EventData = {ObjId, Resource, NumTicks, Auto},
+    EventData = {ObjId, Resource, Pos, NumTicks, Auto},
     game:add_event(self(), harvest, EventData, ObjId, NumTicks).
 
 add_finish_build(false, _EventData, _Ticks) ->

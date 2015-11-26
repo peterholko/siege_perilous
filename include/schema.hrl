@@ -20,7 +20,8 @@
 -record(resource, {index, 
                    name,
                    max,
-                   quantity}).
+                   quantity,
+                   obj = none}).
 
 -record(resource_def, {tile,
                        name,

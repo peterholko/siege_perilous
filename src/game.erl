@@ -81,8 +81,7 @@ init([]) ->
 terminate(_Reason, _) ->
     ok.
 
-handle_cast(trigger_perception, #game{perception = _Perception,
-                                  explored = Explored}) ->
+handle_cast(trigger_perception, #game{explored = Explored}) ->
     NewData = #game {perception = true,
                      explored = Explored},
     {noreply, NewData};

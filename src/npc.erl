@@ -330,7 +330,7 @@ move_random_pos(NPCId) ->
     [NPCObj] = db:dirty_read(obj, NPCId),
     {X, Y} = NPCObj#obj.pos,
 
-    Neighbours = map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT),
+    Neighbours = map:neighbours(X, Y),
     NewPos = get_wander_pos(false, none, Neighbours),
    
     NewNPC = NPC#npc {task_state = inprogress},

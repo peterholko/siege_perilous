@@ -22,7 +22,10 @@
 loop(NumTick, LastTime, GamePID) ->
     %StartLoopTime = util:get_time(), 
     CurrentTick = counter:increment(tick),	
-    
+ 
+    %Check day/night transition
+    process_transition(NumTick),
+
     %Process events
     EventsRecalc = process_events(CurrentTick),
 
@@ -31,15 +34,12 @@ loop(NumTick, LastTime, GamePID) ->
    
     %Recalculate perception 
     recalculate(EventsRecalc or TriggeredRecalc),
-  
+   
     %Get triggered explored maps
     Explored = game:get_explored(),
 
     %Send out new explored maps
     process_explored(Explored),
-
-    %Check day/night transition
-    process_transition(NumTick),
 
     %Execute NPC actions
     execute_npc(NumTick),
@@ -127,10 +127,10 @@ do_event(move_obj, EventData, PlayerPid) ->
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
-    {ObjId, Resource, NumTicks, Repeat} = EventData,
+    {ObjId, Resource, Pos, NumTicks, Repeat} = EventData,
 
     %Create/update item
-    NewItems = resource:harvest(ObjId, Resource),
+    NewItems = resource:harvest(ObjId, Resource, Pos),
     
     case Repeat of
         true ->
@@ -206,12 +206,14 @@ process_explored([Player | Rest]) ->
     process_explored(Rest).
 
 process_transition(0) -> nothing;
-process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 30)) =:= 0 ->
-    lager:info("Processing transition"),
+process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 60 )) =:= 0 ->
     [TimeOfDay] = db:read(world, timeofday),
     NewValue = timeofday(TimeOfDay#world.value),
     NewTimeOfDay = TimeOfDay#world { value = NewValue},
     db:write(NewTimeOfDay),
+    lager:info("Processing ~p transition", [NewValue]),
+
+    process_spawn_mana(NewValue),
 
     Objs = ets:tab2list(obj),
 
@@ -299,6 +301,36 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
     end;
 apply_transition(_, _) ->
     nothing.
+
+process_spawn_mana(night) ->
+    Monoliths = db:index_read(obj, <<"Monolith">>, #obj.subclass),
+
+    F = fun(Monolith) ->
+            NearbyList = map:filter_pos(map:range(Monolith#obj.pos, 4)),
+            spawn_mana(0, NearbyList)
+        end,
+
+    lists:foreach(F, Monoliths);
+process_spawn_mana(day) -> 
+    Manas = db:index_read(resource, <<"Mana">>, #resource.name),
+
+    F = fun(Mana) ->
+            lager:info("Removing Obj: ~p", [Mana#resource.obj]),
+            obj:remove(Mana#resource.obj),
+            db:delete(resource, Mana#resource.index)
+        end,
+
+    lists:foreach(F, Manas).
+
+spawn_mana(5, _NearbyList) -> nothing;
+spawn_mana(N, NearbyList) -> 
+    NumPos = length(NearbyList),
+    RandomIndex = random:uniform(NumPos),   
+    RandomPos = lists:nth(RandomIndex, NearbyList),
+
+    resource:create(<<"Mana">>, 10, RandomPos, true),
+    NewNearbyList = lists:delete(RandomPos, NearbyList),
+    spawn_mana(N + 1, NewNearbyList).
 
 timeofday(day) -> night;
 timeofday(night) -> day.

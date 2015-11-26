@@ -65,7 +65,7 @@ heuristic(Start, End) ->
     2 * map:distance(Start, End).
 
 get_neighbours(X, Y) ->
-    map:neighbours(X, Y, ?MAP_WIDTH, ?MAP_HEIGHT). 
+    map:neighbours(X, Y). 
     
 get_move_cost(Pos) ->
     MoveCost = case obj:is_empty(Pos) of

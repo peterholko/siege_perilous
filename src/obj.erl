@@ -32,13 +32,11 @@ init_perception(PlayerId) ->
     {ExploredMap, ObjData}.
 
 create(Pos, PlayerId, Class, Subclass, Name, State) ->
-    lager:info("Creating mongodb obj~p", [Name]),
     %Create mongodb obj
     [ObjM] = create(Class, Name),
     {Id} = bson:lookup('_id', ObjM),
     Vision = get_vision(bson:lookup(vision, ObjM)),
 
-    lager:info("Creating mnesia obj~p", [Name]),
     %Create mnesia obj
     Obj = #obj {id = Id,
                 pos = Pos,
@@ -270,8 +268,8 @@ movement_cost(_Obj, NextPos) ->
     map:movement_cost(NextPos) * 8.
 
 remove(Id) ->
+    ok = db:delete(obj, Id),
     mdb:delete(<<"obj">>, Id),
-    db:delete(obj, Id),
     game:trigger_perception().
 
 get_visible_objs([], Objs) ->
@@ -310,7 +308,7 @@ create(structure, TypeName) ->
     insert(UpdatedObjType); %Returns [Obj]
 
 create(Class, TypeName) ->
-    lager:info("Creating ~p ~p", [Class, TypeName]),
+    lager:info("Creating obj (~p / ~p)", [Class, TypeName]),
     {ObjType} = find_type(TypeName),
     insert(ObjType).
 
