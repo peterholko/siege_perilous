@@ -127,7 +127,7 @@ harvest(ObjId, Resource) ->
 
     AutoHarvest = resource:is_auto(Objs, Resource),
 
-    add_harvest_event(Result, {ObjId, Resource, AutoHarvest}, NumTicks).
+    add_harvest_event(Result, {ObjId, Obj#obj.pos, Resource, AutoHarvest}, NumTicks).
 
 loot(SourceId, ItemId) ->
     %TODO add validation

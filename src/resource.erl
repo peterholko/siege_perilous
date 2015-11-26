@@ -6,15 +6,21 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([harvest/2, survey/1, is_valid/2, is_auto/2, quantity/1]).
+-export([harvest/3, survey/1, is_valid/2, is_auto/2, quantity/1]).
+-export([create/3]).
 
-harvest(ObjId, ResourceType) ->
+harvest(ObjId, ResourceType, Pos) ->
+    [Resource] = db:read(resource, Pos),
+    Quantity = Resource#resource.quantity,
+    NewResource = Resource#resource {quantity = Quantity - 1},
+    db:write(NewResource),
+
     NewItem = item:create(ObjId, ResourceType, 1),
     [NewItem].
 
 survey(Pos) ->
     lager:info("Survey ~p", [Pos]),
-    Resources = db:read(resource, {1, Pos}),
+    Resources = db:read(resource, Pos),
 
     F = fun(Resource, ResourceList) ->
             ResourceMap = #{<<"name">> => Resource#resource.name,
@@ -25,7 +31,7 @@ survey(Pos) ->
     lists:foldl(F, [], Resources).
 
 is_valid(Pos, Resource) ->
-    Resources = db:read(resource, {1, Pos}),
+    Resources = db:read(resource, Pos),
     
     F = fun(TileResource) ->
             TileResource#resource.name =:= Resource
@@ -48,6 +54,14 @@ quantity(Quantity) when Quantity > 25 -> <<"high">>;
 quantity(Quantity) when Quantity > 10 -> <<"average">>;
 quantity(Quantity) when Quantity >  0 -> <<"low">>;
 quantity(_) -> lager:info("Error converting quantity").
+
+create(ResourceType, Quantity, Pos) ->
+    Resource = #resource {index = Pos,
+                          name = ResourceType,
+                          max = Quantity,
+                          quantity = Quantity},
+
+    db:write(Resource).
 
 %
 % Internal functions
