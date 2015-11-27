@@ -325,7 +325,7 @@ process_spawn_mana(day) ->
 spawn_mana(5, _NearbyList) -> nothing;
 spawn_mana(N, NearbyList) -> 
     NumPos = length(NearbyList),
-    RandomIndex = random:uniform(NumPos),   
+    RandomIndex = rand:uniform(NumPos),   
     RandomPos = lists:nth(RandomIndex, NearbyList),
 
     resource:create(<<"Mana">>, 10, RandomPos, true),

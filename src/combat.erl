@@ -213,7 +213,7 @@ is_attack_dodged(#obj {id = Id}) ->
     IsDodging = obj:has_effect(Id, <<"dodging">>),
     Result = case IsDodging of
                  true -> 
-                     random:uniform() =< 0.5;
+                     rand:uniform() =< 0.5;
                  false ->
                      false
              end,
@@ -279,7 +279,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     TotalArmor = BaseDef + get_item_value(armor, DefItems),
 
     %Random roll and armor reduction
-    RandomDmg = random:uniform(DmgRange) + TotalDmg,
+    RandomDmg = rand:uniform(DmgRange) + TotalDmg,
     DmgRoll = RandomDmg + TotalDmg,
     ArmorReduction = TotalArmor / (TotalArmor + 50),
 

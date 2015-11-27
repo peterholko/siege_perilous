@@ -46,10 +46,6 @@ init([PlayerId]) ->
     %Store player id in process dict
     put(player_id, PlayerId),
 
-    %Store random seed
-    lager:info("Self init: ~p", [self()]),
-    random:seed(erlang:now()),
-
     %Store npc process in connection table
     [Connection] = db:dirty_read(connection, PlayerId),
     NewConnection = Connection#connection {process = self()},
@@ -279,7 +275,7 @@ get_wander_pos(_, _, []) ->
 get_wander_pos(true, RandomPos, _Neighbours) ->
     RandomPos;
 get_wander_pos(false,  _, Neighbours) ->
-    Random = random:uniform(length(Neighbours)),
+    Random = rand:uniform(length(Neighbours)),
     RandomPos = lists:nth(Random, Neighbours),
     IsEmpty = obj:is_empty(RandomPos),
 
