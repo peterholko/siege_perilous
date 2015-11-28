@@ -16,6 +16,7 @@
 -export([is_empty/1, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1]).
+-export([item_transfer/2]).
 
 %% MongoDB functions
 -export([get/1, get_info/1, get_type/1, get_stats/1]).
@@ -144,6 +145,17 @@ set_wall_effect(_ = #obj{id = _Id,
 set_wall_effect(_) ->
     nothing.
 
+item_transfer(#obj {id = Id, 
+                    subclass = Subclass, 
+                    state = State}, Item) when (Subclass =:= <<"Monolith">>) and 
+                                               (State =:= disabled)  ->
+    {Name} = bson:lookup(name, Item),
+
+    case Name of
+        <<"Mana">> -> update_state(Id, none);
+        _ -> nothing
+    end.
+
 %%
 %% MongoDB Functions
 %%
@@ -218,10 +230,10 @@ is_behind_wall(QueryPos) ->
 is_monolith_nearby(QueryPos) ->
     Monoliths = db:index_read(obj, <<"monolith">>, #obj.subclass),
 
-    F = fun(Monolith) ->
+    F = fun(Monolith) ->            
             Radius = get_monolith_radius(Monolith#obj.name),
             Distance = map:distance(Monolith#obj.pos, QueryPos),
-            Distance =< Radius    
+            (Distance =< Radius) and (Monolith#obj.state =/= disabled)
         end,
 
     lists:any(F, Monoliths).

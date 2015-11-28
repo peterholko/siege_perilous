@@ -26,6 +26,9 @@ loop(NumTick, LastTime, GamePID) ->
     %Check day/night transition
     process_transition(NumTick),
 
+    %Process resource upkeep
+    process_upkeep(NumTick),
+
     %Process events
     EventsRecalc = process_events(CurrentTick),
 
@@ -129,18 +132,26 @@ do_event(harvest, EventData, PlayerPid) ->
     lager:info("Processing harvest event: ~p", [EventData]),
     {ObjId, Resource, Pos, NumTicks, Repeat} = EventData,
 
-    %Create/update item
-    NewItems = resource:harvest(ObjId, Resource, Pos),
-    
-    case Repeat of
+    %Check if resource still exists
+    case resource:is_valid(Pos) of
         true ->
-            game:add_event(PlayerPid, harvest, EventData, ObjId, NumTicks);
+            %Create/update item
+            NewItems = resource:harvest(ObjId, Resource, Pos),
+            
+            case Repeat of
+                true ->
+                    game:add_event(PlayerPid, harvest, EventData, ObjId, NumTicks);
+                false ->
+                    %Update obj state
+                    obj:update_state(ObjId, none)
+            end,
+         
+            send_update_items(ObjId, NewItems, PlayerPid),
+            send_to_process(PlayerPid, event_complete, {harvest, ObjId});
         false ->
-            %Update obj state
-            obj:update_state(ObjId, none)
+            send_to_process(PlayerPid, event_failure, {harvest, invalid_resource})
     end,
- 
-    send_update_items(ObjId, NewItems, PlayerPid),
+
     false; 
 
 do_event(finish_build, EventData, _PlayerPid) ->
@@ -223,6 +234,11 @@ process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 60 )) =:= 0 ->
 
     lists:foreach(F, Objs);
 process_transition(_) -> nothing.
+
+process_upkeep(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
+    process_mana_upkeep();
+process_upkeep(_) -> nothing.
+
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [Message, Process]),
@@ -328,9 +344,34 @@ spawn_mana(N, NearbyList) ->
     RandomIndex = rand:uniform(NumPos),   
     RandomPos = lists:nth(RandomIndex, NearbyList),
 
-    resource:create(<<"Mana">>, 10, RandomPos, true),
+    resource:create(<<"Mana">>, 5, RandomPos, true),
     NewNearbyList = lists:delete(RandomPos, NearbyList),
     spawn_mana(N + 1, NewNearbyList).
+
+process_mana_upkeep() ->
+    Monoliths = db:index_read(obj, <<"Monolith">>, #obj.subclass),
+
+    F = fun(Monolith) ->
+            [ObjM] = obj:get(Monolith#obj.id),
+            {Mana} = bson:lookup(mana, ObjM),
+            NewMana = Mana - 1,
+
+            case NewMana > 0 of
+                true ->
+                    obj:update(Monolith#obj.id, mana, NewMana);
+                false ->
+                    obj:update_state(Monolith#obj.id, disabled)
+            end
+        end,
+
+    lists:foreach(F, Monoliths).
+
+filter_disabled(AllMonoliths) ->
+    F = fun(Monolith) ->
+            Monolith#obj.state =/= disabled
+        end,
+    
+    lists:filter(F, AllMonoliths).
 
 timeofday(day) -> night;
 timeofday(night) -> day.

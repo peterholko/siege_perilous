@@ -116,7 +116,7 @@ harvest(ObjId, Resource) ->
 
     ValidPlayer = is_player_owned(Obj#obj.player, Player),
     ValidState = is_state(Obj#obj.state, none),
-    ValidResource = resource:is_valid(Obj#obj.pos, Resource),
+    ValidResource = resource:is_valid(Obj#obj.pos),
 
     Result = ValidPlayer andalso
              ValidState andalso
@@ -142,13 +142,14 @@ item_transfer(TargetId, ItemId) ->
     [OwnerObj] = db:read(obj, Owner),   
     [TargetObj] = db:read(obj, TargetId), 
 
-    ValidOwner = Player =:= OwnerObj#obj.player andalso
+    ValidOwner = OwnerObj#obj.player =:= Player andalso
                  OwnerObj#obj.pos =:= TargetObj#obj.pos,
 
     case ValidOwner of 
         true ->
             lager:info("Transfering item"),
             item:transfer(ItemId, TargetId),
+            obj:item_transfer(TargetObj, Item),
             <<"success">>;
         false ->
             lager:info("Player does not own item: ~p", [ItemId]),
@@ -180,7 +181,6 @@ item_split(ItemId, Quantity) ->
     end.
 
 structure_list() ->
-    _PlayerId = get(player_id),
     structure:list().
 
 build(ObjId, Structure) ->

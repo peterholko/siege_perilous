@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([harvest/3, survey/1, is_valid/2, is_auto/2, quantity/1]).
+-export([harvest/3, survey/1, is_valid/1, is_auto/2, quantity/1]).
 -export([create/4]).
 
 harvest(ObjId, ResourceType, Pos) ->
@@ -45,14 +45,8 @@ survey(Pos) ->
 
     lists:foldl(F, [], Resources).
 
-is_valid(Pos, Resource) ->
-    Resources = db:read(resource, Pos),
-    
-    F = fun(TileResource) ->
-            TileResource#resource.name =:= Resource
-        end,
-
-    lists:any(F, Resources).
+is_valid(Pos) ->
+    [] =/= db:read(resource, Pos).
 
 is_auto(Objs, _Resource) ->
     
