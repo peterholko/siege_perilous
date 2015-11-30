@@ -84,7 +84,7 @@ handle_info({perception, {NPCId, Objs}}, Data) ->
     lager:debug("Perception received."),
     [NPCObj] = db:read(obj, NPCId),
     [NPC] = db:read(npc, NPCId),
-    NPCStats = obj:get_stats(NPCObj#obj.id),
+    NPCStats = obj:get(NPCObj#obj.id),
 
     %Remove from same player and non targetable objs
     FilteredTargets = filter_targets(Objs, []),

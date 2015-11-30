@@ -19,7 +19,7 @@
 -export([item_transfer/2]).
 
 %% MongoDB functions
--export([get/1, get_info/1, get_type/1, get_stats/1]).
+-export([get/1, get_info/1, get_type/1]).
 -export([update/3]).
 
 init_perception(PlayerId) ->
@@ -35,8 +35,8 @@ init_perception(PlayerId) ->
 create(Pos, PlayerId, Class, Subclass, Name, State) ->
     %Create mongodb obj
     [ObjM] = create(Class, Name),
-    {Id} = bson:lookup('_id', ObjM),
-    Vision = get_vision(bson:lookup(vision, ObjM)),
+    {Id} = maps:get(<<"_id">>, ObjM),
+    Vision = maps:get(<<"vision">>, ObjM, 0),
 
     %Create mnesia obj
     Obj = #obj {id = Id,
@@ -149,7 +149,7 @@ item_transfer(#obj {id = Id,
                     subclass = Subclass, 
                     state = State}, Item) when (Subclass =:= <<"Monolith">>) and 
                                                (State =:= disabled)  ->
-    {Name} = bson:lookup(name, Item),
+    {Name} = maps:get(<<"name">>, Item),
 
     case Name of
         <<"Mana">> -> update_state(Id, none);
@@ -177,10 +177,6 @@ get_info(Id) ->
 get_type(TypeName) ->
     {ObjType} = find_type(TypeName),
     ObjType.
-
-get_stats(Id) ->
-    Obj = find(Id),
-    stats(Obj).
 
 update(Id, Attr, Val) ->
     mdb:update(<<"obj">>, Id, {Attr, Val}).
@@ -295,9 +291,6 @@ filter_units(Objs) ->
     F = fun(Obj) -> Obj#obj.class =:= unit end,
     lists:filter(F, Objs).
 
-get_vision({}) -> 0;
-get_vision({Value}) -> Value.
-
 %get_direction(-1, 1, 0) -> se;
 %get_direction(0, 1, -1) -> s;
 %get_direction(1, 0, -1) -> sw;
@@ -314,55 +307,41 @@ get_monolith_radius(<<"Greater Monolith">>) -> 2.
 %%
 create(structure, TypeName) ->
     lager:info("Creating structure ~p", [TypeName]),
-    {ObjType} = find_type(TypeName),
-    UpdatedObjType = bson:update(hp, 1, ObjType),
-
-    insert(UpdatedObjType); %Returns [Obj]
+    ObjType = find_type(TypeName),
+    UpdatedObjType = maps:update(<<"hp">>, 1, ObjType),
+    insert(UpdatedObjType);
 
 create(Class, TypeName) ->
     lager:info("Creating obj (~p / ~p)", [Class, TypeName]),
-    {ObjType} = find_type(TypeName),
+    ObjType = find_type(TypeName),
     insert(ObjType).
 
 find(Id) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"obj">>, {'_id', Id}),
-    Obj = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Obj.
+    mongo:find_one(mdb:get_conn(), <<"obj">>, {<<"_id">>, Id}).
 
 find_type(Name) ->
     mongo:find_one(mdb:get_conn(), <<"obj_type">>, {name, Name}).
 
 insert(Type) ->
-    NewType = bson:exclude(['_id'], Type),
+    NewType = maps:remove(<<"_id">>, Type),
     Obj = mongo:insert(mdb:get_conn(), <<"obj">>, [NewType]),
     Obj.
 
-stats([]) ->
-    false;
+info(Id) ->
+    %Get Mongo obj
+    ObjM = find(Id),
 
-stats([Obj]) ->
-    stats(Obj);
-
-stats(Obj) ->
-    {Name} = bson:lookup(name, Obj),
-    {ObjType} = find_type(Name),
-    bson:merge(Obj, ObjType).
-
-info(ObjM) ->
-    ObjStats = stats(ObjM),
-    {Id} = bson:lookup('_id', ObjStats),
-
-    %Get state from obj table
+    %Get Mnesia obj
     [Obj] = db:read(obj, Id),
-    Stats1 = bson:update(state, Obj#obj.state, ObjStats),
 
     %Get items & skills
     Items = item:get_by_owner(Id),
     Skills = skill:get_by_owner(Id),
 
-    Stats2 = bson:update(items, Items, Stats1),
-    Stats3 = bson:update(skills, Skills, Stats2),
+    %Build stats
+    Stats1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), ObjM), 
+    Stats2 = maps:put(<<"items">>, Items, Stats1),
+    Stats3 = maps:put(<<"skills">>, Skills, Stats2),
     Stats3.
 
 

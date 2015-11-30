@@ -257,26 +257,26 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     AtkId = AtkObj#obj.id,
     DefId = DefObj#obj.id,
 
-    AtkUnit = obj:get_stats(AtkId),
-    DefUnit = obj:get_stats(DefId),
+    AtkUnit = obj:get(AtkId),
+    DefUnit = obj:get(DefId),
 
     AtkItems = item:get_equiped(AtkId),
     DefItems = item:get_equiped(DefId),
 
     AtkWeapons = item:get_equiped_weapon(AtkId),
 
-    {AtkStamina} = bson:lookup(stamina, AtkUnit),
-    {BaseDmg} = bson:lookup(base_dmg, AtkUnit),
-    {DmgRange} = bson:lookup(dmg_range, AtkUnit),
-    {BaseDef} = bson:lookup(base_def, DefUnit),
-    {DefHp} = bson:lookup(hp, DefUnit),
+    AtkStamina = maps:get(<<"stamina">>, AtkUnit),
+    BaseDmg = maps:get(<<"base_dmg">>, AtkUnit),
+    DmgRange = maps:get(<<"dmg_range">>, AtkUnit),
+    BaseDef = maps:get(<<"base_def">>, DefUnit),
+    DefHp = maps:get(<<"hp">>, DefUnit),
 
     %Check for combos
     {ComboName, ComboDmg} = check_combos(AttackType, AtkId),
 
     %Add item stats
-    TotalDmg = (BaseDmg + get_item_value(damage, AtkItems)) * ComboDmg,
-    TotalArmor = BaseDef + get_item_value(armor, DefItems),
+    TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)) * ComboDmg,
+    TotalArmor = BaseDef + get_items_value(<<"armor">>, DefItems),
 
     %Random roll and armor reduction
     RandomDmg = rand:uniform(DmgRange) + TotalDmg,
@@ -293,7 +293,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
 
     %Update stamina
     NewStamina = AtkStamina - attack_type_cost(AttackType),
-    obj:update(AtkObj#obj.id, 'stamina', NewStamina),
+    obj:update(AtkObj#obj.id, <<"stamina">>, NewStamina),
 
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
@@ -302,7 +302,6 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
     broadcast_dmg(AtkId, DefId, Dmg, UnitState),
 
-    %Broadcast combo
     case ComboName of
         none -> nothing;
         _ -> broadcast_combo(AtkId, DefId, ComboName)
@@ -311,11 +310,11 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     %Check if unit is dead 
     case UnitState of
         <<"alive">> ->
-            obj:update(DefId, 'hp', NewHp);
+            obj:update(DefId, <<"hp">>, NewHp);
         <<"dead">> ->
-            AtkXp = bson:lookup(xp, AtkUnit),
-            DefKillXp = bson:lookup(kill_xp, DefUnit),
-            xp_gain(AtkId, AtkXp, DefKillXp),
+            AtkXp = maps:get(<<"xp">>, AtkUnit),
+            DefKillXp = maps:get(<<"kill_xp">>, DefUnit),
+            obj:update(AtkId, <<"xp">>, AtkXp + DefKillXp),
             process_unit_dead(DefId)
     end.
 
@@ -361,8 +360,8 @@ stamina_cost(dodge) -> 25;
 stamina_cost(_) -> 0.
 
 has_stamina(AtkId, ActionData) ->
-    AtkUnit = obj:get_stats(AtkId),
-    {Stamina} = bson:lookup(stamina, AtkUnit),
+    AtkUnit = obj:get(AtkId),
+    Stamina = maps:get(<<"stamina">>, AtkUnit),
     StaminaCost = stamina_cost(ActionData),
 
     Result = Stamina >= StaminaCost,
@@ -371,24 +370,19 @@ has_stamina(AtkId, ActionData) ->
 sub_stamina(SourceId, Value) ->
     add_stamina(SourceId, -1 * Value).
 add_stamina(SourceId, Value) ->
-    SourceObj = obj:get_stats(SourceId),
-    {Stamina} = bson:lookup(stamina, SourceObj),
+    SourceObj = obj:get(SourceId),
+    Stamina = maps:get(<<"stamina">>, SourceObj),
     obj:update(SourceId, 'stamina', Stamina + Value).
 
 num_ticks({attack, _AttackType}) -> ?TICKS_SEC * 10;
 num_ticks(guard) -> ?TICKS_SEC * 30;
 num_ticks(dodge) -> ?TICKS_SEC * 20. 
 
-get_item_value(_, []) ->
+get_items_value(_, []) ->
     0;
-get_item_value(Attr, Items) ->
+get_items_value(Attr, Items) ->
     F = fun(Item, Total) ->
-            case bson:lookup(Attr, Item) of
-                {Value} ->
-                    Total + Value;
-                {} ->
-                    Total
-            end
+            maps:get(Attr, Item, 0) + Total
         end,
 
     lists:foldl(F, 0, Items).
@@ -444,15 +438,9 @@ skill_gain_atk(_AtkId, _Weapons, _RandomDmg, DmgRange, Dmg) when Dmg < (DmgRange
 skill_gain_atk(AtkId, Weapons, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (DmgRange - 1) -> 
     lager:info("Skill gain weapons: ~p", [Weapons]), 
     F = fun(Weapon) ->
-            {Subclass} = bson:lookup(subclass, Weapon),
+            Subclass = maps:get(<<"subclass">>, Weapon),
             skill:update(AtkId, Subclass, 1)
         end,
 
     lists:foreach(F, Weapons);
 skill_gain_atk(_AtkId, _Weapons, _RandomDmg, _DmgRange, _Dmg) -> nothing.
-    
-xp_gain(_AtkId, _AtkXp, {}) -> nothing;
-xp_gain(AtkId, {}, {DefKillXp}) ->
-    obj:update(AtkId, xp, DefKillXp);
-xp_gain(AtkId, {AtkXp}, {DefKillXp}) ->
-    obj:update(AtkId, xp, AtkXp + DefKillXp).

@@ -15,8 +15,8 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([get_conn/0, create_obj/2]).
--export([update/3, delete/2, lookup/2, to_bin_id/1]).
+-export([get_conn/0]).
+-export([update/3, delete/2]).
 -export([find/2, find_one/2]).
 -export([to_map/1]).
 %% ====================================================================
@@ -35,9 +35,6 @@ update(Collection, Id, Value) ->
 delete(Collection, Id) ->
     gen_server:cast({global, mdb_pid}, {delete, Collection, Id}).
 
-create_obj(Player, Units) ->
-    gen_server:cast({global, mdb_pid}, {create_obj, Player, Units}).
-
 find(Collection, Selector) ->
     Cursor = mongo:find(mdb:get_conn(), Collection, Selector),
     ListResult = mc_cursor:rest(Cursor),
@@ -47,44 +44,20 @@ find(Collection, Selector) ->
 find_one(Collection, Selector) ->
     mongo:find_one(mdb:get_conn(), Collection, Selector).
 
-lookup(Attr, Doc) when is_map(Doc) ->
-    maps:get(atom_to_binary(Attr, latin1), Doc);
-lookup(Attr, Doc) ->
-    {Val} = bson:lookup(Attr, Doc),
-    Val.
-
-to_bin_id(Id) when is_tuple(Id) ->
-    Id;
-to_bin_id(BinId = <<_Id:92>>) ->
-    {BinId};
-to_bin_id(Id) when is_binary(Id) ->
-    BinId = util:hex_to_bin(binary_to_list(Id)),
-    {BinId}.
 %% ====================================================================
 %% Server functions
 %% ====================================================================
 
 init([]) ->
-    Host = "127.0.0.1",
-    Port = 27017,
     Database = <<"sp">>,
    
-    {ok, Connection} = mongo:connect(Host, Port, Database),
+    {ok, Connection} = mongo:connect([{database, Database}]),
     {ok, Connection}.
-
-handle_cast({create_obj, Player, Units}, Data) ->   
-    lager:info("Data: ~p", [Data]),
-    Connection = Data,
-
-    Result = mongo:insert(Connection, <<"obj">>, [{player, Player, units, Units}]),
-
-    {noreply, Data};
 
 handle_cast({update, Collection, Id, Value}, Data) ->
     Connection = Data,
     %Exclude id from any updates
     Cmd = {'$set', bson:exclude(['_id'], Value)},
-    
     Result = mongo:update(Connection, Collection, {'_id', Id}, Cmd),
 
     {noreply, Data};

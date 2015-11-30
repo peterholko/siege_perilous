@@ -11,15 +11,15 @@
 
 
 get(Id) ->
-    Item = find('_id', Id),
+    Item = find_one(<<"_id">>, Id),
     Item.
 
 get_by_name(Name) ->
-    Item = find(name, Name),
+    Item = find_one(<<"name">>, Name),
     Item.
 
 get_by_owner(OwnerId) ->
-    Items = find(owner, OwnerId),
+    Items = find(<<"owner">>, OwnerId),
     Items.
 
 get_by_subclass(OwnerId, SubClass) ->
@@ -99,6 +99,9 @@ obj_perception(ObjId) ->
     find(owner, ObjId).
 
 % Internal
+
+find_one(Key, Value) ->
+    mongo:find_one(mdb:get_conn(), <<"item">>, {Key, Value}).
 
 find(Key, Value) ->
     Cursor = mongo:find(mdb:get_conn(), <<"item">>, {Key, Value}),

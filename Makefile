@@ -9,7 +9,7 @@ PROJECT = sp
 DEPS = lager cowboy jsx mongodb parsexml pqueue
 dep_cowboy = git https://github.com/ninenines/cowboy master
 dep_jsx = git https://github.com/talentdeficit/jsx master
-dep_mongodb = git https://github.com/peterholko/mongodb-erlang master
+dep_mongodb = git https://github.com/comtihon/mongodb-erlang master
 dep_parsexml = git https://github.com/maxlapshin/parsexml master
 dep_pqueue = git https://github.com/okeuday/pqueue master
 

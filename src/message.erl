@@ -3,7 +3,7 @@
 %% Description: Handles messages from client
 -module(message).
 
--export([decode/1, prepare/2, convert_battle_id/2]).
+-export([decode/1, prepare/2]).
 
 decode(Message) ->
     lager:info("Message: ~p~n", [Message]),
@@ -345,13 +345,6 @@ prepare(perception, Message) ->
      {<<"entity">>, util:bin_to_hex(EntityId)},
      {<<"objs">>, NewObjs}];
     
-prepare(battle_perception, Message) ->
-    {BattleUnits, BattleMap} = Message,
-    ConvertBattleUnits = convert_battle_id(BattleUnits, []),
-    [{<<"packet">>, <<"battle_perception">>},
-     {<<"map">>, BattleMap},
-     {<<"units">>, ConvertBattleUnits}];
-
 prepare(item_perception, Message) ->
     ItemPerception = item_perception(Message, []),
     [{<<"packet">>, <<"item_perception">>},
@@ -393,19 +386,6 @@ convert_id([Obj | Rest], ConvertedIds) ->
     NewConvertedIds = [NewObj | ConvertedIds],
 
     convert_id(Rest, NewConvertedIds).
-
-convert_battle_id([], ConvertedIds) ->
-    ConvertedIds;
-convert_battle_id([Unit | Rest], ConvertedIds) ->
-    BinUnitId = maps:get(<<"unit">>, Unit),
-    BinObjId = maps:get(<<"obj">>, Unit),
-    HexUnitId = util:bin_to_hex(BinUnitId),
-    HexObjId = util:bin_to_hex(BinObjId),
-    NewUnit1 = maps:update(<<"unit">>, HexUnitId, Unit),
-    NewUnit2 = maps:update(<<"obj">>, HexObjId, NewUnit1),
-    NewConvertedIds = [NewUnit2 | ConvertedIds],
-
-    convert_battle_id(Rest, NewConvertedIds).
 
 item_perception([], ItemPerception) ->
     ItemPerception;

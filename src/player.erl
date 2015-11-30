@@ -137,8 +137,9 @@ loot(SourceId, ItemId) ->
 
 item_transfer(TargetId, ItemId) ->
     Player = get(player_id),
-    [Item] = item:get(ItemId),
-    {Owner} = bson:lookup(owner, Item),
+    Item = item:get(ItemId),
+    Owner = maps:get(<<"owner">>, Item),
+
     [OwnerObj] = db:read(obj, Owner),   
     [TargetObj] = db:read(obj, TargetId), 
 
@@ -220,7 +221,7 @@ finish_build(SourceId, StructureId) ->
     finish_build(PlayerId, Source, Structure).
 
 finish_build(PlayerId, Source, Structure = #obj {state = founded}) -> 
-    StructureM = obj:get_stats(Structure#obj.id),
+    StructureM = obj:get(Structure#obj.id),
     {NumTicks} = bson:lookup(build_time, StructureM),
     
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
@@ -234,7 +235,7 @@ finish_build(PlayerId, Source, Structure = #obj {state = founded}) ->
     {<<"build_time">>, NumTicks * 4}];
 
 finish_build(PlayerId, Source, Structure = #obj {state = under_construction}) ->
-    StructureM = obj:get_stats(Structure#obj.id),
+    StructureM = obj:get(Structure#obj.id),
     {NumTicks} = bson:lookup(build_time, StructureM),
 
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso

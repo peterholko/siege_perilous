@@ -291,9 +291,9 @@ apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when
     %Apply night effect 
     obj:add_effect(Id, <<"night_undead">>, none),
 
-    [ObjM] = obj:get(Id),
-    {Hp} = bson:lookup(hp, ObjM),
-    obj:update(Id, hp, Hp * 10),
+    ObjM = obj:get(Id),
+    Hp = maps:get(<<"hp">>, ObjM),
+    obj:update(Id, <<"hp">>, Hp * 10),
 
     %Increase vision x 10
     NewObj = Obj#obj {vision = erlang:trunc(Vision * 10)},
@@ -305,9 +305,9 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
             obj:remove_effect(Id, <<"night_undead">>),
 
             %Decrease hp x 10
-            [ObjM] = obj:get(Id),
-            {Hp} = bson:lookup(hp, ObjM),
-            obj:update(Id, hp, Hp / 10),
+            ObjM = obj:get(Id),
+            Hp = maps:get(<<"hp">>, ObjM),
+            obj:update(Id, <<"hp">>, Hp / 10),
 
             %Decrease vision / 10
             NewObj = Obj#obj {vision = erlang:trunc(Vision / 10)},
@@ -352,8 +352,8 @@ process_mana_upkeep() ->
     Monoliths = db:index_read(obj, <<"Monolith">>, #obj.subclass),
 
     F = fun(Monolith) ->
-            [ObjM] = obj:get(Monolith#obj.id),
-            {Mana} = bson:lookup(mana, ObjM),
+            ObjM = obj:get(Monolith#obj.id),
+            Mana = maps:get(<<"mana">>, ObjM),
             NewMana = Mana - 1,
 
             case NewMana > 0 of

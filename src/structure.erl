@@ -32,7 +32,7 @@ check_req(Structure) ->
     has_req(ReqList, Items).
 
 has_process_res(StructureId) ->
-    StructureStats = obj:get_stats(StructureId),
+    StructureStats = obj:get(StructureId),
     {Process} = bson:lookup(process, StructureStats),
     Items = item:get_by_subclass(StructureId, Process),
     Items =/= [].
@@ -54,7 +54,7 @@ recipe_list(Obj) ->
     Recipes.
 
 process(StructureId) ->
-    StructureStats = obj:get_stats(StructureId),
+    StructureStats = obj:get(StructureId),
     {Process} = bson:lookup(process, StructureStats),
     
     [Item | _Rest] = item:get_by_subclass(StructureId, Process),
