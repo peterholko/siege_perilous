@@ -300,8 +300,8 @@ check_wall(_) ->
     none.
 
 find_target(NPCObj, NPCStats, AllEnemyUnits) ->
-    {Int} = bson:lookup(int, NPCStats),
-    {Aggression} = bson:lookup(aggression, NPCStats),
+    Int = maps:get(<<"int">>, NPCStats),
+    Aggression = maps:get(<<"aggression">>, NPCStats),
     find_target(NPCObj, Int, Aggression, AllEnemyUnits).
 
 find_target(_NPCObj, _, _, []) ->

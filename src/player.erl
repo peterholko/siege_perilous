@@ -159,9 +159,9 @@ item_transfer(TargetId, ItemId) ->
 
 item_split(ItemId, Quantity) ->
     Player = get(player_id),
-    [Item] = item:get(ItemId),
-    {Owner} = bson:lookup(owner, Item),
-    {CurrentQuantity} = bson:lookup(quantity, Item),
+    Item = item:get(ItemId),
+    Owner = maps:get(<<"owner">>, Item),    
+    CurrentQuantity = maps:get(<<"quantity">>, Item),
 
     [OwnerObj] = db:read(obj, Owner),
 
@@ -193,7 +193,7 @@ build(ObjId, Structure) ->
     lager:info("Obj: ~p", [Obj]),
     StructureType = obj:get_type(Structure),
     lager:info("StructureType: ~p", [StructureType]),
-    {StructureSubclass} = bson:lookup(subclass, StructureType),    
+    StructureSubclass = maps:get(<<"subclass">>, StructureType),    
     lager:info("StructureSubclass: ~p", [StructureSubclass]),
     ValidPlayer = PlayerId =:= Obj#obj.player,
     ValidLocation = structure:valid_location(StructureSubclass,
@@ -222,7 +222,7 @@ finish_build(SourceId, StructureId) ->
 
 finish_build(PlayerId, Source, Structure = #obj {state = founded}) -> 
     StructureM = obj:get(Structure#obj.id),
-    {NumTicks} = bson:lookup(build_time, StructureM),
+    NumTicks = maps:get(<<"build_time">>, StructureM),
     
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
                   Structure#obj.player =:= PlayerId andalso
@@ -236,7 +236,7 @@ finish_build(PlayerId, Source, Structure = #obj {state = founded}) ->
 
 finish_build(PlayerId, Source, Structure = #obj {state = under_construction}) ->
     StructureM = obj:get(Structure#obj.id),
-    {NumTicks} = bson:lookup(build_time, StructureM),
+    NumTicks = maps:get(<<"build_time">>, StructureM),
 
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
                   Structure#obj.player =:= PlayerId,
@@ -302,8 +302,9 @@ craft(StructureId, Recipe) ->
 equip(ItemId) ->
     Player = get(player_id),
 
-    [Item] = item:get(ItemId),
-    {ItemOwner} = bson:lookup(owner, Item),
+    Item = item:get(ItemId),
+    ItemOwner = maps:get(<<"owner">>, Item),
+
     [Obj] = db:read(obj, ItemOwner),
 
     Checks = [{Player =:= Obj#obj.player, "Unit not owned by player"},

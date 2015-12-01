@@ -35,7 +35,7 @@ init_perception(PlayerId) ->
 create(Pos, PlayerId, Class, Subclass, Name, State) ->
     %Create mongodb obj
     [ObjM] = create(Class, Name),
-    {Id} = maps:get(<<"_id">>, ObjM),
+    Id = maps:get(<<"_id">>, ObjM),
     Vision = maps:get(<<"vision">>, ObjM, 0),
 
     %Create mnesia obj
@@ -149,7 +149,7 @@ item_transfer(#obj {id = Id,
                     subclass = Subclass, 
                     state = State}, Item) when (Subclass =:= <<"Monolith">>) and 
                                                (State =:= disabled)  ->
-    {Name} = maps:get(<<"name">>, Item),
+    Name = maps:get(<<"name">>, Item),
 
     case Name of
         <<"Mana">> -> update_state(Id, none);
@@ -161,22 +161,13 @@ item_transfer(#obj {id = Id,
 %%
 
 get(Id) ->
-    Obj = find(Id),
-    Obj.
+    find_one(<<"_id">>, Id).
 
 get_info(Id) ->
-    ObjInfo = case find(Id) of
-                [Obj] ->
-                    %TODO compare requester id to unit player id
-                    info(Obj);
-                _ ->
-                    none
-               end,
-    ObjInfo.
+    info(Id).
 
 get_type(TypeName) ->
-    {ObjType} = find_type(TypeName),
-    ObjType.
+    find_one_type(<<"name">>, TypeName).
 
 update(Id, Attr, Val) ->
     mdb:update(<<"obj">>, Id, {Attr, Val}).
@@ -307,20 +298,14 @@ get_monolith_radius(<<"Greater Monolith">>) -> 2.
 %%
 create(structure, TypeName) ->
     lager:info("Creating structure ~p", [TypeName]),
-    ObjType = find_type(TypeName),
+    ObjType = find_one_type(<<"name">>, TypeName),
     UpdatedObjType = maps:update(<<"hp">>, 1, ObjType),
     insert(UpdatedObjType);
 
 create(Class, TypeName) ->
     lager:info("Creating obj (~p / ~p)", [Class, TypeName]),
-    ObjType = find_type(TypeName),
+    ObjType = find_one_type(<<"name">>, TypeName),
     insert(ObjType).
-
-find(Id) ->
-    mongo:find_one(mdb:get_conn(), <<"obj">>, {<<"_id">>, Id}).
-
-find_type(Name) ->
-    mongo:find_one(mdb:get_conn(), <<"obj_type">>, {name, Name}).
 
 insert(Type) ->
     NewType = maps:remove(<<"_id">>, Type),
@@ -329,7 +314,7 @@ insert(Type) ->
 
 info(Id) ->
     %Get Mongo obj
-    ObjM = find(Id),
+    ObjM = find_one(<<"_id">>, Id),
 
     %Get Mnesia obj
     [Obj] = db:read(obj, Id),
@@ -345,4 +330,13 @@ info(Id) ->
     Stats3.
 
 
-
+find_one(Key, Value) ->
+    mdb:find_one(<<"obj">>, Key, Value).
+find(Key, Value) ->
+    mdb:find(<<"obj">>, Key, Value).
+%find(Tuple) ->
+%    mdb:find(<<"obj">>, Tuple).
+find_type(Key, Value) ->
+    mdb:find(<<"obj_type">>, Key, Value).
+find_one_type(Key, Value) ->
+    mdb:find_one(<<"obj_type">>, Key, Value).

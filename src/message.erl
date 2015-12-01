@@ -4,6 +4,7 @@
 -module(message).
 
 -export([decode/1, prepare/2]).
+-export([to_hex/1]).
 
 decode(Message) ->
     lager:info("Message: ~p~n", [Message]),
@@ -163,19 +164,10 @@ message_handle(<<"item_split">>, Message) ->
 message_handle(<<"structure_list">>, _Message) ->
     lager:info("message: structure_list"),
 
-    StructuresBSON = player:structure_list(),
-    lager:info("StructuresBSON: ~p", [StructuresBSON]),
-
-    F = fun(Structure, StructuresMap) ->
-                [mdb:to_map(Structure) | StructuresMap]
-        end,
-    
-    StructuresMap = lists:foldl(F, [], StructuresBSON),
-    lager:info("StructuresMap: ~p", [StructuresMap]),
-
+    Structures = to_hex(player:structure_list()),
 
     jsx:encode([{<<"packet">>, <<"structure_list">>},
-                {<<"result">>, StructuresMap}]);    
+                {<<"result">>, Structures}]);    
 
 message_handle(<<"build">>, Message) ->
     lager:info("message: build"),
@@ -207,17 +199,10 @@ message_handle(<<"recipe_list">>, Message) ->
     HexId = map_get(<<"sourceid">>, Message),
     SourceBinId = util:hex_to_bin(HexId),
 
-    RecipeListBSON = player:recipe_list(SourceBinId),
-    lager:info("RecipeList: ~p", [RecipeListBSON]),
-    
-    F = fun(Recipe, Map) ->
-            [mdb:to_map(Recipe) | Map]
-        end,
-    
-    RecipeMap = lists:foldl(F, [], RecipeListBSON),
+    RecipeList = to_hex(player:recipe_list(SourceBinId)),
 
     jsx:encode([{<<"packet">>, <<"recipe_list">>},
-                {<<"result">>, RecipeMap}]);
+                {<<"result">>, RecipeList}]);
 
 message_handle(<<"process_resource">>, Message) ->
     lager:info("message: process_resource"),
@@ -284,7 +269,7 @@ message_handle(<<"info_obj">>, Message) ->
     lager:info("message: info_obj"),
     HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
-    InfoMaps = mdb:to_map(player:get_info_obj(BinId)),
+    InfoMaps = to_hex(player:get_info_obj(BinId)),
     ReturnMsg = maps:put(<<"packet">>, <<"info_obj">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
@@ -292,7 +277,7 @@ message_handle(<<"info_unit">>, Message) ->
     lager:info("message: info_unit"),
     HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
-    InfoMaps = mdb:to_map(player:get_info_unit(BinId)),
+    InfoMaps = to_hex(player:get_info_unit(BinId)),
     ReturnMsg = maps:put(<<"packet">>, <<"info_unit">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
@@ -300,30 +285,15 @@ message_handle(<<"info_item">>, Message) ->
     lager:info("message: info_item"),
     HexId = map_get(<<"id">>, Message),
     BinId = util:hex_to_bin(HexId),
-    InfoMaps = mdb:to_map(player:get_info_item(BinId)),
+    InfoMaps = to_hex(player:get_info_item(BinId)),
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
 message_handle(<<"info_item_by_name">>, Message) ->
     lager:info("message: info_item_by_name"),
     ItemName = map_get(<<"name">>, Message),
-    InfoMaps = mdb:to_map(player:get_info_item(ItemName)),
+    InfoMaps = to_hex(player:get_info_item(ItemName)),
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
-    jsx:encode(ReturnMsg);
-
-message_handle(<<"info_battle">>, Message) ->
-    lager:info("message: info_battle"),
-    HexId = map_get(<<"id">>, Message),
-    BinId = util:hex_to_bin(HexId),
-    
-    ReturnMsg = case player:get_info_battle(BinId) of
-                    {battle_perception, BattlePerception} ->
-                        prepare(battle_perception, BattlePerception);
-                    {obj_info, ObjInfo} ->
-                        InfoMaps = mdb:to_map(ObjInfo),
-                        maps:put(<<"packet">>, <<"info_obj">>, InfoMaps)
-                end,
-
     jsx:encode(ReturnMsg);
 
 message_handle(_Cmd, Message) ->
@@ -346,18 +316,16 @@ prepare(perception, Message) ->
      {<<"objs">>, NewObjs}];
     
 prepare(item_perception, Message) ->
-    ItemPerception = item_perception(Message, []),
     [{<<"packet">>, <<"item_perception">>},
-     {<<"items">>, ItemPerception}]; 
+     {<<"items">>, to_hex(Message)}]; 
 
 prepare(map, Message) ->
     [{<<"packet">>, <<"map">>},
      {<<"map">>, Message}];
 
 prepare(new_items, Message) ->
-    ItemPerception = item_perception(Message, []),
     [{<<"packet">>, <<"new_items">>},
-     {<<"items">>, ItemPerception}]; 
+     {<<"items">>, to_hex(Message)}]; 
 
 prepare(event_complete, {Event, Id}) ->
     player:set_event_lock(Id, false),
@@ -387,8 +355,20 @@ convert_id([Obj | Rest], ConvertedIds) ->
 
     convert_id(Rest, NewConvertedIds).
 
-item_perception([], ItemPerception) ->
-    ItemPerception;
-item_perception([Item | Rest] , ItemPerception) ->
-    NewItem = mdb:to_map(Item),
-    item_perception(Rest, [NewItem | ItemPerception]).
+to_hex(MapData) when is_list(MapData) ->
+    F = fun(Map, Acc) ->
+            [ids_to_hex(Map) | Acc]
+        end,
+    lists:foldl(F, [], MapData);
+to_hex(MapData) when is_map(MapData) ->
+    ids_to_hex(MapData).
+
+ids_to_hex(MapData) ->
+    F = fun Hex(_K, V) when is_tuple(V) -> util:bin_to_hex(V);
+            Hex(_K, V) when is_list(V), length(V) > 0 -> 
+                [V2] = V,
+                [maps:map(Hex, V2)];
+            Hex(_K, V) -> V 
+        end,
+    maps:map(F, MapData).
+

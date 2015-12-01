@@ -14,8 +14,8 @@
 -export([combine_stats/2, craft_item_name/2]).
 
 start_build(PlayerId, Pos, StructureType) ->
-    {Name} = bson:lookup(name, StructureType),
-    {Subclass} = bson:lookup(subclass, StructureType),
+    Name = maps:get(<<"name">>, StructureType),
+    Subclass = maps:get(<<"subclass">>, StructureType),
 
     StructureId = obj:create(Pos, 
                              PlayerId,
@@ -26,14 +26,14 @@ start_build(PlayerId, Pos, StructureType) ->
     StructureId.
 
 check_req(Structure) ->
-    {StructureId} = bson:lookup('_id', Structure),
-    {ReqList} = bson:lookup(req, Structure),
+    StructureId = maps:get(<<"_id">>, Structure),
+    ReqList = maps:get(<<"req">>, Structure),
     Items = item:get_by_owner(StructureId),
     has_req(ReqList, Items).
 
 has_process_res(StructureId) ->
     StructureStats = obj:get(StructureId),
-    {Process} = bson:lookup(process, StructureStats),
+    Process = maps:get(<<"process">>, StructureStats),
     Items = item:get_by_subclass(StructureId, Process),
     Items =/= [].
 
@@ -41,7 +41,7 @@ check_recipe_req(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
 
     Recipe = get_recipe(RecipeName),
-    {ReqList} = bson:lookup(req, Recipe),
+    ReqList = maps:get(<<"req">>, Recipe),
 
     has_req(ReqList, Items).
  
@@ -55,12 +55,12 @@ recipe_list(Obj) ->
 
 process(StructureId) ->
     StructureStats = obj:get(StructureId),
-    {Process} = bson:lookup(process, StructureStats),
+    Process = maps:get(<<"process">>, StructureStats),
     
     [Item | _Rest] = item:get_by_subclass(StructureId, Process),
-    {Id} = bson:lookup('_id', Item),
-    {Quantity} = bson:lookup(quantity, Item),
-    {Produces} = bson:lookup(produces, Item),
+    Id = maps:get(<<"_id">>, Item),
+    Quantity = maps:get(<<"quantity">>, Item),
+    Produces = maps:get(<<"produces">>, Item),
     
     item:update(Id, Quantity - 1),
 
@@ -77,9 +77,9 @@ craft(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
 
     Recipe = get_recipe(RecipeName),
-    {RecipeItem} = bson:lookup(item, Recipe),
-    {Class} = bson:lookup(class, Recipe),
-    {ReqList} = bson:lookup(req, Recipe),
+    RecipeItem = maps:get(<<"item">>, Recipe),
+    Class = maps:get(<<"class">>, Recipe),
+    ReqList = maps:get(<<"req">>, Recipe),
 
     MatchReq = find_match_req(ReqList, Items),
     lager:info("MatchReq: ~p", [MatchReq]),
@@ -148,9 +148,9 @@ add_req_match([], ReqMatchItems) -> ReqMatchItems;
 add_req_match([Head | _Rest], ReqMatchItems) -> [Head | ReqMatchItems].
 
 match_req(Item, ReqType, ReqQuantity) ->
-    {ItemName} = bson:lookup(name, Item),
-    {ItemSubClass} = bson:lookup(subclass, Item),
-    {ItemQuantity} = bson:lookup(quantity, Item),
+    ItemName = maps:get(<<"name">>, Item),
+    ItemSubClass = maps:get(<<"subclass">>, Item),
+    ItemQuantity = maps:get(<<"quantity">>, Item),
 
     QuantityMatch = ReqQuantity =< ItemQuantity,            
     ItemNameMatch = ReqType =:= ItemName,
@@ -165,18 +165,23 @@ match_req(Item, ReqType, ReqQuantity) ->
 
 craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
    F = fun(MatchReq, ItemStats) ->
-            Stats = [{damage, bson:lookup(damage, MatchReq)},
-                     {durability, bson:lookup(durability, MatchReq)},
-                     {speed, bson:lookup(speed, MatchReq)}],
+            Stats = [{damage, maps:get(<<"damage">>, MatchReq, 0)},
+                     {durability, maps:get(<<"durability">>, MatchReq, 0)},
+                     {speed, maps:get(<<"speed">>, MatchReq, 0)}],
 
             combine_stats(Stats, ItemStats)
         end,
 
-    AllItemStats = lists:foldl(F, {}, MatchReqList),
+    AllItemStats = lists:foldl(F, #{}, MatchReqList),
     
     ItemName = craft_item_name(RecipeName, MatchReqList),
 
-    FinalItem = bson:merge({owner, OwnerId, class, <<"Weapon">>, name, ItemName, quantity, 1}, AllItemStats),
+    BaseStats = #{<<"owner">> => OwnerId, 
+                  <<"class">> => <<"Weapon">>,
+                  <<"name">> => ItemName,
+                  <<"quantity">> => 1},
+    
+    FinalItem = maps:merge(BaseStats, AllItemStats),
     InsertedItem = item:create(FinalItem),
     InsertedItem;
 craft_item(_, _, _, _) ->
@@ -188,24 +193,24 @@ combine_stats([{StatName, StatValue} | Rest], Item) ->
     NewItem = add_stat(StatName, StatValue, Item),
     combine_stats(Rest, NewItem).
 
-add_stat(_StatName, {}, ItemStats) -> ItemStats;
-add_stat(StatName, {StatValue}, ItemStats) -> bson:update(StatName, StatValue, ItemStats).
+add_stat(_StatName, 0, ItemStats) -> ItemStats;
+add_stat(StatName, StatValue, ItemStats) -> maps:put(StatName, StatValue, ItemStats).
 
 craft_item_name(RecipeName, MatchReqList) ->
     [FirstReq | _] = MatchReqList,
-    {PrimaryReqName} = bson:lookup(name, FirstReq),
+    PrimaryReqName = maps:get(<<"name">>, FirstReq),
     [FirstPart | _] = binary:split(PrimaryReqName, <<" ">>, []),
    
     <<FirstPart/binary, <<" ">>/binary, RecipeName/binary>>.
 
 consume_req([], _Items) ->
     lager:info("Completed consuming items");
-consume_req([{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
+consume_req([#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest], Items) ->
     F = fun(Item) ->
-            {ItemId} = bson:lookup('_id', Item),
-            {ItemName} = bson:lookup(name, Item),
-            {ItemSubClass} = bson:lookup(subclass, Item),
-            {ItemQuantity} = bson:lookup(quantity, Item),
+            ItemId = maps:get(<<"_id">>, Item),
+            ItemName = maps:get(<<"name">>, Item),
+            ItemSubClass = maps:get(<<"subclass">>, Item),
+            ItemQuantity = maps:get(<<"quantity">>, Item),
 
             QuantityMatch = ReqQuantity =< ItemQuantity,            
             ItemNameMatch = ReqType =:= ItemName,

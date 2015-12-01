@@ -358,7 +358,7 @@ process_mana_upkeep() ->
 
             case NewMana > 0 of
                 true ->
-                    obj:update(Monolith#obj.id, mana, NewMana);
+                    obj:update(Monolith#obj.id, <<"mana">>, NewMana);
                 false ->
                     obj:update_state(Monolith#obj.id, disabled)
             end

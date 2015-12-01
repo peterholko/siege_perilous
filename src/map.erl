@@ -285,7 +285,7 @@ odd_q_to_cube({Q, R}) ->
 
 tileset() ->
     lager:info("Parsing tileset"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/test3.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     TilesetList = process_tileset(C, []),
     JSON = jsx:encode(TilesetList),
@@ -294,7 +294,7 @@ tileset() ->
 
 load() ->
     lager:info("Parsing map"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/test2.tmx"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/test3.tmx"),
     {_T, A, C} = parsexml:parse(Bin),
     lager:info("Processing map properties..."),
     process_map_properties(A),

@@ -39,11 +39,11 @@ transfer(ItemId, TargetId) ->
 
 split(Item, NewQuantity) ->
     lager:info("Item: ~p NewQuantity: ~p", [Item, NewQuantity]),
-    {ItemId} = bson:lookup('_id', Item),
-    {Quantity} = bson:lookup(quantity, Item),
+    ItemId = maps:get(<<"_id">>, Item),
+    Quantity = maps:get(<<"quantity">>, Item),
     
-    NewItem = bson:update(quantity, NewQuantity, Item),
-    NewItem2 = bson:exclude(['_id'], NewItem),
+    NewItem = maps:update(<<"quantity">>, NewQuantity, Item),
+    NewItem2 = maps:remove(<<"_id">>, NewItem),
     mongo:insert(mdb:get_conn(), <<"item">>, NewItem2),
 
     lager:info("Updating original item quantity"),
@@ -63,18 +63,20 @@ create(Owner, Name, Quantity) ->
     lager:info("ExistingItem: ~p", [ExistingItem]),
     case ExistingItem of
         [] ->
-            [ItemType] = find_type(name, Name),
-            NewItem = bson:exclude(['_id'], ItemType),
-            NewItem2 = bson:merge({quantity, Quantity}, NewItem),
-            NewItem3 = bson:merge({owner, Owner}, NewItem2),
+            [ItemType] = find_type(name, Name),            
+
+            NewItem = maps:remove(<<"_id">>, ItemType),
+            NewItem2 = maps:put(<<"quantity">>, Quantity, NewItem),
+            NewItem3 = maps:put(<<"owner">>, Owner, NewItem2),
+
             InsertedItem = mongo:insert(mdb:get_conn(), <<"item">>, NewItem3),
             lager:info("InsertedItem: ~p", [InsertedItem]),
             InsertedItem;
         [Item] ->
             lager:info("Updating existing item"),
-            {ItemId} = bson:lookup('_id', Item),
-            {OldQuantity} = bson:lookup(quantity, Item),
-            UpdatedItem = bson:update(quantity, OldQuantity + Quantity, Item),
+            ItemId = maps:get(<<"_id">>, Item),
+            OldQuantity = maps:get(<<"quantity">>, Item),
+            UpdatedItem = maps:update(<<"quantity">>, OldQuantity + Quantity, Item),
             
             lager:info("UpdatedItem: ~p", [UpdatedItem]),
             mdb:update(<<"item">>, ItemId, UpdatedItem),
@@ -82,10 +84,11 @@ create(Owner, Name, Quantity) ->
         Items ->
             %Pick the first item of the same type and owner
             lager:info("Found multiple existing items, updating first existing item"),
-            [Item | _Rest] = Items,
-            {ItemId} = bson:lookup('_id', Item),
-            {OldQuantity} = bson:lookup(quantity, Item),
-            UpdatedItem = bson:update(quantity, OldQuantity + Quantity, Item),
+            [Item | _Rest] = Items,            
+            ItemId = maps:get(<<"_id">>, Item),
+            OldQuantity = maps:get(<<"quantity">>, Item),
+            UpdatedItem = maps:update(<<"quantity">>, OldQuantity + Quantity, Item),
+            
             lager:info("UpdatedItem: ~p", [UpdatedItem]),
             mdb:update(<<"item">>, ItemId, UpdatedItem),
             UpdatedItem 
@@ -101,23 +104,13 @@ obj_perception(ObjId) ->
 % Internal
 
 find_one(Key, Value) ->
-    mongo:find_one(mdb:get_conn(), <<"item">>, {Key, Value}).
+    mdb:find_one(<<"item">>, Key, Value).
 
 find(Key, Value) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"item">>, {Key, Value}),
-    Items = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Items.
-
-find_type(Key, Value) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"item_type">>, {Key, Value}),
-    ItemTypes = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    ItemTypes.
+    mdb:find(<<"item">>, Key, Value).
 
 find(Tuple) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"item">>, Tuple),
-    Items = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Items.
+    mdb:find(<<"item">>, Tuple).
 
+find_type(Key, Value) ->
+    mdb:find(<<"item_type">>, Key, Value).

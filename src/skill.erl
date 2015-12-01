@@ -14,18 +14,22 @@ get_by_owner(Id) ->
 
 update(Id, SkillName, Value) ->
     lager:info("skill:update id ~p skillname ~p value ~p", [Id, SkillName, Value]),
-    {_SkillType} = mdb:find_one(<<"skill_type">>, {name, SkillName}),
+    %TODO fix validation
+    true = is_valid_type(SkillName),
 
     NewValue = case mdb:find_one(<<"skill">>, {owner, Id, name, SkillName}) of
-                    {} ->
-                       NewSkill = {owner, Id, name, SkillName, value, Value},
+                    #{} ->                       
+                       NewSkill = #{<<"owner">> => Id, 
+                                    <<"name">> => SkillName, 
+                                    <<"value">> => Value},
+
                        InsertedSkill = mongo:insert(mdb:get_conn(), <<"skill">>, NewSkill),
                        lager:info("InsertedSkill: ~p", [InsertedSkill]),
                        Value;
-                    {Skill} ->
-                       {SkillId} = bson:lookup('_id', Skill),
-                       {CurrentValue} = bson:lookup(value, Skill),
-                       UpdatedSkill = bson:update(value, CurrentValue + Value, Skill),
+                    Skill ->
+                       SkillId = maps:get(<<"_id">>, Skill),
+                       CurrentValue = maps:get(<<"value">>, Skill),
+                       UpdatedSkill = maps:update(<<"value">>, CurrentValue + Value, Skill),
                        mdb:update(<<"skill">>, SkillId, UpdatedSkill),
                        CurrentValue + Value
                end,
@@ -33,6 +37,10 @@ update(Id, SkillName, Value) ->
     Player = get_player(Id),
 
     send_to_client(Player, skill_update, message(Id, SkillName, NewValue)).
+
+is_valid_type(SkillName) ->
+    SkillType = mdb:find_one(<<"skill_type">>, {name, SkillName}),
+    maps:size(SkillType) > 0.
 
 get_player(Id) ->
     [Obj] = db:read(obj, Id),

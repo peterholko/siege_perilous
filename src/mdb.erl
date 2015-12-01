@@ -17,7 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([get_conn/0]).
 -export([update/3, delete/2]).
--export([find/2, find_one/2]).
+-export([find/2, find/3, find_one/3]).
 -export([to_map/1]).
 %% ====================================================================
 %% External functions
@@ -29,20 +29,14 @@ start() ->
 get_conn() ->
     gen_server:call({global, mdb_pid}, {get_conn}).
 
+update(Collection, Id, Value) when is_map(Value) ->
+    NewValue = bson:flatten_map(Value),
+    update(Collection, Id, NewValue);
 update(Collection, Id, Value) ->
     gen_server:cast({global, mdb_pid}, {update, Collection, Id, Value}). 
 
 delete(Collection, Id) ->
     gen_server:cast({global, mdb_pid}, {delete, Collection, Id}).
-
-find(Collection, Selector) ->
-    Cursor = mongo:find(mdb:get_conn(), Collection, Selector),
-    ListResult = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    ListResult.
-
-find_one(Collection, Selector) ->
-    mongo:find_one(mdb:get_conn(), Collection, Selector).
 
 %% ====================================================================
 %% Server functions
@@ -57,14 +51,14 @@ init([]) ->
 handle_cast({update, Collection, Id, Value}, Data) ->
     Connection = Data,
     %Exclude id from any updates
-    Cmd = {'$set', bson:exclude(['_id'], Value)},
-    Result = mongo:update(Connection, Collection, {'_id', Id}, Cmd),
+    Cmd = {<<"$set">>, Value},
+    ok = mongo:update(Connection, Collection, {<<"_id">>, Id}, Cmd),
 
     {noreply, Data};
 
 handle_cast({delete, Collection, Id}, Data) ->
     Connection = Data,
-    mongo:delete(Connection, Collection, {'_id', Id}),
+    mongo:delete(Connection, Collection, {<<"_id">>, Id}),
 
     {noreply, Data};
 
@@ -153,4 +147,18 @@ to_hex(<<_:96>>, Value) ->
     util:bin_to_hex(Value);
 to_hex(Value, Value) ->
     Value.
- 
+
+find_one(Collection, Key, Value) ->
+    mongo:find_one(mdb:get_conn(), Collection, {Key, Value}).
+
+find(Collection, Key, Value) ->
+    Cursor = mongo:find(mdb:get_conn(), Collection, {Key, Value}),
+    Results = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Results.
+
+find(Collection, Tuple) ->
+    Cursor = mongo:find(mdb:get_conn(), Collection, Tuple),
+    Results = mc_cursor:rest(Cursor),
+    mc_cursor:close(Cursor),
+    Results.
