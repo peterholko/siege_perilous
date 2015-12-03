@@ -76,10 +76,11 @@ move_unit(UnitId, Pos) ->
     [Unit] = db:read(obj, UnitId),
     NumTicks = obj:movement_cost(Unit, Pos),
     lager:info("NumTicks: ~p", [NumTicks]),
-   
+
     ValidState = Unit#obj.state =/= dead, 
     ValidClass = Unit#obj.class =:= unit,
     ValidAdjacent = map:is_adjacent(Unit#obj.pos, Pos),
+    ValidPassable = map:is_passable(Pos),
     ValidPos = obj:is_empty(Pos),
     NearbyHero = obj:is_hero_nearby(Unit, Player),
 
@@ -88,6 +89,7 @@ move_unit(UnitId, Pos) ->
     Result = ValidState andalso
              ValidClass andalso 
              ValidAdjacent andalso
+             ValidPassable andalso
              ValidPos andalso
              NearbyHero,
     

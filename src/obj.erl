@@ -125,9 +125,6 @@ is_empty(Pos) ->
     Units = filter_units(Objs),
     Units =:= [].
 
-
-
-
 set_wall_effect(_ = #obj{id = _Id,
                          subclass = Subclass,
                          state = State,

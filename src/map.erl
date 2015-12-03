@@ -19,7 +19,7 @@
 -export([get_nearby_objs/3]).
 -export([add_explored/2]).
 -export([neighbours/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
--export([movement_cost/1]).
+-export([movement_cost/1, is_passable/1]).
 -export([check_distance/4, distance/2]).
 -export([range/2, filter_pos/1]).
 
@@ -55,14 +55,16 @@ is_adjacent(SourcePos, TargetPos) ->
 
 movement_cost(Pos) ->
     [Tile] = db:dirty_read(map, Pos),
-    TileType = Tile#map.tile - 1,
-    MoveCost = case TileType of
-                   ?PLAINS -> ?PLAINS_MC;
-                   ?MOUNTAINS -> ?MOUNTAINS_MC;
-                   ?HILLS -> ?HILLS_MC;
-                   ?FOREST -> ?FOREST_MC
-               end,
+    TileType = Tile#map.tile,
+    TileName = tile_name(TileType),
+    MoveCost = mc(TileName),
     MoveCost.   
+
+is_passable(Pos) ->
+    [Tile] = db:dirty_read(map, Pos),
+    TileType = Tile#map.tile,
+    TileName = tile_name(TileType),
+    passable_tile(TileName).
 
 %% ====================================================================
 %% Server functions
@@ -285,7 +287,7 @@ odd_q_to_cube({Q, R}) ->
 
 tileset() ->
     lager:info("Parsing tileset"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/test3.tmx"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/static/test3.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     TilesetList = process_tileset(C, []),
     JSON = jsx:encode(TilesetList),
@@ -294,7 +296,7 @@ tileset() ->
 
 load() ->
     lager:info("Parsing map"),
-    {ok, Bin} = file:read_file("lib/sp-1/priv/test3.tmx"),
+    {ok, Bin} = file:read_file("lib/sp-1/priv/static/test3.tmx"),
     {_T, A, C} = parsexml:parse(Bin),
     lager:info("Processing map properties..."),
     process_map_properties(A),
@@ -316,7 +318,7 @@ process_tileset([], TilesetList) ->
     lager:info("Done processing tileset"),
     TilesetList;
 process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList) ->
-    [FirstGidInfo, NameInfo, _H, _W] = TilesetInfo,
+    [FirstGidInfo, NameInfo, _H, _W, _TileCount] = TilesetInfo,
     {_, BinFirstGid} = FirstGidInfo,
     {_, TilesetName} = NameInfo,
     FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
@@ -345,6 +347,7 @@ process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, Tilese
     {X, Y} = TileOffset,
     
     Image = process_tile_data(TilesetName, TileId, TileData, none),
+    lager:info("TileId: ~p Image: ~p", [TileId, Image]),
 
     NewTileset= [#{<<"tile">> => TileId,
                    <<"image">> => Image, 
@@ -355,10 +358,9 @@ process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, Tilese
 
 process_tile_data(_TilesetName, _TileId, [], Image) ->
     Image;
-process_tile_data(TilesetName, TileId, [{<<"image">>, [_Width, _Height, Source], _Empty} | Rest], Image) ->
+process_tile_data(TilesetName, TileId, [{<<"image">>, [_Width, _Height, Source], _Empty} | Rest], _Image) ->
     {_, BinFilePath} = Source,
     NewImage = BinFilePath,
-    lager:info("Image: ~p", [Image]),
 
     process_tile_data(TilesetName, TileId, Rest, NewImage);
 
@@ -502,3 +504,49 @@ store_tile(none, Tile, Pos) ->
 
 get_poi_subclass(<<"Monolith">>) -> <<"Monolith">>;
 get_poi_subclass(_) -> <<"poi">>.
+
+tile_name(1) -> ?GRASSLANDS;
+tile_name(2) -> ?SNOW;
+tile_name(3) -> ?RIVER;
+tile_name(4) -> ?RIVER;
+tile_name(5) -> ?OCEAN;
+tile_name(6) -> ?PLAINS;
+tile_name(7) -> ?HILLS_PLAINS;
+tile_name(8) -> ?HILLS_PLAINS;
+tile_name(9) -> ?PLAINS;
+tile_name(10) -> ?DESERT;
+tile_name(11) -> ?OASIS;
+tile_name(12) -> ?HILLS_DESERT;
+tile_name(13) -> ?HILLS_GRASSLANDS;
+tile_name(14) -> ?SWAMP;
+tile_name(15) -> ?SWAMP;
+tile_name(16) -> ?HILLS_SNOW;
+tile_name(17) -> ?OCEAN;
+tile_name(18) -> ?SWAMP;
+tile_name(19) -> ?DECIDUOUS_FOREST;
+tile_name(20) -> ?RAINFOREST;
+tile_name(21) -> ?JUNGLE;
+tile_name(22) -> ?SAVANNA;
+tile_name(23) -> ?DECIDUOUS_FOREST;
+tile_name(24) -> ?DECIDUOUS_FOREST;
+tile_name(25) -> ?FROZEN_FOREST;
+tile_name(26) -> ?FROZEN_FOREST;
+tile_name(27) -> ?PINE_FOREST;
+tile_name(28) -> ?FROZEN_FOREST;
+tile_name(29) -> ?SAVANNA;
+tile_name(30) -> ?PALM_FOREST;
+tile_name(31) -> ?JUNGLE;
+tile_name(32) -> ?MOUNTAIN;
+tile_name(33) -> ?MOUNTAIN;
+tile_name(34) -> ?MOUNTAIN;
+tile_name(35) -> ?MOUNTAIN;
+tile_name(36) -> ?MOUNTAIN;
+tile_name(37) -> ?MOUNTAIN;
+tile_name(38) -> ?MOUNTAIN;
+tile_name(39) -> ?VOLCANO.
+
+mc(?MOUNTAIN) -> 5;
+mc(_) -> 1.
+
+passable_tile(?OCEAN) -> false;
+passable_tile(_) -> true.

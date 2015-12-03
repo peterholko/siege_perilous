@@ -341,6 +341,7 @@ process_spawn_mana(day) ->
 spawn_mana(5, _NearbyList) -> nothing;
 spawn_mana(N, NearbyList) -> 
     NumPos = length(NearbyList),
+    lager:info("NumPos: ~p", [NumPos]),
     RandomIndex = rand:uniform(NumPos),   
     RandomPos = lists:nth(RandomIndex, NearbyList),
 

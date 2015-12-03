@@ -10,13 +10,30 @@
 -define(GAME_NUM_HOURS_PER_DAY, 6).
 -define(TICKS_SEC, 5).
 
--define(MAP_WIDTH, 10).
--define(MAP_HEIGHT, 10).
+-define(MAP_WIDTH, 60).
+-define(MAP_HEIGHT, 50).
 
--define(PLAINS, 0).
--define(MOUNTAINS, 1).
--define(FOREST, 2).
--define(HILLS, 3).
+-define(GRASSLANDS, <<"Grasslands">>).
+-define(SNOW, <<"Snow">>).
+-define(RIVER, <<"River">>).
+-define(OCEAN, <<"Ocean">>).
+-define(PLAINS, <<"Plains">>).
+-define(HILLS_PLAINS, <<"Hill Plains">>).
+-define(DESERT, <<"Desert">>).
+-define(OASIS, <<"Oasis">>).
+-define(HILLS_DESERT, <<"Hills Desert">>).
+-define(HILLS_GRASSLANDS, <<"Hills Grasslands">>).
+-define(SWAMP, <<"Swamp">>).
+-define(HILLS_SNOW, <<"Hills Snow">>).
+-define(DECIDUOUS_FOREST, <<"Deciduous Forest">>).
+-define(RAINFOREST, <<"Rainforest">>).
+-define(JUNGLE, <<"Jungle">>).
+-define(SAVANNA, <<"Savanna">>).
+-define(FROZEN_FOREST, <<"Frozen Forest">>).
+-define(PINE_FOREST, <<"Pine Forest">>).
+-define(PALM_FOREST, <<"Palm Forest">>).
+-define(MOUNTAIN, <<"Mountain">>).
+-define(VOLCANO, <<"Mountain">>).
 
 -define(PLAINS_MC, 1).
 -define(MOUNTAINS_MC, 5).
