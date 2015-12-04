@@ -549,4 +549,5 @@ mc(?MOUNTAIN) -> 5;
 mc(_) -> 1.
 
 passable_tile(?OCEAN) -> false;
+passable_tile(?RIVER) -> false;
 passable_tile(_) -> true.

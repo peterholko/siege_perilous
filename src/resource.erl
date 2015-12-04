@@ -12,8 +12,10 @@
 harvest(ObjId, ResourceType, Pos) ->
     [Resource] = db:read(resource, Pos),
     Quantity = Resource#resource.quantity,
-    
+    lager:info("Harvesting resource: ~p", [Resource]),
+
     NewQuantity = Quantity - 1,
+
 
     case NewQuantity =< 0 of
         true ->
@@ -31,6 +33,7 @@ harvest(ObjId, ResourceType, Pos) ->
     end,
 
     NewItem = item:create(ObjId, ResourceType, 1),
+    lager:info("NewItem: ~p", [NewItem]),
     [NewItem].
 
 survey(Pos) ->

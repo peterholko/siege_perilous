@@ -253,6 +253,7 @@ recipe_list(SourceId) ->
     Player = get(player_id),
     [Obj] = db:read(obj, SourceId),
 
+    lager:info("Player: ~p Obj.player: ~p", [Player, Obj#obj.player]),
     ValidPlayer = Player =:= Obj#obj.player,
 
     Result = case ValidPlayer of

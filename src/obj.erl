@@ -128,7 +128,7 @@ is_empty(Pos) ->
 set_wall_effect(_ = #obj{id = _Id,
                          subclass = Subclass,
                          state = State,
-                         pos = Pos}) when Subclass =:= <<"wall">> ->
+                         pos = Pos}) when Subclass =:= ?WALL ->
     lager:debug("Set wall effect"),
     Objs = get_by_pos(Pos),
     AddOrRemove = is_add_remove_wall(State),
@@ -144,14 +144,15 @@ set_wall_effect(_) ->
 
 item_transfer(#obj {id = Id, 
                     subclass = Subclass, 
-                    state = State}, Item) when (Subclass =:= <<"Monolith">>) and 
+                    state = State}, Item) when (Subclass =:= ?MONOLITH) and 
                                                (State =:= disabled)  ->
     Name = maps:get(<<"name">>, Item),
 
     case Name of
         <<"Mana">> -> update_state(Id, none);
         _ -> nothing
-    end.
+    end;
+item_transfer(_Obj, _Item) -> nothing.
 
 %%
 %% MongoDB Functions
@@ -188,7 +189,7 @@ get_unit_by_pos(QueryPos) ->
 get_wall(QueryPos) ->
     MS = ets:fun2ms(fun(N = #obj{pos = Pos,
                                  subclass = SubClass}) when Pos =:= QueryPos,
-                                                            SubClass =:= <<"wall">> -> N end),
+                                                            SubClass =:= ?WALL -> N end),
     [Wall] = db:select(obj, MS),
     Wall.
 
@@ -206,13 +207,13 @@ is_behind_wall(QueryPos) ->
     MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
                                  class = structure,
                                  state = State,
-                                 subclass = <<"wall">>}) when Pos =:= QueryPos,
+                                 subclass = ?WALL}) when Pos =:= QueryPos,
                                                               State =/= dead -> N end),
     Objs = db:select(obj, MS),
     Objs =/= [].
 
 is_monolith_nearby(QueryPos) ->
-    Monoliths = db:index_read(obj, <<"monolith">>, #obj.subclass),
+    Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->            
             Radius = get_monolith_radius(Monolith#obj.name),
@@ -224,12 +225,12 @@ is_monolith_nearby(QueryPos) ->
 
 
 apply_wall(false, #obj {id = Id}) ->
-    case has_effect(Id, <<"wall">>) of
-        true -> remove_effect(Id, <<"wall">>);
+    case has_effect(Id, ?WALL) of
+        true -> remove_effect(Id, ?WALL);
         false -> nothing
     end;
 apply_wall(true, #obj {id = Id}) ->
-    add_effect(Id, <<"wall">>, none).
+    add_effect(Id, ?WALL, none).
 
 apply_sanctuary(false, #obj {id = Id}) ->
     case has_effect(Id, <<"sanctuary">>) of
@@ -252,9 +253,9 @@ is_add_remove_wall(_State) -> remove.
 
 update_wall_effect(add, #obj{id = Id, pos = Pos, class = Class}) when Class =:= unit ->
     Wall = get_wall(Pos),
-    add_effect(Id, <<"wall">>, Wall#obj.id);
+    add_effect(Id, ?WALL, Wall#obj.id);
 update_wall_effect(remove, #obj{id = Id, class = Class}) when Class =:= unit ->
-    remove_effect(Id, <<"wall">>);
+    remove_effect(Id, ?WALL);
 update_wall_effect(_, _Obj) ->
     lager:info("Not applying wall effect to non-unit").
 
@@ -296,7 +297,7 @@ get_monolith_radius(<<"Greater Monolith">>) -> 2.
 create(structure, TypeName) ->
     lager:info("Creating structure ~p", [TypeName]),
     ObjType = find_one_type(<<"name">>, TypeName),
-    UpdatedObjType = maps:update(<<"hp">>, 1, ObjType),
+    UpdatedObjType = maps:put(<<"hp">>, 1, ObjType),
     insert(UpdatedObjType);
 
 create(Class, TypeName) ->

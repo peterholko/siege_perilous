@@ -32,7 +32,7 @@ run_plan(PlayerId) ->
     gen_server:cast({global, {npc, PlayerId}}, run_plan).
 
 new_zombie() ->
-    obj:create({2,2}, 99, unit, <<"npc">>, <<"Zombie">>, none).
+    obj:create({18,18}, 99, unit, <<"npc">>, <<"Zombie">>, none).
 
 new_wolf() ->
     obj:create({3,3}, 99, unit, <<"npc">>, <<"Wolf">>, none).
@@ -253,7 +253,7 @@ compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance -
 
 remove_walled(ObjList) ->
     F = fun(Obj) ->
-            IsWalled = obj:has_effect(Obj#obj.id, <<"wall">>),
+            IsWalled = obj:has_effect(Obj#obj.id, ?WALL),
             not IsWalled
         end,
     lists:filter(F, ObjList).
@@ -284,7 +284,7 @@ get_wander_pos(false,  _, Neighbours) ->
     get_wander_pos(IsEmpty, RandomPos, NewNeighbours).
 
 check_wall(#obj{id = Id} = EnemyUnit) ->    
-    Effect = db:read(effect, {Id, <<"Wall">>}),
+    Effect = db:read(effect, {Id, ?WALL}),
 
     Target = case Effect =/= [] of
                 true ->

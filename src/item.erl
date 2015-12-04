@@ -80,6 +80,7 @@ create(Owner, Name, Quantity) ->
             
             lager:info("UpdatedItem: ~p", [UpdatedItem]),
             mdb:update(<<"item">>, ItemId, UpdatedItem),
+            lager:info("Finished updating item...", [UpdatedItem]),
             UpdatedItem;
         Items ->
             %Pick the first item of the same type and owner

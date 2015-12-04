@@ -199,7 +199,7 @@ is_adjacent(SourceObj, TargetObj) ->
     end.
 
 is_targetable(#obj{id = Id}) ->
-    HasWall = obj:has_effect(Id, <<"wall">>),
+    HasWall = obj:has_effect(Id, ?WALL),
     IsTargetable = not HasWall,
     lager:info("is_targetable: ~p", [IsTargetable]),
     IsTargetable.
@@ -312,8 +312,8 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
         <<"alive">> ->
             obj:update(DefId, <<"hp">>, NewHp);
         <<"dead">> ->
-            AtkXp = maps:get(<<"xp">>, AtkUnit),
-            DefKillXp = maps:get(<<"kill_xp">>, DefUnit),
+            AtkXp = maps:get(<<"xp">>, AtkUnit, 0),
+            DefKillXp = maps:get(<<"kill_xp">>, DefUnit, 0),
             obj:update(AtkId, <<"xp">>, AtkXp + DefKillXp),
             process_unit_dead(DefId)
     end.

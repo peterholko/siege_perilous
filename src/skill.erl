@@ -17,7 +17,7 @@ update(Id, SkillName, Value) ->
     %TODO fix validation
     true = is_valid_type(SkillName),
 
-    NewValue = case mdb:find_one(<<"skill">>, {owner, Id, name, SkillName}) of
+    NewValue = case mdb:find_one(<<"skill">>, {<<"owner">>, Id, <<"name">>, SkillName}) of
                     #{} ->                       
                        NewSkill = #{<<"owner">> => Id, 
                                     <<"name">> => SkillName, 
@@ -39,7 +39,7 @@ update(Id, SkillName, Value) ->
     send_to_client(Player, skill_update, message(Id, SkillName, NewValue)).
 
 is_valid_type(SkillName) ->
-    SkillType = mdb:find_one(<<"skill_type">>, {name, SkillName}),
+    SkillType = mdb:find_one(<<"skill_type">>, <<"name">>, SkillName),
     maps:size(SkillType) > 0.
 
 get_player(Id) ->

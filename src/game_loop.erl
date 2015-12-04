@@ -135,17 +135,21 @@ do_event(harvest, EventData, PlayerPid) ->
     %Check if resource still exists
     case resource:is_valid(Pos) of
         true ->
+            lager:info("Creating/update item.."),
             %Create/update item
             NewItems = resource:harvest(ObjId, Resource, Pos),
             
             case Repeat of
                 true ->
+                    lager:info("Repeating harvest event"),
                     game:add_event(PlayerPid, harvest, EventData, ObjId, NumTicks);
                 false ->
                     %Update obj state
+                    lager:info("Updating obj state to none"),
                     obj:update_state(ObjId, none)
             end,
          
+            lager:info("Sending new items to player"),
             send_update_items(ObjId, NewItems, PlayerPid),
             send_to_process(PlayerPid, event_complete, {harvest, ObjId});
         false ->
@@ -350,7 +354,7 @@ spawn_mana(N, NearbyList) ->
     spawn_mana(N + 1, NewNearbyList).
 
 process_mana_upkeep() ->
-    Monoliths = db:index_read(obj, <<"Monolith">>, #obj.subclass),
+    Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->
             ObjM = obj:get(Monolith#obj.id),

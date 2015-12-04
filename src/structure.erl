@@ -87,12 +87,12 @@ craft(ObjId, RecipeName) ->
     consume_req(ReqList, MatchReq),
     craft_item(ObjId, RecipeItem, Class, lists:reverse(MatchReq)).
 
-valid_location(<<"wall">>, QueryPos) ->
+valid_location(?WALL, QueryPos) ->
     lager:info("Valid location for wall"),
     %TODO determine atom vs binary for class and subclass
     MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
                                        class = structure,
-                                       subclass = <<"wall">>}) when Pos =:= QueryPos -> N end),
+                                       subclass = ?WALL}) when Pos =:= QueryPos -> N end),
     Objs = db:select(obj, MS),
 
     % True if no objs, False if Wall objs
@@ -102,7 +102,7 @@ valid_location(_, QueryPos) ->
     %TODO determine atom vs binary for class and subclass
     MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
                                  class = structure,
-                                 subclass = Subclass}) when Subclass =/= <<"wall">>,
+                                 subclass = Subclass}) when Subclass =/= ?WALL,
                                                             Pos =:= QueryPos -> N end),
     Objs = db:select(obj, MS),
     lager:info("Objs: ~p", [Objs]),
@@ -119,7 +119,7 @@ has_req(false, _Reqs, _Items) ->
     false;
 has_req(Result, [], _Items) ->
     Result;
-has_req(Result, [{type, ReqType, quantity, ReqQuantity} | Rest], Items) ->
+has_req(Result, [#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest], Items) ->
     F = fun(Item) ->
             match_req(Item, ReqType, ReqQuantity)
         end,
@@ -134,7 +134,7 @@ find_match_req(Reqs, Items) ->
 
 find_match_req([], _Items, ReqMatchItems) ->
     ReqMatchItems;
-find_match_req([{type, ReqType, quantity, ReqQuantity} | Rest], Items, ReqMatchItems) ->
+find_match_req([#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest], Items, ReqMatchItems) ->
     F = fun(Item) ->
             match_req(Item, ReqType, ReqQuantity)
         end,

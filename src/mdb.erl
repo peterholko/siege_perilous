@@ -17,7 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([get_conn/0]).
 -export([update/3, delete/2]).
--export([find/2, find/3, find_one/3]).
+-export([find/2, find/3, find_one/2, find_one/3]).
 -export([to_map/1]).
 %% ====================================================================
 %% External functions
@@ -31,8 +31,8 @@ get_conn() ->
 
 update(Collection, Id, Value) when is_map(Value) ->
     NewValue = bson:flatten_map(Value),
-    update(Collection, Id, NewValue);
-update(Collection, Id, Value) ->
+    gen_server:cast({global, mdb_pid}, {update, Collection, Id, NewValue}); 
+update(Collection, Id, Value) when is_tuple(Value) ->
     gen_server:cast({global, mdb_pid}, {update, Collection, Id, Value}). 
 
 delete(Collection, Id) ->
@@ -162,3 +162,6 @@ find(Collection, Tuple) ->
     Results = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Results.
+
+find_one(Collection, Tuple) ->
+    mongo:find_one(mdb:get_conn(), Collection, Tuple).
