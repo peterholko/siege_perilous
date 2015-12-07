@@ -208,7 +208,7 @@ is_behind_wall(QueryPos) ->
                                  class = structure,
                                  state = State,
                                  subclass = ?WALL}) when Pos =:= QueryPos,
-                                                              State =/= dead -> N end),
+                                                         State =/= dead -> N end),
     Objs = db:select(obj, MS),
     Objs =/= [].
 

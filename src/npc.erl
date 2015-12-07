@@ -288,7 +288,8 @@ check_wall(#obj{id = Id} = EnemyUnit) ->
 
     Target = case Effect =/= [] of
                 true ->
-                    WallId = Effect#effect.data,
+                    [EffectR] = Effect,
+                    WallId = EffectR#effect.data,
                     [Wall] = db:read(obj, WallId),
                     Wall;
                 false ->
