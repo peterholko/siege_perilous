@@ -502,7 +502,7 @@ store_tile(none, Tile, Pos) ->
             db:dirty_write(NewTile)
     end.
 
-get_poi_subclass(<<"Monolith">>) -> <<"Monolith">>;
+get_poi_subclass(<<"Monolith">>) -> ?MONOLITH;
 get_poi_subclass(_) -> <<"poi">>.
 
 tile_name(1) -> ?GRASSLANDS;

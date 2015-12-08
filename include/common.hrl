@@ -40,8 +40,8 @@
 -define(FOREST_MC, 2).
 -define(HILLS_MC, 2).
 
--define(MONOLITH, <<"Monolith">>).
--define(WALL, <<"Wall">>).
+-define(MONOLITH, <<"monolith">>).
+-define(WALL, <<"wall">>).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

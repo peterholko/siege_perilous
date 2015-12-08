@@ -323,7 +323,7 @@ apply_transition(_, _) ->
     nothing.
 
 process_spawn_mana(night) ->
-    Monoliths = db:index_read(obj, <<"Monolith">>, #obj.subclass),
+    Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->
             NearbyList = map:filter_pos(map:range(Monolith#obj.pos, 4)),
@@ -357,19 +357,27 @@ process_mana_upkeep() ->
     Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->
-            ObjM = obj:get(Monolith#obj.id),
-            Mana = maps:get(<<"mana">>, ObjM),
-            NewMana = Mana - 1,
-
-            case NewMana > 0 of
-                true ->
-                    obj:update(Monolith#obj.id, <<"mana">>, NewMana);
-                false ->
-                    obj:update_state(Monolith#obj.id, disabled)
-            end
+            Mana = item:find_one({<<"owner">>, Monolith#obj.id, <<"name">>, <<"Mana">>}),
+            update_mana(Monolith, Mana)
         end,
 
     lists:foreach(F, Monoliths).
+
+update_mana(Monolith, #{}) -> 
+    obj:update_state(Monolith#obj.id, disabled);
+update_mana(Monolith, Mana) ->
+    Id = maps:get(<<"id">>, Mana),
+    Quantity = maps:get(<<"quantity">>, Mana),
+    NewQuantity = Quantity - 1,
+
+    item:update(Id, NewQuantity),
+
+    case NewQuantity > 0 of
+        false ->
+            obj:update_state(Monolith#obj.id, disabled);
+        true ->
+            nothing
+    end.
 
 filter_disabled(AllMonoliths) ->
     F = fun(Monolith) ->
