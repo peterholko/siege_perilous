@@ -26,6 +26,7 @@
          process_resource/1,
          craft/2,
          equip/1,
+         rest/1,
          assign/2,
          cancel/1,
          set_event_lock/2,
@@ -320,6 +321,21 @@ equip(ItemId) ->
     Reply = to_reply(Result),
     Reply.
 
+rest(ObjId) ->
+    Player = get(player_id),
+
+    [Obj] = db:read(obj, ObjId),
+
+    Checks = [{is_player_owned(Player, Obj#obj.player), "Unit not owned by player"},
+              {is_state(Obj#obj.state, none), "Unit is busy"}],
+
+    Result = process_checks(Checks),
+
+    add_rest(Result, ObjId),
+
+    Reply = to_reply(Result),
+    Reply.
+
 assign(SourceId, TargetId) ->
     Player = get(player_id),
     
@@ -432,10 +448,15 @@ add_move_unit(false, _, _) ->
     lager:info("Move unit failed"),
     none.
 
-add_equip({false, Error}, _EventData) ->
+add_equip({false, Error}, _Data) ->
     lager:info("Equip failed error: ~p", [Error]);
 add_equip(true, ItemId) ->
     item:equip(ItemId).
+
+add_rest({false, Error}, _Data) ->
+    lager:info("Rest failed error: ~p", [Error]);
+add_rest(true, ObjId) ->
+    obj:update_state(ObjId, rest).
 
 cancel_event(false, _SourceId) ->
     <<"Invalid sourceid">>;

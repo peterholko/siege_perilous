@@ -29,6 +29,9 @@ loop(NumTick, LastTime, GamePID) ->
     %Process resource upkeep
     process_upkeep(NumTick),
 
+    %Process rest
+    process_rest(NumTick),
+
     %Process events
     EventsRecalc = process_events(CurrentTick),
 
@@ -243,6 +246,9 @@ process_upkeep(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTic
     process_mana_upkeep();
 process_upkeep(_) -> nothing.
 
+process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
+    process_rest_state();
+process_rest(_) -> nothing.
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [Message, Process]),
@@ -378,6 +384,23 @@ update_mana(Monolith, Mana) ->
         true ->
             nothing
     end.
+
+process_rest_state() ->
+    Objs = db:index_read(obj, rest, #obj.state),
+
+    F = fun(Obj) ->
+            ObjM = obj:get(Obj#obj.id),
+            Hp = maps:get(<<"hp">>, ObjM),
+            BaseHp = maps:get(<<"base_hp">>, ObjM),
+
+            NewHp = update_hp(Hp, BaseHp),
+            obj:update(Obj#obj.id, <<"hp">>, NewHp)
+        end,
+
+    lists:foreach(F, Objs).
+
+update_hp(Hp, BaseHp) when Hp < BaseHp -> Hp + 1;
+update_hp(_Hp, _BaseHp) -> nothing.
 
 filter_disabled(AllMonoliths) ->
     F = fun(Monolith) ->
