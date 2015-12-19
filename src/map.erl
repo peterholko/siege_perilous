@@ -22,6 +22,7 @@
 -export([movement_cost/1, is_passable/1]).
 -export([check_distance/4, distance/2]).
 -export([range/2, filter_pos/1]).
+-export([spawn_resources/0]).
 
 -record(data, {}).
 %% ====================================================================
@@ -286,7 +287,7 @@ odd_q_to_cube({Q, R}) ->
     {X, Y, Z}.
 
 tileset() ->
-    lager:info("Parsing tileset"),
+    lager:debug("Parsing tileset"),
     {ok, Bin} = file:read_file("lib/sp-1/priv/static/test3.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     TilesetList = process_tileset(C, []),
@@ -295,13 +296,13 @@ tileset() ->
     file:write(F, JSON).
 
 load() ->
-    lager:info("Parsing map"),
+    lager:debug("Parsing map"),
     {ok, Bin} = file:read_file("lib/sp-1/priv/static/test3.tmx"),
     {_T, A, C} = parsexml:parse(Bin),
-    lager:info("Processing map properties..."),
+    lager:debug("Processing map properties..."),
     process_map_properties(A),
 
-    lager:info("Processing layers..."),
+    lager:debug("Processing layers..."),
     process_layers(C).
 
 process_map_properties(MapProperties) ->
@@ -315,15 +316,15 @@ process_map_properties(MapProperties) ->
     put(map_height, Height).
 
 process_tileset([], TilesetList) ->
-    lager:info("Done processing tileset"),
+    lager:debug("Done processing tileset"),
     TilesetList;
 process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList) ->
     [FirstGidInfo, NameInfo, _H, _W, _TileCount] = TilesetInfo,
     {_, BinFirstGid} = FirstGidInfo,
     {_, TilesetName} = NameInfo,
     FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
-    lager:info("FirstGid: ~p ~p", [FirstGid, TilesetName]),
-    lager:info("Tileset Data: ~p", [TilesetData]),
+    lager:debug("FirstGid: ~p ~p", [FirstGid, TilesetName]),
+    lager:debug("Tileset Data: ~p", [TilesetData]),
     NewTilesetList = process_tileset_data(TilesetData, {0,0}, {FirstGid, TilesetName}, TilesetList),
 
     process_tileset(Rest, NewTilesetList);
@@ -331,15 +332,15 @@ process_tileset(_, Tileset) ->
     Tileset.
 
 process_tileset_data([], _, _, NewTileset) ->
-    lager:info("Done procssing tileset"),
+    lager:debug("Done procssing tileset"),
     NewTileset;
 process_tileset_data([{<<"tileoffset">>, OffsetInfo, _OffSetData} | Rest], _Offset, TilesetInfo, Tileset) ->
-    lager:info("tileoffset: ~p ", [OffsetInfo]),
+    lager:debug("tileoffset: ~p ", [OffsetInfo]),
     [{<<"x">>, X}, {<<"y">>, Y}] = OffsetInfo,
     TileOffset = {X, Y},
     process_tileset_data(Rest, TileOffset, TilesetInfo, Tileset);
 process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, TilesetInfo, Tileset) ->
-    lager:info("TileData ~p", [TileData]),  
+    lager:debug("TileData ~p", [TileData]),  
     {FirstGid, TilesetName} = TilesetInfo,
     [{_, BinTileId}] = IdInfo,
     LocalTileId = binary_to_integer(BinTileId),
@@ -347,7 +348,7 @@ process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, Tilese
     {X, Y} = TileOffset,
     
     Image = process_tile_data(TilesetName, TileId, TileData, none),
-    lager:info("TileId: ~p Image: ~p", [TileId, Image]),
+    lager:debug("TileId: ~p Image: ~p", [TileId, Image]),
 
     NewTileset= [#{<<"tile">> => TileId,
                    <<"image">> => Image, 
@@ -365,27 +366,27 @@ process_tile_data(TilesetName, TileId, [{<<"image">>, [_Width, _Height, Source],
     process_tile_data(TilesetName, TileId, Rest, NewImage);
 
 process_tile_data(<<"resources">>, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
-    lager:info("PropertyData: ~p", [PropertiesData]), 
+    lager:debug("PropertyData: ~p", [PropertiesData]), 
     Properties = process_property(PropertiesData, maps:new()),
     store_resource_def(TileId, Properties),
 
     process_tile_data(<<"resources">>, TileId, Rest, Image);
 
 process_tile_data(<<"unit">>, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
-    lager:info("PropertyData: ~p", [PropertiesData]), 
+    lager:debug("PropertyData: ~p", [PropertiesData]), 
     _Properties = process_property(PropertiesData, maps:new()),
 
     process_tile_data(<<"unit">>, TileId, Rest, Image);
 
 process_tile_data(TileLayer, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
-    lager:info("PropertyData: ~p", [PropertiesData]), 
+    lager:debug("PropertyData: ~p", [PropertiesData]), 
     Properties = process_property(PropertiesData, maps:new()),
     store_poi_def(TileId, Properties),
 
     process_tile_data(TileLayer, TileId, Rest, Image).
 
 process_property([], Properties) ->
-    lager:info("Done properties processing: ~p", [Properties]),
+    lager:debug("Done properties processing: ~p", [Properties]),
     Properties;
 
 process_property([{<<"property">>, PropertyData, _} | Rest], Properties) ->
@@ -411,7 +412,7 @@ store_poi_def(TileId, Properties) ->
     db:write(PoiDef).
 
 process_layers([]) ->
-    lager:info("Done processing layers");
+    lager:debug("Done processing layers");
 process_layers([{<<"layer">>, [{<<"name">>,<<"base1">>} | _], LayerData} | Rest]) -> 
     process_layer_data(base,LayerData),
     process_layers(Rest);
@@ -428,7 +429,7 @@ process_layers([{<<"layer">>, [{<<"name">>,<<"unit">>} | _], LayerData} | Rest])
     process_layer_data(unit,LayerData),
     process_layers(Rest);
 process_layers([{<<"layer">>, LayerProp, LayerData} | Rest]) ->
-    lager:info("Processing layer ~p", [LayerProp]),
+    lager:debug("Processing layer ~p", [LayerProp]),
     process_layer_data(none, LayerData),
     process_layers(Rest);
 process_layers([_MapData | Rest]) ->
@@ -440,10 +441,10 @@ process_layer_data(LayerType, [{<<"data">>, _Encoding, Data}]) ->
     ListSplit = string:tokens(ListData, "\n"),
     process_row(LayerType, ListSplit, 0);
 process_layer_data(_, LayerData) ->
-    lager:info("~p", [LayerData]).
+    lager:debug("~p", [LayerData]).
 
 process_row(_, [], _NumRow) ->
-    lager:info("Done storing layer");
+    lager:debug("Done storing layer");
 process_row(LayerType, [Row | Rest], NumRow) ->
     NewRow = string:strip(Row, right, $\r),
     ListTiles = string:tokens(NewRow, ","),
@@ -451,12 +452,12 @@ process_row(LayerType, [Row | Rest], NumRow) ->
     process_row(LayerType, Rest, NumRow + 1).
 
 store_tile_list(_, [], _NumRow, _NumCol) ->
-    lager:info("Done storing tile row");
+    lager:debug("Done storing tile row");
 store_tile_list(LayerType, ["0" | Rest], NumRow, NumCol) ->
     do_nothing,
     store_tile_list(LayerType, Rest, NumRow, NumCol + 1);
 store_tile_list(LayerType, [Tile | Rest], NumRow, NumCol) ->
-    lager:info("Storing tile ~p ~p ~p ~p", [LayerType, Tile, NumRow, NumCol]),
+    lager:debug("Storing tile ~p ~p ~p ~p", [LayerType, Tile, NumRow, NumCol]),
     Pos = {NumCol, NumRow},
     store_tile(LayerType, Tile, Pos),    
 
@@ -476,7 +477,7 @@ store_tile(base, Tile, Pos) ->
             db:dirty_write(NewTile)
     end;
 store_tile(resource, Tile, Pos) ->
-    lager:info("Tile: ~p", [Tile]),
+    lager:debug("Tile: ~p", [Tile]),
     [ResourceDef] = db:dirty_read(resource_def, list_to_integer(Tile)),
     Quantity = resource:quantity(ResourceDef#resource_def.quantity),
 
@@ -504,6 +505,76 @@ store_tile(none, Tile, Pos) ->
 
 get_poi_subclass(<<"Monolith">>) -> ?MONOLITH;
 get_poi_subclass(_) -> <<"poi">>.
+
+spawn_resources() ->
+    Tiles = ets:tab2list(map),
+
+    F = fun(Tile) ->
+            Rand = rand:uniform(100),
+            TileName = tile_name(Tile#map.tile),
+            spawn_resource(TileName, Tile, Rand)
+        end,
+
+    lists:foreach(F, Tiles).
+
+spawn_resource(?GRASSLANDS, Tile, Rand) when Rand =< 25 ->
+    Quantity = rand:uniform(20) + 5,
+    resource:create(<<"Crimson Root">>, Quantity, Tile#map.index, false);
+spawn_resource(?PLAINS, Tile, Rand) when Rand =< 15 ->
+    Quantity = rand:uniform(10) + 5,
+    resource:create(<<"Crimson Root">>, Quantity, Tile#map.index, false);
+spawn_resource(?HILLS_PLAINS, Tile, Rand) when Rand =< 15 ->
+    {Resource, Rarity} = hill_resource(90, 8, 2),
+    Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 3}),
+    resource:create(Resource, Quantity, Tile#map.index, false);
+spawn_resource(?HILLS_GRASSLANDS, Tile, Rand) when Rand =< 25 ->
+    {Resource, Rarity} = hill_resource(85, 13, 2),
+    Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 3}),
+    resource:create(Resource, Quantity, Tile#map.index, false);
+spawn_resource(?HILLS_SNOW, Tile, Rand) when Rand =< 20 ->
+    {Resource, Rarity} = hill_resource(0, 0, 100),
+    Quantity = quantity(Rarity, {5, 10}, {10, 20}, {10, 10}),
+    resource:create(Resource, Quantity, Tile#map.index, false);
+spawn_resource(?HILLS_DESERT, Tile, Rand) when Rand =< 20 ->
+    {Resource, Rarity} = hill_resource(0, 100, 0),
+    Quantity = quantity(Rarity, {5, 10}, {10, 20}, {10, 10}),
+    resource:create(Resource, Quantity, Tile#map.index, false);
+spawn_resource(?DECIDUOUS_FOREST, Tile, Rand) when Rand =< 20 ->
+    {Resource, Rarity} = forest_resource(85, 13, 2),
+    Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 5}),
+    resource:create(Resource, Quantity, Tile#map.index, false);
+spawn_resource(?PINE_FOREST, Tile, Rand) when Rand =< 20 ->
+    {Resource, Rarity} = forest_resource(75, 20, 5),
+    Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 5}),
+    resource:create(Resource, Quantity, Tile#map.index, false);
+spawn_resource(?FROZEN_FOREST, Tile, Rand) when Rand =< 20 ->
+    {Resource, Rarity} = forest_resource(0, 67, 33),
+    Quantity = quantity(Rarity, {0, 0}, {5, 10}, {5, 5}),
+    resource:create(Resource, Quantity, Tile#map.index, false);
+spawn_resource(_, _, _) -> nothing.
+
+forest_resource(Low, Med, High) ->
+    case rand:uniform(100) of 
+        Num when Num =< Low -> {<<"Cragroot Popular">>, common};
+        Num when Num =< (Low + Med) -> {<<"Wrapwood Birch">>, uncommon};
+        Num when Num =< (Low + Med + High) -> {<<"Skyshroud Oak">>, rare};
+        Num -> lager:info("Num: ~p L: ~p M: ~p H: ~p", [Num, Low, Med, High])
+    end.
+    
+hill_resource(Low, Med, High) ->
+    case rand:uniform(100) of
+        Num when Num =< Low -> {<<"Valleyrun Copper Ore">>, common};
+        Num when Num =< (Low + Med) -> {<<"Quickforge Iron Ore">>, uncommon};
+        Num when Num =< (Low + Med + High) -> {<<"Stronghold Mithril Ore">>, rare};
+        Num -> lager:info("Num: ~p L: ~p M: ~p H: ~p", [Num, Low, Med, High])
+    end.
+
+quantity(Rarity, {CBase, CRange}, {UBase, URange}, {RBase, RRange}) ->
+    case Rarity of
+        common -> rand:uniform(CRange) + CBase;
+        uncommon -> rand:uniform(URange) + UBase;
+        rare -> rand:uniform(RRange) + RBase
+    end.
 
 tile_name(1) -> ?GRASSLANDS;
 tile_name(2) -> ?SNOW;
@@ -550,4 +621,5 @@ mc(_) -> 1.
 
 passable_tile(?OCEAN) -> false;
 passable_tile(?RIVER) -> false;
+passable_tile(?MOUNTAIN) -> false;
 passable_tile(_) -> true.

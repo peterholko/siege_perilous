@@ -30,7 +30,8 @@ get_conn() ->
     gen_server:call({global, mdb_pid}, {get_conn}).
 
 update(Collection, Id, Value) when is_map(Value) ->
-    NewValue = bson:flatten_map(Value),
+    ValueTmp = bson:flatten_map(Value),
+    NewValue = maps:remove(<<"_id">>, ValueTmp),
     gen_server:cast({global, mdb_pid}, {update, Collection, Id, NewValue}); 
 update(Collection, Id, Value) when is_tuple(Value) ->
     gen_server:cast({global, mdb_pid}, {update, Collection, Id, Value}). 

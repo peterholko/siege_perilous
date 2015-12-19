@@ -26,7 +26,8 @@
          bin_to_hex/1,
          hex_to_bin/1,
          console_on/0,
-         console_off/0
+         console_off/0,
+         debug/1
         ]).
 
 %%
@@ -98,3 +99,7 @@ console_off() ->
     lager:set_loglevel(lager_console_backend, none).
 console_on() ->
     lager:set_loglevel(lager_console_backend, info).
+
+debug(true) -> lager:set_loglevel(lager_console_backend, debug);
+debug(false) -> lager:set_loglevel(lager_console_backend, info).
+

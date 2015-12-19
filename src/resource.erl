@@ -68,7 +68,7 @@ quantity(Quantity) when Quantity >  0 -> <<"low">>;
 quantity(_) -> lager:info("Error converting quantity").
 
 create(ResourceType, Quantity, Pos, WithObj) ->
-    lager:info("Creating resource: (~p / ~p / ~p)", [ResourceType, Quantity, Pos]), 
+    lager:debug("Creating resource: (~p / ~p / ~p)", [ResourceType, Quantity, Pos]), 
     ObjId = case WithObj of
                 true ->    
                     obj:create(Pos, -1, resource, ResourceType, ResourceType, none);

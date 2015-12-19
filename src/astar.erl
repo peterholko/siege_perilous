@@ -6,7 +6,7 @@
 -export([astar/2, get_move_cost/1]).
 
 astar(Start, Goal) ->
-    lager:info("Start: ~p Goal: ~p", [Start, Goal]),
+    lager:debug("Start: ~p Goal: ~p", [Start, Goal]),
     Frontier = pqueue2:in(Start, 0, pqueue2:new()),
     CameFrom = dict:store(Start, none, dict:new()),
     CostSoFar = dict:store(Start, 0, dict:new()),

@@ -40,8 +40,8 @@ init_perception(PlayerId) ->
     Explored = map:get_explored(PlayerId, all),
     Objs = get_visible_objs(AllObjs, []),
 
-    lager:info("Explored: ~p", [Explored]),
-    lager:info("Objs: ~p", [Objs]),
+    lager:info([{player, PlayerId}], "Explored: ~p", [Explored]),
+    lager:info([{player, PlayerId}], "Objs: ~p", [Objs]),
 
     {PlayerId, Explored, Objs}.
 
@@ -76,7 +76,6 @@ move_unit(UnitId, Pos) ->
     Player = get(player_id),
     [Unit] = db:read(obj, UnitId),
     NumTicks = obj:movement_cost(Unit, Pos),
-    lager:info("NumTicks: ~p", [NumTicks]),
 
     ValidState = Unit#obj.state =/= dead, 
     ValidClass = Unit#obj.class =:= unit,
@@ -85,7 +84,7 @@ move_unit(UnitId, Pos) ->
     ValidPos = obj:is_empty(Pos),
     NearbyHero = obj:is_hero_nearby(Unit, Player),
 
-    lager:info("move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   
+    lager:info([{player, Player}], "move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   
  
     Result = ValidState andalso
              ValidClass andalso 

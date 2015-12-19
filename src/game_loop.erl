@@ -102,7 +102,7 @@ check_events([Event | Rest], PrevRecalc) ->
     check_events(Rest, NewRecalc).
 
 do_event(action, EventData, PlayerPid) ->
-    lager:info("Processing action event: ~p", [EventData]),
+    lager:debug("Processing action event: ~p", [EventData]),
     Id = EventData,
 
     case db:read(action, Id) of
@@ -116,7 +116,7 @@ do_event(action, EventData, PlayerPid) ->
     false;
 
 do_event(move_obj, EventData, PlayerPid) ->
-    lager:info("Processing move_obj event: ~p", [EventData]),
+    lager:debug("Processing move_obj event: ~p", [EventData]),
 
     {_Player, Id, NewPos} = EventData,
 
@@ -132,27 +132,27 @@ do_event(move_obj, EventData, PlayerPid) ->
     true;
 
 do_event(harvest, EventData, PlayerPid) ->
-    lager:info("Processing harvest event: ~p", [EventData]),
+    lager:debug("Processing harvest event: ~p", [EventData]),
     {ObjId, Resource, Pos, NumTicks, Repeat} = EventData,
 
     %Check if resource still exists
     case resource:is_valid(Pos) of
         true ->
-            lager:info("Creating/update item.."),
+            lager:debug("Creating/update item.."),
             %Create/update item
             NewItems = resource:harvest(ObjId, Resource, Pos),
             
             case Repeat of
                 true ->
-                    lager:info("Repeating harvest event"),
+                    lager:debug("Repeating harvest event"),
                     game:add_event(PlayerPid, harvest, EventData, ObjId, NumTicks);
                 false ->
                     %Update obj state
-                    lager:info("Updating obj state to none"),
+                    lager:debug("Updating obj state to none"),
                     obj:update_state(ObjId, none)
             end,
          
-            lager:info("Sending new items to player"),
+            lager:debug("Sending new items to player"),
             send_update_items(ObjId, NewItems, PlayerPid),
             send_to_process(PlayerPid, event_complete, {harvest, ObjId});
         false ->
@@ -162,7 +162,7 @@ do_event(harvest, EventData, PlayerPid) ->
     false; 
 
 do_event(finish_build, EventData, _PlayerPid) ->
-    lager:info("Processing build event: ~p", [EventData]),
+    lager:debug("Processing build event: ~p", [EventData]),
     {ObjId, StructureId} = EventData,
 
     obj:update_state(ObjId, none),
@@ -175,7 +175,7 @@ do_event(finish_build, EventData, _PlayerPid) ->
     true;
 
 do_event(process_resource, EventData, PlayerPid) ->
-    lager:info("Processing process_resource event: ~p", [EventData]),
+    lager:debug("Processing process_resource event: ~p", [EventData]),
     {StructureId, UnitId, NumTicks} = EventData,
 
     case structure:has_process_res(StructureId) of
@@ -190,7 +190,7 @@ do_event(process_resource, EventData, PlayerPid) ->
     false;
 
 do_event(craft, EventData, PlayerPid) ->
-    lager:info("Processing craft event: ~p", [EventData]),
+    lager:debug("Processing craft event: ~p", [EventData]),
     {StructureId, UnitId, Recipe} = EventData,
 
     case structure:check_recipe_req(StructureId, Recipe) of
@@ -206,7 +206,7 @@ do_event(craft, EventData, PlayerPid) ->
     false;
 
 do_event(_Unknown, _Data, _Pid) ->
-    lager:info("Unknown event"),
+    lager:debug("Unknown event"),
     false.
 
 recalculate(false) ->
@@ -229,7 +229,7 @@ process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 60 )) =:= 0 ->
     NewValue = timeofday(TimeOfDay#world.value),
     NewTimeOfDay = TimeOfDay#world { value = NewValue},
     db:write(NewTimeOfDay),
-    lager:info("Processing ~p transition", [NewValue]),
+    lager:debug("Processing ~p transition", [NewValue]),
 
     process_spawn_mana(NewValue),
 
@@ -243,7 +243,8 @@ process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 60 )) =:= 0 ->
 process_transition(_) -> nothing.
 
 process_upkeep(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
-    process_mana_upkeep();
+    process_mana_upkeep(),
+    process_food_upkeep();
 process_upkeep(_) -> nothing.
 
 process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
@@ -341,7 +342,7 @@ process_spawn_mana(day) ->
     Manas = db:index_read(resource, <<"Mana">>, #resource.name),
 
     F = fun(Mana) ->
-            lager:info("Removing Obj: ~p", [Mana#resource.obj]),
+            lager:debug("Removing Obj: ~p", [Mana#resource.obj]),
             obj:remove(Mana#resource.obj),
             db:delete(resource, Mana#resource.index)
         end,
@@ -351,7 +352,6 @@ process_spawn_mana(day) ->
 spawn_mana(5, _NearbyList) -> nothing;
 spawn_mana(N, NearbyList) -> 
     NumPos = length(NearbyList),
-    lager:info("NumPos: ~p", [NumPos]),
     RandomIndex = rand:uniform(NumPos),   
     RandomPos = lists:nth(RandomIndex, NearbyList),
 
@@ -385,29 +385,49 @@ update_mana(Monolith, Mana) ->
             nothing
     end.
 
+process_food_upkeep() ->
+    Units = db:index_read(obj, unit, #obj.class),
+
+    F = fun(Unit) ->
+            case item:get_by_subclass(Unit#obj.id, <<"food">>) of
+                [] ->
+                    obj:add_effect(Unit#obj.id, <<"starving">>, none),
+
+                    ObjM = obj:get(Unit#obj.id),
+                    Hp = maps:get(<<"hp">>, ObjM),
+                    NewHp = Hp - 1,
+                    obj:update(Unit#obj.id, <<"hp">>, NewHp);
+                [Item | _Rest] ->
+
+                    ItemId = maps:get(<<"_id">>, Item),
+                    NewQuantity = maps:get(<<"quantity">>, Item) - 1,
+                    item:update(ItemId, NewQuantity)
+            end 
+        end,
+
+    lists:foreach(F, Units).
+
 process_rest_state() ->
     Objs = db:index_read(obj, rest, #obj.state),
 
     F = fun(Obj) ->
-            ObjM = obj:get(Obj#obj.id),
-            Hp = maps:get(<<"hp">>, ObjM),
-            BaseHp = maps:get(<<"base_hp">>, ObjM),
+            case obj:has_effect(Obj#obj.id, <<"starving">>) of
+                false ->
+                    ObjM = obj:get(Obj#obj.id),
+                    Hp = maps:get(<<"hp">>, ObjM),
+                    BaseHp = maps:get(<<"base_hp">>, ObjM),
 
-            NewHp = update_hp(Hp, BaseHp),
-            obj:update(Obj#obj.id, <<"hp">>, NewHp)
+                    NewHp = update_hp(Hp, BaseHp),
+                    obj:update(Obj#obj.id, <<"hp">>, NewHp);
+                true ->
+                    nothing
+            end
         end,
 
     lists:foreach(F, Objs).
 
 update_hp(Hp, BaseHp) when Hp < BaseHp -> Hp + 1;
 update_hp(_Hp, _BaseHp) -> nothing.
-
-filter_disabled(AllMonoliths) ->
-    F = fun(Monolith) ->
-            Monolith#obj.state =/= disabled
-        end,
-    
-    lists:filter(F, AllMonoliths).
 
 timeofday(day) -> night;
 timeofday(night) -> day.

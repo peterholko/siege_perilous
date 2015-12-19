@@ -63,6 +63,7 @@ create_schema() ->
     mnesia:add_table_index(obj, player),
     mnesia:add_table_index(obj, pos),
     mnesia:add_table_index(obj, state),
+    mnesia:add_table_index(obj, class),
     mnesia:add_table_index(obj, subclass),
     mnesia:add_table_index(htn, parent),
     mnesia:add_table_index(resource, name),

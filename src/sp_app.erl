@@ -39,6 +39,9 @@ start(_Type, _Args) ->
     lager:info("Starting map process"),
     map:start(),
 
+    lager:info("Spawning resources..."),
+    map:spawn_resources(),
+
     lager:info("Starting perception"),
     perception:start(),
 

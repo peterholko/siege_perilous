@@ -49,7 +49,7 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
                 vision = Vision}, 
     db:write(Obj),
 
-    lager:info("Triggering perception"),
+    lager:debug("Triggering perception"),
     %Trigger perception to be recalculated
     game:trigger_perception(),
 
@@ -84,7 +84,7 @@ move(Id, Pos) ->
     end.
 
 update_state(Id, State) ->
-    lager:info("Update state: ~p ~p", [Id, State]),
+    lager:debug("Update state: ~p ~p", [Id, State]),
     %TODO make transaction
     [Obj] = db:read(obj, Id),
     NewObj = Obj#obj {state = State},
@@ -107,12 +107,13 @@ update_dead(Id) ->
 
     NewObj.
 
+
 add_effect(Id, EffectType, EffectData) ->
     Effect = #effect {key = {Id, EffectType},
                       type = EffectType,
                       data = EffectData},
     db:write(Effect).
-   
+
 remove_effect(Id, EffectType) ->
     db:delete(effect, {Id, EffectType}).
 
@@ -152,6 +153,13 @@ item_transfer(#obj {id = Id,
         <<"Mana">> -> update_state(Id, none);
         _ -> nothing
     end;
+item_transfer(#obj {id = Id, class = Class}, Item) when Class =:= unit ->
+    Subclass = maps:get(<<"subclass">>, Item),
+    
+    case Subclass of
+        <<"food">> -> remove_effect(Id, <<"starving">>);
+        _ -> nothing
+     end;
 item_transfer(_Obj, _Item) -> nothing.
 
 %%

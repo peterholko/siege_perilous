@@ -90,7 +90,7 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 
 do_recalculate() ->
-    lager:info("Perception recalculate"),
+    lager:debug("Perception recalculate"),
     %Erase process dict
     erase(),
 

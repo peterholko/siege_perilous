@@ -1,2 +1,2 @@
 #!/bin/bash
-./_rel/sp/bin/sp console
+./_build/default/rel/sp/bin/sp console
