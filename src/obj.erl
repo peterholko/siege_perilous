@@ -19,7 +19,7 @@
 -export([item_transfer/2]).
 
 %% MongoDB functions
--export([get/1, get_info/1, get_type/1]).
+-export([get/1, get_stats/1, get_info/1, get_type/1]).
 -export([update/3]).
 
 init_perception(PlayerId) ->
@@ -169,6 +169,11 @@ item_transfer(_Obj, _Item) -> nothing.
 get(Id) ->
     find_one(<<"_id">>, Id).
 
+%Get stats for player owned units
+get_stats(Id) ->
+    stats(Id).
+
+%Get info for all other objects
 get_info(Id) ->
     info(Id).
 
@@ -318,7 +323,7 @@ insert(Type) ->
     Obj = mongo:insert(mdb:get_conn(), <<"obj">>, [NewType]),
     Obj.
 
-info(Id) ->
+stats(Id) ->
     %Get Mongo obj
     ObjM = find_one(<<"_id">>, Id),
 
@@ -335,6 +340,14 @@ info(Id) ->
     Stats3 = maps:put(<<"skills">>, Skills, Stats2),
     Stats3.
 
+info(Id) ->
+    %Get Mongo obj
+    ObjM = find_one(<<"_id">>, Id),    
+    Name = maps:get(<<"name">>, ObjM),
+
+    Info1 = maps:put(<<"_id">>, Id, #{}),
+    Info2 = maps:put(<<"name">>, Name, Info1),
+    Info2.
 
 find_one(Key, Value) ->
     mdb:find_one(<<"obj">>, Key, Value).

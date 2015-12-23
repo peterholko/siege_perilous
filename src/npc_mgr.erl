@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start_all_npc/0]).
+-export([start_all_npc/0, spawn_zombies/1]).
 
 %% ====================================================================
 %% External functions
@@ -26,6 +26,14 @@ start() ->
 
 start_all_npc() ->
     gen_server:cast({global, npc_mgr}, start_all_npc).
+
+spawn_zombies(0) -> done;
+spawn_zombies(Num) -> 
+
+    Pos = random_location(),
+    obj:create(Pos, ?UNDEAD, unit, <<"npc">>, <<"Zombie">>, none),
+
+    spawn_zombies(Num - 1).
 
 %% ====================================================================
 %% Server functions
@@ -78,3 +86,18 @@ start_npc([NPC | Rest]) ->
     npc:start(NPC#player.id),
 
     start_npc(Rest).
+
+random_location() ->
+    random_location(false, {0, 0}).
+
+random_location(true, Pos) ->
+    Pos;
+random_location(false, _Pos) ->
+    X = rand:uniform(?MAP_WIDTH - 1),
+    Y = rand:uniform(?MAP_HEIGHT - 1),
+    Pos = {X, Y},
+
+    random_location(map:is_passable(Pos), Pos).
+
+
+    

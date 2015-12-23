@@ -366,8 +366,8 @@ to_hex(MapData) when is_map(MapData) ->
 ids_to_hex(MapData) ->
     F = fun Hex(_K, V) when is_tuple(V) -> util:bin_to_hex(V);
             Hex(_K, V) when is_list(V), length(V) > 0 -> 
-                G = fun(Map, Acc) ->
-                        [maps:map(Hex, Map) | Acc]
+                G = fun(Map, Acc) when is_map(Map) ->[maps:map(Hex, Map) | Acc];
+                       (Element, Acc) -> [Element |  Acc]
                     end, 
                 lists:foldl(G, [], V);
             Hex(_K, V) -> V 

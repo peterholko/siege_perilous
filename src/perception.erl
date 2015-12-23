@@ -178,9 +178,10 @@ get_unique_players([Obj | Rest], Players) ->
 valid_player(PlayerId) when PlayerId < 1 -> false;
 valid_player(_PlayerId) -> true.
 
-visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= 99 ->
+visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?UNDEAD ->
     F = fun(Target, Visible) ->
-            Result = map:distance(Pos, Target#obj.pos) =< Vision andalso
+            Result = Target#obj.state =/= hiding andalso
+                     map:distance(Pos, Target#obj.pos) =< Vision andalso
                      not obj:has_effect(Target#obj.id, <<"sanctuary">>),
             
             case Result of
@@ -193,7 +194,8 @@ visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when P
 
 visible_objs(AllObjs, #obj {pos = Pos, vision = Vision}) ->
     F = fun(Target, Visible) ->
-            Result = map:distance(Pos, Target#obj.pos) =< Vision,
+            Result = Target#obj.state =/= hiding andalso
+                     map:distance(Pos, Target#obj.pos) =< Vision,
 
             case Result of
                 true -> [build_message(Target) | Visible];

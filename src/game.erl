@@ -41,10 +41,10 @@ add_event(PlayerProcess, EventType, EventData, EventSource, EventTick) ->
 cancel_event(EventSource) ->
     case db:index_read(event, EventSource, #event.source) of
         [Event] ->
-            lager:info("cancel_event - Deleting event: ~p", [Event]),
+            lager:debug("Cancel_event - Deleting event: ~p", [Event]),
             db:delete(event, Event#event.id);
         _ ->
-            lager:info("Cancel_event - none found from ~p", [EventSource]),
+            lager:debug("Cancel_event - none found from ~p", [EventSource]),
             nothing
     end.
 

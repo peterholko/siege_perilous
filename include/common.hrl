@@ -40,6 +40,8 @@
 -define(FOREST_MC, 2).
 -define(HILLS_MC, 2).
 
+-define(UNDEAD, 99).
+
 -define(MONOLITH, <<"monolith">>).
 -define(WALL, <<"wall">>).
 

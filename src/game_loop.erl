@@ -259,8 +259,8 @@ send_to_process(_, _, _) ->
     none.
 
 execute_npc(NumTick) when (NumTick rem 10) =:= 0 ->
-    npc:replan(99),
-    npc:run_plan(99);
+    npc:replan(?UNDEAD),
+    npc:run_plan(?UNDEAD);
 execute_npc(_) ->
     nothing.
 
@@ -388,7 +388,7 @@ update_mana(Monolith, Mana) ->
 process_food_upkeep() ->
     Units = db:index_read(obj, unit, #obj.class),
 
-    F = fun(Unit) ->
+    F = fun(Unit = #obj{player = Player}) when Player =/= ?UNDEAD ->
             case item:get_by_subclass(Unit#obj.id, <<"food">>) of
                 [] ->
                     obj:add_effect(Unit#obj.id, <<"starving">>, none),
@@ -402,7 +402,8 @@ process_food_upkeep() ->
                     ItemId = maps:get(<<"_id">>, Item),
                     NewQuantity = maps:get(<<"quantity">>, Item) - 1,
                     item:update(ItemId, NewQuantity)
-            end 
+            end;
+            (_) -> nothing
         end,
 
     lists:foreach(F, Units).

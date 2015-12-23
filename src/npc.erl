@@ -32,10 +32,10 @@ run_plan(PlayerId) ->
     gen_server:cast({global, {npc, PlayerId}}, run_plan).
 
 new_zombie() ->
-    obj:create({18,18}, 99, unit, <<"npc">>, <<"Zombie">>, none).
+    obj:create({18,18}, ?UNDEAD, unit, <<"npc">>, <<"Zombie">>, none).
 
 new_wolf() ->
-    obj:create({3,3}, 99, unit, <<"npc">>, <<"Wolf">>, none).
+    obj:create({3,3}, ?UNDEAD, unit, <<"npc">>, <<"Wolf">>, none).
 
 
 %% ====================================================================
@@ -205,7 +205,7 @@ process_run_plan(Id) ->
                                        task_index = 0},
                     db:write(NewNPC)
             end;
-        inprogress ->
+        _ ->
             nothing
     end,
 

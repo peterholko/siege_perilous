@@ -50,7 +50,13 @@ get_info_tile(_Pos) ->
     lager:info("info_tile").
 
 get_info_unit(Id) ->
-    obj:get_info(Id).
+    [Unit] = db:read(obj, Id),
+    case Unit#obj.player =:= get(player_id) of
+        true -> 
+            obj:get_stats(Id);
+        false ->
+            obj:get_info(Id)
+    end.
 
 get_info_item(Item) ->
     lager:info("get_info_item ~p", [Item]),
