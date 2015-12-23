@@ -19,7 +19,7 @@
 -export([get_nearby_objs/3]).
 -export([add_explored/2]).
 -export([neighbours/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
--export([movement_cost/1, is_passable/1]).
+-export([movement_cost/1, is_passable/1, random_location/0]).
 -export([check_distance/4, distance/2]).
 -export([range/2, filter_pos/1]).
 -export([spawn_resources/0]).
@@ -66,6 +66,18 @@ is_passable(Pos) ->
     TileType = Tile#map.tile,
     TileName = tile_name(TileType),
     passable_tile(TileName).
+
+random_location() ->
+    random_location(false, {0, 0}).
+
+random_location(true, Pos) ->
+    Pos;
+random_location(false, _Pos) ->
+    X = rand:uniform(?MAP_WIDTH - 1),
+    Y = rand:uniform(?MAP_HEIGHT - 1),
+    Pos = {X, Y},
+
+    random_location(is_passable(Pos), Pos).
 
 %% ====================================================================
 %% Server functions
