@@ -84,6 +84,7 @@ var btnBuildClickedImg = new Image();
 var btnCraftRestImg = new Image();
 var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
+var btnEquipRestImg = new Image();
 
 var gravestone = new Image();
 
@@ -150,6 +151,7 @@ btnBuildClickedImg.src = "/static/art/ButtonBuildClicked.png";
 btnCraftRestImg.src = "/static/art/btn_craft_rest.png";
 btnSplitRestImg.src = "/static/art/btn_split_rest.png";
 btnAssignRestImg.src = "/static/art/btn_assign_rest.png";
+btnEquipRestImg.src = "/static/art/btn_equip_rest.png";
 
 gravestone.src = "/static/art/gravestone.png";
 
@@ -169,6 +171,7 @@ function init() {
 
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
+    stage.snapToPixelEnabled = true;
 
     map = new createjs.Container();
     map.x = $("#map").width() / 2;
@@ -179,8 +182,8 @@ function init() {
     initImages();
     initUI();
 
-    createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
-    createjs.Ticker.setFPS(30);
+    createjs.Ticker.timingMode = createjs.Ticker.RAF;
+    createjs.Ticker.setFPS(60);
     createjs.Ticker.addEventListener("tick", stage);
     createjs.Ticker.addEventListener("tick", handleRender);
 
@@ -461,9 +464,9 @@ function sendFinishBuild(structureid) {
     websocket.send(e);
 };
 
-function sendProcess() {
+function sendProcess(structureid) {
     console.log("sendProcess");
-    var e = '{"cmd": "process_resource", "structureid": "' + selectedUnit + '"}';
+    var e = '{"cmd": "process_resource", "structureid": "' + structureid + '"}';
     websocket.send(e);
 };
 
@@ -589,14 +592,6 @@ function onMessage(evt) {
             clearLocalMap();
             drawLocalMap(jsonData.map);
             updateLocalObj(jsonData.objs);            
-        }
-        else if(jsonData.packet == "map_perception") {
-            explored = jsonData.explored;
-            objs = jsonData.objs;
-
-            setPlayerPos();
-            drawMap();
-            drawObjs();
         }
         else if(jsonData.packet == "perception") {
             updateLocalObj(jsonData.objs);
@@ -749,37 +744,6 @@ function drawMap() {
     map.addChild(e);
     map.addChild(f);
     map.addChild(g);
-};
-
-function drawObjs() {
-    var bitmap;
-    var c_x;
-    var c_y;
-    var halfwidth = $("#map").width() / 2;
-    var halfheight = $("#map").height() / 2;
-
-    for(i = 0; i < objs.length; i++) {
-        var pixel = hex_to_pixel(objs[i].x, objs[i].y);
-        var objName = objs[i].type;
-        if(objs[i].state != "dead") {
-            var imagePath =  "/static/art/" + objName + ".png";
-            var imageContainer = new createjs.Container();
-
-            imageContainer.x = pixel.x;
-            imageContainer.y = pixel.y;
-
-            map.addChild(imageContainer);
-
-            imagesQueue.push({id: objName, x: 0, y: 0, target: imageContainer});
-            loaderQueue.loadFile({id: objName, src: imagePath});
-        }
-
-        if(objs[i].player == playerId) {
-            c_x = halfwidth - 36 - pixel.x;
-            c_y = halfheight - 36 - pixel.y;
-            createjs.Tween.get(map).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2))
-        }
-    }
 };
 
 function clearLocalMap() {
@@ -942,8 +906,8 @@ function drawLocalObj() {
                     visibleTiles = range(localObj.x, localObj.y, 2);
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
-
-                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+                    console.log("new c_x: " + c_x + " c_y: " + c_y);
+                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 1000, createjs.Ease.getPowInOut(2));
                 }
             }
 
@@ -971,9 +935,9 @@ function drawLocalObj() {
                     if(is_hero(localObj.type)) {
                         visibleTiles = range(localObj.x, localObj.y, 2);
                         c_x = 640 - 36 - pixel.x;
-                        c_y = 400 - 36 - pixel.y;
-                        
-                        createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+                        c_y = 400 - 36 - pixel.y;             
+                        console.log("x: " + localMapCont.x + " y: " + localMapCont.y + " - " + "c_x: " + c_x + " c_y: " + c_y);
+                        createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.linear);
                     }
                 }
             }
@@ -1287,12 +1251,21 @@ function drawCraftListDialog(jsonData) {
 
         var icon = new createjs.Container();
         icon.name = recipe.item;
+        icon.class = recipe.class;
 
         icon.x = 25 + i * 75;
         icon.y = 50;
 
         icon.on("mousedown", function(evt) {
-            sendCraft(selectedUnit, this.name);
+            console.log("Class: " + this.class);
+
+            if(this.class == "process_res") {
+                sendProcess(selectedUnit);
+            }
+            else {
+                sendCraft(selectedUnit, this.name);
+            }
+            
             dialogPanel.visible = false;
         });
 
@@ -1311,7 +1284,7 @@ function drawCraftListDialog(jsonData) {
             var reqText = new createjs.Text(req.type + " (" + req.quantity + ")", h1Font, textColor);
 
             reqText.x = 25 + i * 75;
-            reqText.y = 145;
+            reqText.y = 145 + j * 20;
 
             addChildDialogPanel(reqText);
         }
@@ -1546,7 +1519,7 @@ function drawInfoUnit(jsonData) {
 
     addChildInfoPanel(skillsText);
 
-    if(jsonData.hasOwnProperty("req")) {
+    /*if(jsonData.hasOwnProperty("req")) {
         var req = "--- Requirements ---\n";
 
         for(var i = 0; i < jsonData.req.length; i++) {
@@ -1560,7 +1533,7 @@ function drawInfoUnit(jsonData) {
         reqText.y = 225;
 
         addChildInfoPanel(reqText);
-    }
+    }*/
 
     var itemText = new createjs.Text("--- Items --- ", h1Font, textColor);
     itemText.x = 10;
@@ -1648,18 +1621,21 @@ function drawInfoUnit(jsonData) {
         }
         else if(jsonData.state == "none") {
             if(jsonData.subclass != "wall") {
-                var btnAssign = activeInfoPanel.getChildByName("btnAssign");
                 var btnCraft = activeInfoPanel.getChildByName("btnCraft");
-
-                btnAssign.visible = true;
                 btnCraft.visible = true;
     
+                
+                var btnAssign = activeInfoPanel.getChildByName("btnAssign");
+                btnAssign.visible = true;
+
                 btnAssign.on("mousedown", function(evt) {
+                    selectedUnit = jsonData._id;
                     sendAssign(selectedPortrait, jsonData._id);
                 });
        
                 btnCraft.on("mousedown", function(evt) {
-                    sendRecipeList(jsonData._id);
+                    selectedUnit = jsonData._id;
+                    sendRecipeList(jsonData._id);                    
                 }); 
             }
         }
@@ -1670,6 +1646,7 @@ function drawInfoItem(jsonData) {
     showInfoPanel();
 
     var itemName = jsonData.name;
+    var itemClass = jsonData.class;
 
     var nameText = new createjs.Text(itemName, h1Font, textColor);
     nameText.x = Math.floor(infoPanelBg.width / 2);
@@ -1702,13 +1679,19 @@ function drawInfoItem(jsonData) {
     statsText.y = 125;
     
     addChildInfoPanel(statsText);
-     
-    var btnEquip = activeInfoPanel.getChildByName("btnAssign");
-    btnEquip.visible = true;
-    btnEquip.on("mousedown", function(evt) {
-        sendEquip(jsonData._id);
-    });
- 
+
+    if(itemClass == "Weapon") {
+        var statsHeight = statsText.getMeasuredHeight(); 
+        var btnEquip = activeInfoPanel.getChildByName("btnEquip");
+
+        btnEquip.visible = true;
+        btnEquip.x = 333 / 2 - 133 / 2;
+        btnEquip.y = 125 + statsHeight; 
+
+        btnEquip.on("mousedown", function(evt) {
+            sendEquip(jsonData._id);
+        });
+    }
 };
 
 function drawItemSplit(itemId, itemName, quantity) {
@@ -2024,12 +2007,14 @@ function initUI() {
         var btnBuild = new createjs.Container();
         var btnCraft = new createjs.Container();
         var btnAssign = new createjs.Container();
+        var btnEquip = new createjs.Container();
 
         var btnBuildRest = new createjs.Bitmap(btnBuildRestImg);
         var btnBuildClicked = new createjs.Bitmap(btnBuildClickedImg);
 
         var btnCraftRest = new createjs.Bitmap(btnCraftRestImg);
         var btnAssignRest = new createjs.Bitmap(btnAssignRestImg);
+        var btnEquipRest = new createjs.Bitmap(btnEquipRestImg);
 
         panel.visible = false;
 
@@ -2048,6 +2033,11 @@ function initUI() {
         btnAssign.x = 500 / 2 - 133 / 2;
         btnAssign.y = 165;
 
+        btnEquip.visible = false;
+        btnEquip.x = 500 / 2 - 133 / 2;
+        btnEquip.y = 165;
+
+
         btnBuild.name = "btnBuild";
         btnBuildRest.name = "rest";
         btnBuildClicked.name = "clicked";
@@ -2058,19 +2048,25 @@ function initUI() {
         btnAssign.name = "btnAssign";
         btnAssignRest.name = "rest";
 
+        btnEquip.name = "btnEquip";
+        btnEquipRest.name = "rest";
+
         btnBuildRest.visible = true;
         btnBuildClicked.visible = false;
 
-        btnCraftRest.visible = true;
-        
+        btnCraftRest.visible = true;        
         btnAssignRest.visible = true;
+        btnEquipRest.visible = true;
 
         btnBuild.addChild(btnBuildRest);
+
         btnBuild.addChild(btnBuildClicked);
 
         btnCraft.addChild(btnCraftRest);
 
         btnAssign.addChild(btnAssignRest);
+
+        btnEquip.addChild(btnEquipRest);
 
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
@@ -2102,6 +2098,7 @@ function initUI() {
         panel.addChild(btnBuild);
         panel.addChild(btnCraft);
         panel.addChild(btnAssign);
+        panel.addChild(btnEquip);
 
         stage.addChild(panel);
 
@@ -2444,12 +2441,25 @@ function in_array(array, index) {
     }
 };
 
+function imageExists(image_url) {
+    var http = new XMLHttpRequest();
+
+    http.open('HEAD', image_url, false);
+    http.send();
+
+    return http.status != 404;
+};
+
 function hideButtons() {
     var btnBuild = activeInfoPanel.getChildByName("btnBuild");
     var btnCraft = activeInfoPanel.getChildByName("btnCraft");
     var btnAssign = activeInfoPanel.getChildByName("btnAssign");
+    var btnEquip = activeInfoPanel.getChildByName("btnEquip");
 
     btnBuild.visible = false;
     btnCraft.visible = false;
     btnAssign.visible = false; 
+    btnEquip.visible = false; 
 }
+
+

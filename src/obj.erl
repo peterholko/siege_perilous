@@ -67,6 +67,7 @@ move(Id, Pos) ->
     db:write(NewObj),
 
     %Update wall effect
+    
     IsBehindWall = is_behind_wall(Pos),
     apply_wall(IsBehindWall, NewObj),
 
@@ -110,6 +111,7 @@ update_dead(Id) ->
 
 add_effect(Id, EffectType, EffectData) ->
     Effect = #effect {key = {Id, EffectType},
+                      id = Id,
                       type = EffectType,
                       data = EffectData},
     db:write(Effect).
@@ -120,6 +122,16 @@ remove_effect(Id, EffectType) ->
 has_effect(Id, EffectType) ->
     Result = db:dirty_read(effect, {Id, EffectType}),
     length(Result) > 0.
+
+get_effects(Id) ->
+    Effects = db:index_read(effect, Id, #effect.id),
+    
+    F = fun(Effect, Acc) ->
+            EffectMap = #{<<"name">> => Effect#effect.type},
+            [EffectMap | Acc]
+        end,
+
+    lists:foldl(F, [], Effects).
 
 is_empty(Pos) ->
     Objs = db:dirty_index_read(obj, Pos, #obj.pos),
@@ -154,7 +166,7 @@ item_transfer(#obj {id = Id,
         _ -> nothing
     end;
 item_transfer(#obj {id = Id, class = Class}, Item) when Class =:= unit ->
-    Subclass = maps:get(<<"subclass">>, Item),
+    Subclass = maps:get(<<"subclass">>, Item, none),
     
     case Subclass of
         <<"food">> -> remove_effect(Id, <<"starving">>);
@@ -242,8 +254,9 @@ apply_wall(false, #obj {id = Id}) ->
         true -> remove_effect(Id, ?WALL);
         false -> nothing
     end;
-apply_wall(true, #obj {id = Id}) ->
-    add_effect(Id, ?WALL, none).
+apply_wall(true, #obj {id = Id, pos = Pos}) ->
+    Wall = get_wall(Pos),
+    add_effect(Id, ?WALL, Wall#obj.id).
 
 apply_sanctuary(false, #obj {id = Id}) ->
     case has_effect(Id, <<"sanctuary">>) of
@@ -330,15 +343,17 @@ stats(Id) ->
     %Get Mnesia obj
     [Obj] = db:read(obj, Id),
 
-    %Get items & skills
+    %Get items & skills & effects
     Items = item:get_by_owner(Id),
     Skills = skill:get_by_owner(Id),
+    Effects = get_effects(Id),
 
     %Build stats
     Stats1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), ObjM), 
     Stats2 = maps:put(<<"items">>, Items, Stats1),
     Stats3 = maps:put(<<"skills">>, Skills, Stats2),
-    Stats3.
+    Stats4 = maps:put(<<"effects">>, Effects, Stats3),
+    Stats4.
 
 info(Id) ->
     %Get Mongo obj

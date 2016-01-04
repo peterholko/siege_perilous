@@ -289,6 +289,7 @@ remove(_, _Obj) ->
     nothing.
 
 send_update_items(ObjId, NewItems, PlayerPid) ->
+    lager:debug("Send update items: ~p ~p ~p", [ObjId, NewItems]),
     [Obj] = db:read(obj, ObjId),
     case obj:is_hero_nearby(Obj, Obj#obj.player) of
         true ->

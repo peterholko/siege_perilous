@@ -26,6 +26,7 @@
          process_resource/1,
          craft/2,
          equip/1,
+         unequip/1,
          rest/1,
          assign/2,
          cancel/1,
@@ -313,15 +314,37 @@ equip(ItemId) ->
 
     Item = item:get(ItemId),
     ItemOwner = maps:get(<<"owner">>, Item),
+    ItemSlot = maps:get(<<"slot">>, Item),
 
     [Obj] = db:read(obj, ItemOwner),
 
-    Checks = [{Player =:= Obj#obj.player, "Unit not owned by player"},
+    Checks = [{item:is_equipable(Item), "Item not equipable"},
+              {item:is_slot_free(ItemOwner, ItemSlot), "Item slot not empty"},
+              {Obj#obj.class =:= unit, "Only units can equip items"},
+              {Player =:= Obj#obj.player, "Item not owned by player"},
               {is_state(Obj#obj.state, none), "Unit is busy"}],
 
     Result = process_checks(Checks),
 
     add_equip(Result, ItemId),
+
+    Reply = to_reply(Result),
+    Reply.
+
+unequip(ItemId) ->
+    Player = get(player_id),
+    
+    Item = item:get(ItemId),
+    ItemOwner = maps:get(<<"owner">>, Item),
+
+    [Obj] = db:read(obj, ItemOwner),
+
+    Checks = [{Player =:= Obj#obj.player, "Item not owned by player"},
+              {is_state(Obj#obj.state, none), "Unit is busy"}],
+
+    Result = process_checks(Checks),
+
+    add_unequip(Result, ItemId),
 
     Reply = to_reply(Result),
     Reply.
@@ -457,6 +480,11 @@ add_equip({false, Error}, _Data) ->
     lager:info("Equip failed error: ~p", [Error]);
 add_equip(true, ItemId) ->
     item:equip(ItemId).
+
+add_unequip({false, Error}, _Data) ->
+    lager:info("Unequip failed error: ~p", [Error]);
+add_unequip(true, ItemId) ->
+    item:unequip(ItemId).
 
 add_rest({false, Error}, _Data) ->
     lager:info("Rest failed error: ~p", [Error]);

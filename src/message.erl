@@ -237,6 +237,16 @@ message_handle(<<"equip">>, Message) ->
     jsx:encode([{<<"packet">>, <<"equip">>},
                 {<<"result">>, Result}]);    
 
+message_handle(<<"unequip">>, Message) ->
+    lager:info("message: unequip"),
+
+    ItemId = util:hex_to_bin(map_get(<<"item">>, Message)),
+
+    Result = player:unequip(ItemId),
+
+    jsx:encode([{<<"packet">>, <<"unequip">>},
+                {<<"result">>, Result}]);    
+
 message_handle(<<"assign">>, Message) ->
     lager:info("message: assign"),
     

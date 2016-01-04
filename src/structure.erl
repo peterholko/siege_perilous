@@ -42,7 +42,7 @@ check_recipe_req(ObjId, RecipeName) ->
 
     Recipe = get_recipe(RecipeName),
     ReqList = maps:get(<<"req">>, Recipe),
-
+    lager:info("ReqList: ~p Items: ~p", [ReqList, Items]),
     has_req(ReqList, Items).
  
 list() ->
@@ -164,7 +164,10 @@ match_req(Item, ReqType, ReqQuantity) ->
     ItemMatch and QuantityMatch.
 
 craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
-   F = fun(MatchReq, ItemStats) ->
+    lager:debug("Crafting ~p", [RecipeName]),
+
+
+    F = fun(MatchReq, ItemStats) ->
             Stats = [{damage, maps:get(<<"damage">>, MatchReq, 0)},
                      {durability, maps:get(<<"durability">>, MatchReq, 0)},
                      {speed, maps:get(<<"speed">>, MatchReq, 0)}],
@@ -184,7 +187,7 @@ craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
     FinalItem = maps:merge(BaseStats, AllItemStats),
     InsertedItem = item:create(FinalItem),
     InsertedItem;
-craft_item(_, _, _, _) ->
+craft_item(OwnerId, RecipeName, <<"Material">>, MatchReqList) ->
     nothing.
  
 combine_stats([], Item) ->

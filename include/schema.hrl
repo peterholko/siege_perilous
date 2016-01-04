@@ -91,6 +91,7 @@
               path = none}).
 
 -record(effect, {key,
+                 id,
                  type,
                  data}).
 

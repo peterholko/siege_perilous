@@ -66,6 +66,7 @@ create_schema() ->
     mnesia:add_table_index(obj, class),
     mnesia:add_table_index(obj, subclass),
     mnesia:add_table_index(htn, parent),
+    mnesia:add_table_index(effect, id),
     mnesia:add_table_index(resource, name),
 
     mnesia:stop().

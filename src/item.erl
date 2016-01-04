@@ -6,9 +6,9 @@
 -include("schema.hrl").
 
 -export([get/1, get_by_name/1, get_by_owner/1, get_by_subclass/2, get_equiped/1, get_equiped_weapon/1]).
--export([transfer/2, split/2, update/2, create/1, create/3, equip/1]).
+-export([transfer/2, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
 -export([obj_perception/1, find/1, find_one/1, find_type/2]).
-
+-export([is_equipable/1, is_slot_free/2]).
 
 get(Id) ->
     Item = find_one(<<"_id">>, Id),
@@ -34,6 +34,19 @@ get_equiped_weapon(OwnerId) ->
     Items = find({owner, OwnerId, equip, <<"true">>, class, <<"weapon">>}),
     Items.
 
+is_equipable(Item) ->
+    case maps:get(<<"class">>, Item) of
+        <<"Weapon">> -> true;
+        <<"Armor">> -> true;
+        _ -> false
+    end.
+
+is_slot_free(OwnerId, Slot) ->    
+    case find({owner, OwnerId, equip, <<"true">>, slot, Slot}) of
+        [] -> true;
+        _ -> false
+    end.
+
 transfer(ItemId, TargetId) ->
     mdb:update(<<"item">>, ItemId, {owner, TargetId}).
 
@@ -51,6 +64,9 @@ split(Item, NewQuantity) ->
 
 equip(ItemId) ->
     mdb:update(<<"item">>, ItemId, {equip, <<"true">>}).
+
+unequip(ItemId) ->
+    mdb:update(<<"item">>, ItemId, {equip, <<"false">>}).
 
 update(ItemId, 0) ->
     mdb:delete(<<"item">>, ItemId);

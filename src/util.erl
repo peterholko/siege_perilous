@@ -27,7 +27,8 @@
          hex_to_bin/1,
          console_on/0,
          console_off/0,
-         debug/1
+         debug/1,
+         capfirst/1
         ]).
 
 %%
@@ -103,3 +104,7 @@ console_on() ->
 debug(true) -> lager:set_loglevel(lager_console_backend, debug);
 debug(false) -> lager:set_loglevel(lager_console_backend, info).
 
+capfirst([Head | Tail]) when Head >= $a, Head =< $z ->
+    [Head + ($A - $a) | Tail];
+capfirst(Other) ->
+    Other.
