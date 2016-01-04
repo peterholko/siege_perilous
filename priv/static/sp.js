@@ -1486,10 +1486,17 @@ function drawInfoUnit(jsonData) {
                       y: 50, target: getInfoPanelContent()});
     loaderQueue.loadFile({id: unitName, src: imagePath});
 
+    var itemDamage = getItemDamage(jsonData.items);
+    var itemArmor = getItemArmor(jsonData.items);
+
+    var base_dmg = Number(jsonData.base_dmg) + itemDamage;
+    var dmg_range = Number(jsonData.dmg_range) + itemDamage;
+    var armor = Number(jsonData.base_def) + itemArmor;
+
     var stats = "--- Stats --- \n"
               + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
-              + "Damage: " + jsonData.base_dmg + " - " + jsonData.dmg_range + "\n" 
-              + "Defense: " + jsonData.base_def + "\n"
+              + "Damage: " + base_dmg + " - " + dmg_range + "\n" 
+              + "Defense: " + armor + "\n"
               + "Speed: " + jsonData.base_speed + "\n"
               + "State: " + jsonData.state + "\n"
               + "Xp: " + jsonData.xp + "\n";
@@ -1543,8 +1550,12 @@ function drawInfoUnit(jsonData) {
 
     for(var i = 0; i < jsonData.items.length; i++) {
         var itemName = jsonData.items[i].name;
+        var itemSubclass = jsonData.items[i].subclass;
+
         itemName = itemName.toLowerCase().replace(/ /g,'');
+
         var imagePath = "/static/art/" + itemName + ".png";
+        var altImagePath = "/static/art/" + itemSubclass.toLowerCase() + ".png";
 
         var icon = new createjs.Container();
 
@@ -1603,7 +1614,18 @@ function drawInfoUnit(jsonData) {
         });
 
         addChildInfoPanel(icon);
-        addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
+
+        var path;    
+
+        //Quick fix to be replaced by lookup table
+        if(imageExists(imagePath)) {
+            path = imagePath;
+        } 
+        else {
+            path = altImagePath;    
+        }
+
+        addImage({id: itemName, path: path, x: 0, y: 0, target: icon});
     }
 
 
@@ -1647,6 +1669,7 @@ function drawInfoItem(jsonData) {
 
     var itemName = jsonData.name;
     var itemClass = jsonData.class;
+    var itemSubclass = jsonData.subclass;
 
     var nameText = new createjs.Text(itemName, h1Font, textColor);
     nameText.x = Math.floor(infoPanelBg.width / 2);
@@ -2447,7 +2470,9 @@ function imageExists(image_url) {
     http.open('HEAD', image_url, false);
     http.send();
 
-    return http.status != 404;
+    var result = http.status != 404;
+
+    return result;
 };
 
 function hideButtons() {
@@ -2460,6 +2485,38 @@ function hideButtons() {
     btnCraft.visible = false;
     btnAssign.visible = false; 
     btnEquip.visible = false; 
-}
+};
+
+
+function getItemDamage(items) {
+    var damage = 0;
+
+    for(var i = 0; i < items.length; i++) {
+        if(items[i].hasOwnProperty('damage') && 
+           items[i].hasOwnProperty('equip')) {
+            
+            if(items[i].equip == 'true') {
+                damage += Number(items[i].damage);
+            }
+        }    
+    }
+
+    return damage;
+};
+
+function getItemArmor(items) {
+    var armor = 0;
+
+    for(var i = 0; i < items.length; i++) {
+        if(items[i].hasOwnProperty('armor') && 
+           items[i].hasOwnProperty('equip')) {
+            
+            if(items[i].equip == 'true') {
+                armor += Number(items[i].armor);
+            }
+        }    
+    }
+    return armor;
+};
 
 

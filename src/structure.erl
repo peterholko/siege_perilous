@@ -181,6 +181,7 @@ craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
 
     BaseStats = #{<<"owner">> => OwnerId, 
                   <<"class">> => <<"Weapon">>,
+                  <<"subclass">> => RecipeName,
                   <<"name">> => ItemName,
                   <<"quantity">> => 1},
     
