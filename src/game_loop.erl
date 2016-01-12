@@ -390,7 +390,7 @@ process_food_upkeep() ->
     Units = db:index_read(obj, unit, #obj.class),
 
     F = fun(Unit = #obj{player = Player}) when Player =/= ?UNDEAD ->
-            case item:get_by_subclass(Unit#obj.id, <<"food">>) of
+            case item:get_by_subclass(Unit#obj.id, ?FOOD) of
                 [] ->
                     obj:add_effect(Unit#obj.id, <<"starving">>, none),
 

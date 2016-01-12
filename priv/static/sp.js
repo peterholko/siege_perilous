@@ -17,6 +17,9 @@ var smallDialogPanel;
 var selectPanel;
 var portraitPanel;
 
+var textLog;
+var textLogLines = [];
+
 var explored = {};
 var objs = {};
 var localObjs = {};
@@ -85,6 +88,7 @@ var btnCraftRestImg = new Image();
 var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
 var btnEquipRestImg = new Image();
+
 
 var gravestone = new Image();
 
@@ -619,7 +623,11 @@ function onMessage(evt) {
             }
         }
         else if(jsonData.packet == "new_items") {
-           drawNewItemsDialog(jsonData); 
+           drawNewItemsDialog(jsonData);
+
+           for(var i = 0; i < jsonData.items.length; i++) {
+               updateTextLog("You acquired item [" + jsonData.items[i].name + "]x" + jsonData.items[i].quantity);
+           }
         }
         else if(jsonData.packet == "exit_local") {
             localPanel.visible = false;            
@@ -828,7 +836,7 @@ function drawLocalMap(map) {
 
         for(var j = 0; j < tileImages.length; j++) {
             var tileImageId = tileImages[j] - 1;
-            var imagePath = "/static/" + tileset[tileImageId].image;
+            var imagePath = "/static/art/" + tileset[tileImageId].image;
             var offsetX = tileset[tileImageId].offsetx;
             var offsetY = -1 * tileset[tileImageId].offsety;
          
@@ -1799,6 +1807,18 @@ function drawItemSplit(itemId, itemName, quantity) {
     addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconRight});
 };
 
+function updateTextLog(newText) {
+    textLogLines.push(newText);
+
+    var lines = "";
+
+    for(var i = (textLogLines.length - 1); i >= 0; i--) {
+        lines += (textLogLines[i] + "\n");    
+    }
+
+    textLog.text = lines;
+};
+
 function drawProgressBar(jsonData) {
     var bar = new tine.ProgressBar('green', 'black', null, 100, 15);
     bar.value = 0;
@@ -2175,6 +2195,13 @@ function initUI() {
     smallDialogPanel.addChild(content);
 
     stage.addChild(smallDialogPanel);
+
+    textLog = new createjs.Text("", h1Font, textColor);
+    
+    textLog.x = 20;
+    textLog.y = stageHeight - 250;
+    
+    stage.addChild(textLog); 
 };
 
 function showBattlePanel() {

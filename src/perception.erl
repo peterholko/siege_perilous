@@ -182,7 +182,7 @@ visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when P
     F = fun(Target, Visible) ->
             Result = Target#obj.state =/= hiding andalso
                      map:distance(Pos, Target#obj.pos) =< Vision andalso
-                     not obj:has_effect(Target#obj.id, <<"sanctuary">>),
+                     not obj:has_effect(Target#obj.id, ?SANCTUARY),
             
             case Result of
                 true -> [build_message(Target) | Visible];

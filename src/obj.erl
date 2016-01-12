@@ -169,7 +169,7 @@ item_transfer(#obj {id = Id, class = Class}, Item) when Class =:= unit ->
     Subclass = maps:get(<<"subclass">>, Item, none),
     
     case Subclass of
-        <<"food">> -> remove_effect(Id, <<"starving">>);
+        ?FOOD -> remove_effect(Id, <<"starving">>);
         _ -> nothing
      end;
 item_transfer(_Obj, _Item) -> nothing.
@@ -259,12 +259,12 @@ apply_wall(true, #obj {id = Id, pos = Pos}) ->
     add_effect(Id, ?WALL, Wall#obj.id).
 
 apply_sanctuary(false, #obj {id = Id}) ->
-    case has_effect(Id, <<"sanctuary">>) of
-        true -> remove_effect(Id, <<"sanctuary">>);
+    case has_effect(Id, ?SANCTUARY) of
+        true -> remove_effect(Id, ?SANCTUARY);
         false -> nothing
     end;
 apply_sanctuary(true, #obj{id = Id}) ->
-    add_effect(Id, <<"sanctuary">>, none).
+    add_effect(Id, ?SANCTUARY, none).
 
 process_subclass(Id, <<"npc">>) ->
     NPC = #npc {id = Id},

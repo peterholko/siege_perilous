@@ -16,7 +16,6 @@ harvest(ObjId, ResourceType, Pos) ->
 
     NewQuantity = Quantity - 1,
 
-
     case NewQuantity =< 0 of
         true ->
             case Resource#resource.obj =/= none of
