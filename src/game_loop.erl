@@ -195,8 +195,8 @@ do_event(craft, EventData, PlayerPid) ->
 
     case structure:check_recipe_req(StructureId, Recipe) of
         true ->
-            NewItem = structure:craft(StructureId, Recipe),
-            send_update_items(StructureId, [NewItem], PlayerPid);
+            NewItems = structure:craft(StructureId, Recipe),
+            send_update_items(StructureId, NewItems, PlayerPid);
         false ->
             nothing
     end,

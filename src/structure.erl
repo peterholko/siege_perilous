@@ -64,15 +64,14 @@ process(StructureId) ->
     
     item:update(Id, Quantity - 1),
 
-    F = fun(NewItemName) ->
-            item:create(StructureId, NewItemName, 1)
+    F = fun(NewItemName, AllNewItems) ->
+            NewItem = item:create(StructureId, NewItemName, 1),
+            [NewItem | AllNewItems]
         end,
 
-    lists:foreach(F, Produces),
-
-    %Requery items after new items and update
-    item:get_by_owner(StructureId).
-
+    NewItems = lists:foldl(F, [], Produces),
+    NewItems.
+    
 craft(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
 
@@ -186,8 +185,12 @@ craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
                   <<"quantity">> => 1},
     
     FinalItem = maps:merge(BaseStats, AllItemStats),
-    InsertedItem = item:create(FinalItem),
-    InsertedItem;
+    CraftedItem = item:create(FinalItem),
+
+    %Set quantity to 1, as the return of this function 
+    %should be only the new quantity not combined quantity 
+    CraftedItemOnly = maps:update(<<"quantity">>, 1, CraftedItem),
+    [CraftedItemOnly];
 craft_item(OwnerId, RecipeName, <<"Material">>, MatchReqList) ->
     nothing.
  

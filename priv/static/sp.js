@@ -2199,7 +2199,7 @@ function initUI() {
     textLog = new createjs.Text("", h1Font, textColor);
     
     textLog.x = 20;
-    textLog.y = stageHeight - 250;
+    textLog.y = stageHeight - 175;
     
     stage.addChild(textLog); 
 };
