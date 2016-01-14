@@ -17,6 +17,9 @@ var smallDialogPanel;
 var selectPanel;
 var portraitPanel;
 
+var textLog;
+var textLogLines = [];
+
 var explored = {};
 var objs = {};
 var localObjs = {};
@@ -27,6 +30,7 @@ var battleUnits = [];
 
 var playerId;
 var playerPos;
+var heroId;
 var heroPos;
 
 var selectedPortrait = false;
@@ -85,6 +89,7 @@ var btnCraftRestImg = new Image();
 var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
 var btnEquipRestImg = new Image();
+
 
 var gravestone = new Image();
 
@@ -619,7 +624,11 @@ function onMessage(evt) {
             }
         }
         else if(jsonData.packet == "new_items") {
-           drawNewItemsDialog(jsonData); 
+           drawNewItemsDialog(jsonData);
+
+           for(var i = 0; i < jsonData.items.length; i++) {
+               updateTextLog("You acquired item [" + jsonData.items[i].name + "]x" + jsonData.items[i].quantity);
+           }
         }
         else if(jsonData.packet == "exit_local") {
             localPanel.visible = false;            
@@ -627,6 +636,8 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
+
+
         }
         else if(jsonData.packet == "info_obj") {
             drawInfoObj(jsonData);
@@ -828,7 +839,7 @@ function drawLocalMap(map) {
 
         for(var j = 0; j < tileImages.length; j++) {
             var tileImageId = tileImages[j] - 1;
-            var imagePath = "/static/" + tileset[tileImageId].image;
+            var imagePath = "/static/art/" + tileset[tileImageId].image;
             var offsetX = tileset[tileImageId].offsetx;
             var offsetY = -1 * tileset[tileImageId].offsety;
          
@@ -903,6 +914,7 @@ function drawLocalObj() {
 
             if(localObj.player == playerId) {
                 if(is_hero(localObj.type)) {
+                    heroId = localObj.id;
                     visibleTiles = range(localObj.x, localObj.y, 2);
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
@@ -1074,6 +1086,19 @@ function drawDmg(jsonData) {
     if(localPanel.visible) {
         var source = getLocalObj(jsonData.sourceid);
         var target = getLocalObj(jsonData.targetid);
+        var txt = '';
+
+        if(jsonData.sourceid == heroId) {
+            txt = "Your "  + jsonData.attacktype + " attack deals " + jsonData.dmg + " damage to " + target.type;            
+        }
+        else if(jsonData.targetid == heroId) {
+            txt = source.type + " " + jsonData.attacktype + " attacks you for " + jsonData.dmg + " damage";
+        }
+        else {
+            txt = source.type + " " + jsonData.attacktype + " damages " + target.name + " for " + jsonData.dmg + " damage";
+        }
+        
+        updateTextLog(txt);
 
         if(source.hasOwnProperty("icon")) {
             var origX = source.icon.x;
@@ -1093,6 +1118,8 @@ function drawDmg(jsonData) {
             }
 
             if(jsonData.state == "dead") {
+                txt = 
+
                 var sprite = target.icon.getChildByName("sprite");
 
                 if(in_array(sprite.spriteSheet.animations, 'die')) {
@@ -1799,6 +1826,18 @@ function drawItemSplit(itemId, itemName, quantity) {
     addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconRight});
 };
 
+function updateTextLog(newText) {
+    textLogLines.push(newText);
+
+    var lines = "";
+
+    for(var i = (textLogLines.length - 1); i >= 0; i--) {
+        lines += (textLogLines[i] + "\n");    
+    }
+
+    textLog.text = lines;
+};
+
 function drawProgressBar(jsonData) {
     var bar = new tine.ProgressBar('green', 'black', null, 100, 15);
     bar.value = 0;
@@ -1953,13 +1992,13 @@ function initUI() {
 
     weakButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
-            sendAttack("weak");
+            sendAttack("quick");
         }
     });
 
     basicButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
-            sendAttack("basic");
+            sendAttack("precise");
         }
     });
 
@@ -2175,6 +2214,13 @@ function initUI() {
     smallDialogPanel.addChild(content);
 
     stage.addChild(smallDialogPanel);
+
+    textLog = new createjs.Text("", h1Font, textColor);
+    
+    textLog.x = 20;
+    textLog.y = stageHeight - 175;
+    
+    stage.addChild(textLog); 
 };
 
 function showBattlePanel() {

@@ -16,7 +16,6 @@ harvest(ObjId, ResourceType, Pos) ->
 
     NewQuantity = Quantity - 1,
 
-
     case NewQuantity =< 0 of
         true ->
             case Resource#resource.obj =/= none of
@@ -33,8 +32,11 @@ harvest(ObjId, ResourceType, Pos) ->
     end,
 
     NewItem = item:create(ObjId, ResourceType, 1),
-    lager:info("NewItem: ~p", [NewItem]),
-    [NewItem].
+
+    %Set quantity to 1, as the returns of this function 
+    %should be only the new quantity not combined quantity 
+    NewItemOnly = maps:update(<<"quantity">>, 1, NewItem),
+    [NewItemOnly].
 
 survey(Pos) ->
     lager:info("Survey ~p", [Pos]),

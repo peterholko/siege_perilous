@@ -195,8 +195,8 @@ do_event(craft, EventData, PlayerPid) ->
 
     case structure:check_recipe_req(StructureId, Recipe) of
         true ->
-            NewItem = structure:craft(StructureId, Recipe),
-            send_update_items(StructureId, [NewItem], PlayerPid);
+            NewItems = structure:craft(StructureId, Recipe),
+            send_update_items(StructureId, NewItems, PlayerPid);
         false ->
             nothing
     end,
@@ -390,7 +390,7 @@ process_food_upkeep() ->
     Units = db:index_read(obj, unit, #obj.class),
 
     F = fun(Unit = #obj{player = Player}) when Player =/= ?UNDEAD ->
-            case item:get_by_subclass(Unit#obj.id, <<"food">>) of
+            case item:get_by_subclass(Unit#obj.id, ?FOOD) of
                 [] ->
                     obj:add_effect(Unit#obj.id, <<"starving">>, none),
 

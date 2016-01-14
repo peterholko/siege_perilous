@@ -370,7 +370,7 @@ move_to_target(NPCId) ->
 melee_attack(NPCId) ->
     [NPC] = db:read(npc, NPCId),
 
-    combat:attack(basic, NPCId, NPC#npc.target),
+    combat:attack(<<"quick">>, NPCId, NPC#npc.target),
     game:add_event(self(), action, NPCId, NPCId, 16),
 
     NewNPC = NPC#npc {task_state = inprogress},

@@ -70,11 +70,10 @@ message_handle(<<"move_unit">>, Message) ->
 message_handle(<<"attack">>, Message) ->
     lager:info("message: attack"),
 
-    AttackTypeBin = map_get(<<"attacktype">>, Message),
+    AttackType = map_get(<<"attacktype">>, Message),
     SourceId = map_get(<<"sourceid">>, Message),
     TargetId = map_get(<<"targetid">>, Message),
 
-    AttackType = binary_to_atom(AttackTypeBin, latin1),
     SourceBinId = util:hex_to_bin(SourceId), 
     TargetBinId = util:hex_to_bin(TargetId), 
 

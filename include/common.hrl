@@ -42,8 +42,13 @@
 
 -define(UNDEAD, 99).
 
+-define(FOOD, <<"Food">>).
+
+-define(STARVING, <<"Starving">>).
+-define(SANCTUARY, <<"Sanctuary">>).
+-define(WALL, <<"Fortified">>).
+
 -define(MONOLITH, <<"monolith">>).
--define(WALL, <<"wall">>).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).
