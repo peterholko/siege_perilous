@@ -369,7 +369,7 @@ add_stamina(SourceId, Value) ->
     Stamina = maps:get(<<"stamina">>, SourceObj),
     obj:update(SourceId, 'stamina', Stamina + Value).
 
-num_ticks({attack, _AttackType}) -> ?TICKS_SEC * 10;
+num_ticks({attack, _AttackType}) -> ?TICKS_SEC * 5;
 num_ticks(guard) -> ?TICKS_SEC * 30;
 num_ticks(dodge) -> ?TICKS_SEC * 20. 
 

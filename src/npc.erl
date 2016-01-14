@@ -92,7 +92,7 @@ handle_info({perception, {NPCId, Objs}}, Data) ->
     %Find target
     Target = find_target(NPCObj, NPCStats, FilteredTargets),
 
-    lager:debug("Find Target: ~p", [NPC]),
+    lager:debug("Find Target: ~p", [Target]),
 
     %Store target
     NewNPC = NPC#npc {target = Target},
@@ -342,21 +342,29 @@ target_visible(NPCId) ->
 move_to_target(NPCId) ->
     [NPC] = db:read(npc, NPCId), 
     [NPCObj] = db:read(obj, NPCId),
-    [TargetObj] = db:read(obj, NPC#npc.target),
 
-    IsAdjacent = map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos),
-
-    case IsAdjacent of
-        false ->
-            Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos),
-            NewNPC = NPC#npc {task_state = inprogress,
-                              path = Path},
-            db:write(NewNPC),
-
-            move_next_path(NPCObj, Path);
-        true ->
+    case NPC#npc.target of
+        none ->
+            %Invalid target due to either moving out of range or dying
             NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC)
+            db:write(NewNPC);
+        _ -> 
+            [TargetObj] = db:read(obj, NPC#npc.target),
+
+            IsAdjacent = map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos),
+
+            case IsAdjacent of
+                false ->
+                    Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos),
+                    NewNPC = NPC#npc {task_state = inprogress,
+                                      path = Path},
+                    db:write(NewNPC),
+
+                    move_next_path(NPCObj, Path);
+                true ->
+                    NewNPC = NPC#npc {task_state = completed},
+                    db:write(NewNPC)
+            end
     end.
     
 melee_attack(NPCId) ->
