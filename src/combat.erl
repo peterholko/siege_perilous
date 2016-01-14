@@ -220,11 +220,12 @@ is_attack_dodged(#obj {id = Id}) ->
     lager:info("IsDodge: ~p", [Result]),
     Result.
                                
-broadcast_dmg(SourceId, TargetId, Dmg, State) ->
+broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State) ->
     %Convert id here as message is being built
     Message = #{<<"packet">> => <<"dmg">>,
                 <<"sourceid">> => util:bin_to_hex(SourceId),
                 <<"targetid">> => util:bin_to_hex(TargetId),
+                <<"attacktype">> => AttackType,
                 <<"dmg">> => Dmg,
                 <<"state">> => State},
 
@@ -300,7 +301,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
 
     %Broadcast damage
     lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
-    broadcast_dmg(AtkId, DefId, Dmg, UnitState),
+    broadcast_dmg(AtkId, DefId, AttackType, Dmg, UnitState),
 
     case ComboName of
         none -> nothing;
@@ -347,13 +348,13 @@ set_combat_state(#obj{id = Id}) ->
 is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
 is_state_not(_NotExpectedState, _State) -> true.
 
-attack_type_mod(weak) -> 0.5;
-attack_type_mod(basic) -> 1;
-attack_type_mod(fierce) -> 1.5.
+attack_type_mod(<<"quick">>) -> 0.5;
+attack_type_mod(<<"precise">>) -> 1;
+attack_type_mod(<<"fierce">>) -> 1.5.
 
-attack_type_cost(weak) -> 5;
-attack_type_cost(basic) -> 10;
-attack_type_cost(fierce) -> 20.
+attack_type_cost(<<"quick">>) -> 5;
+attack_type_cost(<<"precise">>) -> 10;
+attack_type_cost(<<"fierce">>) -> 20.
 
 stamina_cost({attack, AttackType}) -> attack_type_cost(AttackType);
 stamina_cost(dodge) -> 25;
@@ -387,9 +388,9 @@ get_items_value(Attr, Items) ->
 
     lists:foldl(F, 0, Items).
 
-to_str(weak) -> "w";
-to_str(basic) -> "b";
-to_str(fierce) -> "f".
+to_str(<<"quick">>) -> "q";
+to_str(<<"precise">>) -> "p";
+to_str(<<"fierce">>) -> "f".
 
 check_combos(AttackType, ObjId) ->
     case db:dirty_read(combat, ObjId) of
@@ -424,10 +425,10 @@ check_attacks(Attacks) ->
     lists:filter(F, combos()).
 
 combos() ->
-    [{"wwf", <<"Shrouded Strike">>, 1.25},
+    [{"qqf", <<"Shrouded Strike">>, 1.25},
      {"fff", <<"Shatter Strike">>, 1.5},
-     {"wbf", <<"Rupture Strike">>, 2},
-     {"wbwf", <<"Nightmare Strike">>, 3}].
+     {"qpf", <<"Rupture Strike">>, 2},
+     {"qpqf", <<"Nightmare Strike">>, 3}].
 
 skill_gain_combo(_AtkId, none) -> nothing;
 skill_gain_combo(AtkId, ComboName) ->

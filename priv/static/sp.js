@@ -30,6 +30,7 @@ var battleUnits = [];
 
 var playerId;
 var playerPos;
+var heroId;
 var heroPos;
 
 var selectedPortrait = false;
@@ -635,6 +636,8 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
+
+
         }
         else if(jsonData.packet == "info_obj") {
             drawInfoObj(jsonData);
@@ -911,6 +914,7 @@ function drawLocalObj() {
 
             if(localObj.player == playerId) {
                 if(is_hero(localObj.type)) {
+                    heroId = localObj.id;
                     visibleTiles = range(localObj.x, localObj.y, 2);
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
@@ -1082,6 +1086,19 @@ function drawDmg(jsonData) {
     if(localPanel.visible) {
         var source = getLocalObj(jsonData.sourceid);
         var target = getLocalObj(jsonData.targetid);
+        var txt = '';
+
+        if(jsonData.sourceid == heroId) {
+            txt = "Your "  + jsonData.attacktype + " attack deals " + jsonData.dmg + " damage to " + target.type;            
+        }
+        else if(jsonData.targetid == heroId) {
+            txt = source.type + " " + jsonData.attacktype + " attacks you for " + jsonData.dmg + " damage";
+        }
+        else {
+            txt = source.type + " " + jsonData.attacktype + " damages " + target.name + " for " + jsonData.dmg + " damage";
+        }
+        
+        updateTextLog(txt);
 
         if(source.hasOwnProperty("icon")) {
             var origX = source.icon.x;
@@ -1101,6 +1118,8 @@ function drawDmg(jsonData) {
             }
 
             if(jsonData.state == "dead") {
+                txt = 
+
                 var sprite = target.icon.getChildByName("sprite");
 
                 if(in_array(sprite.spriteSheet.animations, 'die')) {
@@ -1973,13 +1992,13 @@ function initUI() {
 
     weakButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
-            sendAttack("weak");
+            sendAttack("quick");
         }
     });
 
     basicButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
-            sendAttack("basic");
+            sendAttack("precise");
         }
     });
 
