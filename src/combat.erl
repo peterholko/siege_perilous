@@ -18,9 +18,7 @@
 -export([do_action/1, attack/3, guard/1, dodge/1]).
 -export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
 
-%-ifdef(TEST).
-%-compile(export_all).
-%-endif.
+-compile(export_all).
 
 %% ====================================================================
 %% External functions
@@ -220,14 +218,15 @@ is_attack_dodged(#obj {id = Id}) ->
     lager:info("IsDodge: ~p", [Result]),
     Result.
                                
-broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State) ->
+broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName) ->
     %Convert id here as message is being built
     Message = #{<<"packet">> => <<"dmg">>,
                 <<"sourceid">> => util:bin_to_hex(SourceId),
                 <<"targetid">> => util:bin_to_hex(TargetId),
                 <<"attacktype">> => AttackType,
                 <<"dmg">> => Dmg,
-                <<"state">> => State},
+                <<"state">> => State,
+                <<"combo">> => ComboName},
 
     [SourceObj] = db:read(obj, SourceId),
     [TargetObj] = db:read(obj, TargetId),
@@ -273,7 +272,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     DefHp = maps:get(<<"hp">>, DefUnit),
 
     %Check for combos
-    {ComboName, ComboDmg} = check_combos(AttackType, AtkId),
+    {ComboName, ComboDmg} = check_combos(AttackType, AtkId, AtkObj#obj.subclass),
 
     %Add item stats
     TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)) * ComboDmg,
@@ -301,12 +300,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
 
     %Broadcast damage
     lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
-    broadcast_dmg(AtkId, DefId, AttackType, Dmg, UnitState),
-
-    case ComboName of
-        none -> nothing;
-        _ -> broadcast_combo(AtkId, DefId, ComboName)
-    end,
+    broadcast_dmg(AtkId, DefId, AttackType, Dmg, UnitState, ComboName),
 
     %Check if unit is dead 
     case UnitState of
@@ -392,12 +386,12 @@ to_str(<<"quick">>) -> "q";
 to_str(<<"precise">>) -> "p";
 to_str(<<"fierce">>) -> "f".
 
-check_combos(AttackType, ObjId) ->
+check_combos(AttackType, ObjId, ObjSubclass) ->
     case db:dirty_read(combat, ObjId) of
         [Combat] ->
             Attacks = Combat#combat.attacks ++ to_str(AttackType),
 
-            case check_attacks(Attacks) of
+            case check_attacks(Attacks, ObjSubclass) of
                 [{_, ComboName, ComboDmg}] ->
                     NewCombat = Combat#combat {attacks = ""},
                     db:dirty_write(NewCombat),
@@ -414,17 +408,20 @@ check_combos(AttackType, ObjId) ->
             {none, 0}
     end.
 
-check_attacks(Attacks) ->
+check_attacks(Attacks, ObjSubclass) ->
     F = fun({ComboAttacks, _ComboName, _ComboDmg}) ->
+            lager:info("Attacks: ~p ComboAttacks: ~p", [Attacks, ComboAttacks]),            
             case string:str(Attacks, ComboAttacks) of
                 0 -> false;
                 _ -> true
             end
         end,
 
-    lists:filter(F, combos()).
+    lists:filter(F, combos(ObjSubclass)).
 
-combos() ->
+combos(<<"npc">>) ->
+    [{"qqqf", <<"Undead Devour">>, 3}];
+combos(_) ->
     [{"qqf", <<"Shrouded Strike">>, 1.25},
      {"fff", <<"Shatter Strike">>, 1.5},
      {"qpf", <<"Rupture Strike">>, 2},

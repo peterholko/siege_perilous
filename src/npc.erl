@@ -362,10 +362,14 @@ move_to_target(NPCId) ->
 melee_attack(NPCId) ->
     [NPC] = db:read(npc, NPCId),
 
-    combat:attack(<<"quick">>, NPCId, NPC#npc.target),
+    CurrentAttacks = NPC#npc.attacks,
+    AttackType = get_attack_type(NPC),
+
+    combat:attack(AttackType, NPCId, NPC#npc.target),
     game:add_event(self(), action, NPCId, NPCId, 16),
 
-    NewNPC = NPC#npc {task_state = inprogress},
+    NewNPC = NPC#npc {task_state = inprogress,
+                      attacks = store_attacks(AttackType, CurrentAttacks)},
     db:write(NewNPC).
 
 move_guard_pos(NPCId) ->
@@ -395,3 +399,16 @@ max_guard_dist(NPCId) ->
     NPCPos = NPCObj#obj.pos,
 
     map:distance(GuardPos, NPCPos) > 3. 
+
+get_attack_type(NPC) ->
+    case NPC#npc.attacks of
+        [] -> ?QUICK;
+        [?QUICK] -> ?QUICK;
+        [?QUICK, ?QUICK] -> ?QUICK;
+        [?QUICK, ?QUICK, ?QUICK] -> ?FIERCE
+    end.
+
+store_attacks(?QUICK, Attacks) -> [?QUICK | Attacks];
+store_attacks(?FIERCE, Attacks) -> [].
+
+

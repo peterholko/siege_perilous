@@ -1088,14 +1088,27 @@ function drawDmg(jsonData) {
         var target = getLocalObj(jsonData.targetid);
         var txt = '';
 
-        if(jsonData.sourceid == heroId) {
-            txt = "Your "  + jsonData.attacktype + " attack deals " + jsonData.dmg + " damage to " + target.type;            
-        }
-        else if(jsonData.targetid == heroId) {
-            txt = source.type + " " + jsonData.attacktype + " attacks you for " + jsonData.dmg + " damage";
-        }
+        if(jsonData.combo == "none") {
+            if(jsonData.sourceid == heroId) {
+                txt = "Your "  + jsonData.attacktype + " attack deals " + jsonData.dmg + " damage to " + target.type;            
+            }
+            else if(jsonData.targetid == heroId) {
+                txt = source.type + " " + jsonData.attacktype + " attacks you for " + jsonData.dmg + " damage";
+            }
+            else {
+                txt = source.type + " " + jsonData.attacktype + " damages " + target.name + " for " + jsonData.dmg + " damage";
+            }
+        } 
         else {
-            txt = source.type + " " + jsonData.attacktype + " damages " + target.name + " for " + jsonData.dmg + " damage";
+            if(jsonData.sourceid == heroId) {
+                txt = "Your " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " for " + jsonData.dmg + " damage to " + target.type;
+            }
+            else if(jsonData.targetid == heroId) {
+                txt = source.type + " " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " on you for " + jsonData.dmg + " damage";               
+            }
+            else {
+                txt = source.type + " " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " on " + target.name + " for " + jsonData.dmg + " damage";
+            }
         }
         
         updateTextLog(txt);
@@ -1118,7 +1131,17 @@ function drawDmg(jsonData) {
             }
 
             if(jsonData.state == "dead") {
-                txt = 
+                if(jsonData.targetid == heroId) {
+                    txt = "You have been killed by " + source.type;
+                } 
+                else if(jsonData.sourceid == heroId) {
+                    txt = "You have killed a " + target.type;
+                }                
+                else {
+                    txt = target.type + " has been killed by " + source.type;
+                }
+
+                updateTextLog(txt);
 
                 var sprite = target.icon.getChildByName("sprite");
 
@@ -1826,16 +1849,19 @@ function drawItemSplit(itemId, itemName, quantity) {
     addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconRight});
 };
 
-function updateTextLog(newText) {
+function updateTextLog(newText) {    
     textLogLines.push(newText);
 
     var lines = "";
 
-    for(var i = (textLogLines.length - 1); i >= 0; i--) {
+    for(var i = 0; i < textLogLines.length; i++) {
         lines += (textLogLines[i] + "\n");    
     }
 
     textLog.text = lines;
+
+    var metrics = textLog.getMetrics();
+    console.log(metrics.lines);
 };
 
 function drawProgressBar(jsonData) {
@@ -2217,8 +2243,9 @@ function initUI() {
 
     textLog = new createjs.Text("", h1Font, textColor);
     
-    textLog.x = 20;
+    textLog.x = 10;
     textLog.y = stageHeight - 175;
+    textLog.lineWidth = 310;
     
     stage.addChild(textLog); 
 };

@@ -50,6 +50,10 @@
 
 -define(MONOLITH, <<"monolith">>).
 
+-define(QUICK, <<"quick">>).
+-define(PRECISE, <<"precise">>).
+-define(FIERCE, <<"fierce">>).
+
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).
 -define(INFO2(MSG, DATA), io:fwrite("~s ~s~n", [MSG, DATA])).

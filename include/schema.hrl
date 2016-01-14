@@ -88,7 +88,8 @@
               new_plan = false,
               task_state = none,
               task_index = 0,
-              path = none}).
+              path = none,
+              attacks = []}).
 
 -record(effect, {key,
                  id,
