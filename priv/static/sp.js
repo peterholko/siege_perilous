@@ -1850,6 +1850,14 @@ function drawItemSplit(itemId, itemName, quantity) {
 };
 
 function updateTextLog(newText) {    
+    var metrics = textLog.getMetrics();
+    var num_lines = metrics.lines.length;
+
+    while(num_lines > 12) {
+        textLogLines.shift();
+        num_lines--;
+    }
+
     textLogLines.push(newText);
 
     var lines = "";
@@ -1859,9 +1867,6 @@ function updateTextLog(newText) {
     }
 
     textLog.text = lines;
-
-    var metrics = textLog.getMetrics();
-    console.log(metrics.lines);
 };
 
 function drawProgressBar(jsonData) {
@@ -2244,9 +2249,12 @@ function initUI() {
     textLog = new createjs.Text("", h1Font, textColor);
     
     textLog.x = 10;
-    textLog.y = stageHeight - 175;
+    textLog.y = stageHeight - 200;
     textLog.lineWidth = 310;
     
+    //Initialize textLog with 10 blank lines 
+    initTextLog();
+
     stage.addChild(textLog); 
 };
 
@@ -2592,4 +2600,13 @@ function getItemArmor(items) {
     return armor;
 };
 
+function initTextLog() {
+    var lines;
 
+    for(var i = 0; i < 10; i++) {
+        textLogLines.push("");
+        lines += "";
+    }
+
+    textLog.text = lines;
+};
