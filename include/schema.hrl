@@ -56,7 +56,7 @@
               name,
               state,
               effect = [],
-              vision = false}).
+              vision = -1}).
             
 -record(charge_time, {unit_id,
                       charge_time}).

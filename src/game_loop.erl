@@ -224,7 +224,7 @@ process_explored([Player | Rest]) ->
     process_explored(Rest).
 
 process_transition(0) -> nothing;
-process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 60 )) =:= 0 ->
+process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 30 )) =:= 0 ->
     [TimeOfDay] = db:read(world, timeofday),
     NewValue = timeofday(TimeOfDay#world.value),
     NewTimeOfDay = TimeOfDay#world { value = NewValue},
@@ -298,7 +298,6 @@ send_update_items(ObjId, NewItems, PlayerPid) ->
         false ->
             nothing
     end.
-
 apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
     %Apply night effect 
     obj:add_effect(Id, <<"night_undead">>, none),
@@ -327,6 +326,12 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
         false ->
             nothing
     end;
+apply_transition(night, Obj) ->
+    NewObj = Obj#obj {vision = 1},
+    db:write(NewObj);
+apply_transition(day, Obj) ->
+    NewObj = Obj#obj {vision = 2},
+    db:write(NewObj);
 apply_transition(_, _) ->
     nothing.
 

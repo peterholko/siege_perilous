@@ -683,80 +683,6 @@ function setPlayerPos() {
     }
 };
 
-function drawMap() {
-    var bitmap;
-    var neighbours = getNeighbours(playerPos.x, playerPos.y);
-
-    for(var i = 0; i < explored.length; i++) {
-        var tile = explored[i];
-        
-        var pixel = hex_to_pixel(tile.x, tile.y);
-        var tileType = tile.t;
-
-        bitmap = new createjs.Bitmap(tileImages[tile.t]);
-        bitmap.tile = tile.t;
-        bitmap.tileX = tile.x;
-        bitmap.tileY = tile.y;
-        bitmap.x = pixel.x;
-        bitmap.y = pixel.y;
-        bitmap.on("mousedown", function(evt) {
-            if(evt.nativeEvent.button == 2) {
-                sendMove(this.tileX, this.tileY);
-            } 
-            else {
-                var objList = getObjOnTile(this.tileX, this.tileY);
-                drawInfoOnTile(this.tile, this.tileX, this.tileY, objList);
-            }
-        });
-
-        map.addChild(bitmap);
-
-        if(tile.x != playerPos.x || tile.y != playerPos.y) {
-            if(!isNeighbour(tile.x, tile.y, neighbours)) {
-                
-                bitmap = new createjs.Bitmap(shroud);
-                bitmap.x = pixel.x;
-                bitmap.y = pixel.y;
-                map.addChild(bitmap);
-            }
-        }
-    }
-
-    var pixel = hex_to_pixel(1,1);
-
-    var b = new createjs.Bitmap(tr);
-    var c = new createjs.Bitmap(tl);
-    var d = new createjs.Bitmap(l);
-    var e = new createjs.Bitmap(r);
-    var f = new createjs.Bitmap(br);
-    var g = new createjs.Bitmap(bl);
-
-    b.x = pixel.x;
-    b.y = pixel.y - 72;
-
-    c.x = pixel.x - 54;
-    c.y = pixel.y - 108;
-
-    d.x = pixel.x - 54;
-    d.y = pixel.y - 36;
-
-    e.x = pixel.x;
-    e.y = pixel.y - 72;
-
-    f.x = pixel.x;
-    f.y = pixel.y;
-
-    g.x = pixel.x - 54;
-    g.y = pixel.y - 36;
-
-    map.addChild(b);
-    map.addChild(c);
-    map.addChild(d);
-    map.addChild(e);
-    map.addChild(f);
-    map.addChild(g);
-};
-
 function clearLocalMap() {
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
@@ -861,7 +787,7 @@ function updateLocalObj(objs) {
             localObjs[obj.id].x = obj.x;
             localObjs[obj.id].y = obj.y;
             localObjs[obj.id].state = obj.state;
-            localObjs[obj.id].effect = obj.effect;
+            localObjs[obj.id].vision = obj.vision;
             localObjs[obj.id].op = 'update';
 
         } else {
@@ -915,7 +841,7 @@ function drawLocalObj() {
             if(localObj.player == playerId) {
                 if(is_hero(localObj.type)) {
                     heroId = localObj.id;
-                    visibleTiles = range(localObj.x, localObj.y, 2);
+                    visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
                     console.log("new c_x: " + c_x + " c_y: " + c_y);
@@ -945,7 +871,7 @@ function drawLocalObj() {
 
                 if(localObj.player == playerId) {
                     if(is_hero(localObj.type)) {
-                        visibleTiles = range(localObj.x, localObj.y, 2);
+                        visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                         c_x = 640 - 36 - pixel.x;
                         c_y = 400 - 36 - pixel.y;             
                         console.log("x: " + localMapCont.x + " y: " + localMapCont.y + " - " + "c_x: " + c_x + " c_y: " + c_y);

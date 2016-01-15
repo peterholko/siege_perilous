@@ -17,7 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/2]).
 -export([get_nearby_objs/3]).
--export([add_explored/2]).
+-export([add_explored/3]).
 -export([neighbours/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -export([movement_cost/1, is_passable/1, random_location/0]).
 -export([check_distance/4, distance/2]).
@@ -46,8 +46,8 @@ get_nearby_objs({X, Y}, Dist) ->
 get_nearby_objs(X, Y, Dist) ->
     gen_server:call({global, map}, {get_nearby_objs, {X,Y}, Dist}).    
 
-add_explored(Player, {X, Y}) ->
-    gen_server:cast({global, map}, {add_explored, Player, {X, Y}}).
+add_explored(Player, Pos, Range) ->
+    gen_server:cast({global, map}, {add_explored, Player, Pos, Range}).
 
 is_adjacent(SourcePos, TargetPos) ->
     {SX, SY} = SourcePos,
@@ -94,25 +94,23 @@ init([]) ->
 handle_cast(none, Data) ->  
     {noreply, Data};
 
-handle_cast({add_explored, Player, {X, Y}}, Data) ->
-    lager:debug("add_explored: ~p ~p", [X, Y]),
-    ExploredMap = db:read(explored_map, Player),
-    
-    ExploredTiles = get_explored_tiles(ExploredMap),
-    Neighbours = neighbours(X, Y),
-    NeighboursTwo = neighbours_two(Neighbours, []),
-    lager:debug("NeighboursTwo: ~p", [NeighboursTwo]),
-    LatestTiles = NeighboursTwo ++ [{X, Y}],
+handle_cast({add_explored, Player, Pos, Range}, Data) ->
+
+    %Previous Stored Explored tiles
+    PrevTiles = get_explored_tiles(Player),
+
+    %Current Explored tiles
+    CurrTiles = range(Pos, Range),
 
     %Convert lists to sets for intersect and unique list processing
-    SetExploredTiles = sets:from_list(ExploredTiles),
-    SetLatestTiles = sets:from_list(LatestTiles),
+    SetPrevTiles = sets:from_list(PrevTiles),
+    SetCurrTiles = sets:from_list(CurrTiles),
 
-    SetNewTiles = sets:subtract(SetLatestTiles, SetExploredTiles),
-    SetNewExploredTiles = sets:union(SetExploredTiles, SetLatestTiles),
+    SetNewTiles = sets:subtract(SetCurrTiles, SetPrevTiles),
+    SetAllTiles = sets:union(SetCurrTiles, SetPrevTiles),
 
     NewExploredMap = #explored_map {player = Player, 
-                                    tiles = sets:to_list(SetNewExploredTiles),
+                                    tiles = sets:to_list(SetAllTiles),
                                     new_tiles = sets:to_list(SetNewTiles)},
     db:write(NewExploredMap),
 
@@ -170,10 +168,11 @@ explored_map([ExploredMap], new) ->
     Tiles = tiles_msg_format(TileIds, []),
     Tiles.
 
-get_explored_tiles([]) ->
-    [];
-get_explored_tiles([ExploredMap]) ->
-    ExploredMap#explored_map.tiles.
+get_explored_tiles(Player) ->
+    case db:read(explored_map, Player) of
+        [] -> [];
+        [ExploredMap] -> ExploredMap#explored_map.tiles
+    end.
 
 tiles_msg_format([], Tiles) ->
     Tiles;
@@ -267,6 +266,7 @@ build_message(MapObj, Objs) ->
         <<"y">> => Y,
         <<"class">> => MapObj#obj.class,
         <<"type">> => MapObj#obj.name, %TODO fix client to accept name instead of type
+        <<"vision">> => MapObj#obj.vision,
         <<"state">> => MapObj#obj.state} | Objs].
 
 distance(SourcePos, TargetPos) ->

@@ -52,7 +52,7 @@ login([], [Name, Pass, Socket]) ->
     Pos = map:random_location(),
  
     obj:create(Pos, PlayerId, unit, <<"hero">>, <<"Hero Mage">>, none),
-    map:add_explored(PlayerId, Pos),
+    map:add_explored(PlayerId, Pos, 2),
 
     {success, PlayerId};
 

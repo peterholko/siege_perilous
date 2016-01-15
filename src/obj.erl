@@ -36,7 +36,7 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
     %Create mongodb obj
     [ObjM] = create(Class, Name),
     Id = maps:get(<<"_id">>, ObjM),
-    Vision = maps:get(<<"vision">>, ObjM, 0),
+    Vision = maps:get(<<"vision">>, ObjM, -1),
 
     %Create mnesia obj
     Obj = #obj {id = Id,
@@ -76,9 +76,9 @@ move(Id, Pos) ->
     apply_sanctuary(IsNearbyMonolith, NewObj),
 
     %Add explored if object is granted vision
-    case Obj#obj.vision > 0 of
+    case Obj#obj.vision > -1 of
         true ->
-            map:add_explored(Obj#obj.player, Pos),
+            map:add_explored(Obj#obj.player, Pos, Obj#obj.vision),
             game:trigger_explored(Obj#obj.player);
         false ->
             nothing
