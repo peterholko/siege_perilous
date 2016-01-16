@@ -326,10 +326,10 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
         false ->
             nothing
     end;
-apply_transition(night, Obj) ->
+apply_transition(night, Obj = #obj {class = Class}) when Class =:= unit ->
     NewObj = Obj#obj {vision = 1},
     db:write(NewObj);
-apply_transition(day, Obj) ->
+apply_transition(day, Obj = #obj {class = Class}) when Class =:= unit ->
     NewObj = Obj#obj {vision = 2},
     db:write(NewObj);
 apply_transition(_, _) ->

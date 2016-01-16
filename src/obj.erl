@@ -36,7 +36,7 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
     %Create mongodb obj
     [ObjM] = create(Class, Name),
     Id = maps:get(<<"_id">>, ObjM),
-    Vision = maps:get(<<"vision">>, ObjM, -1),
+    Vision = maps:get(<<"vision">>, ObjM, 0),
 
     %Create mnesia obj
     Obj = #obj {id = Id,
