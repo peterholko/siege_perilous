@@ -448,14 +448,9 @@ function sendAttack(attackType) {
     websocket.send(attack);
 };
 
-function sendGuard() {
-    var guard = '{"cmd": "guard", "sourceid": "' + selectedPortrait + '"}';    
+function sendDefend(defendType) {
+    var guard = '{"cmd": "defend", "defendtype": "' + defendType + '", "sourceid": "' + selectedPortrait + '"}';    
     websocket.send(guard);
-};
-
-function sendDodge() {
-    var dodge = '{"cmd": "dodge", "sourceid": "' + selectedPortrait + '"}';    
-    websocket.send(dodge);
 };
 
 function sendBuild(structureName) {
@@ -1014,18 +1009,18 @@ function drawDmg(jsonData) {
         var target = getLocalObj(jsonData.targetid);
         var txt = '';
 
-        if(jsonData.combo == "none") {
+        if(jsonData.countered != "none") {
             if(jsonData.sourceid == heroId) {
-                txt = "Your "  + jsonData.attacktype + " attack deals " + jsonData.dmg + " damage to " + target.type;            
+                txt = "Your " + jsonData.attacktype + " attack has been " + jsonData.countered + " for " + jsonData.dmg + " damage to " + target.type;
             }
             else if(jsonData.targetid == heroId) {
-                txt = source.type + " " + jsonData.attacktype + " attacks you for " + jsonData.dmg + " damage";
+                txt = source.type + " " + jsonData.attacktype + " attack has been " + jsonData.countered + " by you for " + jsonData.dmg + " damage";               
             }
             else {
-                txt = source.type + " " + jsonData.attacktype + " damages " + target.name + " for " + jsonData.dmg + " damage";
+                txt = source.type + " " + jsonData.attacktype + " attack has been " + jsonData.countered + " by " + target.name + " for " + jsonData.dmg + " damage";
             }
-        } 
-        else {
+        }
+        else if(jsonData.combo != "none") {
             if(jsonData.sourceid == heroId) {
                 txt = "Your " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " for " + jsonData.dmg + " damage to " + target.type;
             }
@@ -1034,6 +1029,17 @@ function drawDmg(jsonData) {
             }
             else {
                 txt = source.type + " " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " on " + target.name + " for " + jsonData.dmg + " damage";
+            }
+        }
+        else {
+            if(jsonData.sourceid == heroId) {
+                txt = "Your "  + jsonData.attacktype + " attack deals " + jsonData.dmg + " damage to " + target.type;            
+            }
+            else if(jsonData.targetid == heroId) {
+                txt = source.type + " " + jsonData.attacktype + " attacks you for " + jsonData.dmg + " damage";
+            }
+            else {
+                txt = source.type + " " + jsonData.attacktype + " damages " + target.name + " for " + jsonData.dmg + " damage";
             }
         }
         
@@ -1872,8 +1878,9 @@ function initUI() {
     var weakButton = new createjs.Container();
     var basicButton = new createjs.Container();
     var fierceButton = new createjs.Container();
-    var guardButton = new createjs.Container();
     var dodgeButton = new createjs.Container();
+    var parryButton = new createjs.Container();
+    var braceButton = new createjs.Container();
 
     actionBar.x = stageWidth / 2 - 492 / 2;
     actionBar.y = stageHeight - 231;
@@ -1908,15 +1915,20 @@ function initUI() {
     fierceButton.mouseChildren = false;
     fierceButton.addChild(new createjs.Bitmap(attackRest));
 
-    guardButton.x = 286;
-    guardButton.y = 150;
-    guardButton.mouseChildren = false;
-    guardButton.addChild(new createjs.Bitmap(guard));
-
-    dodgeButton.x = 342;
+    dodgeButton.x = 286;
     dodgeButton.y = 150;
     dodgeButton.mouseChildren = false;
     dodgeButton.addChild(new createjs.Bitmap(guard));
+
+    parryButton.x = 342; 
+    parryButton.y = 150;
+    parryButton.mouseChildren = false;
+    parryButton.addChild(new createjs.Bitmap(guard));
+
+    braceButton.x = 398; 
+    braceButton.y = 150;
+    braceButton.mouseChildren = false;
+    braceButton.addChild(new createjs.Bitmap(guard));
 
     detailsButton.on("mouseover", function(evt) {
         this.removeAllChildren();
@@ -1965,15 +1977,21 @@ function initUI() {
         }
     });
 
-    guardButton.on("mousedown", function(evt) {
+    dodgeButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
-            sendGuard();
+            sendDefend("dodge");
         }
     });
 
-    dodgeButton.on("mousedown", function(evt) {
+    parryButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
-            sendDodge();
+            sendDefend("parry");
+        }
+    });
+
+    braceButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {           
+            sendDefend("brace");
         }
     });
 
@@ -1984,8 +2002,9 @@ function initUI() {
     actionBar.addChild(weakButton);
     actionBar.addChild(basicButton);
     actionBar.addChild(fierceButton);
-    actionBar.addChild(guardButton);
     actionBar.addChild(dodgeButton);
+    actionBar.addChild(parryButton);
+    actionBar.addChild(braceButton);
 
     stage.addChild(actionBar);
 

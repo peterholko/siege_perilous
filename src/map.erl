@@ -185,12 +185,6 @@ tiles_msg_format([TileId | Rest], Tiles) ->
 
     tiles_msg_format(Rest, NewTiles).
 
-neighbours_two([], List) ->
-    List;
-neighbours_two([{X, Y} | Rest], List) ->
-    NewList = neighbours(X, Y) ++ List,
-    neighbours_two(Rest, NewList).
-
 %From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
 neighbours(Q, R) ->
 
@@ -229,7 +223,8 @@ add_neighbour(false, _NeighbourOddQ, Neighbours) ->
 range(Pos, N) ->
     {CX, CY, CZ} = odd_q_to_cube(Pos),
     S = lists:seq(-1 * N, N), 
-    [cube_to_odd_q({CX + X, CY + Y, CZ + Z}) || X <- S, Y <- S, Z <- S, X + Y + Z  == 0].
+    ListOfPos = [cube_to_odd_q({CX + X, CY + Y, CZ + Z}) || X <- S, Y <- S, Z <- S, X + Y + Z  == 0],
+    filter_pos(ListOfPos).
 
 filter_pos(ListOfPos) ->
     F = fun(Pos) ->

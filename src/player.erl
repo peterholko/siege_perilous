@@ -12,8 +12,7 @@
          get_info_item/1,
          move_unit/2,
          attack/3,
-         guard/1,
-         dodge/1,
+         defend/2,
          survey/1,
          harvest/2,
          loot/2,
@@ -69,15 +68,9 @@ attack(AttackType, SourceId, TargetId) ->
 
     add_action(Result, attack, {AttackType, SourceId, TargetId}).
 
-guard(SourceId) ->
+defend(DefendType, SourceId) ->
     Result = not is_event_locked(SourceId),
-    add_action(Result, guard, SourceId).
-
-dodge(SourceId) ->
-    Result = not is_event_locked(SourceId) andalso
-             combat:has_stamina(SourceId, dodge),
-
-    add_action(Result, dodge, SourceId). 
+    add_action(Result, defend, {DefendType, SourceId}).
 
 move_unit(UnitId, Pos) ->
     Player = get(player_id),
@@ -446,16 +439,12 @@ add_action(true, attack, ActionData) ->
     combat:sub_stamina(SourceId, combat:stamina_cost({attack, AttackType})),
     NumTicks = combat:num_ticks({attack, AttackType}),
     game:add_event(self(), action, SourceId, SourceId, NumTicks);
-add_action(true, guard, SourceId) ->
+add_action(true, defend, ActionData) ->
+    {DefendType, SourceId} = ActionData,
     set_event_lock(SourceId, true),
-    combat:guard(SourceId),
-    NumTicks = combat:num_ticks(guard),
-    game:add_event(self(), action, SourceId, SourceId, NumTicks);
-add_action(true, dodge, SourceId) ->
-    set_event_lock(SourceId, true),
-    combat:dodge(SourceId),
-    combat:sub_stamina(SourceId, combat:stamina_cost(dodge)),
-    NumTicks = combat:num_ticks(dodge),
+    combat:defend(DefendType, SourceId),
+    combat:sub_stamina(SourceId, combat:stamina_cost({defend, DefendType})),
+    NumTicks = combat:num_ticks({defend, DefendType}),
     game:add_event(self(), action, SourceId, SourceId, NumTicks).
 
 add_move_unit(true, {Unit, NewPos}, NumTicks) ->

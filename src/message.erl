@@ -82,24 +82,16 @@ message_handle(<<"attack">>, Message) ->
     jsx:encode([{<<"packet">>, <<"attack">>},
                 {<<"result">>, <<"Attack added">>}]);
 
-message_handle(<<"guard">>, Message) ->
-    lager:info("message: guard"),
+message_handle(<<"defend">>, Message) ->
+    lager:info("message: defend"),
+    DefendType = map_get(<<"defendtype">>, Message),
     SourceId = map_get(<<"sourceid">>, Message),
+
     SourceBinId = util:hex_to_bin(SourceId), 
-    player:guard(SourceBinId),
+    player:defend(DefendType, SourceBinId),
 
-    jsx:encode([{<<"packet">>, <<"guard">>},
-                {<<"result">>, <<"Guard added">>}]);
-
-message_handle(<<"dodge">>, Message) ->
-    lager:info("message: dodge"),
-    SourceId = map_get(<<"sourceid">>, Message),
-    SourceBinId = util:hex_to_bin(SourceId), 
-    player:dodge(SourceBinId),
-
-    jsx:encode([{<<"packet">>, <<"dodge">>},
-                {<<"result">>, <<"Dodge added">>}]);
-
+    jsx:encode([{<<"packet">>, <<"Defend">>},
+                {<<"result">>, <<"Defend added">>}]);
 
 message_handle(<<"survey">>, Message) ->
     lager:info("message: survey"),

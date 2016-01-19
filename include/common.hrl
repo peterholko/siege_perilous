@@ -9,6 +9,7 @@
 -define(GAME_VISION_RANGE, 50).
 -define(GAME_NUM_HOURS_PER_DAY, 6).
 -define(TICKS_SEC, 5).
+-define(TICKS_MIN, 300).
 
 -define(MAP_WIDTH, 60).
 -define(MAP_HEIGHT, 50).
@@ -53,6 +54,10 @@
 -define(QUICK, <<"quick">>).
 -define(PRECISE, <<"precise">>).
 -define(FIERCE, <<"fierce">>).
+
+-define(DODGE, <<"dodge">>).
+-define(PARRY, <<"parry">>).
+-define(BRACE, <<"brace">>).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

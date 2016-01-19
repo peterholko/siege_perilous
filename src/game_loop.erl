@@ -224,19 +224,29 @@ process_explored([Player | Rest]) ->
     process_explored(Rest).
 
 process_transition(0) -> nothing;
-process_transition(NumTick) when (NumTick rem (?TICKS_SEC * 30 )) =:= 0 ->
-    [TimeOfDay] = db:read(world, timeofday),
-    NewValue = timeofday(TimeOfDay#world.value),
-    NewTimeOfDay = TimeOfDay#world { value = NewValue},
+process_transition(NumTick) when ((NumTick + ?TICKS_MIN) rem (?TICKS_MIN * 3)) =:= 0 ->
+    %Transition from day to night
+    NewTimeOfDay = #world {attr = timeofday,
+                           value = night},
     db:write(NewTimeOfDay),
-    lager:debug("Processing ~p transition", [NewValue]),
-
-    process_spawn_mana(NewValue),
 
     Objs = ets:tab2list(obj),
 
     F = fun(Obj) ->
-            apply_transition(NewTimeOfDay#world.value, Obj)
+            apply_transition(night, Obj)
+        end,
+
+    lists:foreach(F, Objs);
+process_transition(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
+    %Transition from night to day 
+    NewTimeOfDay = #world {attr = timeofday,
+                           value = day},
+    db:write(NewTimeOfDay),
+    
+    Objs = ets:tab2list(obj),
+
+    F = fun(Obj) ->
+            apply_transition(day, Obj)
         end,
 
     lists:foreach(F, Objs);
@@ -307,7 +317,7 @@ apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when
     obj:update(Id, <<"hp">>, Hp * 10),
 
     %Increase vision x 10
-    NewObj = Obj#obj {vision = erlang:trunc(Vision * 10)},
+    NewObj = Obj#obj {vision = erlang:trunc(Vision * 5)},
     db:write(NewObj);
 apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
     %Check if night undead is applied 
@@ -321,7 +331,7 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
             obj:update(Id, <<"hp">>, Hp / 10),
 
             %Decrease vision / 10
-            NewObj = Obj#obj {vision = erlang:trunc(Vision / 10)},
+            NewObj = Obj#obj {vision = erlang:trunc(Vision / 5)},
             db:write(NewObj);
         false ->
             nothing

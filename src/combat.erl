@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([do_action/1, attack/3, guard/1, dodge/1]).
+-export([do_action/1, attack/3, defend/2]).
 -export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
 
 -compile(export_all).
@@ -33,11 +33,8 @@ do_action(Action) ->
 attack(AttackType, SourceId, TargetId) ->
     gen_server:cast({global, combat}, {attack, AttackType, SourceId, TargetId}).
 
-guard(SourceId) ->
-    gen_server:cast({global, combat}, {guard, SourceId}).
-
-dodge(SourceId) ->
-    gen_server:cast({global, combat}, {dodge, SourceId}).
+defend(DefendType, SourceId) ->
+    gen_server:cast({global, combat}, {defend, DefendType, SourceId}).
 
 %% ====================================================================
 %% Server functions
@@ -62,14 +59,9 @@ handle_cast({attack, AttackType, SourceId, TargetId}, Data) ->
 
     {noreply, Data};
 
-handle_cast({guard, SourceId}, Data) ->
-    lager:info("Guard ~p", [SourceId]),
-    set_guard(SourceId),
-    {noreply, Data};
-
-handle_cast({dodge, SourceId}, Data) ->
-    lager:info("dodge ~p", [SourceId]),
-    set_dodge(SourceId),
+handle_cast({defend, DefendType, SourceId}, Data) ->
+    lager:info("Defend ~p ~p", [DefendType, SourceId]),
+    set_defend(DefendType, SourceId),
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -112,31 +104,21 @@ set_attack(true, AttackType, SourceObj, TargetObj) ->
                       data = {AttackType, TargetObj#obj.id}},
     db:write(Action).
 
-set_guard(SourceId) ->
+set_defend(DefendType, SourceId) ->
     Action = #action {source_id = SourceId,
-                      type = guard,
-                      data = none},
-    db:write(Action).
-
-set_dodge(SourceId) ->
-    [SourceObj] = db:read(obj, SourceId),
-
-    Action = #action {source_id = SourceId,
-                      type = dodge,
-                      data = none},
+                      type = defend,
+                      data = DefendType},
     db:write(Action),
 
-    %Add Dodging effect
-    obj:add_effect(SourceObj#obj.id, <<"dodging">>, none).
+    %Add Defend effect
+    obj:add_effect(SourceId, DefendType, none).
 
 process_action(Action) ->
     case Action#action.type of
         attack ->
             process_attack(Action);
-        guard ->
-            process_guard(Action);
-        dodge ->
-            process_dodge(Action);
+        defend ->
+            process_defend(Action);
         _ ->
             lager:info("Unknown action type: ~p", [Action#action.type]) 
     end.
@@ -154,21 +136,16 @@ process_attack(Action) ->
              is_visible(SourceObj, TargetObj) andalso
              is_adjacent(SourceObj, TargetObj) andalso
              is_target_alive(TargetObj) andalso
-             is_targetable(TargetObj) andalso
-             (not is_attack_dodged(TargetObj)),
+             is_targetable(TargetObj),
     
     process_dmg(Result, AttackType, SourceObj, TargetObj).
 
-process_guard(Action) ->
-    lager:info("Process guard"),
+process_defend(Action) ->
+    lager:info("Process Defend"),
     SourceId = Action#action.source_id,
-    add_stamina(SourceId, 25).    
+    DefendType = Action#action.data,
 
-process_dodge(Action) ->
-    lager:info("Process dodge"),
-    SourceId = Action#action.source_id,
-
-    obj:remove_effect(SourceId, <<"dodging">>).
+    obj:remove_effect(SourceId, DefendType).
 
 get_obj([]) ->
     false;
@@ -218,7 +195,7 @@ is_attack_dodged(#obj {id = Id}) ->
     lager:info("IsDodge: ~p", [Result]),
     Result.
                                
-broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName) ->
+broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) ->
     %Convert id here as message is being built
     Message = #{<<"packet">> => <<"dmg">>,
                 <<"sourceid">> => util:bin_to_hex(SourceId),
@@ -226,7 +203,8 @@ broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName) ->
                 <<"attacktype">> => AttackType,
                 <<"dmg">> => Dmg,
                 <<"state">> => State,
-                <<"combo">> => ComboName},
+                <<"combo">> => ComboName,
+                <<"countered">> => Countered},
 
     [SourceObj] = db:read(obj, SourceId),
     [TargetObj] = db:read(obj, TargetId),
@@ -271,20 +249,32 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     BaseDef = maps:get(<<"base_def">>, DefUnit),
     DefHp = maps:get(<<"hp">>, DefUnit),
 
+    HasDefend = has_defend(DefId),
+
     %Check for combos
     {ComboName, ComboDmg} = check_combos(AttackType, AtkId, AtkObj#obj.subclass),
 
+    %Check if combo is countered
+    {Countered, FinalComboDmg} = check_countered(AttackType, HasDefend, ComboDmg),
+
+    %Remove Defend effect
+    remove_defend(Countered, DefId, HasDefend),
+
     %Add item stats
-    TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)) * ComboDmg,
+    TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)) * FinalComboDmg,
     TotalArmor = BaseDef + get_items_value(<<"armor">>, DefItems),
 
-    %Random roll and armor reduction
+    %Random roll
     RandomDmg = rand:uniform(DmgRange) + TotalDmg,
     DmgRoll = RandomDmg + TotalDmg,
+
+    %Apply armor and defend action reductions
     ArmorReduction = TotalArmor / (TotalArmor + 50),
+    DmgReducedArmor = round(DmgRoll * (1 - ArmorReduction)),
+    DmgReduced = defend_type_mod(HasDefend) * DmgReducedArmor,
 
     %Apply attack type modifier
-    Dmg = round(DmgRoll * (1 - ArmorReduction)) * attack_type_mod(AttackType),
+    Dmg = DmgReduced * attack_type_mod(AttackType),
     NewHp = DefHp - Dmg,
 
     %Check for skill increases
@@ -299,8 +289,8 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     UnitState = is_unit_dead(NewHp),
 
     %Broadcast damage
-    lager:debug("Broadcasting dmg: ~p newHp: ~p", [Dmg, NewHp]),
-    broadcast_dmg(AtkId, DefId, AttackType, Dmg, UnitState, ComboName),
+    lager:info("Broadcasting countered: ~p ~p ~p", [Countered, HasDefend, countered(Countered, HasDefend)]),
+    broadcast_dmg(AtkId, DefId, AttackType, Dmg, UnitState, ComboName, countered(Countered, HasDefend)),
 
     %Check if unit is dead 
     case UnitState of
@@ -342,13 +332,18 @@ set_combat_state(#obj{id = Id}) ->
 is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
 is_state_not(_NotExpectedState, _State) -> true.
 
-attack_type_mod(<<"quick">>) -> 0.5;
-attack_type_mod(<<"precise">>) -> 1;
-attack_type_mod(<<"fierce">>) -> 1.5.
+attack_type_mod(?QUICK) -> 0.5;
+attack_type_mod(?PRECISE) -> 1;
+attack_type_mod(?FIERCE) -> 1.5.
 
-attack_type_cost(<<"quick">>) -> 5;
-attack_type_cost(<<"precise">>) -> 10;
-attack_type_cost(<<"fierce">>) -> 20.
+attack_type_cost(?QUICK) -> 5;
+attack_type_cost(?PRECISE) -> 10;
+attack_type_cost(?FIERCE) -> 20.
+
+defend_type_mod(?DODGE) -> 0.60;
+defend_type_mod(?PARRY) -> 0.70;
+defend_type_mod(?BRACE) -> 0.80;
+defend_type_mod(_) -> 1.
 
 stamina_cost({attack, AttackType}) -> attack_type_cost(AttackType);
 stamina_cost(dodge) -> 25;
@@ -370,8 +365,7 @@ add_stamina(SourceId, Value) ->
     obj:update(SourceId, 'stamina', Stamina + Value).
 
 num_ticks({attack, _AttackType}) -> ?TICKS_SEC * 5;
-num_ticks(guard) -> ?TICKS_SEC * 30;
-num_ticks(dodge) -> ?TICKS_SEC * 20. 
+num_ticks({defend, _DefendType}) -> ?TICKS_SEC * 15.
 
 get_items_value(_, []) ->
     0;
@@ -382,9 +376,9 @@ get_items_value(Attr, Items) ->
 
     lists:foldl(F, 0, Items).
 
-to_str(<<"quick">>) -> "q";
-to_str(<<"precise">>) -> "p";
-to_str(<<"fierce">>) -> "f".
+to_str(?QUICK) -> "q";
+to_str(?PRECISE) -> "p";
+to_str(?FIERCE) -> "f".
 
 check_combos(AttackType, ObjId, ObjSubclass) ->
     case db:dirty_read(combat, ObjId) of
@@ -427,6 +421,11 @@ combos(_) ->
      {"qpf", <<"Rupture Strike">>, 2},
      {"qpqf", <<"Nightmare Strike">>, 3}].
 
+check_countered(?QUICK, ?DODGE, ComboDmg) when ComboDmg > 0 -> {true, 0};
+check_countered(?PRECISE, ?PARRY, ComboDmg) when ComboDmg > 0 -> {true, 0}; 
+check_countered(?FIERCE, ?BRACE, ComboDmg) when ComboDmg > 0 -> {true, 0};
+check_countered(_, _, ComboDmg) -> {false, ComboDmg}.
+
 skill_gain_combo(_AtkId, none) -> nothing;
 skill_gain_combo(AtkId, ComboName) ->
     skill:update(AtkId, ComboName, 1).
@@ -442,3 +441,23 @@ skill_gain_atk(AtkId, Weapons, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (Dmg
 
     lists:foreach(F, Weapons);
 skill_gain_atk(_AtkId, _Weapons, _RandomDmg, _DmgRange, _Dmg) -> nothing.
+
+has_defend(DefId) ->
+    DefendList = [{obj:has_effect(DefId, ?DODGE), ?DODGE},
+                  {obj:has_effect(DefId, ?PARRY), ?PARRY},
+                  {obj:has_effect(DefId, ?BRACE), ?BRACE}],
+    
+    F = fun({true, DefendType}, _Acc) -> DefendType;
+           ({false, _}, Acc) -> Acc
+        end,
+    
+    lists:foldl(F, false, DefendList).
+
+countered(true, DefendType) -> DefendType;
+countered(false, _) -> none.
+
+remove_defend(true, DefId, DefendType) -> obj:remove_effect(DefId, DefendType);
+remove_defend(false, _, _) -> nothing.
+
+
+
