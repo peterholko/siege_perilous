@@ -48,6 +48,9 @@ var hexSize = 72;
 var stageWidth = 1280;
 var stageHeight = 800;
 
+var hover;
+var clicked;
+
 var infoPanelBg = new Image();
 var dialogPanelBg = new Image();
 var smallDialogPanelBg = new Image();
@@ -76,7 +79,15 @@ var detailsActive = new Image();
 var detailsRest = new Image();
 var detailsRoll = new Image();
 
-var guard = new Image();
+var quick = new Image();
+var precise = new Image();
+var fierce = new Image();
+var attack_hover = new Image();
+var attack_clicked = new Image();
+
+var dodge = new Image();
+var parry = new Image();
+var brace = new Image();
 
 var buttonRestImg = new Image();
 var buttonHoverImg = new Image();
@@ -89,7 +100,6 @@ var btnCraftRestImg = new Image();
 var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
 var btnEquipRestImg = new Image();
-
 
 var gravestone = new Image();
 
@@ -148,7 +158,15 @@ detailsActive.src = "/static/art/ab_details_active.png";
 detailsRest.src = "/static/art/ab_details_rest.png";
 detailsRoll.src = "/static/art/ab_details_roll.png";
 
-guard.src = "/static/art/guard.png"; 
+quick.src = "/static/art/quick_rest.png"; 
+precise.src = "/static/art/precise_rest.png"; 
+fierce.src = "/static/art/fierce_rest.png"; 
+attack_hover.src = "/static/art/attack_hover.png"; 
+attack_clicked.src = "/static/art/attack_clicked.png"; 
+
+dodge.src = "/static/art/dodge_rest.png"; 
+parry.src = "/static/art/parry_rest.png"; 
+brace.src = "/static/art/brace_rest.png"; 
 
 btnBuildRestImg.src = "/static/art/ButtonBuildRest.png";
 btnBuildClickedImg.src = "/static/art/ButtonBuildClicked.png";
@@ -177,6 +195,7 @@ function init() {
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
     stage.snapToPixelEnabled = true;
+    stage.enableMouseOver(10);
 
     map = new createjs.Container();
     map.x = $("#map").width() / 2;
@@ -1875,8 +1894,8 @@ function initUI() {
     var detailsButton = new createjs.Container();
     var gatherButton = new createjs.Container();
     var buildButton = new createjs.Container();
-    var weakButton = new createjs.Container();
-    var basicButton = new createjs.Container();
+    var quickButton = new createjs.Container();
+    var preciseButton = new createjs.Container();
     var fierceButton = new createjs.Container();
     var dodgeButton = new createjs.Container();
     var parryButton = new createjs.Container();
@@ -1900,35 +1919,35 @@ function initUI() {
     buildButton.mouseChildren = false;
     buildButton.addChild(new createjs.Bitmap(buildRest));
  
-    weakButton.x = 286;
-    weakButton.y = 96;
-    weakButton.mouseChildren = false;
-    weakButton.addChild(new createjs.Bitmap(attackRest));
+    quickButton.x = 284;
+    quickButton.y = 94;
+    quickButton.mouseChildren = false;
+    quickButton.addChild(new createjs.Bitmap(quick));
 
-    basicButton.x = 342;
-    basicButton.y = 96;
-    basicButton.mouseChildren = false;
-    basicButton.addChild(new createjs.Bitmap(attackRest));
+    preciseButton.x = 340;
+    preciseButton.y = 94;
+    preciseButton.mouseChildren = false;
+    preciseButton.addChild(new createjs.Bitmap(precise));
 
-    fierceButton.x = 398;
-    fierceButton.y = 96;
+    fierceButton.x = 396;
+    fierceButton.y = 94;
     fierceButton.mouseChildren = false;
-    fierceButton.addChild(new createjs.Bitmap(attackRest));
+    fierceButton.addChild(new createjs.Bitmap(fierce));
 
-    dodgeButton.x = 286;
-    dodgeButton.y = 150;
+    dodgeButton.x = 284;
+    dodgeButton.y = 148;
     dodgeButton.mouseChildren = false;
-    dodgeButton.addChild(new createjs.Bitmap(guard));
+    dodgeButton.addChild(new createjs.Bitmap(dodge));
 
-    parryButton.x = 342; 
-    parryButton.y = 150;
+    parryButton.x = 340; 
+    parryButton.y = 148;
     parryButton.mouseChildren = false;
-    parryButton.addChild(new createjs.Bitmap(guard));
+    parryButton.addChild(new createjs.Bitmap(parry));
 
-    braceButton.x = 398; 
-    braceButton.y = 150;
+    braceButton.x = 396; 
+    braceButton.y = 148;
     braceButton.mouseChildren = false;
-    braceButton.addChild(new createjs.Bitmap(guard));
+    braceButton.addChild(new createjs.Bitmap(brace));
 
     detailsButton.on("mouseover", function(evt) {
         this.removeAllChildren();
@@ -1959,22 +1978,55 @@ function initUI() {
     //    this.addChild(new createjs.Bitmap(attackRoll));
     //});
 
-    weakButton.on("mousedown", function(evt) {
-        if(selectedPortrait != false) {           
+    quickButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {       
+            clicked = new createjs.Bitmap(attack_clicked);
+            this.addChild(clicked);
+
             sendAttack("quick");
         }
     });
 
-    basicButton.on("mousedown", function(evt) {
+    quickButton.on("rollover", function(evt) {        
+        hover = new createjs.Bitmap(attack_hover);
+        hover.y = -1;
+        this.addChild(hover);
+    });
+
+    quickButton.on("rollout", function(evt) {
+        this.removeChild(hover);
+    });
+
+    preciseButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
             sendAttack("precise");
         }
+    });
+
+    preciseButton.on("rollover", function(evt) {        
+        hover = new createjs.Bitmap(attack_hover);
+        hover.y = -1;
+        this.addChild(hover);
+    });
+
+    preciseButton.on("rollout", function(evt) {
+        this.removeChild(hover);
     });
 
     fierceButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {           
             sendAttack("fierce");
         }
+    });
+
+    fierceButton.on("rollover", function(evt) {        
+        hover = new createjs.Bitmap(attack_hover);
+        hover.y = -1;
+        this.addChild(hover);
+    });
+
+    fierceButton.on("rollout", function(evt) {
+        this.removeChild(hover);
     });
 
     dodgeButton.on("mousedown", function(evt) {
@@ -1999,8 +2051,8 @@ function initUI() {
     actionBar.addChild(detailsButton);
     actionBar.addChild(gatherButton);
     actionBar.addChild(buildButton);
-    actionBar.addChild(weakButton);
-    actionBar.addChild(basicButton);
+    actionBar.addChild(quickButton);
+    actionBar.addChild(preciseButton);
     actionBar.addChild(fierceButton);
     actionBar.addChild(dodgeButton);
     actionBar.addChild(parryButton);

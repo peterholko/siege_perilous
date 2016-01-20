@@ -3,8 +3,16 @@
 %% Description: Handles messages from client
 -module(message).
 
+-export([send_to_process/3]).
 -export([decode/1, prepare/2]).
 -export([to_hex/1]).
+
+send_to_process(Process, MessageType, Message) when is_pid(Process) ->
+    lager:debug("Sending ~p to ~p", [Message, Process]),
+    Process ! {MessageType, Message};
+
+send_to_process(_, _, _) ->
+    none.
 
 decode(Message) ->
     lager:info("Message: ~p~n", [Message]),
@@ -327,6 +335,10 @@ prepare(map, Message) ->
 prepare(new_items, Message) ->
     [{<<"packet">>, <<"new_items">>},
      {<<"items">>, to_hex(Message)}]; 
+
+prepare(stats, Message) ->
+    [{<<"packet">>, <<"stats">>},
+     {<<"stats">>, Message}]; 
 
 prepare(event_complete, {Event, Id}) ->
     player:set_event_lock(Id, false),

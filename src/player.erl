@@ -53,9 +53,9 @@ get_info_unit(Id) ->
     [Unit] = db:read(obj, Id),
     case Unit#obj.player =:= get(player_id) of
         true -> 
-            obj:get_stats(Id);
+            obj:get_info(Id);
         false ->
-            obj:get_info(Id)
+            obj:get_info_other(Id)
     end.
 
 get_info_item(Item) ->

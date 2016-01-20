@@ -108,7 +108,7 @@ do_event(action, EventData, PlayerPid) ->
     case db:read(action, Id) of
         [Action] ->
             combat:do_action(Action),
-            send_to_process(PlayerPid, event_complete, {Action#action.type, Id});
+            message:send_to_process(PlayerPid, event_complete, {Action#action.type, Id});
         _ ->
             nothing
     end,
@@ -127,7 +127,7 @@ do_event(move_obj, EventData, PlayerPid) ->
             nothing
     end,
     
-    send_to_process(PlayerPid, event_complete, {move_obj, Id}),
+    message:send_to_process(PlayerPid, event_complete, {move_obj, Id}),
 
     true;
 
@@ -153,10 +153,10 @@ do_event(harvest, EventData, PlayerPid) ->
             end,
          
             lager:debug("Sending new items to player"),
-            send_update_items(ObjId, NewItems, PlayerPid),
-            send_to_process(PlayerPid, event_complete, {harvest, ObjId});
+            game:send_update_items(ObjId, NewItems, PlayerPid),
+            message:send_to_process(PlayerPid, event_complete, {harvest, ObjId});
         false ->
-            send_to_process(PlayerPid, event_failure, {harvest, invalid_resource})
+            message:send_to_process(PlayerPid, event_failure, {harvest, invalid_resource})
     end,
 
     false; 
@@ -181,7 +181,7 @@ do_event(process_resource, EventData, PlayerPid) ->
     case structure:has_process_res(StructureId) of
         true ->
             NewItems = structure:process(StructureId),    
-            send_update_items(StructureId, NewItems, PlayerPid),
+            game:send_update_items(StructureId, NewItems, PlayerPid),
             game:add_event(PlayerPid, process_resource, EventData, UnitId, NumTicks);
         false ->
             obj:update_state(UnitId, none)
@@ -196,7 +196,7 @@ do_event(craft, EventData, PlayerPid) ->
     case structure:check_recipe_req(StructureId, Recipe) of
         true ->
             NewItems = structure:craft(StructureId, Recipe),
-            send_update_items(StructureId, NewItems, PlayerPid);
+            game:send_update_items(StructureId, NewItems, PlayerPid);
         false ->
             nothing
     end,
@@ -219,7 +219,7 @@ process_explored([]) ->
 process_explored([Player | Rest]) ->
     [Conn] = db:dirty_read(connection, Player),
     ExploredTiles = map:get_explored(Player, new),
-    send_to_process(Conn#connection.process, map, ExploredTiles),
+    message:send_to_process(Conn#connection.process, map, ExploredTiles),
 
     process_explored(Rest).
 
@@ -261,12 +261,6 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick 
     process_rest_state();
 process_rest(_) -> nothing.
 
-send_to_process(Process, MessageType, Message) when is_pid(Process) ->
-    lager:debug("Sending ~p to ~p", [Message, Process]),
-    Process ! {MessageType, Message};
-
-send_to_process(_, _, _) ->
-    none.
 
 execute_npc(NumTick) when (NumTick rem 10) =:= 0 ->
     npc:replan(?UNDEAD),
@@ -298,16 +292,6 @@ remove(dead, Obj) ->
 remove(_, _Obj) ->
     nothing.
 
-send_update_items(ObjId, NewItems, PlayerPid) ->
-    lager:debug("Send update items: ~p ~p ~p", [ObjId, NewItems]),
-    [Obj] = db:read(obj, ObjId),
-    case obj:is_hero_nearby(Obj, Obj#obj.player) of
-        true ->
-            %Send item perception to player pid
-            send_to_process(PlayerPid, new_items, NewItems);
-        false ->
-            nothing
-    end.
 apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
     %Apply night effect 
     obj:add_effect(Id, <<"night_undead">>, none),
@@ -412,7 +396,10 @@ process_food_upkeep() ->
                     ObjM = obj:get(Unit#obj.id),
                     Hp = maps:get(<<"hp">>, ObjM),
                     NewHp = Hp - 1,
-                    obj:update(Unit#obj.id, <<"hp">>, NewHp);
+                    NewObjM = maps:put(<<"hp">>, NewHp, ObjM),
+
+                    obj:update(Unit#obj.id, <<"hp">>, NewHp),
+                    game:send_update_stats(Player, NewObjM); 
                 [Item | _Rest] ->
 
                     ItemId = maps:get(<<"_id">>, Item),

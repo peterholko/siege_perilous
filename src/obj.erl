@@ -18,8 +18,7 @@
 -export([is_hero_nearby/2, is_monolith_nearby/1]).
 -export([item_transfer/2]).
 
-%% MongoDB functions
--export([get/1, get_stats/1, get_info/1, get_type/1]).
+-export([get/1, get_stats/1, get_info/1, get_info_other/1, get_type/1]).
 -export([update/3]).
 
 init_perception(PlayerId) ->
@@ -181,13 +180,16 @@ item_transfer(_Obj, _Item) -> nothing.
 get(Id) ->
     find_one(<<"_id">>, Id).
 
-%Get stats for player owned units
-get_stats(Id) ->
-    stats(Id).
+get_stats(ObjM) ->
+    stats(ObjM).
 
-%Get info for all other objects
+%Get all stats, items, skills, effects for player owned unit
 get_info(Id) ->
     info(Id).
+
+%Get info for all other objects
+get_info_other(Id) ->
+    info_other(Id).
 
 get_type(TypeName) ->
     find_one_type(<<"name">>, TypeName).
@@ -336,7 +338,20 @@ insert(Type) ->
     Obj = mongo:insert(mdb:get_conn(), <<"obj">>, [NewType]),
     Obj.
 
-stats(Id) ->
+stats(ObjM) ->
+    Stats = maps:new(),
+
+    Id = maps:get(<<"_id">>, ObjM),
+    Hp = maps:get(<<"hp">>, ObjM, 0),
+    Stamina = maps:get(<<"stamina">>, ObjM, 0),
+    Effects = get_effects(Id),
+
+    Stats1 = maps:put(<<"hp">>, Hp, Stats),
+    Stats2 = maps:put(<<"stamina">>, Stamina, Stats1),
+    Stats3 = maps:put(<<"effects">>, Effects, Stats2),
+    Stats3.
+
+info(Id) ->
     %Get Mongo obj
     ObjM = find_one(<<"_id">>, Id),
 
@@ -349,13 +364,13 @@ stats(Id) ->
     Effects = get_effects(Id),
 
     %Build stats
-    Stats1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), ObjM), 
-    Stats2 = maps:put(<<"items">>, Items, Stats1),
-    Stats3 = maps:put(<<"skills">>, Skills, Stats2),
-    Stats4 = maps:put(<<"effects">>, Effects, Stats3),
-    Stats4.
+    Info1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), ObjM), 
+    Info2 = maps:put(<<"items">>, Items, Info1),
+    Info3 = maps:put(<<"skills">>, Skills, Info2),
+    Info4 = maps:put(<<"effects">>, Effects, Info3),
+    Info4.
 
-info(Id) ->
+info_other(Id) ->
     %Get Mongo obj
     ObjM = find_one(<<"_id">>, Id),    
     Name = maps:get(<<"name">>, ObjM),

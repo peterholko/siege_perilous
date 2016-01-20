@@ -17,7 +17,28 @@
 -export([add_event/5, cancel_event/1]).
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
+-export([send_update_items/3, send_update_stats/2]).
 
+
+%% Common functions
+%%
+send_update_items(ObjId, NewItems, PlayerPid) ->
+    lager:debug("Send update items: ~p ~p ~p", [ObjId, NewItems]),
+    [Obj] = db:read(obj, ObjId),
+    case obj:is_hero_nearby(Obj, Obj#obj.player) of
+        true ->
+            %Send item perception to player pid
+            message:send_to_process(PlayerPid, new_items, NewItems);
+        false ->
+            nothing
+    end.
+
+send_update_stats(PlayerId, ObjM) when PlayerId > 1000 ->
+    Stats = obj:get_stats(ObjM),
+    [Conn] = db:read(connection, PlayerId),
+    message:send_to_process(Conn#connection.process, stats, Stats);
+send_update_stats(_, _) -> 
+    nothing.
 
 %%
 %% API Functions
