@@ -25,8 +25,7 @@ var objs = {};
 var localObjs = {};
 var localTiles = [];
 var units = {};
-var battles = [];
-var battleUnits = [];
+var stats = {};
 
 var playerId;
 var playerPos;
@@ -536,20 +535,6 @@ function sendHarvest(sourceid, resource) {
     websocket.send(e);
 };
 
-function sendExitLocal() {
-    var e = '{"cmd": "exit_local", "attr": "val"}';
-    websocket.send(e);
-
-    showDialogPanel();
-    
-    var title = new createjs.Text("Leaving Local Area...", h1Font, textColor);
-    title.x = Math.floor(dialogPanelBg.width / 2);
-    title.y = 20;
-    title.textAlign = "center";
-
-    addChildDialogPanel(title);
-};
-
 function sendInfoObj(id) {
     var info = '{"cmd": "info_obj", "id": "' + id + '"}';
     websocket.send(info);
@@ -592,9 +577,7 @@ function onClose(evt) {
 };  
 
 function onMessage(evt) { 
-    console.log("Before JSON Parse: "+ evt.data);
     var jsonData = JSON.parse(evt.data);
-    console.log("After JSON Parse");
 
     if(jsonData.hasOwnProperty("packet")) {
         
@@ -644,14 +627,15 @@ function onMessage(evt) {
                updateTextLog("You acquired item [" + jsonData.items[i].name + "]x" + jsonData.items[i].quantity);
            }
         }
-        else if(jsonData.packet == "exit_local") {
-            localPanel.visible = false;            
-            dialogPanel.visible = false;
+        else if(jsonData.packet == "stats") {
+            var id = jsonData.stats._id;
+            stats[id] = jsonData;
+
+            drawStats();
+            
         }
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
-
-
         }
         else if(jsonData.packet == "info_obj") {
             drawInfoObj(jsonData);
@@ -1020,6 +1004,10 @@ function drawSelectedPortrait() {
             addImage({id: objName, path: imagePath, x: 0, y: 0, target: content});
         }
     }
+};
+
+function drawStats(id) {
+    
 };
 
 function drawDmg(jsonData) {

@@ -338,7 +338,7 @@ prepare(new_items, Message) ->
 
 prepare(stats, Message) ->
     [{<<"packet">>, <<"stats">>},
-     {<<"stats">>, Message}]; 
+     {<<"stats">>, to_hex(Message)}]; 
 
 prepare(event_complete, {Event, Id}) ->
     player:set_event_lock(Id, false),

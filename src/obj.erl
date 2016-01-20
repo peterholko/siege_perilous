@@ -346,7 +346,8 @@ stats(ObjM) ->
     Stamina = maps:get(<<"stamina">>, ObjM, 0),
     Effects = get_effects(Id),
 
-    Stats1 = maps:put(<<"hp">>, Hp, Stats),
+    Stats0 = maps:put(<<"_id">>, Id, Stats),
+    Stats1 = maps:put(<<"hp">>, Hp, Stats0),
     Stats2 = maps:put(<<"stamina">>, Stamina, Stats1),
     Stats3 = maps:put(<<"effects">>, Effects, Stats2),
     Stats3.
