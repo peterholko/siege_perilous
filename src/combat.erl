@@ -17,6 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([do_action/1, attack/3, defend/2]).
 -export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
+-export([is_adjacent/2, is_target_alive/1, is_targetable/1]).
 
 -compile(export_all).
 
@@ -49,13 +50,11 @@ handle_cast({do_action, Action}, Data) ->
 
 handle_cast({attack, AttackType, SourceId, TargetId}, Data) ->
     lager:info("Attack ~p", [AttackType]), 
-    [SourceObj] = db:read(obj, SourceId),
-    [TargetObj] = db:read(obj, TargetId),
+   
+                                             
 
-    Result = is_state_not(dead, SourceObj#obj.state) andalso
-             is_state_not(dead, TargetObj#obj.state),
 
-    set_attack(Result, AttackType, SourceObj, TargetObj),
+    process_attack(AttackType, SourceId, TargetId),
 
     {noreply, Data};
 
@@ -123,11 +122,11 @@ process_action(Action) ->
             lager:info("Unknown action type: ~p", [Action#action.type]) 
     end.
 
-process_attack(Action) ->
-    lager:info("Process attack"),
-    SourceId = Action#action.source_id,
-    {AttackType, TargetId} = Action#action.data,
+is_valid_attack(SourceObj, TargetObj) >
+    
 
+process_attack(AttackType, SourceId, TargetId) ->
+    lager:info("Process attack"),
     SourceObj = get_obj(db:read(obj, SourceId)), 
     TargetObj = get_obj(db:read(obj, TargetId)),
     
@@ -137,8 +136,15 @@ process_attack(Action) ->
              is_adjacent(SourceObj, TargetObj) andalso
              is_target_alive(TargetObj) andalso
              is_targetable(TargetObj),
-    
-    process_dmg(Result, AttackType, SourceObj, TargetObj).
+   
+    case Result of
+        true ->
+            NumTicks = combat:num_ticks({attack, AttackType}),
+            StaminaCost = combat:stamina_cost({attack, AttackType}),
+                                      
+            combat:sub_stamina(SourceId, combat:stamina_cost({attack, AttackType})),
+ 
+            process_dmg(Result, AttackType, SourceObj, TargetObj).
 
 process_defend(Action) ->
     lager:info("Process Defend"),

@@ -6,7 +6,8 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([init_perception/1, 
+-export([init_perception/1,
+         get_stats/1, 
          get_info_tile/1,
          get_info_unit/1,
          get_info_item/1,
@@ -45,6 +46,19 @@ init_perception(PlayerId) ->
 
     {PlayerId, Explored, Objs}.
 
+get_stats(Id) ->
+    Player = get(player_id),
+    [Obj] = db:read(obj, Id),
+
+    ValidPlayer = is_player_owned(Obj#obj.player, Player),
+
+    case ValidPlayer of
+        true ->
+            obj:get_stats(Id);
+        false ->
+            []
+    end.
+
 get_info_tile(_Pos) ->
     %TODO check if player can see Pos
     lager:info("info_tile").
@@ -63,10 +77,34 @@ get_info_item(Item) ->
     item:get(Item).
 
 attack(AttackType, SourceId, TargetId) ->
-    Result = not is_event_locked(SourceId) andalso
-             combat:has_stamina(SourceId, {attack, AttackType}),
+    [SourceObj] = db:read(obj, SourceId),
+    [TargetObj] = db:read(obj, TargetId),
 
-    add_action(Result, attack, {AttackType, SourceId, TargetId}).
+    Checks = [{not is_event_locked(SourceId), "Action in progress"},
+              {combat:is_adjacent(SourceObj, TargetObj), "Target is not adjacent"},
+              {combat:is_target_alive(TargetObj), "Target is dead"},
+              {combat:is_targetable(TargetObj), "Cannot attack target"},
+              {combat:has_stamina(SourceId, {attack, AttackType}), "Not enough stamina"}],
+
+    case process_checks(Checks) of
+        true ->
+            set_event_lock(SourceId, true),
+
+            NumTicks = combat:num_ticks({attack, AttackType}),
+            StaminaCost = combat:stamina_cost({attack, AttackType}),
+    
+
+            combat:sub_stamina(SourceId, combat:stamina_cost({attack, AttackType})),
+
+            combat:attack(AttackType, SourceId, TargetId),
+
+
+            game:add_event(self(), action, SourceId, SourceId, NumTicks),
+
+
+        {false, Error} ->
+            #{<<"errmsg">> => Error}
+    end.
 
 defend(DefendType, SourceId) ->
     Result = not is_event_locked(SourceId),
@@ -434,11 +472,6 @@ add_action(false, _, _) ->
     none;
 add_action(true, attack, ActionData) -> 
     {AttackType, SourceId, TargetId} = ActionData,
-    set_event_lock(SourceId, true),
-    combat:attack(AttackType, SourceId, TargetId),
-    combat:sub_stamina(SourceId, combat:stamina_cost({attack, AttackType})),
-    NumTicks = combat:num_ticks({attack, AttackType}),
-    game:add_event(self(), action, SourceId, SourceId, NumTicks);
 add_action(true, defend, ActionData) ->
     {DefendType, SourceId} = ActionData,
     set_event_lock(SourceId, true),

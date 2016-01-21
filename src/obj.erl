@@ -180,7 +180,10 @@ item_transfer(_Obj, _Item) -> nothing.
 get(Id) ->
     find_one(<<"_id">>, Id).
 
-get_stats(ObjM) ->
+get_stats(ObjM) when is_map(ObjM) -> 
+    stats(ObjM);
+get_stats(Id) when is_tuple(Id) -> 
+    ObjM = find_one(<<"_id">>, Id),
     stats(ObjM).
 
 %Get all stats, items, skills, effects for player owned unit
@@ -343,14 +346,19 @@ stats(ObjM) ->
 
     Id = maps:get(<<"_id">>, ObjM),
     Hp = maps:get(<<"hp">>, ObjM, 0),
+    BaseHp = maps:get(<<"base_hp">>, ObjM, 0),
     Stamina = maps:get(<<"stamina">>, ObjM, 0),
+    BaseStamina = maps:get(<<"base_stamina">>, ObjM, 0),
+
     Effects = get_effects(Id),
 
     Stats0 = maps:put(<<"_id">>, Id, Stats),
     Stats1 = maps:put(<<"hp">>, Hp, Stats0),
-    Stats2 = maps:put(<<"stamina">>, Stamina, Stats1),
-    Stats3 = maps:put(<<"effects">>, Effects, Stats2),
-    Stats3.
+    Stats2 = maps:put(<<"base_hp">>, BaseHp, Stats1),
+    Stats3 = maps:put(<<"stamina">>, Stamina, Stats2),
+    Stats4 = maps:put(<<"base_stamina">>, BaseStamina, Stats3),
+    Stats5 = maps:put(<<"effects">>, Effects, Stats4),
+    Stats5.
 
 info(Id) ->
     %Get Mongo obj

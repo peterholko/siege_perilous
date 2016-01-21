@@ -34,6 +34,8 @@ var heroPos;
 
 var selectedPortrait = false;
 var selectedUnit = false;
+var hpBar;
+var staminaBar;
 
 var attackToggled = false;
 
@@ -535,6 +537,11 @@ function sendHarvest(sourceid, resource) {
     websocket.send(e);
 };
 
+function sendGetStats(id) {
+    var e = '{"cmd": "get_stats", "id": "' + id + '"}';
+    websocket.send(e);
+};
+
 function sendInfoObj(id) {
     var info = '{"cmd": "info_obj", "id": "' + id + '"}';
     websocket.send(info);
@@ -590,10 +597,11 @@ function onMessage(evt) {
             explored = jsonData.explored;
             objs = jsonData.objs;
 
+
             setPlayerPos();
             clearLocalMap();
             drawLocalMap(jsonData.map);
-            updateLocalObj(jsonData.objs);            
+            updateLocalObj(jsonData.objs);
         }
         else if(jsonData.packet == "perception") {
             updateLocalObj(jsonData.objs);
@@ -631,8 +639,7 @@ function onMessage(evt) {
             var id = jsonData.stats._id;
             stats[id] = jsonData;
 
-            drawStats();
-            
+            drawStats(jsonData.stats);
         }
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
@@ -1002,12 +1009,28 @@ function drawSelectedPortrait() {
             var imagePath =  "/static/art/" + objName + ".png";
 
             addImage({id: objName, path: imagePath, x: 0, y: 0, target: content});
+
+            sendGetStats(selectedPortrait);
         }
     }
 };
 
-function drawStats(id) {
-    
+function drawStats(stats) {
+    var barWidth = 80;
+    var hpRatio = stats.hp / stats.base_hp;
+    var staminaRatio = stats.stamina / stats.base_stamina;
+
+    hpBar.graphics.clear()
+        .setStrokeStyle(10)
+        .beginStroke('#8E0000')
+        .moveTo(333, stageHeight - 150)
+        .lineTo(333 + (hpRatio * barWidth), stageHeight - 150);
+
+    staminaBar.graphics.clear()
+        .setStrokeStyle(10)
+        .beginStroke('#009C0A')
+        .moveTo(333, stageHeight - 135)
+        .lineTo(333 + (staminaRatio * barWidth), stageHeight - 135);
 };
 
 function drawDmg(jsonData) {
@@ -2241,6 +2264,13 @@ function initUI() {
     initTextLog();
 
     stage.addChild(textLog); 
+
+    //HpBar and StaminaBar
+    hpBar = new createjs.Shape();
+    staminaBar = new createjs.Shape();
+
+    stage.addChild(hpBar);
+    stage.addChild(staminaBar);
 };
 
 function showBattlePanel() {

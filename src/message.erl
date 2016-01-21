@@ -267,6 +267,15 @@ message_handle(<<"cancel">>, Message) ->
     jsx:encode([{<<"packet">>, <<"cancel">>},
                 {<<"result">>, Result}]);    
 
+message_handle(<<"get_stats">>, Message) ->
+    lager:info("message: stats"),
+    Id = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(Id),
+    Stats = player:get_stats(BinId),
+    
+    jsx:encode([{<<"packet">>, <<"stats">>},
+                {<<"stats">>, to_hex(Stats)}]);
+
 message_handle(<<"info_tile">>, Message) ->
     lager:info("message: info_tile"),
     Pos = map_get(<<"pos">>, Message),
