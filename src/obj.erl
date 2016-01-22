@@ -62,11 +62,10 @@ move(Id, Pos) ->
     [Obj] = db:read(obj, Id),
 
     NewObj = Obj#obj {pos = Pos,
-                      state = none},
+                      state = moving},
     db:write(NewObj),
 
     %Update wall effect
-    
     IsBehindWall = is_behind_wall(Pos),
     apply_wall(IsBehindWall, NewObj),
 

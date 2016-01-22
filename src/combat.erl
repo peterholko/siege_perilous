@@ -15,11 +15,11 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([do_action/1, attack/3, defend/2]).
+-export([attack/3, defend/2]).
 -export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
 -export([is_adjacent/2, is_target_alive/1, is_targetable/1]).
 
--compile(export_all).
+%-compile(export_all).
 
 %% ====================================================================
 %% External functions
@@ -27,9 +27,6 @@
 
 start() ->
     gen_server:start({global, combat}, combat, [], []).
-
-do_action(Action) ->
-    gen_server:cast({global, combat}, {do_action, Action}).
 
 attack(AttackType, SourceId, TargetId) ->
     gen_server:cast({global, combat}, {attack, AttackType, SourceId, TargetId}).
@@ -44,23 +41,16 @@ defend(DefendType, SourceId) ->
 init([]) ->
     {ok, []}.
 
-handle_cast({do_action, Action}, Data) ->
-    process_action(Action),
-    {noreply, Data};
-
 handle_cast({attack, AttackType, SourceId, TargetId}, Data) ->
-    lager:info("Attack ~p", [AttackType]), 
-   
-                                             
-
-
+    lager:info("Attack ~p ~p ~p", [AttackType, SourceId, TargetId]), 
     process_attack(AttackType, SourceId, TargetId),
 
     {noreply, Data};
 
 handle_cast({defend, DefendType, SourceId}, Data) ->
     lager:info("Defend ~p ~p", [DefendType, SourceId]),
-    set_defend(DefendType, SourceId),
+    process_defend(SourceId, DefendType),
+
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -92,154 +82,18 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-set_attack(false, _, _, _) ->
-    lager:info("set_attack_unit failed");
-set_attack(true, AttackType, SourceObj, TargetObj) ->
-    set_combat_state(SourceObj),
-    set_combat_state(TargetObj),
-
-    Action = #action {source_id = SourceObj#obj.id,
-                      type = attack,
-                      data = {AttackType, TargetObj#obj.id}},
-    db:write(Action).
-
-set_defend(DefendType, SourceId) ->
-    Action = #action {source_id = SourceId,
-                      type = defend,
-                      data = DefendType},
-    db:write(Action),
-
-    %Add Defend effect
-    obj:add_effect(SourceId, DefendType, none).
-
-process_action(Action) ->
-    case Action#action.type of
-        attack ->
-            process_attack(Action);
-        defend ->
-            process_defend(Action);
-        _ ->
-            lager:info("Unknown action type: ~p", [Action#action.type]) 
-    end.
-
-is_valid_attack(SourceObj, TargetObj) >
-    
-
-process_attack(AttackType, SourceId, TargetId) ->
-    lager:info("Process attack"),
-    SourceObj = get_obj(db:read(obj, SourceId)), 
-    TargetObj = get_obj(db:read(obj, TargetId)),
-    
-    Result = is_valid_obj(SourceObj) andalso
-             is_valid_obj(TargetObj) andalso
-             is_visible(SourceObj, TargetObj) andalso
-             is_adjacent(SourceObj, TargetObj) andalso
-             is_target_alive(TargetObj) andalso
-             is_targetable(TargetObj),
-   
-    case Result of
-        true ->
-            NumTicks = combat:num_ticks({attack, AttackType}),
-            StaminaCost = combat:stamina_cost({attack, AttackType}),
-                                      
-            combat:sub_stamina(SourceId, combat:stamina_cost({attack, AttackType})),
- 
-            process_dmg(Result, AttackType, SourceObj, TargetObj).
-
-process_defend(Action) ->
+process_defend(SourceId, DefendType) ->
     lager:info("Process Defend"),
-    SourceId = Action#action.source_id,
-    DefendType = Action#action.data,
 
-    obj:remove_effect(SourceId, DefendType).
+    %Update stamina
+    StaminaCost = stamina_cost(DefendType),
+    sub_stamina(SourceId, StaminaCost),
 
-get_obj([]) ->
-    false;
-get_obj([Obj]) ->
-    Obj.
+    %Add defense effect
+    obj:add_effect(SourceId, DefendType).
 
-is_valid_obj(false) ->
-    lager:info("Invalid obj"),
-    false;
-is_valid_obj(_Obj) ->
-    true.
-
-is_visible(SourceObj, TargetObj) ->
-    perception:is_visible(SourceObj#obj.id, TargetObj#obj.id).
-
-is_adjacent(SourceObj, TargetObj) ->
-    {SX, SY} = SourceObj#obj.pos,
-    TargetPos = TargetObj#obj.pos,
-    Neighbours = map:neighbours(SX, SY), 
-    case lists:member(TargetPos, Neighbours) of
-        true ->
-            true;
-        false ->
-            lager:info("Not adjacent"),
-            false
-    end.
-
-is_targetable(#obj{id = Id}) ->
-    HasWall = obj:has_effect(Id, ?WALL),
-    IsTargetable = not HasWall,
-    lager:info("is_targetable: ~p", [IsTargetable]),
-    IsTargetable.
-
-is_target_alive(#obj {state = State}) when State =:= dead -> 
-    false;
-is_target_alive(_) -> 
-    true.
-
-is_attack_dodged(#obj {id = Id}) ->
-    IsDodging = obj:has_effect(Id, <<"dodging">>),
-    Result = case IsDodging of
-                 true -> 
-                     rand:uniform() =< 0.5;
-                 false ->
-                     false
-             end,
-    lager:info("IsDodge: ~p", [Result]),
-    Result.
-                               
-broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) ->
-    %Convert id here as message is being built
-    Message = #{<<"packet">> => <<"dmg">>,
-                <<"sourceid">> => util:bin_to_hex(SourceId),
-                <<"targetid">> => util:bin_to_hex(TargetId),
-                <<"attacktype">> => AttackType,
-                <<"dmg">> => Dmg,
-                <<"state">> => State,
-                <<"combo">> => ComboName,
-                <<"countered">> => Countered},
-
-    [SourceObj] = db:read(obj, SourceId),
-    [TargetObj] = db:read(obj, TargetId),
-
-    SourcePos = SourceObj#obj.pos,
-    TargetPos = TargetObj#obj.pos,
-
-    perception:broadcast(SourcePos, TargetPos, Message).
-
-broadcast_combo(SourceId, TargetId, Combo) ->
-    Message = #{<<"packet">> => <<"combo">>,
-                <<"sourceid">> => util:bin_to_hex(SourceId),
-                <<"targetid">> => util:bin_to_hex(TargetId),
-                <<"combo">> => Combo},
-
-    [SourceObj] = db:read(obj, SourceId),
-    [TargetObj] = db:read(obj, TargetId),
-
-    SourcePos = SourceObj#obj.pos,
-    TargetPos = TargetObj#obj.pos,
-
-    perception:broadcast(SourcePos, TargetPos, Message).
-
-process_dmg(false, _, AtkObj, _) ->
-    db:delete(action, AtkObj#obj.id),
-    lager:info("Invalid attack");      
-process_dmg(true, AttackType, AtkObj, DefObj) ->
-    AtkId = AtkObj#obj.id,
-    DefId = DefObj#obj.id,
+process_attack(AttackType, AtkId, DefId) ->
+    [AtkObj] = db:read(obj, AtkId),
 
     AtkUnit = obj:get(AtkId),
     DefUnit = obj:get(DefId),
@@ -249,7 +103,6 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
 
     AtkWeapons = item:get_equiped_weapon(AtkId),
 
-    AtkStamina = maps:get(<<"stamina">>, AtkUnit),
     BaseDmg = maps:get(<<"base_dmg">>, AtkUnit),
     DmgRange = maps:get(<<"dmg_range">>, AtkUnit),
     BaseDef = maps:get(<<"base_def">>, DefUnit),
@@ -288,8 +141,7 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     skill_gain_atk(AtkId, AtkWeapons, RandomDmg, DmgRange, Dmg),
 
     %Update stamina
-    NewStamina = AtkStamina - attack_type_cost(AttackType),
-    obj:update(AtkObj#obj.id, <<"stamina">>, NewStamina),
+    sub_stamina(AtkObj#obj.id, stamina_cost(AttackType)),
 
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
@@ -310,6 +162,31 @@ process_dmg(true, AttackType, AtkObj, DefObj) ->
     end.
 
 
+is_adjacent(SourceObj, TargetObj) ->
+    {SX, SY} = SourceObj#obj.pos,
+    TargetPos = TargetObj#obj.pos,
+    Neighbours = map:neighbours(SX, SY), 
+    case lists:member(TargetPos, Neighbours) of
+        true ->
+            true;
+        false ->
+            lager:info("Not adjacent"),
+            false
+    end.
+
+is_targetable(#obj{id = Id}) ->
+    HasWall = obj:has_effect(Id, ?WALL),
+    IsTargetable = not HasWall,
+    lager:info("is_targetable: ~p", [IsTargetable]),
+    IsTargetable.
+
+is_target_alive(#obj {state = State}) when State =:= dead -> 
+    false;
+is_target_alive(_) -> 
+    true.
+
+
+
 is_unit_dead(Hp) when Hp =< 0 ->
     <<"dead">>;
 is_unit_dead(_Hp) ->
@@ -327,32 +204,21 @@ process_unit_dead(DefId) ->
     %Remove potential wall effect
     obj:set_wall_effect(NewObj).
 
-set_combat_state(#obj{state = State}) when State =:= combat ->
-    nothing;
-set_combat_state(#obj{id = Id}) ->
-    obj:update_state(Id, combat).
-
-%is_state(ExpectedState, State) when ExpectedState =:= State -> true;
-%is_state(_ExpectdState, _State) -> false.
-
-is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
-is_state_not(_NotExpectedState, _State) -> true.
-
 attack_type_mod(?QUICK) -> 0.5;
 attack_type_mod(?PRECISE) -> 1;
 attack_type_mod(?FIERCE) -> 1.5.
-
-attack_type_cost(?QUICK) -> 5;
-attack_type_cost(?PRECISE) -> 10;
-attack_type_cost(?FIERCE) -> 20.
 
 defend_type_mod(?DODGE) -> 0.60;
 defend_type_mod(?PARRY) -> 0.70;
 defend_type_mod(?BRACE) -> 0.80;
 defend_type_mod(_) -> 1.
 
-stamina_cost({attack, AttackType}) -> attack_type_cost(AttackType);
-stamina_cost(dodge) -> 25;
+stamina_cost(?QUICK) -> 5;
+stamina_cost(?PRECISE) -> 10;
+stamina_cost(?FIERCE) -> 20;
+stamina_cost(?DODGE) -> 10;
+stamina_cost(?PARRY) -> 10;
+stamina_cost(?BRACE) -> 10;
 stamina_cost(_) -> 0.
 
 has_stamina(AtkId, ActionData) ->
@@ -466,4 +332,32 @@ remove_defend(true, DefId, DefendType) -> obj:remove_effect(DefId, DefendType);
 remove_defend(false, _, _) -> nothing.
 
 
+broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) ->
+    %Convert id here as message is being built
+    Message = #{<<"packet">> => <<"dmg">>,
+                <<"sourceid">> => util:bin_to_hex(SourceId),
+                <<"targetid">> => util:bin_to_hex(TargetId),
+                <<"attacktype">> => AttackType,
+                <<"dmg">> => Dmg,
+                <<"state">> => State,
+                <<"combo">> => ComboName,
+                <<"countered">> => Countered},
 
+    [SourceObj] = db:read(obj, SourceId),
+    [TargetObj] = db:read(obj, TargetId),
+
+    SourcePos = SourceObj#obj.pos,
+    TargetPos = TargetObj#obj.pos,
+
+    perception:broadcast(SourcePos, TargetPos, Message).
+
+%set_combat_state(#obj{state = State}) when State =:= combat ->
+%    nothing;
+%set_combat_state(#obj{id = Id}) ->
+%    obj:update_state(Id, combat).
+
+%is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
+%is_state_not(_NotExpectedState, _State) -> true.
+%
+%is_visible(SourceObj, TargetObj) ->
+%    perception:is_visible(SourceObj#obj.id, TargetObj#obj.id).

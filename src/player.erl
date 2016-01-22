@@ -11,7 +11,7 @@
          get_info_tile/1,
          get_info_unit/1,
          get_info_item/1,
-         move_unit/2,
+         move/2,
          attack/3,
          defend/2,
          survey/1,
@@ -77,10 +77,13 @@ get_info_item(Item) ->
     item:get(Item).
 
 attack(AttackType, SourceId, TargetId) ->
+    PlayerId = get(player_id),
     [SourceObj] = db:read(obj, SourceId),
     [TargetObj] = db:read(obj, TargetId),
 
     Checks = [{not is_event_locked(SourceId), "Action in progress"},
+              {is_player_owned(SourceObj#obj.player, PlayerId), "Unit is not owned by player"},
+              {not game:has_pre_events(SourceId), "Unit is busy"},
               {combat:is_adjacent(SourceObj, TargetObj), "Target is not adjacent"},
               {combat:is_target_alive(TargetObj), "Target is dead"},
               {combat:is_targetable(TargetObj), "Cannot attack target"},
@@ -93,45 +96,79 @@ attack(AttackType, SourceId, TargetId) ->
             NumTicks = combat:num_ticks({attack, AttackType}),
             StaminaCost = combat:stamina_cost({attack, AttackType}),
     
-
-            combat:sub_stamina(SourceId, combat:stamina_cost({attack, AttackType})),
-
             combat:attack(AttackType, SourceId, TargetId),
 
+            game:add_event(self(), attack, AttackType, SourceId, NumTicks),
 
-            game:add_event(self(), action, SourceId, SourceId, NumTicks),
-
-
+            #{<<"cooldown">> => NumTicks * ?TICKS_SEC,
+              <<"stamina_cost">> => StaminaCost};
         {false, Error} ->
-            #{<<"errmsg">> => Error}
+            #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
 defend(DefendType, SourceId) ->
-    Result = not is_event_locked(SourceId),
-    add_action(Result, defend, {DefendType, SourceId}).
+    PlayerId = get(player_id),
+    [Obj] = db:read(obj, SourceId),
 
-move_unit(UnitId, Pos) ->
-    Player = get(player_id),
-    [Unit] = db:read(obj, UnitId),
-    NumTicks = obj:movement_cost(Unit, Pos),
+    Checks = [{not is_event_locked(SourceId), "Action in progress"},
+              {is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {not game:has_pre_events(SourceId), "Unit is busy"},
+              {combat:has_stamina(SourceId, {defend, DefendType}), "Not enough stamina"}],
 
-    ValidState = Unit#obj.state =/= dead, 
-    ValidClass = Unit#obj.class =:= unit,
-    ValidAdjacent = map:is_adjacent(Unit#obj.pos, Pos),
-    ValidPassable = map:is_passable(Pos),
-    ValidPos = obj:is_empty(Pos),
-    NearbyHero = obj:is_hero_nearby(Unit, Player),
+    case process_checks(Checks) of
+        true ->             
+            set_event_lock(SourceId, true),
 
-    lager:info([{player, Player}], "move_unit validation: ~p ~p ~p ~p", [ValidClass, ValidAdjacent, ValidPos, NearbyHero]),   
- 
-    Result = ValidState andalso
-             ValidClass andalso 
-             ValidAdjacent andalso
-             ValidPassable andalso
-             ValidPos andalso
-             NearbyHero,
+            NumTicks = combat:num_ticks({defend, DefendType}),
+            StaminaCost = combat:stamina_cost({defend, DefendType}),
+            
+            combat:defend(DefendType, SourceId),
+
+            EventData = {SourceId, DefendType},
+
+            game:add_event(self(), defend, EventData, SourceId, NumTicks),
+
+            #{<<"cooldown">> => NumTicks * ?TICKS_SEC,
+              <<"stamina_cost">> => StaminaCost};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+move(SourceId, Pos) ->
+    PlayerId = get(player_id),
+    [Obj] = db:read(obj, SourceId),
+    NumTicks = obj:movement_cost(Obj, Pos),
+
+    Checks = [{not is_event_locked(SourceId), "Action in progress"},              
+              {is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {not game:has_pre_events(SourceId), "Unit is busy"},
+              {Obj#obj.class =:= unit, "Object cannot move"},              
+              {map:is_adjacent(Obj#obj.pos, Pos), "Unit is not adjacent to position"},
+              {map:is_passable(Pos), "Tile is not passable"},
+              {obj:is_empty(Pos), "Position is occupied"},
+              {obj:is_hero_nearby(Obj, PlayerId), "Unit not near Hero"}],
+              
+    case process_checks(Checks) of
+        true ->
+            game:cancel_event(SourceId),
+
+            %Move obj
+            obj:move(SourceId, Pos),
     
-    add_move_unit(Result, {Unit, Pos}, NumTicks).
+            %Create event data
+            EventData = {PlayerId,
+                         SourceId,
+                         Pos},
+
+            game:add_event(self(), move, EventData, SourceId, NumTicks),
+
+            %Trigger perception update due to move
+            game:trigger_perception(),
+
+            #{<<"move_time">> => NumTicks * ?TICKS_SEC};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
 
 survey(ObjId) ->
     lager:info("Survey: ~p", [ObjId]),
@@ -466,37 +503,6 @@ add_craft(true, StructureId, UnitId, Recipe, NumTicks) ->
 
     obj:update_state(UnitId, crafting),
     game:add_event(self(), craft, EventData, UnitId, NumTicks).
-
-add_action(false, _, _) ->
-    lager:info("Action failed"),
-    none;
-add_action(true, attack, ActionData) -> 
-    {AttackType, SourceId, TargetId} = ActionData,
-add_action(true, defend, ActionData) ->
-    {DefendType, SourceId} = ActionData,
-    set_event_lock(SourceId, true),
-    combat:defend(DefendType, SourceId),
-    combat:sub_stamina(SourceId, combat:stamina_cost({defend, DefendType})),
-    NumTicks = combat:num_ticks({defend, DefendType}),
-    game:add_event(self(), action, SourceId, SourceId, NumTicks).
-
-add_move_unit(true, {Unit, NewPos}, NumTicks) ->
-    %Cancel any events associated with previous state
-    game:cancel_event(Unit#obj.id),
-
-    %Update unit state
-    obj:update_state(Unit#obj.id, moving),
-    
-    %Create event data
-    EventData = {Unit#obj.player,
-                 Unit#obj.id,
-                 NewPos},
-
-    game:add_event(self(), move_obj, EventData, Unit#obj.id, NumTicks);
-
-add_move_unit(false, _, _) ->
-    lager:info("Move unit failed"),
-    none.
 
 add_equip({false, Error}, _Data) ->
     lager:info("Equip failed error: ~p", [Error]);

@@ -231,7 +231,7 @@ move_unit(#obj {id = Id, player = Player}, NewPos) ->
                  Id,
                  NewPos},
 
-    game:add_event(self(), move_obj, EventData, Id, NumTicks).
+    game:add_event(self(), move, EventData, Id, NumTicks).
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
     EnemyUnit;

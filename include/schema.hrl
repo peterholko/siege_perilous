@@ -35,11 +35,12 @@
                        new_tiles}).
 
 -record(event, {id, 
-                player_process,
+                pid,
                 type,
                 data,
                 source = none,
-                tick}).
+                tick,
+                class}).
 
 -record(perception, {entity,
                      data}).

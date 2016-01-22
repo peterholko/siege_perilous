@@ -138,4 +138,4 @@ add_move_unit(Obj, NewPos) ->
 
     NumTicks = 30,
 
-    game:add_event(self(), move_obj, EventData, Obj#obj.id, NumTicks).
+    game:add_event(self(), move, EventData, Obj#obj.id, NumTicks).

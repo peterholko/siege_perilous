@@ -93,7 +93,7 @@ check_events([], Recalc) ->
 check_events([Event | Rest], PrevRecalc) ->
     Recalc  = do_event(Event#event.type,
                        Event#event.data,
-                       Event#event.player_process),
+                       Event#event.pid),
 
     NewRecalc = Recalc or PrevRecalc,
     
@@ -101,35 +101,29 @@ check_events([Event | Rest], PrevRecalc) ->
 
     check_events(Rest, NewRecalc).
 
-do_event(action, EventData, PlayerPid) ->
+do_event(attack, EventData, PlayerPid) ->
     lager:debug("Processing action event: ~p", [EventData]),
-    Id = EventData,
-
-    case db:read(action, Id) of
-        [Action] ->
-            combat:do_action(Action),
-            message:send_to_process(PlayerPid, event_complete, {Action#action.type, Id});
-        _ ->
-            nothing
-    end,
-
+    message:send_to_process(PlayerPid, event_complete, {attack, EventData}),
     false;
 
-do_event(move_obj, EventData, PlayerPid) ->
-    lager:debug("Processing move_obj event: ~p", [EventData]),
-
-    {_Player, Id, NewPos} = EventData,
-
-    case obj:is_empty(NewPos) of
-        true ->
-            obj:move(Id, NewPos);
-        false ->
-            nothing
-    end,
+do_event(defend, EventData, PlayerPid) ->
+    lager:debug("Processing defend event: ~p", [EventData]),
     
-    message:send_to_process(PlayerPid, event_complete, {move_obj, Id}),
+    {ObjId, DefendType} = EventData,
 
-    true;
+    obj:remove_effect(ObjId, DefendType),
+
+    message:send_to_process(PlayerPid, event_complete, {defend, EventData}),
+    false;
+
+do_event(move, EventData, PlayerPid) ->
+    lager:debug("Processing move_obj event: ~p", [EventData]),
+    {_Player, Id, _NewPos} = EventData,
+
+    obj:update_state(Id, none),
+
+    message:send_to_process(PlayerPid, event_complete, {move, Id}),
+    false;
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:debug("Processing harvest event: ~p", [EventData]),

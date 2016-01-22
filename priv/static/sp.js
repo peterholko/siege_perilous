@@ -670,6 +670,11 @@ function onMessage(evt) {
         else if(jsonData.packet == "finish_build") {
             drawProgressBar(jsonData);
         }
+        else if(jsonData.packet == "move") {
+            if(jsonData.hasOwnProperty("errmsg")) {
+                updateTextLog(jsonData.errmsg);
+            } 
+        }
     }
 
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
@@ -880,7 +885,7 @@ function drawLocalObj() {
                         c_x = 640 - 36 - pixel.x;
                         c_y = 400 - 36 - pixel.y;             
                         console.log("x: " + localMapCont.x + " y: " + localMapCont.y + " - " + "c_x: " + c_x + " c_y: " + c_y);
-                        createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.linear);
+                        createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 1000, createjs.Ease.linear);
                     }
                 }
             }

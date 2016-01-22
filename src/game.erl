@@ -14,7 +14,7 @@
 %%
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([add_event/5, cancel_event/1]).
+-export([add_event/5, has_pre_events/1, cancel_event/1]).
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
 -export([send_update_items/3, send_update_stats/2]).
@@ -47,17 +47,27 @@ send_update_stats(_, _) ->
 start() ->
     gen_server:start({global, game_pid}, game, [], []).
 
-add_event(PlayerProcess, EventType, EventData, EventSource, EventTick) ->
+add_event(Process, EventType, EventData, EventSource, EventTick) ->
     [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
 
     Event = #event { id = counter:increment(event),
-                     player_process = PlayerProcess,
+                     pid = Process,
                      type = EventType,
                      data = EventData,
                      source = EventSource,
-                     tick = CurrentTick + EventTick},
+                     tick = CurrentTick + EventTick,
+                     class = event_class(EventType)},
 
     db:write(Event).
+
+has_pre_events(EventSource) ->
+    Events = db:index_read(event, EventSource, #event.source),
+    
+    F = fun(Event) ->
+            Event#event.class =:= pre
+        end,
+
+    lists:any(F, Events).
 
 cancel_event(EventSource) ->
     case db:index_read(event, EventSource, #event.source) of
@@ -156,3 +166,9 @@ code_change(_OldVsn, Data, _Extra) ->
 %%
 %% Local Functions
 %%
+
+event_class(attack) -> pre;
+event_class(defend) -> pre;
+event_class(move) -> pre;
+event_class(_) -> post.
+

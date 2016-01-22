@@ -54,16 +54,6 @@ message_handle(<<"login">>, Message) ->
                           {<<"objs">>, convert_id(Objs, [])}],
             jsx:encode(Perception)
     end;
-message_handle(<<"move">>, Message) ->
-    lager:info("message: move"),
-
-    HexId = map_get(<<"id">>, Message),
-    BinId = util:hex_to_bin(HexId),
-    
-    X = map_get(<<"x">>, Message),
-    Y = map_get(<<"y">>, Message),
-    Result = player:move_obj(BinId, {X, Y}),
-    <<"Move added">>;
 
 message_handle(<<"move_unit">>, Message) ->
     lager:info("message: move_unit"),
@@ -72,8 +62,11 @@ message_handle(<<"move_unit">>, Message) ->
     
     X = map_get(<<"x">>, Message),
     Y = map_get(<<"y">>, Message),
-    Result = player:move_unit(BinId, {X, Y}),
-    <<"Move unit added">>;
+
+    Return = player:move(BinId, {X, Y}),
+
+    FinalReturn = maps:put(<<"packet">>, <<"move">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"attack">>, Message) ->
     lager:info("message: attack"),
@@ -85,10 +78,10 @@ message_handle(<<"attack">>, Message) ->
     SourceBinId = util:hex_to_bin(SourceId), 
     TargetBinId = util:hex_to_bin(TargetId), 
 
-    player:attack(AttackType, SourceBinId, TargetBinId),
+    Return = player:attack(AttackType, SourceBinId, TargetBinId),
 
-    jsx:encode([{<<"packet">>, <<"attack">>},
-                {<<"result">>, <<"Attack added">>}]);
+    FinalReturn = maps:put(<<"packet">>, <<"attack">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"defend">>, Message) ->
     lager:info("message: defend"),
@@ -96,10 +89,10 @@ message_handle(<<"defend">>, Message) ->
     SourceId = map_get(<<"sourceid">>, Message),
 
     SourceBinId = util:hex_to_bin(SourceId), 
-    player:defend(DefendType, SourceBinId),
+    Return = player:defend(DefendType, SourceBinId),
 
-    jsx:encode([{<<"packet">>, <<"Defend">>},
-                {<<"result">>, <<"Defend added">>}]);
+    FinalReturn = maps:put(<<"packet">>, <<"defend">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"survey">>, Message) ->
     lager:info("message: survey"),

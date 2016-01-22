@@ -624,6 +624,11 @@ tile_name(38) -> ?MOUNTAIN;
 tile_name(39) -> ?VOLCANO.
 
 mc(?MOUNTAIN) -> 5;
+mc(?HILLS_PLAINS) -> 3;
+mc(?HILLS_GRASSLANDS) -> 3;
+mc(?HILLS_SNOW) -> 3;
+mc(?HILLS_DESERT) -> 3;
+mc(?DECIDUOUS_FOREST) -> 3;
 mc(_) -> 1.
 
 passable_tile(?OCEAN) -> false;
