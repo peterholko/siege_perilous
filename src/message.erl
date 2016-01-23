@@ -342,9 +342,13 @@ prepare(stats, Message) ->
     [{<<"packet">>, <<"stats">>},
      {<<"stats">>, to_hex(Message)}]; 
 
+prepare(world, Message) ->
+    maps:put(<<"packet">>, <<"world">>, Message);
+
 prepare(event_complete, {Event, Id}) ->
     player:set_event_lock(Id, false),
-    [{<<"packet">>, atom_to_binary(Event, latin1)}];
+    #{<<"packet">> => <<"event_complete">>,
+      <<"event">> => atom_to_binary(Event, latin1)};
 
 prepare(event_failure, {Event, Error}) ->
     [{<<"packet">>, atom_to_binary(Event, latin1)},

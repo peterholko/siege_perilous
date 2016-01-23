@@ -29,7 +29,6 @@ start_all_npc() ->
 
 spawn_zombies(0) -> done;
 spawn_zombies(Num) -> 
-
     Pos = map:random_location(),
     obj:create(Pos, ?UNDEAD, unit, <<"npc">>, <<"Zombie">>, none),
 

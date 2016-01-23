@@ -675,6 +675,17 @@ function onMessage(evt) {
                 updateTextLog(jsonData.errmsg);
             } 
         }
+        else if(jsonData.packet == "world") {
+            if(jsonData.hasOwnProperty("time")) {
+                if(jsonData.time == "day") {
+                    updateTextLog("The warmth of the sun arrives");
+                } else if (jsonData.time == "night") {
+                    updateTextLog("Darkness sets across the land");
+                } else if (jsonData.time == "bloodmoon") {
+                    updateTextLog("The Bloodmoon lifts itself into the night sky!");
+                }
+            }
+        }
     }
 
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
@@ -855,7 +866,7 @@ function drawLocalObj() {
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
                     console.log("new c_x: " + c_x + " c_y: " + c_y);
-                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 1000, createjs.Ease.getPowInOut(2));
+                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
                 }
             }
 
@@ -885,7 +896,7 @@ function drawLocalObj() {
                         c_x = 640 - 36 - pixel.x;
                         c_y = 400 - 36 - pixel.y;             
                         console.log("x: " + localMapCont.x + " y: " + localMapCont.y + " - " + "c_x: " + c_x + " c_y: " + c_y);
-                        createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 1000, createjs.Ease.linear);
+                        createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.linear);
                     }
                 }
             }

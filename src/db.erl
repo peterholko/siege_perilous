@@ -140,7 +140,7 @@ test_tables() ->
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {counter, player, 1000},
-     {world, timeofday, day}
+     {world, time, day}
     ].
 
 reset_tables() ->

@@ -77,7 +77,10 @@ random_location(false, _Pos) ->
     Y = rand:uniform(?MAP_HEIGHT - 1),
     Pos = {X, Y},
 
-    random_location(is_passable(Pos), Pos).
+    Result = is_passable(Pos) andalso
+             obj:is_empty(Pos),
+
+    random_location(Result, Pos).
 
 %% ====================================================================
 %% Server functions

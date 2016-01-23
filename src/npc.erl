@@ -374,7 +374,9 @@ melee_attack(NPCId) ->
     AttackType = get_attack_type(NPC),
 
     combat:attack(AttackType, NPCId, NPC#npc.target),
-    game:add_event(self(), action, NPCId, NPCId, 16),
+
+    EventData = NPCId,
+    game:add_event(self(), attack, EventData, NPCId, 16),
 
     NewNPC = NPC#npc {task_state = inprogress,
                       attacks = store_attacks(AttackType, CurrentAttacks)},

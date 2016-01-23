@@ -62,7 +62,7 @@ move(Id, Pos) ->
     [Obj] = db:read(obj, Id),
 
     NewObj = Obj#obj {pos = Pos,
-                      state = moving},
+                      state = none},
     db:write(NewObj),
 
     %Update wall effect

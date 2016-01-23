@@ -118,12 +118,17 @@ do_event(defend, EventData, PlayerPid) ->
 
 do_event(move, EventData, PlayerPid) ->
     lager:debug("Processing move_obj event: ~p", [EventData]),
-    {_Player, Id, _NewPos} = EventData,
+    {_Player, Id, NewPos} = EventData,
 
-    obj:update_state(Id, none),
+    case obj:is_empty(NewPos) of
+        true ->
+            obj:move(Id, NewPos);
+        false ->
+            nothing
+    end,
 
     message:send_to_process(PlayerPid, event_complete, {move, Id}),
-    false;
+    true;
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:debug("Processing harvest event: ~p", [EventData]),
@@ -218,32 +223,18 @@ process_explored([Player | Rest]) ->
     process_explored(Rest).
 
 process_transition(0) -> nothing;
-process_transition(NumTick) when ((NumTick + ?TICKS_MIN) rem (?TICKS_MIN * 3)) =:= 0 ->
+process_transition(NumTick) when ((NumTick + ?TICKS_MIN) rem (?TICKS_MIN * 4)) =:= 0 ->
+    %Transition from day to blood moon
+    transition(bloodmoon),
+    send_world_update(time, bloodmoon); 
+process_transition(NumTick) when ((NumTick + ?TICKS_MIN) rem (?TICKS_MIN * 2)) =:= 0 ->
     %Transition from day to night
-    NewTimeOfDay = #world {attr = timeofday,
-                           value = night},
-    db:write(NewTimeOfDay),
-
-    Objs = ets:tab2list(obj),
-
-    F = fun(Obj) ->
-            apply_transition(night, Obj)
-        end,
-
-    lists:foreach(F, Objs);
-process_transition(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
-    %Transition from night to day 
-    NewTimeOfDay = #world {attr = timeofday,
-                           value = day},
-    db:write(NewTimeOfDay),
-    
-    Objs = ets:tab2list(obj),
-
-    F = fun(Obj) ->
-            apply_transition(day, Obj)
-        end,
-
-    lists:foreach(F, Objs);
+    transition(night),
+    send_world_update(time, night); 
+process_transition(NumTick) when (NumTick rem (?TICKS_MIN * 2)) =:= 0 ->
+    %Transition from night/bloodmoon to day 
+    transition(day),
+    send_world_update(time, day);
 process_transition(_) -> nothing.
 
 process_upkeep(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
@@ -286,9 +277,22 @@ remove(dead, Obj) ->
 remove(_, _Obj) ->
     nothing.
 
-apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
+transition(Time) ->
+    NewTimeOfDay = #world {attr = time,
+                           value = Time},
+    db:write(NewTimeOfDay),
+
+    Objs = ets:tab2list(obj),
+
+    F = fun(Obj) ->
+            apply_transition(Time, Obj)
+        end,
+
+    lists:foreach(F, Objs).
+
+apply_transition(bloodmoon, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
     %Apply night effect 
-    obj:add_effect(Id, <<"night_undead">>, none),
+    obj:add_effect(Id, <<"bloodmoon">>, none),
 
     ObjM = obj:get(Id),
     Hp = maps:get(<<"hp">>, ObjM),
@@ -299,9 +303,9 @@ apply_transition(night, Obj = #obj {id = Id, name = Name, vision = Vision}) when
     db:write(NewObj);
 apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
     %Check if night undead is applied 
-    case obj:has_effect(Id, <<"night_undead">>) of
+    case obj:has_effect(Id, <<"bloodmoon">>) of
         true ->
-            obj:remove_effect(Id, <<"night_undead">>),
+            obj:remove_effect(Id, <<"bloodmoon">>),
 
             %Decrease hp x 10
             ObjM = obj:get(Id),
@@ -427,5 +431,14 @@ process_rest_state() ->
 update_hp(Hp, BaseHp) when Hp < BaseHp -> Hp + 1;
 update_hp(_Hp, _BaseHp) -> nothing.
 
-timeofday(day) -> night;
-timeofday(night) -> day.
+send_world_update(Attr, Value) ->
+    Connections = ets:tab2list(connection),
+    BinAttr = atom_to_binary(Attr, latin1),
+    BinValue = atom_to_binary(Value, latin1),
+    Message = #{BinAttr => BinValue},
+
+    F = fun(Connection) ->
+            message:send_to_process(Connection#connection.process, world, Message)
+        end,
+
+    lists:foreach(F, Connections).

@@ -81,8 +81,7 @@ attack(AttackType, SourceId, TargetId) ->
     [SourceObj] = db:read(obj, SourceId),
     [TargetObj] = db:read(obj, TargetId),
 
-    Checks = [{not is_event_locked(SourceId), "Action in progress"},
-              {is_player_owned(SourceObj#obj.player, PlayerId), "Unit is not owned by player"},
+    Checks = [{is_player_owned(SourceObj#obj.player, PlayerId), "Unit is not owned by player"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
               {combat:is_adjacent(SourceObj, TargetObj), "Target is not adjacent"},
               {combat:is_target_alive(TargetObj), "Target is dead"},
@@ -110,8 +109,7 @@ defend(DefendType, SourceId) ->
     PlayerId = get(player_id),
     [Obj] = db:read(obj, SourceId),
 
-    Checks = [{not is_event_locked(SourceId), "Action in progress"},
-              {is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+    Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
               {combat:has_stamina(SourceId, {defend, DefendType}), "Not enough stamina"}],
 
@@ -142,7 +140,8 @@ move(SourceId, Pos) ->
     Checks = [{not is_event_locked(SourceId), "Action in progress"},              
               {is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
-              {Obj#obj.class =:= unit, "Object cannot move"},              
+              {Obj#obj.class =:= unit, "Obj cannot move"},
+              {Obj#obj.state =/= dead, "Unit is dead"}, 
               {map:is_adjacent(Obj#obj.pos, Pos), "Unit is not adjacent to position"},
               {map:is_passable(Pos), "Tile is not passable"},
               {obj:is_empty(Pos), "Position is occupied"},
@@ -152,18 +151,15 @@ move(SourceId, Pos) ->
         true ->
             game:cancel_event(SourceId),
 
-            %Move obj
-            obj:move(SourceId, Pos),
-    
+            %Update state to moving
+            obj:update_state(Obj#obj.id, moving),
+
             %Create event data
             EventData = {PlayerId,
                          SourceId,
                          Pos},
 
             game:add_event(self(), move, EventData, SourceId, NumTicks),
-
-            %Trigger perception update due to move
-            game:trigger_perception(),
 
             #{<<"move_time">> => NumTicks * ?TICKS_SEC};
         {false, Error} ->
