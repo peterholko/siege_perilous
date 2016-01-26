@@ -105,6 +105,8 @@ handle_info({event_complete, {_EventId, Id}}, Data) ->
     [NPC] = db:read(npc, Id),
     Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
 
+    obj:update_state(Id, none),
+
     case Task of
         move_random_pos ->
             NewNPC = NPC#npc {task_state = completed},

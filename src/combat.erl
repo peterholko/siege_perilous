@@ -90,7 +90,7 @@ process_defend(SourceId, DefendType) ->
     sub_stamina(SourceId, StaminaCost),
 
     %Add defense effect
-    obj:add_effect(SourceId, DefendType).
+    obj:add_effect(SourceId, DefendType, none).
 
 process_attack(AttackType, AtkId, DefId) ->
     [AtkObj] = db:read(obj, AtkId),

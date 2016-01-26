@@ -4,11 +4,11 @@
         "height": 72
     },
     "animations": {
-        "die": [2,5,"dead",0.5],
+        "die": [2,5,"dead",0.05],
         "dead": [5],
+        "attack": [0,1,"none", 0.1],
         "none": [0],
-        "combat": [0],
-        "moving": [0]
+        "moving": [0, 1, "moving", 0.1]
     },
     "images": ["/static/art/zombie_ss.png"]
 }

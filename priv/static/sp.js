@@ -228,8 +228,8 @@ function init() {
 function handleRender(event) {
     if(render) {
         var currTime = createjs.Ticker.getTime();
-        if((currTime - lastRenderTime) >= 100) {
-            drawLocalObj();
+        if((currTime - lastRenderTime) >= 200) {
+            drawObj();
             lastRenderTime = currTime;
             render = false;
         }
@@ -599,21 +599,15 @@ function onMessage(evt) {
 
 
             setPlayerPos();
-            clearLocalMap();
-            drawLocalMap(jsonData.map);
-            updateLocalObj(jsonData.objs);
+            clearMap();
+            drawMap(jsonData.map);
+            updateObj(jsonData.objs);
         }
         else if(jsonData.packet == "perception") {
-            updateLocalObj(jsonData.objs);
+            updateObj(jsonData.objs);
         }
         else if(jsonData.packet == "map") {
-            drawLocalMap(jsonData.map);
-        }
-        else if(jsonData.packet == "explore") {
-            clearLocalMap();
-            drawExplore(jsonData.objs);
-            drawLocalMap(jsonData.map);
-            updateLocalObj(jsonData.objs);            
+            drawMap(jsonData.map);
         }
         else if(jsonData.packet == "item_perception") {
             dialogPanel.visible = false;
@@ -704,7 +698,7 @@ function setPlayerPos() {
     }
 };
 
-function clearLocalMap() {
+function clearMap() {
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
     var localShroudCont = localMapCont.getChildByName("localShroud");
@@ -713,7 +707,7 @@ function clearLocalMap() {
     localShroudCont.removeAllChildren();
 };
 
-function clearLocalObj() {
+function clearObj() {
     var localMapCont = localPanel.getChildByName("localMap");
     var localObjsCont1 = localMapCont.getChildByName("localObjs1"); 
     var localObjsCont2 = localMapCont.getChildByName("localObjs2"); 
@@ -725,27 +719,8 @@ function clearLocalObj() {
     selectHex.visible = false;
 };
 
-function drawExplore(objs) {
-    var localMapCont = localPanel.getChildByName("localMap");
-
-    for(var i = 0; i < objs.length; i++) {
-        var obj = objs[i];
-        var pixel = hex_to_pixel(obj.x, obj.y);
-
-        if(obj.player == playerId) {
-            if(is_hero(obj.type)) {
-                c_x = 640 - 36 - pixel.x;
-                c_y = 400 - 36 - pixel.y;
-
-                localMapCont.x = c_x;
-                localMapCont.y = c_y;
-            }
-        }
-    }
-};
-
-function drawLocalMap(map) {
-    console.log("drawLocalMap");
+function drawMap(map) {
+    console.log("drawMap");
     showLocalPanel();
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
@@ -797,35 +772,47 @@ function drawLocalMap(map) {
     }
 };
 
-function updateLocalObj(objs) {
+function updateObj(objs) {
+    console.log("updateObj");
     render = true;
+
+    for(var id in localObjs) {
+        localObjs[id].op = 'remove';
+    }
 
     for(var i = 0; i < objs.length; i++) {        
         var obj = objs[i];
-        var op;
 
         if(obj.id in localObjs) {
+            var prev_state = localObjs[obj.id].state;
+            var prev_x = localObjs[obj.id].x;
+            var prev_y = localObjs[obj.id].y;
+    
             localObjs[obj.id].x = obj.x;
             localObjs[obj.id].y = obj.y;
             localObjs[obj.id].state = obj.state;
+            localObjs[obj.id].prev_state = prev_state;
+            localObjs[obj.id].prev_x = prev_x;
+            localObjs[obj.id].prev_y = prev_y;
             localObjs[obj.id].vision = obj.vision;
-            localObjs[obj.id].op = 'update';
-
+    
+            if(prev_state != obj.state) {
+                localObjs[obj.id].op = 'state';
+            } else if((prev_x != obj.x) || (prev_y != obj.y)) {
+                localObjs[obj.id].op = 'pos';
+            } else {
+                localObjs[obj.id].op = 'none';
+            }
         } else {
             localObjs[obj.id] = obj;
             localObjs[obj.id].op = 'new';
         }
     }
 
-    for(var id in localObjs) {
-        if(localObjs[id].op == 'none') {
-            localObjs[id].op = 'remove';
-        }
-    }
 };
 
-function drawLocalObj() {
-    console.log("drawLocalObj");
+function drawObj() {
+    console.log("drawObj - start");
     showLocalPanel();
 
     var localMapCont = localPanel.getChildByName("localMap");
@@ -873,24 +860,47 @@ function drawLocalObj() {
             addSprite({id: unitName + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: localObj.state}); 
 
             localObj.icon = icon;
-            localObj.op = 'none';
         } 
         else if(localObj.hasOwnProperty('icon'))
         {
             if(localObj.op == 'remove') {
-               var cont = localObj.icon.parent;
+                var cont = localObj.icon.parent;
                 cont.removeChild(localObj.icon);
 
                 delete localObjs[id];
-            } else {               
+            } else if(localObj.state == "moving") {
+                var sprite = localObj.icon.getChildByName("sprite");
+                sprite.gotoAndPlay("moving");
+
                 var pixel = hex_to_pixel(localObj.x, localObj.y);
 
                 localObj.icon.x = pixel.x
                 localObj.icon.y = pixel.y
 
-                localObj.op = 'none';
+                if(localObj.player == playerId) {
+                    if(is_hero(localObj.type)) {
+                        visibleTiles = range(localObj.x, localObj.y, localObj.vision);
+                    }
+                }
+            } else {
+                var animation;
+
+                if((localObj.state == "dead") && (localObj.prev_state != "dead")) {
+                    animation = "die";
+                } else {
+                    animation = "none";
+                }
+
+                var sprite = localObj.icon.getChildByName("sprite");
+                sprite.gotoAndPlay(animation);
+
+                var pixel = hex_to_pixel(localObj.x, localObj.y);
+
 
                 if(localObj.player == playerId) {
+                    localObj.icon.x = pixel.x;
+                    localObj.icon.y = pixel.y;
+
                     if(is_hero(localObj.type)) {
                         visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                         c_x = 640 - 36 - pixel.x;
@@ -898,6 +908,8 @@ function drawLocalObj() {
                         console.log("x: " + localMapCont.x + " y: " + localMapCont.y + " - " + "c_x: " + c_x + " c_y: " + c_y);
                         createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.linear);
                     }
+                } else {
+                    createjs.Tween.get(localObj.icon).to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear);
                 }
             }
         }
@@ -915,6 +927,7 @@ function drawLocalObj() {
         }
     }
 
+    console.log("drawObj - end");
 };
 
 function drawLocalSelectPanel(tileX, tileY, tileImages) {
@@ -1104,8 +1117,11 @@ function drawDmg(jsonData) {
             createjs.Tween.get(dmgText).to({alpha: 0},3000);
 
             if(source && target) {
-                createjs.Tween.get(source.icon).to({x: target.icon.x, y: target.icon.y}, 500, createjs.Ease.getPowInOut(4))
-                                               .to({x: origX, y: origY}, 100, createjs.Ease.getPowInOut(2));
+                var sprite = source.icon.getChildByName("sprite");
+                sprite.gotoAndPlay("attack");
+
+                createjs.Tween.get(source.icon).to({x: target.icon.x, y: target.icon.y}, 1000, createjs.Ease.getPowInOut(4))
+                                               .to({x: origX, y: origY}, 200, createjs.Ease.getPowInOut(2));
             }
 
             if(jsonData.state == "dead") {
@@ -1121,14 +1137,14 @@ function drawDmg(jsonData) {
 
                 updateTextLog(txt);
 
-                var sprite = target.icon.getChildByName("sprite");
+                /*var sprite = target.icon.getChildByName("sprite");
 
                 if(in_array(sprite.spriteSheet.animations, 'die')) {
                     sprite.gotoAndPlay("die");
                 } else {
                     target.icon.removeChild(sprite);
                     target.icon.addChild(new createjs.Bitmap(gravestone));
-                }
+                }*/
             }
         }        
     }

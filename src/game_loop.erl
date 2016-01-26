@@ -247,7 +247,7 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick 
 process_rest(_) -> nothing.
 
 
-execute_npc(NumTick) when (NumTick rem 10) =:= 0 ->
+execute_npc(NumTick) when (NumTick rem (?TICKS_SEC * 5)) =:= 0 ->
     npc:replan(?UNDEAD),
     npc:run_plan(?UNDEAD);
 execute_npc(_) ->
@@ -319,7 +319,7 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
             nothing
     end;
 apply_transition(night, Obj = #obj {class = Class}) when Class =:= unit ->
-    NewObj = Obj#obj {vision = 1},
+    NewObj = Obj#obj {vision = 2},
     db:write(NewObj);
 apply_transition(day, Obj = #obj {class = Class}) when Class =:= unit ->
     NewObj = Obj#obj {vision = 2},
