@@ -6,7 +6,7 @@
     "animations": {
         "die": [0,3,"dead",0.05],
         "dead": [3],
-        "attack": [4,9, "none", 0.2],
+        "attack": [4,9, "none", 0.1],
         "none": [9],
         "moving": [8,9, "moving", 0.2]
     },

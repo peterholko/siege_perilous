@@ -18,6 +18,7 @@
 -export([replan/1, run_plan/1, new_zombie/0, new_wolf/0, get_nearest/3]).
 -export([target_visible/1, max_guard_dist/1]).
 -export([move_random_pos/1, move_to_target/1, melee_attack/1, move_guard_pos/1]).
+-export([add/1, remove/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -35,8 +36,13 @@ new_zombie() ->
     obj:create({18,18}, ?UNDEAD, unit, <<"npc">>, <<"Zombie">>, none).
 
 new_wolf() ->
-    obj:create({3,3}, ?UNDEAD, unit, <<"npc">>, <<"Wolf">>, none).
+    obj:create({20,20}, ?UNDEAD, unit, <<"npc">>, <<"Wolf">>, none).
 
+add(Id) ->
+    NPC = #npc {id = Id},
+    db:write(NPC).
+remove(Id) ->
+    db:delete(npc, Id).
 
 %% ====================================================================
 %% Server functions

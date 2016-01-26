@@ -127,7 +127,7 @@ process_attack(AttackType, AtkId, DefId) ->
     RandomDmg = rand:uniform(DmgRange) + TotalDmg,
     DmgRoll = RandomDmg + TotalDmg,
 
-    %Apply armor and defend action reductions
+    %Apply armor and defend ection reductions
     ArmorReduction = TotalArmor / (TotalArmor + 50),
     DmgReducedArmor = round(DmgRoll * (1 - ArmorReduction)),
     DmgReduced = defend_type_mod(HasDefend) * DmgReducedArmor,
@@ -185,8 +185,6 @@ is_target_alive(#obj {state = State}) when State =:= dead ->
 is_target_alive(_) -> 
     true.
 
-
-
 is_unit_dead(Hp) when Hp =< 0 ->
     <<"dead">>;
 is_unit_dead(_Hp) ->
@@ -195,11 +193,11 @@ is_unit_dead(_Hp) ->
 process_unit_dead(DefId) ->
     lager:info("Unit ~p died.", [DefId]),
 
-    %Remove action associated with dead unit
-    db:delete(action, DefId),
-
     lager:info("Updating unit state"),
     NewObj = obj:update_dead(DefId),
+
+    %Remove potential npc entry
+    npc:remove(DefId),
 
     %Remove potential wall effect
     obj:set_wall_effect(NewObj).

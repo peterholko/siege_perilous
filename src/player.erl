@@ -90,8 +90,6 @@ attack(AttackType, SourceId, TargetId) ->
 
     case process_checks(Checks) of
         true ->
-            set_event_lock(SourceId, true),
-
             NumTicks = combat:num_ticks({attack, AttackType}),
             StaminaCost = combat:stamina_cost({attack, AttackType}),
     
@@ -115,8 +113,6 @@ defend(DefendType, SourceId) ->
 
     case process_checks(Checks) of
         true ->             
-            set_event_lock(SourceId, true),
-
             NumTicks = combat:num_ticks({defend, DefendType}),
             StaminaCost = combat:stamina_cost({defend, DefendType}),
             
@@ -137,8 +133,7 @@ move(SourceId, Pos) ->
     [Obj] = db:read(obj, SourceId),
     NumTicks = obj:movement_cost(Obj, Pos),
 
-    Checks = [{not is_event_locked(SourceId), "Action in progress"},              
-              {is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+    Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
               {Obj#obj.class =:= unit, "Obj cannot move"},
               {Obj#obj.state =/= dead, "Unit is dead"}, 

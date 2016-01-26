@@ -891,8 +891,11 @@ function drawObj() {
                     animation = "none";
                 }
 
+
                 var sprite = localObj.icon.getChildByName("sprite");
-                sprite.gotoAndPlay(animation);
+
+                if(sprite != null)
+                    sprite.gotoAndPlay(animation);
 
                 var pixel = hex_to_pixel(localObj.x, localObj.y);
 
@@ -1105,8 +1108,8 @@ function drawDmg(jsonData) {
         updateTextLog(txt);
 
         if(source.hasOwnProperty("icon")) {
-            var origX = source.icon.x;
-            var origY = source.icon.y;
+            var origX = source.icon.x + 36;
+            var origY = source.icon.y + 36;
 
             var dmgText = new createjs.Text(jsonData.dmg, 'bold 18px Verdana', '#FF0000');
             dmgText.x = target.icon.x + 33;
@@ -1120,8 +1123,17 @@ function drawDmg(jsonData) {
                 var sprite = source.icon.getChildByName("sprite");
                 sprite.gotoAndPlay("attack");
 
-                createjs.Tween.get(source.icon).to({x: target.icon.x, y: target.icon.y}, 1000, createjs.Ease.getPowInOut(4))
-                                               .to({x: origX, y: origY}, 200, createjs.Ease.getPowInOut(2));
+                var targetX = target.icon.x + 36;
+                var targetY = target.icon.y + 36;
+
+                var diffX = (targetX - origX) * 0.5;
+                var diffY = (targetY - origY) * 0.5;
+
+                var destX = (origX + diffX) - 36;
+                var destY = (origY + diffY) - 36;
+
+                createjs.Tween.get(source.icon).to({x: destX, y: destY}, 1000, createjs.Ease.getPowInOut(4))
+                                               .to({x: origX - 36, y: origY - 36}, 200, createjs.Ease.getPowInOut(2));
             }
 
             if(jsonData.state == "dead") {
