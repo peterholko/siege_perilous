@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([increment/1, increment/2, reset/1]).
+-export([increment/1, increment/2, reset/1, value/1]).
 
 increment(Type) ->
     increment(Type, 1).
@@ -20,3 +20,6 @@ reset(Type) ->
                       },
     ok = db:write(Counter).
 
+value(Type) ->
+    [{counter, _, V}] = mnesia:dirty_read(counter, Type),
+    V.

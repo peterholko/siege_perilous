@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start_all_npc/0, spawn_zombies/1]).
+-export([start_all_npc/0, spawn_zombies/1, spawn_wolves/1]).
 
 %% ====================================================================
 %% External functions
@@ -33,6 +33,13 @@ spawn_zombies(Num) ->
     obj:create(Pos, ?UNDEAD, unit, <<"npc">>, <<"Zombie">>, none),
 
     spawn_zombies(Num - 1).
+
+spawn_wolves(0) -> done;
+spawn_wolves(Num) -> 
+    Pos = map:random_location(),
+    obj:create(Pos, ?UNDEAD, unit, <<"npc">>, <<"Wolf">>, none),
+
+    spawn_wolves(Num - 1).
 
 %% ====================================================================
 %% Server functions

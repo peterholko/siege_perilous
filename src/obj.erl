@@ -45,7 +45,8 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
                 subclass = Subclass,
                 name = Name,
                 state = State,
-                vision = Vision}, 
+                vision = Vision,
+                modtick = counter:value(tick)}, 
     db:write(Obj),
 
     lager:debug("Triggering perception"),
@@ -379,13 +380,19 @@ info(Id) ->
     Info4.
 
 info_other(Id) ->
-    %Get Mongo obj
+    %Get Mnesia obj
+    [Obj] = db:read(obj, Id),
+
+    %Get Mongo obj    
     ObjM = find_one(<<"_id">>, Id),    
     Name = maps:get(<<"name">>, ObjM),
+    Effects = get_effects(Id),
 
     Info1 = maps:put(<<"_id">>, Id, #{}),
     Info2 = maps:put(<<"name">>, Name, Info1),
-    Info2.
+    Info3 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info2),
+    Info4 = maps:put(<<"effects">>, Effects, Info3),
+    Info4.
 
 find_one(Key, Value) ->
     mdb:find_one(<<"obj">>, Key, Value).

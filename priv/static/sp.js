@@ -888,7 +888,7 @@ function drawObj() {
                 if((localObj.state == "dead") && (localObj.prev_state != "dead")) {
                     animation = "die";
                 } else {
-                    animation = "none";
+                    animation = localObj.state;
                 }
 
 

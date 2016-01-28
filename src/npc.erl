@@ -108,27 +108,10 @@ handle_info({perception, {NPCId, Objs}}, Data) ->
     {noreply, Data};
 
 handle_info({event_complete, {_EventId, Id}}, Data) ->
-    [NPC] = db:read(npc, Id),
-    Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
+    NPC = db:read(npc, Id),
 
-    obj:update_state(Id, none),
-
-    case Task of
-        move_random_pos ->
-            NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC);
-        move_to_target ->
-            move_to_target(Id);
-        move_guard_pos ->
-            move_guard_pos(Id);
-        melee_attack ->
-            NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC);
-        _ ->
-            nothing
-    end,
- 
-    {noreply, Data};
+    process_event_complete(NPC),
+        {noreply, Data};
 
 handle_info(_Info, Data) ->
     {noreply, Data}.
@@ -218,6 +201,28 @@ process_run_plan(Id) ->
     end,
 
     process_run_plan(mnesia:dirty_next(npc, Id)).
+
+process_event_complete([NPC]) ->
+    Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
+
+    obj:update_state(NPC#npc.id, none),
+
+    case Task of
+        move_random_pos ->
+            NewNPC = NPC#npc {task_state = completed},
+            db:write(NewNPC);
+        move_to_target ->
+            move_to_target(NPC#npc.id);
+        move_guard_pos ->
+            move_guard_pos(NPC#npc.id);
+        melee_attack ->
+            NewNPC = NPC#npc {task_state = completed},
+            db:write(NewNPC);
+        _ ->
+            nothing
+    end;
+process_event_complete(_) -> 
+    nothing.
 
 get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
     NewTaskIndex = TaskIndex + 1,

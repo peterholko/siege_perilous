@@ -257,25 +257,28 @@ execute_villager(NumTick) when (NumTick rem 50) =:= 0 ->
     villager:check_task();
 execute_villager(_) ->
     nothing.
-%TODO Fix the frequency of the clean up, should be based off when the obj dies
-clean_up(NumTick) when (NumTick rem 2000) =:= 0 ->
+
+clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 2)) =:= 0 ->
     lager:debug("Cleaning up dead objs"),
     Objs = ets:tab2list(obj),
 
     F = fun(Obj) ->
-            remove(Obj#obj.state, Obj)
+            case (NumTick - Obj#obj.modtick) > (?TICKS_MIN * 2) of
+                true ->
+                    case Obj#obj.state of
+                        dead -> obj:remove(Obj#obj.id);
+                        founded -> obj:remove(Obj#obj.id);
+                        _ -> nothing
+                    end;
+                false ->
+                    nothing
+            end
         end,
-
 
     lists:foreach(F, Objs);    
 
 clean_up(_) ->
     nothing. 
-
-remove(dead, Obj) ->
-    obj:remove(Obj#obj.id);
-remove(_, _Obj) ->
-    nothing.
 
 transition(Time) ->
     NewTimeOfDay = #world {attr = time,

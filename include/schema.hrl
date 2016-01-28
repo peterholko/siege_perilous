@@ -57,7 +57,8 @@
               name,
               state,
               effect = [],
-              vision = -1}).
+              vision = -1,
+              modtick}).
             
 -record(charge_time, {unit_id,
                       charge_time}).
