@@ -100,3 +100,7 @@
 
 -record(combat, {id, 
                  attacks}).
+
+-record(encounter, {pos, 
+                    num,
+                    modtick}).

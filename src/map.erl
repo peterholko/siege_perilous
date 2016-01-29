@@ -22,7 +22,7 @@
 -export([movement_cost/1, is_passable/1, random_location/0]).
 -export([check_distance/4, distance/2]).
 -export([range/2, filter_pos/1]).
--export([spawn_resources/0]).
+-export([spawn_resources/0, tile_name/1]).
 
 -record(data, {}).
 %% ====================================================================

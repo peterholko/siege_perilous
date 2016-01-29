@@ -15,7 +15,7 @@
 -export([add_effect/3, remove_effect/2, has_effect/2]).
 -export([is_empty/1, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1]).
--export([is_hero_nearby/2, is_monolith_nearby/1]).
+-export([is_hero_nearby/2, is_monolith_nearby/1, is_not_npc/1]).
 -export([item_transfer/2]).
 
 -export([get/1, get_stats/1, get_info/1, get_info_other/1, get_type/1]).
@@ -81,6 +81,12 @@ move(Id, Pos) ->
             game:trigger_explored(Obj#obj.player);
         false ->
             nothing
+    end,
+
+    %Check if player triggered encounter
+    case is_not_npc(Obj) of
+        true -> encounter:check(Pos);
+        false -> nothing
     end.
 
 update_state(Id, State) ->
@@ -253,6 +259,8 @@ is_monolith_nearby(QueryPos) ->
 
     lists:any(F, Monoliths).
 
+is_not_npc(#obj {player = Player}) when Player >= 1000 -> true;
+is_not_npc(_) -> false.
 
 apply_wall(false, #obj {id = Id}) ->
     case has_effect(Id, ?WALL) of
