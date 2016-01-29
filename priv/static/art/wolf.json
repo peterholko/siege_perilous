@@ -4,9 +4,19 @@
         "height": 72
     },
     "animations": {
-        "combat": [0],
+        "die": [0,"dead",0.5],
+        "dead": [0],
+        "attack": {
+            "frames": [3,2,1],
+            "next": "none",
+            "speed": 0.05
+        },
         "none": [0],
-        "moving": [0]
+        "moving": {
+            "frames": [0,4],
+            "next": "moving",
+            "speed": 0.05
+        }
     },
-    "images": ["/static/art/wolf.png"]
+    "images": ["/static/art/wolf_ss.png"]
 }
