@@ -382,17 +382,31 @@ move_to_target(NPCId) ->
     
 melee_attack(NPCId) ->
     [NPC] = db:read(npc, NPCId),
+    NPCObj = db:read(obj, NPCId),
 
-    CurrentAttacks = NPC#npc.attacks,
-    AttackType = get_attack_type(NPC),
+    TargetObj = combat:is_valid_target(NPC#npc.target),
 
-    combat:attack(AttackType, NPCId, NPC#npc.target),
+    Checks = TargetObj =/= false andalso
+             combat:is_adjacent(NPCObj, TargetObj) andalso
+             combat:is_target_alive(TargetObj) andalso
+             combat:is_targetable(TargetObj),
 
-    EventData = NPCId,
-    game:add_event(self(), attack, EventData, NPCId, 16),
+    NewNPC = case Checks of
+                true ->           
+                    CurrentAttacks = NPC#npc.attacks,
+                    AttackType = get_attack_type(NPC),
 
-    NewNPC = NPC#npc {task_state = inprogress,
-                      attacks = store_attacks(AttackType, CurrentAttacks)},
+                    combat:attack(AttackType, NPCId, NPC#npc.target),
+
+                    EventData = NPCId,
+                    game:add_event(self(), attack, EventData, NPCId, 16),
+
+                    NPC#npc {task_state = inprogress,
+                             attacks = store_attacks(AttackType, CurrentAttacks)};
+                false ->
+                    NPC#npc {task_state = complete}
+             end,
+
     db:write(NewNPC).
 
 move_guard_pos(NPCId) ->

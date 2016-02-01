@@ -17,7 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([attack/3, defend/2]).
 -export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
--export([is_adjacent/2, is_target_alive/1, is_targetable/1]).
+-export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1]).
 
 %-compile(export_all).
 
@@ -161,6 +161,11 @@ process_attack(AttackType, AtkId, DefId) ->
             process_unit_dead(DefId)
     end.
 
+is_valid_target(TargetId) ->
+    case db:read(obj, TargetId) of
+        [Target] -> Target;
+        [] -> false
+    end.
 
 is_adjacent(SourceObj, TargetObj) ->
     {SX, SY} = SourceObj#obj.pos,
