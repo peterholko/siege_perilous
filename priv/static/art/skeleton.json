@@ -4,9 +4,11 @@
         "height": 72
     },
     "animations": {
-        "combat": [0],
-        "none": [0],
-        "moving": [0]
+        "die": [0,6,"dead", 0.05],
+        "dead": [6],
+        "attack": [9,18,"none", 0.1],
+        "none": [28],
+        "moving": [19,27,"moving", 0.1]
     },
-    "images": ["/static/art/skeleton.png"]
+    "images": ["/static/art/skeleton_ss.png"]
 }

@@ -4,9 +4,11 @@
         "height": 72
     },
     "animations": {
-        "combat": [0],
-        "none": [0],
-        "moving": [0]
+        "die": [3,11, "dead", 0.1],
+        "dead": [11],
+        "attack": [0,1, "none", 0.05],
+        "none": [12],
+        "moving": [12]
     },
-    "images": ["/static/art/wose.png"]
+    "images": ["/static/art/wose_ss.png"]
 }

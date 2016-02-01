@@ -10,9 +10,7 @@
 
 check(Pos) ->
     [Tile] = map:get_tile(Pos),
-    lager:info("Tile: ~p", [Tile#map.tile]),
     TileName = map:tile_name(Tile#map.tile),
-    lager:info("TileName: ~p", [TileName]),
 
     EncounterNum = get_num(Pos),
     NumMod = math:pow(0.5, EncounterNum),
@@ -27,15 +25,22 @@ check(Pos) ->
         false -> nothing
     end.
 
-spawn_npc(TileName, {X, Y}) ->
+spawn_npc(TileName, Pos) ->
     NPCList = npc_list(TileName),
     Random = rand:uniform(length(NPCList)),
     NPCType = lists:nth(Random, NPCList),
-    Neighbours = map:neighbours(X, Y),
-    RandomPos = rand:uniform(length(Neighbours)),
-    NPCPos = lists:nth(RandomPos, Neighbours),
+    Tiles = get_valid_tiles(Pos),
+    lager:info("Tiles: ~p", [Tiles]),
 
-    obj:create(NPCPos, ?UNDEAD, unit, <<"npc">>, NPCType, none).
+    case Tiles of
+        [] -> nothing; %No valid tiles
+        Neighbours ->
+            RandomPos = rand:uniform(length(Neighbours)),
+            NPCPos = lists:nth(RandomPos, Neighbours),
+            obj:create(NPCPos, ?UNDEAD, unit, <<"npc">>, NPCType, none),
+            
+            increase_num(NPCPos)
+    end.
 
 npc_list(TileName) ->
     case TileName of
@@ -53,3 +58,20 @@ get_num(Pos) ->
         [] -> 0;            
         [Encounter] -> Encounter#encounter.num
     end.
+
+get_valid_tiles({X, Y}) ->
+    Neighbours = map:neighbours(X, Y),
+    F = fun(Pos) -> map:is_passable(Pos) end,
+    lists:filter(F, Neighbours).
+
+increase_num(Pos) ->
+    NewEncounter = case db:read(encounter, Pos) of
+                        [] -> #encounter {num = 1,
+                                          pos = Pos,
+                                          modtick = counter:value(tick)};
+                        [Encounter] -> 
+                            Num = Encounter#encounter.num,
+                            Encounter#encounter {num = Num + 1}
+                end,
+
+    db:write(NewEncounter).

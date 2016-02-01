@@ -83,7 +83,7 @@ attack(AttackType, SourceId, TargetId) ->
 
     Checks = [{is_player_owned(SourceObj#obj.player, PlayerId), "Unit is not owned by player"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
-              {combat:is_adjacent(SourceObj, TargetObj), "Target is not adjacent"},
+              {map:is_adjacent(SourceObj#obj.pos, TargetObj#obj.pos), "Target is not adjacent"},
               {combat:is_target_alive(TargetObj), "Target is dead"},
               {combat:is_targetable(TargetObj), "Cannot attack target"},
               {combat:has_stamina(SourceId, {attack, AttackType}), "Not enough stamina"}],

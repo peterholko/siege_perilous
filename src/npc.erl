@@ -111,7 +111,7 @@ handle_info({event_complete, {_EventId, Id}}, Data) ->
     NPC = db:read(npc, Id),
 
     process_event_complete(NPC),
-        {noreply, Data};
+    {noreply, Data};
 
 handle_info(_Info, Data) ->
     {noreply, Data}.
@@ -190,7 +190,9 @@ process_run_plan(Id) ->
                 {next_task, NextTaskIndex} ->
                     NewNPC = NPC#npc {task_index = NextTaskIndex},
                     db:write(NewNPC),
-                    erlang:apply(npc, lists:nth(NextTaskIndex, NPC#npc.plan) , [Id]);
+                    TaskToRun = lists:nth(NextTaskIndex, NPC#npc.plan),
+                    lager:info("TaskToRun: ~p", [TaskToRun]),
+                    erlang:apply(npc, TaskToRun, [Id]);
                 plan_completed ->
                     NewNPC = NPC#npc { task_state = completed,
                                        task_index = 0},
@@ -381,13 +383,14 @@ move_to_target(NPCId) ->
     end.
     
 melee_attack(NPCId) ->
+    lager:info("Melee_attack: ~p", [NPCId]),
     [NPC] = db:read(npc, NPCId),
-    NPCObj = db:read(obj, NPCId),
+    [NPCObj] = db:read(obj, NPCId),
 
     TargetObj = combat:is_valid_target(NPC#npc.target),
 
     Checks = TargetObj =/= false andalso
-             combat:is_adjacent(NPCObj, TargetObj) andalso
+             map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos) andalso
              combat:is_target_alive(TargetObj) andalso
              combat:is_targetable(TargetObj),
 
@@ -404,7 +407,7 @@ melee_attack(NPCId) ->
                     NPC#npc {task_state = inprogress,
                              attacks = store_attacks(AttackType, CurrentAttacks)};
                 false ->
-                    NPC#npc {task_state = complete}
+                    NPC#npc {task_state = inprogress}
              end,
 
     db:write(NewNPC).
