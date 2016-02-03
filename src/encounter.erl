@@ -61,7 +61,9 @@ get_num(Pos) ->
 
 get_valid_tiles({X, Y}) ->
     Neighbours = map:neighbours(X, Y),
-    F = fun(Pos) -> map:is_passable(Pos) end,
+    F = fun(Pos) -> 
+                map:is_passable(Pos) and obj:is_empty(Pos)
+        end,
     lists:filter(F, Neighbours).
 
 increase_num(Pos) ->

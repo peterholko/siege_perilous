@@ -4,9 +4,15 @@
         "height": 72
     },
     "animations": {
-        "combat": [0],
-        "none": [0],
-        "moving": [0]
+        "die": [9,11, "dead", 0.05],
+        "dead": [11],
+        "attack": [0,6, "none", 0.1],
+        "none": [12],
+        "moving": {
+            "frames": [12,0],
+            "next": "moving",
+            "speed": 0.05
+        }
     },
-    "images": ["/static/art/giantrat.png"]
+    "images": ["/static/art/giantrat_ss.png"]
 }

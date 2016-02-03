@@ -180,12 +180,14 @@ process_run_plan('$end_of_table') ->
 process_run_plan(Id) ->
     [NPC] = db:read(npc, Id),
 
+    lager:info("Task State: ~p", [NPC#npc.task_state]),
     case NPC#npc.task_state of
         completed ->
             TaskIndex = NPC#npc.task_index,
             PlanLength = length(NPC#npc.plan),
 
             NextTask = get_next_task(TaskIndex, PlanLength),
+            lager:info("NextTask: ~p", [NextTask]),
             case NextTask of
                 {next_task, NextTaskIndex} ->
                     NewNPC = NPC#npc {task_index = NextTaskIndex},
@@ -394,6 +396,7 @@ melee_attack(NPCId) ->
              combat:is_target_alive(TargetObj) andalso
              combat:is_targetable(TargetObj),
 
+    lager:info("Checks: ~p", [Checks]),
     NewNPC = case Checks of
                 true ->           
                     CurrentAttacks = NPC#npc.attacks,
@@ -407,7 +410,7 @@ melee_attack(NPCId) ->
                     NPC#npc {task_state = inprogress,
                              attacks = store_attacks(AttackType, CurrentAttacks)};
                 false ->
-                    NPC#npc {task_state = inprogress}
+                    NPC#npc {task_state = completed}
              end,
 
     db:write(NewNPC).

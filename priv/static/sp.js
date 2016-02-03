@@ -840,6 +840,11 @@ function drawObj() {
             icon.name = localObj.id;
             
             if(localObj.class == "structure") {             
+                if(localObj.state == "founded") {
+                    var imagePath = "/static/art/foundation.json";
+                    unitName = "foundation";
+                }
+
                 addChildLocalMap(icon, "localObjs1");
             }
             else {
@@ -882,7 +887,17 @@ function drawObj() {
                         visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                     }
                 }
-            } else {
+            } else if(localObj.class == "structure") {
+                if(localObj.state == "none") {
+                    var unitName = localObj.type;
+                    unitName = unitName.toLowerCase().replace(/ /g, '');
+                    var imagePath =  "/static/art/" + unitName + ".json";
+
+                    localObj.icon.removeAllChildren();        
+                    addSprite({id: unitName + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
+                }
+            } 
+            else {
                 var animation;
 
                 if((localObj.state == "dead") && (localObj.prev_state != "dead")) {
@@ -890,7 +905,6 @@ function drawObj() {
                 } else {
                     animation = localObj.state;
                 }
-
 
                 var sprite = localObj.icon.getChildByName("sprite");
 
