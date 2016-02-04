@@ -18,6 +18,7 @@
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
 -export([send_update_items/3, send_update_stats/2]).
+-export([get_info_tile/1]).
 
 
 %% Common functions
@@ -39,6 +40,26 @@ send_update_stats(PlayerId, ObjM) when PlayerId > 1000 ->
     message:send_to_process(Conn#connection.process, stats, Stats);
 send_update_stats(_, _) -> 
     nothing.
+
+get_info_tile(Pos) ->
+    {X, Y} = Pos,
+    [Tile] = map:get_tile(Pos),
+
+    TileName = map:tile_name(Tile#map.tile),
+    MovementCost = map:movement_cost(TileName),
+    DefenseBonus = map:defense_bonus(TileName),
+    Passable = map:is_passable(TileName),
+    WildnessLevel = encounter:get_wildness(Pos), 
+
+    Info0 = maps:put(<<"x">>, X , #{}),
+    Info1 = maps:put(<<"y">>, Y , Info0),
+    Info2 = maps:put(<<"name">>, TileName, Info1),
+    Info3 = maps:put(<<"mc">>, MovementCost, Info2),
+    Info4 = maps:put(<<"def">>, DefenseBonus, Info3),
+    Info5 = maps:put(<<"passable">>, Passable, Info4),
+    Info6 = maps:put(<<"wildness">>, WildnessLevel, Info5),
+
+    Info6.
 
 %%
 %% API Functions

@@ -8,7 +8,7 @@
 
 -export([init_perception/1,
          get_stats/1, 
-         get_info_tile/1,
+         get_info_tile/2,
          get_info_unit/1,
          get_info_item/1,
          move/2,
@@ -59,9 +59,18 @@ get_stats(Id) ->
             []
     end.
 
-get_info_tile(_Pos) ->
-    %TODO check if player can see Pos
-    lager:info("info_tile").
+get_info_tile(Id, Pos) ->
+    lager:info("info_tile"),
+    [Unit] = db:read(obj, Id),
+
+    Distance = map:distance(Unit#obj.pos, Pos),
+
+    case Distance =< Unit#obj.vision of
+        true ->
+            game:get_info_tile(Pos);
+        false ->
+            #{<<"errmsg">> => "Cannot see that tile"}
+    end.
 
 get_info_unit(Id) ->
     [Unit] = db:read(obj, Id),

@@ -22,7 +22,7 @@
 -export([movement_cost/1, is_passable/1, random_location/0]).
 -export([check_distance/4, distance/2]).
 -export([range/2, filter_pos/1]).
--export([spawn_resources/0, tile_name/1]).
+-export([spawn_resources/0, tile_name/1, defense_bonus/1]).
 
 -record(data, {}).
 %% ====================================================================
@@ -54,18 +54,31 @@ is_adjacent(SourcePos, TargetPos) ->
     Neighbours = map:neighbours(SX, SY),
     lists:member(TargetPos, Neighbours).
 
-movement_cost(Pos) ->
+movement_cost(Pos) when is_tuple(Pos) ->
     [Tile] = db:dirty_read(map, Pos),
     TileType = Tile#map.tile,
     TileName = tile_name(TileType),
     MoveCost = mc(TileName),
-    MoveCost.   
+    MoveCost;
+movement_cost(TileName) when is_binary(TileName) ->
+    MoveCost = mc(TileName),
+    MoveCost.
 
-is_passable(Pos) ->
+is_passable(Pos) when is_tuple(Pos) ->
     [Tile] = db:dirty_read(map, Pos),
     TileType = Tile#map.tile,
     TileName = tile_name(TileType),
+    passable_tile(TileName);
+is_passable(TileName) when is_binary(TileName) ->
     passable_tile(TileName).
+
+defense_bonus(Pos) when is_tuple(Pos) ->
+    [Tile] = db:dirty_read(map, Pos),
+    TileType = Tile#map.tile,
+    TileName = tile_name(TileType),
+    def_bonus(TileName);
+defense_bonus(TileName) when is_binary(TileName) ->
+    def_bonus(TileName).
 
 random_location() ->
     random_location(false, {0, 0}).
@@ -638,3 +651,14 @@ passable_tile(?OCEAN) -> false;
 passable_tile(?RIVER) -> false;
 passable_tile(?MOUNTAIN) -> false;
 passable_tile(_) -> true.
+
+def_bonus(?HILLS_PLAINS) -> 0.33;
+def_bonus(?HILLS_GRASSLANDS) -> 0.33;
+def_bonus(?HILLS_SNOW) -> 0.33;
+def_bonus(?HILLS_DESERT) -> 0.33;
+def_bonus(?DECIDUOUS_FOREST) -> 0.5;
+def_bonus(?PINE_FOREST) -> 0.5;
+def_bonus(?FROZEN_FOREST) -> 0.5;
+def_bonus(?JUNGLE) -> 0.75;
+def_bonus(?SWAMP) -> 0.66;
+def_bonus(_) -> 0.

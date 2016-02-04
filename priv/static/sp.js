@@ -34,6 +34,8 @@ var heroPos;
 
 var selectedPortrait = false;
 var selectedUnit = false;
+var selectedTile = false;
+
 var hpBar;
 var staminaBar;
 
@@ -562,8 +564,8 @@ function sendInfoItemByName(name) {
     websocket.send(info);
 }
 
-function sendInfoTile(type, pos) {
-    var info = '{"cmd": "info_tile", "type": ' + type + ', "pos": ' + pos + '}';
+function sendInfoTile(x, y) {
+    var info = '{"cmd": "info_tile", "id": "' + heroId + '", "x": ' + x + ', "y": ' + y + '}';
     websocket.send(info);
 };
 
@@ -598,7 +600,7 @@ function onMessage(evt) {
             objs = jsonData.objs;
 
 
-            setPlayerPos();
+            setPlayer();
             clearMap();
             drawMap(jsonData.map);
             updateObj(jsonData.objs);
@@ -638,8 +640,8 @@ function onMessage(evt) {
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
         }
-        else if(jsonData.packet == "info_obj") {
-            drawInfoObj(jsonData);
+        else if(jsonData.packet == "info_tile") {
+            drawInfoTile(jsonData);
         }
         else if(jsonData.packet == "info_unit") {
             if(jsonData.state == "dead") {
@@ -685,15 +687,10 @@ function onMessage(evt) {
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
 };
 
-function setPlayerPos() {
-    var i;
-    playerPos = {}
-
-    for(i = 0; i < objs.length; i++) {
-
-        if(objs[i].player == playerId) {
-            playerPos.x = objs[i].x;
-            playerPos.y = objs[i].y;
+function setPlayer() {
+    for(var i = 0; i < objs.length; i++) {
+        if(objs[i].player == playerId && is_hero(objs[i].type)) {
+            heroId = objs[i].id;
         }
     }
 };
@@ -753,7 +750,7 @@ function drawMap(map) {
                 selectHex.y = this.y;
                 selectHex.visible = true;
 
-                drawLocalSelectPanel(this.tileX, this.tileY, this.tileImages);
+                drawSelectPanel(this.tileX, this.tileY, this.tileImages);
             }
         });
 
@@ -853,7 +850,6 @@ function drawObj() {
 
             if(localObj.player == playerId) {
                 if(is_hero(localObj.type)) {
-                    heroId = localObj.id;
                     visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
@@ -947,14 +943,13 @@ function drawObj() {
     console.log("drawObj - end");
 };
 
-function drawLocalSelectPanel(tileX, tileY, tileImages) {
+function drawSelectPanel(tileX, tileY, tileImages) {
     var tile = getLocalTile(tileX, tileY);
     var localObjs = getLocalObjsAt(tileX, tileY);
     var icons = [];
 
     var content = selectPanel.getChildByName("content");
     content.removeAllChildren();
-
  
     for(var i = 0; i < localObjs.length; i++) {
         var unitName = localObjs[i].type;
@@ -987,6 +982,8 @@ function drawLocalSelectPanel(tileX, tileY, tileImages) {
             for(var i = 0; i < icons.length; i++) {
                 var selectIcon = icons[i].getChildByName("selectIcon");
                 selectIcon.visible = false;
+                selectedUnit = false;
+                selectedTile = false;
             }
 
             var selectIcon = this.getChildByName("selectIcon");
@@ -1021,7 +1018,11 @@ function drawLocalSelectPanel(tileX, tileY, tileImages) {
         for(var i = 0; i < icons.length; i++) {
             var selectIcon = icons[i].getChildByName("selectIcon");
             selectIcon.visible = false;
+            selectedUnit = false;
+            selectedTile = false;
         }
+
+        selectedTile = {"x": this.tileX, "y": this.tileY};
 
         var selectIcon = this.getChildByName("selectIcon");
         selectIcon.visible = true;
@@ -1455,82 +1456,31 @@ function drawInfoOnTile(tileType, tileX, tileY, objsOnTile) {
     }
 };
 
-function drawInfoObj(jsonData) {
+function drawInfoTile(jsonData) {
     showInfoPanel();
 
-    var bandText = new createjs.Text(jsonData.name, h1Font, textColor);
-    bandText.x = Math.floor(infoPanelBg.width / 2);
-    bandText.y = 10;
-    bandText.textAlign = "center";
+    var tileName = jsonData.name + " (" + jsonData.x + ", " + jsonData.y + ")";   
+    var passable = jsonData.passable ? "yes" : "no";
 
-    var unitText = new createjs.Text("Units", h1Font, textColor);
-    unitText.x = 20;
-    unitText.y = 125;
+    var nameText = new createjs.Text(tileName, h1Font, textColor);
+    nameText.x = Math.floor(infoPanelBg.width / 2);
+    nameText.y = 10;
+    nameText.textAlign = "center";
+  
+    addChildInfoPanel(nameText);
 
-    addChildInfoPanel(bandText);
-    addChildInfoPanel(unitText);
+    var stats = "Wildness: " + jsonData.wildness + "\n" +
+                "Movement Cost: " + jsonData.mc + "\n" + 
+                "Defense Bonus: " + jsonData.def + "\n" + 
+                "Passable: " + passable + "\n";
 
-    if(jsonData.units.length > 0) {
-        for(var i = 0; i < jsonData.units.length; i++) {
-            var unitName = jsonData.units[i].name;
-            unitName = unitName.toLowerCase().replace(/ /g, '');
-            
-            var imagePath =  "/static/art/" + unitName + ".png";
-            var icon = new createjs.Container();
+    var statsText = new createjs.Text(stats, h1Font, textColor);
 
-            icon._id = jsonData.units[i]._id;
-
-            if(jsonData.units[i].hero == true) {
-                icon.x = Math.floor(infoPanelBg.width / 2) - hexSize/2;
-                icon.y = 40;
-            } else {
-                icon.x = 20 + i * 50;
-                icon.y = 145;
-            }
-
-            icon.on("mousedown", function(evt) {
-                sendInfoUnit(this._id);
-            });
-
-            addChildInfoPanel(icon);
-
-            imagesQueue.push({id: unitName, x: 0, y: 0, target: icon});
-            loaderQueue.loadFile({id: unitName, src: imagePath});
-        }
-
-        var itemText = new createjs.Text("Items", h1Font, textColor);
-        itemText.x = 20;
-        itemText.y = 225;
-
-        addChildInfoPanel(itemText);
-
-        for(var i = 0; i < jsonData.items.length; i++) {
-            var itemName = jsonData.items[i].name;
-            itemName = itemName.toLowerCase().replace(/ /g,'');
-            var imagePath = "/static/art/" + itemName + ".png";
-            var icon = new createjs.Container();
-            
-            icon._id = jsonData.items[i]._id;
-            icon.on("mousedown", function(evt) {
-                sendInfoItem(this._id);
-            });
-
-            icon.x = 20 + i * 50;
-            icon.y = 250;
-
-            addChildInfoPanel(icon);
-
-            imagesQueue.push({id: itemName, x: 0, y: 0, target: icon});
-            loaderQueue.loadFile({id: itemName, src: imagePath});
-        }
-    }
-    else {
-        var unitText = new createjs.Text("Unknown", h1Font, textColor);
-        unitText.x = 20;
-        unitText.y = 145;
-
-        addChildInfoPanel(unitText);    
-    }
+    statsText.lineHeight = 20;
+    statsText.x = 10;
+    statsText.y = 125;
+    
+    addChildInfoPanel(statsText);
 };
 
 function drawInfoUnit(jsonData) {
@@ -1556,47 +1506,64 @@ function drawInfoUnit(jsonData) {
                       y: 50, target: getInfoPanelContent()});
     loaderQueue.loadFile({id: unitName, src: imagePath});
 
-    var itemDamage = getItemDamage(jsonData.items);
-    var itemArmor = getItemArmor(jsonData.items);
+    if(jsonData.class == "unit") {
+        var itemDamage = getItemDamage(jsonData.items);
+        var itemArmor = getItemArmor(jsonData.items);
 
-    var base_dmg = Number(jsonData.base_dmg) + itemDamage;
-    var dmg_range = Number(jsonData.dmg_range) + itemDamage;
-    var armor = Number(jsonData.base_def) + itemArmor;
+        var base_dmg = Number(jsonData.base_dmg) + itemDamage;
+        var dmg_range = Number(jsonData.dmg_range) + itemDamage;
+        var armor = Number(jsonData.base_def) + itemArmor;
 
-    var stats = "--- Stats --- \n"
-              + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
-              + "Damage: " + base_dmg + " - " + dmg_range + "\n" 
-              + "Defense: " + armor + "\n"
-              + "Speed: " + jsonData.base_speed + "\n"
-              + "State: " + jsonData.state + "\n"
-              + "Xp: " + jsonData.xp + "\n";
+        var stats = "--- Stats --- \n"
+                  + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
+                  + "Damage: " + base_dmg + " - " + dmg_range + "\n" 
+                  + "Defense: " + armor + "\n"
+                  + "Speed: " + jsonData.base_speed + "\n"
+                  + "State: " + jsonData.state + "\n"
+                  + "Xp: " + jsonData.xp + "\n";
 
-    var statsText = new createjs.Text(stats, h1Font, textColor);
+        var statsText = new createjs.Text(stats, h1Font, textColor);
 
-    statsText.lineHeight = 20;
-    statsText.x = 10;
-    statsText.y = 125;
-    
-    addChildInfoPanel(statsText);
+        statsText.lineHeight = 20;
+        statsText.x = 10;
+        statsText.y = 125;
+        
+        addChildInfoPanel(statsText);
 
-    var skills = "--- Skills ---\n";
+        var effects = "--- Effects ---\n";
 
-    for(var i = 0; i < jsonData.skills.length; i++) {
-        var skillName = jsonData.skills[i].name;
-        var skillValue = jsonData.skills[i].value;
+        for(var i = 0; i < jsonData.effects.length; i++) {
+            var effectName = jsonData.effects[i].name;
 
-        var text = skillName + ": " + skillValue + "\n";
-        skills += text;
+            var text = effectName + "\n";
+            effects += text;
+        }
+
+        var effectsText = new createjs.Text(effects, h1Font, textColor);
+        effectsText.lineHeight = 20;
+        effectsText.x = 200;
+        effectsText.y = 125;
+
+        addChildInfoPanel(effectsText);
+
+        var skills = "--- Skills ---\n";
+
+        for(var i = 0; i < jsonData.skills.length; i++) {
+            var skillName = jsonData.skills[i].name;
+            var skillValue = jsonData.skills[i].value;
+
+            var text = skillName + ": " + skillValue + "\n";
+            skills += text;
+        }
+
+        var skillsText = new createjs.Text(skills, h1Font, textColor);
+        skillsText.lineHeight = 20;
+        skillsText.x = 200;
+        skillsText.y = 125;
+
+        //addChildInfoPanel(skillsText);
     }
-
-    var skillsText = new createjs.Text(skills, h1Font, textColor);
-    skillsText.lineHeight = 20;
-    skillsText.x = 200;
-    skillsText.y = 125;
-
-    addChildInfoPanel(skillsText);
-
-    /*if(jsonData.hasOwnProperty("req")) {
+    else if(jsonData.class == "structure") {
         var req = "--- Requirements ---\n";
 
         for(var i = 0; i < jsonData.req.length; i++) {
@@ -1610,7 +1577,7 @@ function drawInfoUnit(jsonData) {
         reqText.y = 225;
 
         addChildInfoPanel(reqText);
-    }*/
+    }
 
     var itemText = new createjs.Text("--- Items --- ", h1Font, textColor);
     itemText.x = 10;
@@ -2026,6 +1993,9 @@ function initUI() {
     detailsButton.on("mousedown", function(evt) {
         if(selectedUnit != false) {
             sendInfoUnit(selectedUnit);
+        } 
+        else if(selectedTile != false) {
+            sendInfoTile(selectedTile['x'], selectedTile['y']);
         }
     
         this.removeAllChildren();

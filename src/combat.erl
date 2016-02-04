@@ -94,6 +94,7 @@ process_defend(SourceId, DefendType) ->
 
 process_attack(AttackType, AtkId, DefId) ->
     [AtkObj] = db:read(obj, AtkId),
+    [DefObj] = db:read(obj, DefId),
 
     AtkUnit = obj:get(AtkId),
     DefUnit = obj:get(DefId),
@@ -130,7 +131,11 @@ process_attack(AttackType, AtkId, DefId) ->
     %Apply armor and defend ection reductions
     ArmorReduction = TotalArmor / (TotalArmor + 50),
     DmgReducedArmor = round(DmgRoll * (1 - ArmorReduction)),
-    DmgReduced = defend_type_mod(HasDefend) * DmgReducedArmor,
+
+    DefendTypeMod = defend_type_mod(HasDefend),
+    TerrainMod = maps:defense_bonus(DefObj#obj.pos),
+
+    DmgReduced = TerrainMod * DefendTypeMod * DmgReducedArmor,
 
     %Apply attack type modifier
     Dmg = DmgReduced * attack_type_mod(AttackType),

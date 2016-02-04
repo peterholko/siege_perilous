@@ -6,7 +6,7 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([check/1]).
+-export([check/1, get_wildness/1]).
 
 check(Pos) ->
     [Tile] = map:get_tile(Pos),
@@ -23,6 +23,14 @@ check(Pos) ->
     case Random < EffectiveSpawnRate of
         true -> spawn_npc(TileName, Pos);
         false -> nothing
+    end.
+
+get_wildness(Pos) ->
+    case db:read(encounter, Pos) of
+        [Encounter] ->
+            wildness(Encounter#encounter.num);
+        [] ->
+            wildness(0)
     end.
 
 spawn_npc(TileName, Pos) ->
@@ -77,3 +85,8 @@ increase_num(Pos) ->
                 end,
 
     db:write(NewEncounter).
+
+wildness(0) -> <<"Savage">>;
+wildness(1) -> <<"Savage">>;
+wildness(2) -> <<"Wild">>;
+wildness(_) -> <<"Tamed">>.

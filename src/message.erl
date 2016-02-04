@@ -146,7 +146,7 @@ message_handle(<<"item_split">>, Message) ->
     BinItem = util:hex_to_bin(Item),
 
     QuantityStr = map_get(<<"quantity">>, Message),
-    Quantity = list_to_integer(binary_to_list(QuantityStr)),
+    Quantity = binary_to_integer(QuantityStr),
 
     Result = player:item_split(BinItem, Quantity),
 
@@ -271,17 +271,12 @@ message_handle(<<"get_stats">>, Message) ->
 
 message_handle(<<"info_tile">>, Message) ->
     lager:info("message: info_tile"),
-    Pos = map_get(<<"pos">>, Message),
-    InfoMaps = player:get_info_tile(Pos),
+    Id = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(Id),
+    X = map_get(<<"x">>, Message),
+    Y = map_get(<<"y">>, Message),
+    InfoMaps = player:get_info_tile(BinId, {X, Y}),
     ReturnMsg = maps:put(<<"packet">>, <<"info_tile">>, InfoMaps),
-    jsx:encode(ReturnMsg);
-
-message_handle(<<"info_obj">>, Message) ->
-    lager:info("message: info_obj"),
-    HexId = map_get(<<"id">>, Message),
-    BinId = util:hex_to_bin(HexId),
-    InfoMaps = to_hex(player:get_info_obj(BinId)),
-    ReturnMsg = maps:put(<<"packet">>, <<"info_obj">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
 message_handle(<<"info_unit">>, Message) ->

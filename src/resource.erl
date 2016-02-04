@@ -67,6 +67,7 @@ quantity(<<"low">>) -> 10;
 quantity(Quantity) when Quantity > 25 -> <<"high">>;
 quantity(Quantity) when Quantity > 10 -> <<"average">>;
 quantity(Quantity) when Quantity >  0 -> <<"low">>;
+quantity(0) -> <<"exhausted">>;
 quantity(_) -> lager:info("Error converting quantity").
 
 create(ResourceType, Quantity, Pos, WithObj) ->
