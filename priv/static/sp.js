@@ -1564,19 +1564,33 @@ function drawInfoUnit(jsonData) {
         //addChildInfoPanel(skillsText);
     }
     else if(jsonData.class == "structure") {
-        var req = "--- Requirements ---\n";
+        var stats = "--- Stats --- \n"
+                  + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
+                  + "State: " + jsonData.state + "\n";
 
-        for(var i = 0; i < jsonData.req.length; i++) {
-            req += "  " + jsonData.req[i].quantity + " " + jsonData.req[i].type + "\n";
+        var statsText = new createjs.Text(stats, h1Font, textColor);
+
+        statsText.lineHeight = 20;
+        statsText.x = 10;
+        statsText.y = 125;
+        
+        addChildInfoPanel(statsText);
+
+        if(jsonData.state != "none") {
+            var req = "--- Requirements ---\n";
+
+            for(var i = 0; i < jsonData.req.length; i++) {
+                req += "  " + jsonData.req[i].quantity + " " + jsonData.req[i].type + "\n";
+            }
+
+            var reqText = new createjs.Text(req, h1Font, textColor);
+
+            reqText.lineHeight = 20;
+            reqText.x = 10;
+            reqText.y = 225;
+
+            addChildInfoPanel(reqText);
         }
-
-        var reqText = new createjs.Text(req, h1Font, textColor);
-
-        reqText.lineHeight = 20;
-        reqText.x = 10;
-        reqText.y = 225;
-
-        addChildInfoPanel(reqText);
     }
 
     var itemText = new createjs.Text("--- Items --- ", h1Font, textColor);

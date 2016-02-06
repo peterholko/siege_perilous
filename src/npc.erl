@@ -268,10 +268,10 @@ compare_distance(NewDistance, Distance, _New, Old) when NewDistance >= Distance 
 compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance ->
     {New, NewDistance}.
 
-remove_walled(ObjList) ->
+remove_fortified(ObjList) ->
     F = fun(Obj) ->
-            IsWalled = obj:has_effect(Obj#obj.id, ?WALL),
-            not IsWalled
+            IsFortified = obj:has_effect(Obj#obj.id, ?FORTIFIED),
+            not IsFortified
         end,
     lists:filter(F, ObjList).
 
@@ -301,19 +301,14 @@ get_wander_pos(false,  _, Neighbours) ->
     get_wander_pos(IsEmpty, RandomPos, NewNeighbours).
 
 check_wall(#obj{id = Id} = EnemyUnit) ->    
-    Effect = db:read(effect, {Id, ?WALL}),
-
-    Target = case Effect =/= [] of
-                true ->
-                    [EffectR] = Effect,
-                    WallId = EffectR#effect.data,
-                    [Wall] = db:read(obj, WallId),
-                    Wall;
-                false ->
-                    EnemyUnit
-             end,
-    Target;
-
+    case db:read(effect, {Id, ?FORTIFIED}) of
+        [Effect] ->
+            WallId = Effect#effect.data,
+            [Wall] = db:read(obj, WallId),
+            Wall;
+        [] ->
+            EnemyUnit
+    end;
 check_wall(_) ->
     none.
 
@@ -330,7 +325,7 @@ find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     Target = check_wall(EnemyUnit),
     return_target(Target);
 find_target(NPCObj, <<"animal">>, <<"high">>, AllEnemyUnits) ->
-    EnemyUnits = remove_structures(remove_dead(remove_walled(AllEnemyUnits))),
+    EnemyUnits = remove_structures(remove_dead(remove_fortified(AllEnemyUnits))),
     EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
     return_target(EnemyUnit). 
 

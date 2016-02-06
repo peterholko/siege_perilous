@@ -164,12 +164,19 @@ do_event(finish_build, EventData, _PlayerPid) ->
     lager:debug("Processing build event: ~p", [EventData]),
     {ObjId, StructureId} = EventData,
 
+    %Set unit builder state to none
     obj:update_state(ObjId, none),
-    NewStructure = obj:update_state(StructureId, none), 
 
-    obj:set_wall_effect(NewStructure), 
-    
-    obj:update(StructureId, <<"hp">>, 1000),
+    %Set structure state to none
+    StructureObj = obj:update_state(StructureId, none), 
+
+    %Set structure hp to max
+    StructureM = obj:get(StructureId),
+    BaseHp = maps:get(<<"base_hp">>, StructureM),
+    obj:update(StructureId, <<"hp">>, BaseHp),
+
+    %Trigger any effects caused by new structure
+    obj:trigger_effects(add, StructureObj), 
 
     true;
 
@@ -238,14 +245,14 @@ process_transition(NumTick) when (NumTick rem (?TICKS_MIN * 2)) =:= 0 ->
 process_transition(_) -> nothing.
 
 process_upkeep(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
-    process_mana_upkeep(),
-    process_food_upkeep();
+    mana_upkeep(),
+    food_upkeep(),
+    structure_upkeep();
 process_upkeep(_) -> nothing.
 
 process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
     process_rest_state();
 process_rest(_) -> nothing.
-
 
 execute_npc(NumTick) when (NumTick rem (?TICKS_SEC * 5)) =:= 0 ->
     npc:replan(?UNDEAD),
@@ -360,7 +367,7 @@ spawn_mana(N, NearbyList) ->
     NewNearbyList = lists:delete(RandomPos, NearbyList),
     spawn_mana(N + 1, NewNearbyList).
 
-process_mana_upkeep() ->
+mana_upkeep() ->
     Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->
@@ -386,13 +393,13 @@ update_mana(Monolith, Mana) ->
             nothing
     end.
 
-process_food_upkeep() ->
+food_upkeep() ->
     Units = db:index_read(obj, unit, #obj.class),
 
     F = fun(Unit = #obj{player = Player}) when Player =/= ?UNDEAD ->
             case item:get_by_subclass(Unit#obj.id, ?FOOD) of
                 [] ->
-                    obj:add_effect(Unit#obj.id, <<"starving">>, none),
+                    obj:add_effect(Unit#obj.id, <<"Starving">>, none),
 
                     ObjM = obj:get(Unit#obj.id),
                     Hp = maps:get(<<"hp">>, ObjM),
@@ -402,7 +409,6 @@ process_food_upkeep() ->
                     obj:update(Unit#obj.id, <<"hp">>, NewHp),
                     game:send_update_stats(Player, NewObjM); 
                 [Item | _Rest] ->
-
                     ItemId = maps:get(<<"_id">>, Item),
                     NewQuantity = maps:get(<<"quantity">>, Item) - 1,
                     item:update(ItemId, NewQuantity)
@@ -412,11 +418,20 @@ process_food_upkeep() ->
 
     lists:foreach(F, Units).
 
+structure_upkeep() ->
+    Structures = db:index_read(obj, structure, #obj.class),
+
+    F = fun(Structure) ->
+            structure:process_upkeep(Structure)
+        end,
+
+    lists:foreach(F, Structures).
+
 process_rest_state() ->
     Objs = db:index_read(obj, rest, #obj.state),
 
     F = fun(Obj) ->
-            case obj:has_effect(Obj#obj.id, <<"starving">>) of
+            case obj:has_effect(Obj#obj.id, <<"Starving">>) of
                 false ->
                     ObjM = obj:get(Obj#obj.id),
                     Hp = maps:get(<<"hp">>, ObjM),

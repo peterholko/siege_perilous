@@ -133,7 +133,8 @@ process_attack(AttackType, AtkId, DefId) ->
     DmgReducedArmor = round(DmgRoll * (1 - ArmorReduction)),
 
     DefendTypeMod = defend_type_mod(HasDefend),
-    TerrainMod = maps:defense_bonus(DefObj#obj.pos),
+    %TerrainMod = map:defense_bonus(DefObj#obj.pos),
+    TerrainMod = 1,
 
     DmgReduced = TerrainMod * DefendTypeMod * DmgReducedArmor,
 
@@ -185,7 +186,7 @@ is_adjacent(SourceObj, TargetObj) ->
     end.
 
 is_targetable(#obj{id = Id}) ->
-    HasWall = obj:has_effect(Id, ?WALL),
+    HasWall = obj:has_effect(Id, ?FORTIFIED),
     IsTargetable = not HasWall,
     lager:info("is_targetable: ~p", [IsTargetable]),
     IsTargetable.
@@ -209,8 +210,8 @@ process_unit_dead(DefId) ->
     %Remove potential npc entry
     npc:remove(DefId),
 
-    %Remove potential wall effect
-    obj:set_wall_effect(NewObj).
+    %Trigger removal of any effects caused by this obj
+    obj:trigger_effects(remove, NewObj).
 
 attack_type_mod(?QUICK) -> 0.5;
 attack_type_mod(?PRECISE) -> 1;

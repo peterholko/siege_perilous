@@ -10,9 +10,8 @@
 
 -export([init_perception/1]).
 -export([create/6, remove/1, move/2]).
--export([set_wall_effect/1]).
 -export([update_state/2, update_dead/1]).
--export([add_effect/3, remove_effect/2, has_effect/2]).
+-export([add_effect/3, remove_effect/2, has_effect/2, trigger_effects/2]).
 -export([is_empty/1, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_not_npc/1]).
@@ -138,27 +137,33 @@ get_effects(Id) ->
 
     lists:foldl(F, [], Effects).
 
+trigger_effects(add, #obj{id = WallId, pos = Pos, subclass = Subclass}) when Subclass =:= ?WALL ->
+    Objs = get_by_pos(Pos),
+
+    F = fun(Obj) ->
+            case Obj#obj.class =:= unit of
+                true -> add_effect(Obj#obj.id, ?FORTIFIED, WallId);
+                false -> nothing
+            end
+        end,
+    lists:foreach(F, Objs);
+
+trigger_effects(remove, #obj{pos = Pos, subclass = Subclass}) when Subclass =:= ?WALL ->
+    Objs = get_by_pos(Pos),
+
+    F = fun(Obj) ->
+            case Obj#obj.class =:= unit of 
+                true -> remove_effect(Obj#obj.id, ?FORTIFIED);
+                false -> nothing
+            end
+        end,
+    lists:foreach(F, Objs);
+trigger_effects(_, _) -> nothing.
+
 is_empty(Pos) ->
     Objs = db:dirty_index_read(obj, Pos, #obj.pos),
     Units = filter_units(Objs),
     Units =:= [].
-
-set_wall_effect(_ = #obj{id = _Id,
-                         subclass = Subclass,
-                         state = State,
-                         pos = Pos}) when Subclass =:= ?WALL ->
-    lager:debug("Set wall effect"),
-    Objs = get_by_pos(Pos),
-    AddOrRemove = is_add_remove_wall(State),
-
-    F = fun(Obj) ->
-            update_wall_effect(AddOrRemove, Obj)
-        end,
-
-    lists:foreach(F, Objs);
-      
-set_wall_effect(_) ->
-    nothing.
 
 item_transfer(#obj {id = Id, 
                     subclass = Subclass, 
@@ -210,10 +215,8 @@ update(Id, Attr, Val) ->
 %% Internal Functions
 %%
 
-get_by_pos(QueryPos) ->
-    MS = ets:fun2ms(fun(N = #obj{pos = Pos}) when Pos =:= QueryPos -> N end),
-    Objs = db:select(obj, MS),
-    Objs.
+get_by_pos(Pos) ->
+    db:index_read(obj, Pos, #obj.pos).
 
 get_unit_by_pos(QueryPos) ->
     MS = ets:fun2ms(fun(N = #obj{pos = Pos,
@@ -263,13 +266,13 @@ is_not_npc(#obj {player = Player}) when Player >= 1000 -> true;
 is_not_npc(_) -> false.
 
 apply_wall(false, #obj {id = Id}) ->
-    case has_effect(Id, ?WALL) of
-        true -> remove_effect(Id, ?WALL);
+    case has_effect(Id, ?FORTIFIED) of
+        true -> remove_effect(Id, ?FORTIFIED);
         false -> nothing
     end;
 apply_wall(true, #obj {id = Id, pos = Pos}) ->
     Wall = get_wall(Pos),
-    add_effect(Id, ?WALL, Wall#obj.id).
+    add_effect(Id, ?FORTIFIED, Wall#obj.id).
 
 apply_sanctuary(false, #obj {id = Id}) ->
     case has_effect(Id, ?SANCTUARY) of
@@ -284,19 +287,6 @@ process_subclass(Id, <<"npc">>) ->
     db:write(NPC);
 process_subclass(_, _) ->
     nothing.
-
-is_add_remove_wall(true) -> add;
-is_add_remove_wall(false) -> remove;
-is_add_remove_wall(_State = none) -> add;
-is_add_remove_wall(_State) -> remove.
-
-update_wall_effect(add, #obj{id = Id, pos = Pos, class = Class}) when Class =:= unit ->
-    Wall = get_wall(Pos),
-    add_effect(Id, ?WALL, Wall#obj.id);
-update_wall_effect(remove, #obj{id = Id, class = Class}) when Class =:= unit ->
-    remove_effect(Id, ?WALL);
-update_wall_effect(_, _Obj) ->
-    lager:info("Not applying wall effect to non-unit").
 
 movement_cost(_Obj, NextPos) ->
     %Check unit skills 
@@ -404,11 +394,11 @@ info_other(Id) ->
 
 find_one(Key, Value) ->
     mdb:find_one(<<"obj">>, Key, Value).
-find(Key, Value) ->
-    mdb:find(<<"obj">>, Key, Value).
+%find(Key, Value) ->
+%    mdb:find(<<"obj">>, Key, Value).
 %find(Tuple) ->
 %    mdb:find(<<"obj">>, Tuple).
-find_type(Key, Value) ->
-    mdb:find(<<"obj_type">>, Key, Value).
+%find_type(Key, Value) ->
+%    mdb:find(<<"obj_type">>, Key, Value).
 find_one_type(Key, Value) ->
     mdb:find_one(<<"obj_type">>, Key, Value).

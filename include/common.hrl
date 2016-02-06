@@ -47,8 +47,9 @@
 
 -define(STARVING, <<"Starving">>).
 -define(SANCTUARY, <<"Sanctuary">>).
--define(WALL, <<"Fortified">>).
+-define(FORTIFIED, <<"Fortified">>).
 
+-define(WALL, <<"Wall">>).
 -define(MONOLITH, <<"monolith">>).
 
 -define(QUICK, <<"quick">>).

@@ -12,6 +12,7 @@
 -export([list/0, recipe_list/1, process/1, craft/2]).
 -export([check_req/1, has_process_res/1, check_recipe_req/2]).
 -export([combine_stats/2, craft_item_name/2]).
+-export([process_upkeep/1, process_upkeep_item/3]).
 
 start_build(PlayerId, Pos, StructureType) ->
     Name = maps:get(<<"name">>, StructureType),
@@ -108,6 +109,33 @@ valid_location(_, QueryPos) ->
 
     % True if no objs, False if Wall objs
     Objs =:= [].
+
+process_upkeep(Structure) ->
+    ObjM = obj:get(Structure#obj.id),
+    UpkeepList = maps:get(<<"upkeep">>, ObjM),
+
+    F = fun(UpkeepReq, PrevIsDecaying) ->
+            Subclass = maps:get(<<"type">>, UpkeepReq),
+            UpkeepQuantity = maps:get(<<"quantity">>, UpkeepReq),
+            
+            IsDecaying = process_upkeep_item(Structure, Subclass, UpkeepQuantity),
+            IsDecaying or PrevIsDecaying
+        end,
+
+    Decaying = lists:foldl(F, false, UpkeepList),
+
+    lager:info("Decaying: ~p", [Decaying]),
+
+    case Decaying of
+        true ->
+            Hp = maps:get(<<"hp">>, ObjM),
+            NewHp = Hp - 1,
+            obj:update(Structure#obj.id, <<"hp">>, NewHp),
+
+            obj:add_effect(Structure#obj.id, <<"Decaying">>, none);
+        false ->
+            obj:remove_effect(Structure#obj.id, <<"Decaying">>)
+    end.
 %
 % Internal functions
 %
@@ -256,4 +284,24 @@ get_recipe(ItemName) ->
     [Recipe] = mc_cursor:rest(Cursor),
     mc_cursor:close(Cursor),
     Recipe.
+
+process_upkeep_item(Structure, Subclass, UpkeepQuantity) ->
+    lager:info("~p ~p ~p", [Structure, Subclass, UpkeepQuantity]),
+    case item:get_by_subclass(Structure#obj.id, Subclass) of
+        [Item | _Rest] ->
+            ItemId = maps:get(<<"_id">>, Item),
+            Quantity = maps:get(<<"quantity">>, Item),
+
+            case Quantity >= UpkeepQuantity of
+               true ->
+                   NewQuantity = Quantity - UpkeepQuantity,
+                   item:update(ItemId, NewQuantity),
+                   false;
+               false ->
+                   item:update(ItemId, 0),
+                   true
+            end;
+        [] ->
+            true
+    end.
 
