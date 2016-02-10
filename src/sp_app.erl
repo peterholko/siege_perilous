@@ -33,6 +33,9 @@ start(_Type, _Args) ->
     lager:info("Starting mongodb..."),
     mdb:start(),
 
+    lager:info("Import data from database"),
+    db:import(),
+
     lager:info("Starting game process..."),
     game:start(),
 

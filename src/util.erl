@@ -28,7 +28,8 @@
          console_on/0,
          console_off/0,
          debug/1,
-         capfirst/1
+         capfirst/1,
+         get_id/0
         ]).
 
 %%
@@ -108,3 +109,7 @@ capfirst([Head | Tail]) when Head >= $a, Head =< $z ->
     [Head + ($A - $a) | Tail];
 capfirst(Other) ->
     Other.
+
+get_id() ->
+    Time = bson:timenow(),
+    bson:objectid(bson:unixtime_to_secs(Time), <<2:24/big, 3:16/big>>, counter:increment(id)).

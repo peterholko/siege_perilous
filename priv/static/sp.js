@@ -1187,7 +1187,9 @@ function drawLootDialog(jsonData) {
 
     addChildSmallDialogPanel(title);
 
-    for(var i = 0; i < jsonData.items.length; i++) {
+    var numItems = jsonData.items.length;
+
+    for(var i = 0; i < numItems; i++) {
         var itemName = jsonData.items[i].name;            
         itemName = itemName.toLowerCase().replace(/ /g,'');
 
@@ -1205,7 +1207,7 @@ function drawLootDialog(jsonData) {
             }
         });
 
-        icon.x = smallDialogPanelBg.width / 2 - 24;
+        icon.x = smallDialogPanelBg.width / 2 - (numItems * 24) + (i * 50);
         icon.y = smallDialogPanelBg.height / 2 + 5 - 24;
 
         addChildSmallDialogPanel(icon);

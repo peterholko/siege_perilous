@@ -18,6 +18,7 @@
          write/1, read/2, delete/2, index_read/3, select/2,
          dirty_write/1, dirty_read/2, dirty_index_read/3, dirty_delete/2, dirty_match_object/1,
          dirty_delete_object/1, dump/1,
+         import/0,
          reset_tables/0,
          do/1
         ]).
@@ -41,7 +42,9 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(perception, [{ram_copies, [node()]}, {attributes, record_info(fields, perception)}]),  
     {atomic, ok} = mnesia:create_table(event, [{disc_copies, [node()]}, {attributes, record_info(fields, event)}]),    
     {atomic, ok} = mnesia:create_table(map, [{ram_copies, [node()]}, {attributes, record_info(fields, map)}]),    
-    {atomic, ok} = mnesia:create_table(obj, [{disc_copies, [node()]}, {attributes, record_info(fields, obj)}]),    
+    {atomic, ok} = mnesia:create_table(obj, [{ram_copies, [node()]}, {attributes, record_info(fields, obj)}]),    
+    {atomic, ok} = mnesia:create_table(obj_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_attr)}]),    
+    {atomic, ok} = mnesia:create_table(obj_def, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_def)}]),    
     {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource_def, [{disc_copies, [node()]}, {attributes, record_info(fields, resource_def)}]),
     {atomic, ok} = mnesia:create_table(poi_def, [{disc_copies, [node()]}, {attributes, record_info(fields, poi_def)}]),
@@ -76,6 +79,26 @@ start() ->
     mnesia:start(),
     mnesia:wait_for_tables([counter, player, connection, map, obj, explored_map, perception,
                             event, action, resource, world], 1000).
+
+import() ->
+    ObjDefTable = mdb:dump(<<"obj_type">>),
+
+    F = fun(ObjDef) ->
+            ObjName = maps:get(<<"name">>, ObjDef),
+            ObjList = maps:to_list(ObjDef),
+            import_entry(ObjName, ObjList)
+        end,
+
+    lists:foreach(F, ObjDefTable).
+
+import_entry(ObjName, ObjList) ->
+    F = fun({Attr, Value}) ->       
+            Key = {ObjName, Attr},
+            R = {obj_def, Key, Value},
+            db:dirty_write(R)
+        end,
+
+    lists:foreach(F, ObjList).
 
 write(R) ->
     F = fun() -> mnesia:write(R) end,

@@ -10,15 +10,13 @@
 
 -export([init_perception/1]).
 -export([create/6, remove/1, move/2]).
--export([update_state/2, update_dead/1]).
+-export([update_state/2, update_hp/2, update_stamina/2, update_dead/1]).
 -export([add_effect/3, remove_effect/2, has_effect/2, trigger_effects/2]).
 -export([is_empty/1, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_not_npc/1]).
 -export([item_transfer/2]).
-
--export([get/1, get_stats/1, get_info/1, get_info_other/1, get_type/1]).
--export([update/3]).
+-export([get/1, get_stats/1, get_info/1, get_info_other/1]).
 
 init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
@@ -31,10 +29,13 @@ init_perception(PlayerId) ->
     {ExploredMap, ObjData}.
 
 create(Pos, PlayerId, Class, Subclass, Name, State) ->
-    %Create mongodb obj
-    [ObjM] = create(Class, Name),
-    Id = maps:get(<<"_id">>, ObjM),
-    Vision = maps:get(<<"vision">>, ObjM, 0),
+    Id = util:get_id(),
+    
+    %Create obj attr entries from obj def entries
+    create_obj_attr(Id, Name),
+
+    %Get base attributes
+    Vision = obj_attr:value(Id, <<"base_vision">>, 0),
 
     %Create mnesia obj
     Obj = #obj {id = Id,
@@ -90,7 +91,6 @@ move(Id, Pos) ->
 
 update_state(Id, State) ->
     lager:debug("Update state: ~p ~p", [Id, State]),
-    %TODO make transaction
     [Obj] = db:read(obj, Id),
     NewObj = Obj#obj {state = State},
     db:write(NewObj),
@@ -99,6 +99,27 @@ update_state(Id, State) ->
     game:trigger_perception(),
 
     NewObj.
+
+update_hp(Id, Value) ->
+    Hp = obj_attr:value(Id, <<"hp">>),
+    BaseHp = obj_attr:value(Id, <<"base_hp">>),
+    lager:info("Hp: ~p, BaseHp: ~p Value: ~p", [Hp, BaseHp, Value]),
+    NewHp = set_attr(Hp, BaseHp, Value),
+    lager:info("NewHp: ~p", [NewHp]),
+
+    case NewHp =< 0 of
+        true -> update_dead(Id);
+        false -> nothing
+    end,
+
+    obj_attr:set(Id, <<"hp">>, NewHp).
+
+update_stamina(Id, Value) ->
+    Stamina = obj_attr:value(Id, <<"stamina">>),
+    BaseStamina = obj_attr:value(Id, <<"base_stamina">>),
+    NewStamina = set_attr(Stamina, BaseStamina, Value),
+
+    obj_attr:set(Id, <<"stamina">>, NewStamina).
 
 update_dead(Id) ->
     [Obj] = db:read(obj, Id),
@@ -111,7 +132,6 @@ update_dead(Id) ->
     game:trigger_perception(),
 
     NewObj.
-
 
 add_effect(Id, EffectType, EffectData) ->
     Effect = #effect {key = {Id, EffectType},
@@ -184,18 +204,16 @@ item_transfer(#obj {id = Id, class = Class}, Item) when Class =:= unit ->
      end;
 item_transfer(_Obj, _Item) -> nothing.
 
-%%
-%% MongoDB Functions
-%%
-
+%Get obj or return false
 get(Id) ->
-    find_one(<<"_id">>, Id).
+    case db:read(obj, Id) of
+        [Obj] -> Obj;
+        _ -> false
+    end.
 
-get_stats(ObjM) when is_map(ObjM) -> 
-    stats(ObjM);
-get_stats(Id) when is_tuple(Id) -> 
-    ObjM = find_one(<<"_id">>, Id),
-    stats(ObjM).
+%Get vital stats
+get_stats(Id) ->
+    stats(Id).
 
 %Get all stats, items, skills, effects for player owned unit
 get_info(Id) ->
@@ -204,12 +222,6 @@ get_info(Id) ->
 %Get info for all other objects
 get_info_other(Id) ->
     info_other(Id).
-
-get_type(TypeName) ->
-    find_one_type(<<"name">>, TypeName).
-
-update(Id, Attr, Val) ->
-    mdb:update(<<"obj">>, Id, {Attr, Val}).
 
 %%
 %% Internal Functions
@@ -283,6 +295,7 @@ apply_sanctuary(true, #obj{id = Id}) ->
     add_effect(Id, ?SANCTUARY, none).
 
 process_subclass(Id, <<"npc">>) ->
+    %Add npc entry
     NPC = #npc {id = Id},
     db:write(NPC);
 process_subclass(_, _) ->
@@ -323,30 +336,14 @@ get_monolith_radius(<<"Greater Monolith">>) -> 2.
 %%
 %% Internal MongoDB functions
 %%
-create(structure, TypeName) ->
-    lager:info("Creating structure ~p", [TypeName]),
-    ObjType = find_one_type(<<"name">>, TypeName),
-    UpdatedObjType = maps:put(<<"hp">>, 1, ObjType),
-    insert(UpdatedObjType);
 
-create(Class, TypeName) ->
-    lager:info("Creating obj (~p / ~p)", [Class, TypeName]),
-    ObjType = find_one_type(<<"name">>, TypeName),
-    insert(ObjType).
-
-insert(Type) ->
-    NewType = maps:remove(<<"_id">>, Type),
-    Obj = mongo:insert(mdb:get_conn(), <<"obj">>, [NewType]),
-    Obj.
-
-stats(ObjM) ->
+stats(Id) ->
     Stats = maps:new(),
-
-    Id = maps:get(<<"_id">>, ObjM),
-    Hp = maps:get(<<"hp">>, ObjM, 0),
-    BaseHp = maps:get(<<"base_hp">>, ObjM, 0),
-    Stamina = maps:get(<<"stamina">>, ObjM, 0),
-    BaseStamina = maps:get(<<"base_stamina">>, ObjM, 0),
+   
+    Hp = obj_attr:value(Id, <<"hp">>),
+    BaseHp = obj_attr:value(Id, <<"base_hp">>),
+    Stamina = obj_attr:value(Id, <<"stamina">>),
+    BaseStamina = obj_attr:value(Id, <<"base_stamina">>),
 
     Effects = get_effects(Id),
 
@@ -359,9 +356,6 @@ stats(ObjM) ->
     Stats5.
 
 info(Id) ->
-    %Get Mongo obj
-    ObjM = find_one(<<"_id">>, Id),
-
     %Get Mnesia obj
     [Obj] = db:read(obj, Id),
 
@@ -370,8 +364,11 @@ info(Id) ->
     Skills = skill:get_by_owner(Id),
     Effects = get_effects(Id),
 
-    %Build stats
-    Info1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), ObjM), 
+    %Get attrs
+    Attrs = obj_attr:all_to_map(Id),
+
+    %State, items, skills, effects stats
+    Info1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Attrs), 
     Info2 = maps:put(<<"items">>, Items, Info1),
     Info3 = maps:put(<<"skills">>, Skills, Info2),
     Info4 = maps:put(<<"effects">>, Effects, Info3),
@@ -380,25 +377,36 @@ info(Id) ->
 info_other(Id) ->
     %Get Mnesia obj
     [Obj] = db:read(obj, Id),
-
-    %Get Mongo obj    
-    ObjM = find_one(<<"_id">>, Id),    
-    Name = maps:get(<<"name">>, ObjM),
+    
+    Items = item:get_by_owner(Id),    
     Effects = get_effects(Id),
 
     Info1 = maps:put(<<"_id">>, Id, #{}),
-    Info2 = maps:put(<<"name">>, Name, Info1),
+    Info2 = maps:put(<<"name">>, Obj#obj.name, Info1),
     Info3 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info2),
     Info4 = maps:put(<<"effects">>, Effects, Info3),
-    Info4.
 
-find_one(Key, Value) ->
-    mdb:find_one(<<"obj">>, Key, Value).
-%find(Key, Value) ->
-%    mdb:find(<<"obj">>, Key, Value).
-%find(Tuple) ->
-%    mdb:find(<<"obj">>, Tuple).
-%find_type(Key, Value) ->
-%    mdb:find(<<"obj_type">>, Key, Value).
-find_one_type(Key, Value) ->
-    mdb:find_one(<<"obj_type">>, Key, Value).
+    % Add items if obj is dead to info
+    case Obj#obj.state of
+        dead -> maps:put(<<"items">>, Items, Info4);
+        _ -> Info4
+    end.
+
+create_obj_attr(Id, Name) ->
+    AllObjDef = obj_def:all(Name),
+    
+    F = fun(ObjDef) -> 
+            {Name, Attr} = ObjDef#obj_def.key,
+            AttrKey = {Id, Attr},
+            ObjAttr = #obj_attr {key = AttrKey, 
+                                 value = ObjDef#obj_def.value},
+            db:dirty_write(ObjAttr)
+        end,
+
+    lists:foreach(F, AllObjDef).
+
+set_attr(Current, _Base, Change) when (Current + Change) =< 0 -> 0;
+set_attr(Current, Base, Change) when (Current + Change) > Base -> Base;
+set_attr(Current, _Base, Change) -> Current + Change.
+
+

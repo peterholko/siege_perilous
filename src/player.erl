@@ -217,21 +217,23 @@ item_transfer(TargetId, ItemId) ->
     Item = item:get(ItemId),
     Owner = maps:get(<<"owner">>, Item),
 
-    [OwnerObj] = db:read(obj, Owner),   
-    [TargetObj] = db:read(obj, TargetId), 
+    OwnerObj = obj:get(Owner),   
+    TargetObj = obj:get(TargetId), 
+    lager:info("OwnerObj: ~p", [OwnerObj]),
+    lager:info("TargetObj: ~p", [TargetObj]),
 
-    ValidOwner = OwnerObj#obj.player =:= Player andalso
-                 OwnerObj#obj.pos =:= TargetObj#obj.pos,
+    Checks = [{TargetObj =/= false, "Invalid transfer target"},
+              {is_player_owned(OwnerObj#obj.player, Player), "Item not owned by player"},
+              {map:is_adjacent(OwnerObj#obj.pos, TargetObj#obj.pos), "Item is not adjacent"}],
 
-    case ValidOwner of 
+    case process_checks(Checks) of 
         true ->
             lager:info("Transfering item"),
             item:transfer(ItemId, TargetId),
             obj:item_transfer(TargetObj, Item),
-            <<"success">>;
-        false ->
-            lager:info("Player does not own item: ~p", [ItemId]),
-            <<"Player does not own item">>
+            #{<<"result">> => <<"success">>};
+       {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
 item_split(ItemId, Quantity) ->
@@ -261,17 +263,16 @@ item_split(ItemId, Quantity) ->
 structure_list() ->
     structure:list().
 
-build(ObjId, Structure) ->
-    lager:info("Build ~p ~p", [ObjId, Structure]),
+build(ObjId, StructureName) ->
+    lager:info("Build ~p ~p", [ObjId, StructureName]),
     PlayerId = get(player_id),
 
     %Validates Obj and Structure, player process will crash if not valid
     [Obj] = db:read(obj, ObjId),
     lager:info("Obj: ~p", [Obj]),
-    StructureType = obj:get_type(Structure),
-    lager:info("StructureType: ~p", [StructureType]),
-    StructureSubclass = maps:get(<<"subclass">>, StructureType),    
+    StructureSubclass = obj_def:value(StructureName, <<"subclass">>),
     lager:info("StructureSubclass: ~p", [StructureSubclass]),
+
     ValidPlayer = PlayerId =:= Obj#obj.player,
     ValidLocation = structure:valid_location(StructureSubclass,
                                              Obj#obj.pos),
@@ -282,7 +283,8 @@ build(ObjId, Structure) ->
         true ->
             structure:start_build(PlayerId, 
                                   Obj#obj.pos, 
-                                  StructureType);
+                                  StructureName,
+                                  StructureSubclass);
         false ->
             lager:info("Build failed")
     end.
@@ -298,12 +300,11 @@ finish_build(SourceId, StructureId) ->
     finish_build(PlayerId, Source, Structure).
 
 finish_build(PlayerId, Source, Structure = #obj {state = founded}) -> 
-    StructureM = obj:get(Structure#obj.id),
-    NumTicks = maps:get(<<"build_time">>, StructureM),
+    NumTicks = obj_attr:get(Structure#obj.id, <<"build_time">>),
     
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
                   Structure#obj.player =:= PlayerId andalso
-                  structure:check_req(StructureM),
+                  structure:check_req(Structure#obj.id),
 
     add_finish_build(ValidFinish, {Source#obj.id, 
                                    Structure#obj.id}, NumTicks),
@@ -312,8 +313,7 @@ finish_build(PlayerId, Source, Structure = #obj {state = founded}) ->
     {<<"build_time">>, NumTicks * 4}];
 
 finish_build(PlayerId, Source, Structure = #obj {state = under_construction}) ->
-    StructureM = obj:get(Structure#obj.id),
-    NumTicks = maps:get(<<"build_time">>, StructureM),
+    NumTicks = obj_attr:get(Structure#obj.id, <<"build_time">>),
 
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
                   Structure#obj.player =:= PlayerId,
@@ -536,6 +536,8 @@ get_visible_objs([Obj | Rest], Objs) ->
 
     get_visible_objs(Rest, NewObjs).
 
+is_player_owned(ObjPlayer, Player) when is_record(ObjPlayer, obj) ->
+    ObjPlayer#obj.player == Player;
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.
 

@@ -49,6 +49,9 @@ get_nearby_objs(X, Y, Dist) ->
 add_explored(Player, Pos, Range) ->
     gen_server:cast({global, map}, {add_explored, Player, Pos, Range}).
 
+is_adjacent(SourceObj, TargetObj) when is_record(SourceObj, obj) and 
+                                       is_record(TargetObj, obj) ->
+    is_adjacent(SourceObj#obj.pos, TargetObj#obj.pos);
 is_adjacent(SourcePos, TargetPos) ->
     {SX, SY} = SourcePos,
     Neighbours = map:neighbours(SX, SY),

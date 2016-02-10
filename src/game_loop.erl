@@ -171,9 +171,8 @@ do_event(finish_build, EventData, _PlayerPid) ->
     StructureObj = obj:update_state(StructureId, none), 
 
     %Set structure hp to max
-    StructureM = obj:get(StructureId),
-    BaseHp = maps:get(<<"base_hp">>, StructureM),
-    obj:update(StructureId, <<"hp">>, BaseHp),
+    BaseHp = obj_attr:value(StructureId, <<"base_hp">>),
+    obj_attr:set(StructureId, <<"hp">>, BaseHp),
 
     %Trigger any effects caused by new structure
     obj:trigger_effects(add, StructureObj), 
@@ -304,11 +303,11 @@ apply_transition(bloodmoon, Obj = #obj {id = Id, name = Name, vision = Vision}) 
     %Apply night effect 
     obj:add_effect(Id, <<"bloodmoon">>, none),
 
-    ObjM = obj:get(Id),
-    Hp = maps:get(<<"hp">>, ObjM),
-    obj:update(Id, <<"hp">>, Hp * 10),
+    %Increase hp x 10
+    Hp = obj_attr:value(Id, <<"hp">>),
+    obj_attr:set(Id, <<"hp">>, Hp * 10),
 
-    %Increase vision x 10
+    %Increase vision x 5
     NewObj = Obj#obj {vision = erlang:trunc(Vision * 5)},
     db:write(NewObj);
 apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
@@ -318,9 +317,8 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
             obj:remove_effect(Id, <<"bloodmoon">>),
 
             %Decrease hp x 10
-            ObjM = obj:get(Id),
-            Hp = maps:get(<<"hp">>, ObjM),
-            obj:update(Id, <<"hp">>, Hp / 10),
+            Hp = obj_attr:value(Id, <<"hp">>),
+            obj_attr:set(Id, <<"hp">>, Hp * 10),
 
             %Decrease vision / 10
             NewObj = Obj#obj {vision = erlang:trunc(Vision / 5)},
@@ -400,14 +398,9 @@ food_upkeep() ->
             case item:get_by_subclass(Unit#obj.id, ?FOOD) of
                 [] ->
                     obj:add_effect(Unit#obj.id, <<"Starving">>, none),
+                    obj:update_hp(Unit#obj.id, -1),
 
-                    ObjM = obj:get(Unit#obj.id),
-                    Hp = maps:get(<<"hp">>, ObjM),
-                    NewHp = Hp - 1,
-                    NewObjM = maps:put(<<"hp">>, NewHp, ObjM),
-
-                    obj:update(Unit#obj.id, <<"hp">>, NewHp),
-                    game:send_update_stats(Player, NewObjM); 
+                    game:send_update_stats(Player, Unit#obj.id); 
                 [Item | _Rest] ->
                     ItemId = maps:get(<<"_id">>, Item),
                     NewQuantity = maps:get(<<"quantity">>, Item) - 1,
@@ -432,22 +425,12 @@ process_rest_state() ->
 
     F = fun(Obj) ->
             case obj:has_effect(Obj#obj.id, <<"Starving">>) of
-                false ->
-                    ObjM = obj:get(Obj#obj.id),
-                    Hp = maps:get(<<"hp">>, ObjM),
-                    BaseHp = maps:get(<<"base_hp">>, ObjM),
-
-                    NewHp = update_hp(Hp, BaseHp),
-                    obj:update(Obj#obj.id, <<"hp">>, NewHp);
-                true ->
-                    nothing
+                false -> obj:update_hp(Obj#obj.id, 1);
+                true -> nothing
             end
         end,
 
     lists:foreach(F, Objs).
-
-update_hp(Hp, BaseHp) when Hp < BaseHp -> Hp + 1;
-update_hp(_Hp, _BaseHp) -> nothing.
 
 send_world_update(Attr, Value) ->
     Connections = ets:tab2list(connection),

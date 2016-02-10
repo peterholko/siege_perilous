@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([attack/3, defend/2]).
--export([has_stamina/2, stamina_cost/1, add_stamina/2, sub_stamina/2, num_ticks/1]).
+-export([has_stamina/2, stamina_cost/1, num_ticks/1]).
 -export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1]).
 
 %-compile(export_all).
@@ -87,27 +87,24 @@ process_defend(SourceId, DefendType) ->
 
     %Update stamina
     StaminaCost = stamina_cost(DefendType),
-    sub_stamina(SourceId, StaminaCost),
+    obj:update_stamina(SourceId, -1 * StaminaCost),
 
     %Add defense effect
     obj:add_effect(SourceId, DefendType, none).
 
 process_attack(AttackType, AtkId, DefId) ->
     [AtkObj] = db:read(obj, AtkId),
-    [DefObj] = db:read(obj, DefId),
-
-    AtkUnit = obj:get(AtkId),
-    DefUnit = obj:get(DefId),
+    %[DefObj] = db:read(obj, DefId),
 
     AtkItems = item:get_equiped(AtkId),
     DefItems = item:get_equiped(DefId),
 
     AtkWeapons = item:get_equiped_weapon(AtkId),
 
-    BaseDmg = maps:get(<<"base_dmg">>, AtkUnit),
-    DmgRange = maps:get(<<"dmg_range">>, AtkUnit),
-    BaseDef = maps:get(<<"base_def">>, DefUnit),
-    DefHp = maps:get(<<"hp">>, DefUnit),
+    BaseDmg = obj_attr:value(AtkId, <<"base_dmg">>),
+    DmgRange = obj_attr:value(AtkId, <<"dmg_range">>),
+    BaseDef = obj_attr:value(DefId, <<"base_def">>),
+    DefHp = obj_attr:value(DefId, <<"hp">>),
 
     HasDefend = has_defend(DefId),
 
@@ -147,7 +144,7 @@ process_attack(AttackType, AtkId, DefId) ->
     skill_gain_atk(AtkId, AtkWeapons, RandomDmg, DmgRange, Dmg),
 
     %Update stamina
-    sub_stamina(AtkObj#obj.id, stamina_cost(AttackType)),
+    obj:update_stamina(AtkObj#obj.id, -1 * stamina_cost(AttackType)),
 
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
@@ -159,11 +156,11 @@ process_attack(AttackType, AtkId, DefId) ->
     %Check if unit is dead 
     case UnitState of
         <<"alive">> ->
-            obj:update(DefId, <<"hp">>, NewHp);
+            obj_attr:set(DefId, <<"hp">>, NewHp);
         <<"dead">> ->
-            AtkXp = maps:get(<<"xp">>, AtkUnit, 0),
-            DefKillXp = maps:get(<<"kill_xp">>, DefUnit, 0),
-            obj:update(AtkId, <<"xp">>, AtkXp + DefKillXp),
+            %AtkXp = maps:get(<<"xp">>, AtkUnit, 0),
+            %DefKillXp = maps:get(<<"kill_xp">>, DefUnit, 0),
+            %obj:update(AtkId, <<"xp">>, AtkXp + DefKillXp),
             process_unit_dead(DefId)
     end.
 
@@ -203,8 +200,6 @@ is_unit_dead(_Hp) ->
 
 process_unit_dead(DefId) ->
     lager:info("Unit ~p died.", [DefId]),
-
-    lager:info("Updating unit state"),
     NewObj = obj:update_dead(DefId),
 
     %Remove potential npc entry
@@ -231,19 +226,11 @@ stamina_cost(?BRACE) -> 10;
 stamina_cost(_) -> 0.
 
 has_stamina(AtkId, ActionData) ->
-    AtkUnit = obj:get(AtkId),
-    Stamina = maps:get(<<"stamina">>, AtkUnit),
+    Stamina = obj_attr:value(AtkId, <<"stamina">>),
     StaminaCost = stamina_cost(ActionData),
 
     Result = Stamina >= StaminaCost,
     Result.
-
-sub_stamina(SourceId, Value) ->
-    add_stamina(SourceId, -1 * Value).
-add_stamina(SourceId, Value) ->
-    SourceObj = obj:get(SourceId),
-    Stamina = maps:get(<<"stamina">>, SourceObj),
-    obj:update(SourceId, 'stamina', Stamina + Value).
 
 num_ticks({attack, _AttackType}) -> ?TICKS_SEC * 5;
 num_ticks({defend, _DefendType}) -> ?TICKS_SEC * 15.

@@ -59,6 +59,12 @@
               effect = [],
               vision = -1,
               modtick}).
+
+-record(obj_attr, {key, % {id, attr}
+                   value}).
+
+-record(obj_def, {key,  % {type, attr}
+                  value}).
             
 -record(charge_time, {unit_id,
                       charge_time}).

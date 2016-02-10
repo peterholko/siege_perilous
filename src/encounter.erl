@@ -45,10 +45,28 @@ spawn_npc(TileName, Pos) ->
         Neighbours ->
             RandomPos = rand:uniform(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
-            obj:create(NPCPos, ?UNDEAD, unit, <<"npc">>, NPCType, none),
+            NPCId = obj:create(NPCPos, ?UNDEAD, unit, <<"npc">>, NPCType, none),
+            
+            generate_loot(NPCId),
             
             increase_num(NPCPos)
     end.
+
+generate_loot(NPCId) ->
+    LootList = loot_list(),
+
+    F = fun({Name, DropRate, Min, Max}) ->
+            case DropRate < rand:uniform() of
+                true ->
+                    Num = rand:uniform(Max - Min) + Min,
+                    lager:info("Id: ~p, Name: ~p", [NPCId, Name]),
+                    item:create(NPCId, Name, Num);
+                false ->
+                    nothing
+            end
+        end,
+    
+   lists:foreach(F, LootList).    
 
 npc_list(TileName) ->
     case TileName of
@@ -60,6 +78,14 @@ npc_list(TileName) ->
         ?HILLS_DESERT -> [<<"Scorpion">>, <<"Giant Rat">>, <<"Skeleton">>];
         _ -> [<<"Giant Rat">>, <<"Wolf">>, <<"Skeleton">>]
     end.
+
+loot_list() ->
+    [{<<"Cragroot Popular">>, 0.2, 1, 5},
+     {<<"Wrapwood Birch">>, 0.5, 1, 3},
+     {<<"Skyshroud Oak">>, 0.02, 1, 2},
+     {<<"Crimson Root">>, 0.99, 5, 10},
+     {<<"Mana">>, 0.75, 1, 3},
+     {<<"Gold Coins">>, 0.99, 1, 10}].
 
 get_num(Pos) ->
     case db:read(encounter, Pos) of

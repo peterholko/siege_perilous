@@ -8,16 +8,13 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([start_build/3, valid_location/2]).
+-export([start_build/4, valid_location/2]).
 -export([list/0, recipe_list/1, process/1, craft/2]).
 -export([check_req/1, has_process_res/1, check_recipe_req/2]).
 -export([combine_stats/2, craft_item_name/2]).
 -export([process_upkeep/1, process_upkeep_item/3]).
 
-start_build(PlayerId, Pos, StructureType) ->
-    Name = maps:get(<<"name">>, StructureType),
-    Subclass = maps:get(<<"subclass">>, StructureType),
-
+start_build(PlayerId, Pos, Name, Subclass) ->
     StructureId = obj:create(Pos, 
                              PlayerId,
                              structure,
@@ -26,15 +23,13 @@ start_build(PlayerId, Pos, StructureType) ->
                              founded),
     StructureId.
 
-check_req(Structure) ->
-    StructureId = maps:get(<<"_id">>, Structure),
-    ReqList = maps:get(<<"req">>, Structure),
+check_req(StructureId) ->
+    ReqList = obj_attr:get(StructureId, <<"req">>),
     Items = item:get_by_owner(StructureId),
     has_req(ReqList, Items).
 
 has_process_res(StructureId) ->
-    StructureStats = obj:get(StructureId),
-    Process = maps:get(<<"process">>, StructureStats),
+    Process = obj_attr:value(StructureId, <<"process">>),
     Items = item:get_by_subclass(StructureId, Process),
     Items =/= [].
 
@@ -55,8 +50,7 @@ recipe_list(Obj) ->
     Recipes.
 
 process(StructureId) ->
-    StructureStats = obj:get(StructureId),
-    Process = maps:get(<<"process">>, StructureStats),
+    Process = obj_attr:value(StructureId, <<"process">>),
     
     [Item | _Rest] = item:get_by_subclass(StructureId, Process),
     Id = maps:get(<<"_id">>, Item),
@@ -111,8 +105,7 @@ valid_location(_, QueryPos) ->
     Objs =:= [].
 
 process_upkeep(Structure) ->
-    ObjM = obj:get(Structure#obj.id),
-    UpkeepList = maps:get(<<"upkeep">>, ObjM),
+    UpkeepList = obj_attr:value(Structure#obj.id, <<"upkeep">>),
 
     F = fun(UpkeepReq, PrevIsDecaying) ->
             Subclass = maps:get(<<"type">>, UpkeepReq),
@@ -124,15 +117,10 @@ process_upkeep(Structure) ->
 
     Decaying = lists:foldl(F, false, UpkeepList),
 
-    lager:info("Decaying: ~p", [Decaying]),
-
     case Decaying of
         true ->
-            Hp = maps:get(<<"hp">>, ObjM),
-            NewHp = Hp - 1,
-            obj:update(Structure#obj.id, <<"hp">>, NewHp),
-
-            obj:add_effect(Structure#obj.id, <<"Decaying">>, none);
+            obj:add_effect(Structure#obj.id, <<"Decaying">>, none),
+            obj:update_hp(Structure#obj.id, -1);
         false ->
             obj:remove_effect(Structure#obj.id, <<"Decaying">>)
     end.

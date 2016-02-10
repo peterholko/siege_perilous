@@ -90,13 +90,12 @@ handle_info({perception, {NPCId, Objs}}, Data) ->
     lager:debug("Perception received."),
     [NPCObj] = db:read(obj, NPCId),
     [NPC] = db:read(npc, NPCId),
-    NPCStats = obj:get(NPCObj#obj.id),
 
     %Remove from same player and non targetable objs
     FilteredTargets = filter_targets(Objs, []),
 
     %Find target
-    Target = find_target(NPCObj, NPCStats, FilteredTargets),
+    Target = find_target(NPCObj, FilteredTargets),
 
     lager:debug("Find Target: ~p", [Target]),
 
@@ -312,9 +311,9 @@ check_wall(#obj{id = Id} = EnemyUnit) ->
 check_wall(_) ->
     none.
 
-find_target(NPCObj, NPCStats, AllEnemyUnits) ->
-    Int = maps:get(<<"int">>, NPCStats),
-    Aggression = maps:get(<<"aggression">>, NPCStats),
+find_target(NPCObj, AllEnemyUnits) ->
+    Int = obj_attr:value(NPCObj#obj.id, <<"int">>),
+    Aggression = obj_attr:value(NPCObj#obj.id, <<"aggression">>),
     find_target(NPCObj, Int, Aggression, AllEnemyUnits).
 
 find_target(_NPCObj, _, _, []) ->
