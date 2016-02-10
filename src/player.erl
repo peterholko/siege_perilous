@@ -207,10 +207,13 @@ harvest(ObjId, Resource) ->
     add_harvest_event(Result, {ObjId, Resource, Obj#obj.pos, AutoHarvest}, NumTicks).
 
 loot(SourceId, ItemId) ->
-    %TODO add validation
+    Item = item:get(ItemId),
+    Owner = maps:get(<<"owner">>, Item),    
+
     item:transfer(ItemId, SourceId),
-    Items = item:get_by_owner(SourceId),
-    Items.
+
+    Items = item:get_by_owner(Owner),
+    {Owner, Items}.
 
 item_transfer(TargetId, ItemId) ->
     Player = get(player_id),
@@ -223,8 +226,9 @@ item_transfer(TargetId, ItemId) ->
     lager:info("TargetObj: ~p", [TargetObj]),
 
     Checks = [{TargetObj =/= false, "Invalid transfer target"},
-              {is_player_owned(OwnerObj#obj.player, Player), "Item not owned by player"},
-              {map:is_adjacent(OwnerObj#obj.pos, TargetObj#obj.pos), "Item is not adjacent"}],
+              {is_player_owned(OwnerObj, Player), "Item not owned by player"},              
+              {is_same_pos(OwnerObj, TargetObj) or
+               map:is_adjacent(OwnerObj, TargetObj), "Item is not nearby"}],
 
     case process_checks(Checks) of 
         true ->
@@ -470,6 +474,9 @@ add_harvest_event(true, {ObjId, Resource, Pos, Auto}, NumTicks) ->
     %Update obj state
     obj:update_state(ObjId, harvesting),
 
+    %Check for encounter
+    encounter:check(Pos),
+
     EventData = {ObjId, Resource, Pos, NumTicks, Auto},
     game:add_event(self(), harvest, EventData, ObjId, NumTicks).
 
@@ -536,10 +543,17 @@ get_visible_objs([Obj | Rest], Objs) ->
 
     get_visible_objs(Rest, NewObjs).
 
+is_player_owned(invalid, _Player) ->
+    false;
 is_player_owned(ObjPlayer, Player) when is_record(ObjPlayer, obj) ->
     ObjPlayer#obj.player == Player;
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.
+
+is_same_pos(SourceObj, TargetObj) when (SourceObj =:= false) or (TargetObj =:= false) ->
+    false;
+is_same_pos(SourceObj, TargetObj) ->
+    SourceObj#obj.pos =:= TargetObj#obj.pos.
 
 is_state(ExpectedState, State) when ExpectedState =:= State -> true;
 is_state(_ExpectdState, _State) -> false.

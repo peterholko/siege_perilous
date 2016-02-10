@@ -611,9 +611,9 @@ function onMessage(evt) {
         else if(jsonData.packet == "map") {
             drawMap(jsonData.map);
         }
-        else if(jsonData.packet == "item_perception") {
-            dialogPanel.visible = false;
-        }
+        else if(jsonData.packet == "loot_perception") {
+            drawLootDialog(jsonData);
+        }        
         else if(jsonData.packet == "item_transfer") {
             if(jsonData.result == "success") {
                 for(var i = infoPanels.length - 1; i >= 0; i--) {
@@ -1490,7 +1490,8 @@ function drawInfoUnit(jsonData) {
 
     var unitName = jsonData.name
     activeInfoPanel.unitName = unitName;   
-    activeInfoPanel._id = jsonData._id; 
+    activeInfoPanel._id = jsonData._id;
+    console.log('activeInfoPanel: ' + activeInfoPanel._id); 
 
     var nameText = new createjs.Text(unitName, h1Font, textColor);
 

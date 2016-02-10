@@ -122,9 +122,9 @@ message_handle(<<"loot">>, Message) ->
     Item = map_get(<<"item">>, Message),
     BinItem = util:hex_to_bin(Item),
 
-    PlayerItems = player:loot(SourceBinId, BinItem),
-    ItemPerception = prepare(item_perception, PlayerItems),
-    jsx:encode(ItemPerception);
+    LootData = player:loot(SourceBinId, BinItem),
+    LootPerception = prepare(loot_perception, LootData),
+    jsx:encode(LootPerception);
 
 message_handle(<<"item_transfer">>, Message) ->
     lager:info("message: item_transfer ~p", [Message]),
@@ -134,10 +134,9 @@ message_handle(<<"item_transfer">>, Message) ->
     Item = map_get(<<"item">>, Message),
     BinItem = util:hex_to_bin(Item),
 
-    Result = player:item_transfer(TargetBinId, BinItem),
-    lager:info("Result: ~p", [Result]),
-    jsx:encode([{<<"packet">>, <<"item_transfer">>},
-                {<<"result">>, Result}]);
+    Return = player:item_transfer(TargetBinId, BinItem),
+    FinalReturn = maps:put(<<"packet">>, <<"item_transfer">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"item_split">>, Message) ->
     lager:info("message: item_split ~p", [Message]),
@@ -321,9 +320,10 @@ prepare(perception, Message) ->
      {<<"entity">>, util:bin_to_hex(EntityId)},
      {<<"objs">>, NewObjs}];
     
-prepare(item_perception, Message) ->
-    [{<<"packet">>, <<"item_perception">>},
-     {<<"items">>, to_hex(Message)}]; 
+prepare(loot_perception, {ObjId, Items}) ->    
+    [{<<"packet">>, <<"loot_perception">>},
+     {<<"obj">>, util:bin_to_hex(ObjId)},
+     {<<"items">>, to_hex(Items)}]; 
 
 prepare(map, Message) ->
     [{<<"packet">>, <<"map">>},

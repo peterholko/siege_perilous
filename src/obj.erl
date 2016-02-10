@@ -35,7 +35,11 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
     create_obj_attr(Id, Name),
 
     %Get base attributes
+    BaseHp = obj_attr:value(Id, <<"base_hp">>, 0),
     Vision = obj_attr:value(Id, <<"base_vision">>, 0),
+
+    %Add attributes from base
+    obj_attr:add(Id, <<"hp">>, BaseHp),
 
     %Create mnesia obj
     Obj = #obj {id = Id,
@@ -208,7 +212,7 @@ item_transfer(_Obj, _Item) -> nothing.
 get(Id) ->
     case db:read(obj, Id) of
         [Obj] -> Obj;
-        _ -> false
+        _ -> invalid
     end.
 
 %Get vital stats
@@ -368,7 +372,8 @@ info(Id) ->
     Attrs = obj_attr:all_to_map(Id),
 
     %State, items, skills, effects stats
-    Info1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Attrs), 
+    Info0 = maps:put(<<"_id">>, Id, Attrs),
+    Info1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info0), 
     Info2 = maps:put(<<"items">>, Items, Info1),
     Info3 = maps:put(<<"skills">>, Skills, Info2),
     Info4 = maps:put(<<"effects">>, Effects, Info3),
@@ -397,10 +402,14 @@ create_obj_attr(Id, Name) ->
     
     F = fun(ObjDef) -> 
             {Name, Attr} = ObjDef#obj_def.key,
-            AttrKey = {Id, Attr},
-            ObjAttr = #obj_attr {key = AttrKey, 
-                                 value = ObjDef#obj_def.value},
-            db:dirty_write(ObjAttr)
+            case ObjDef#obj_def.key of
+                {_, <<"_id">>} -> nothing; %Do not copy the definition's _id 
+                {Name, Attr} ->
+                    AttrKey = {Id, Attr},
+                    ObjAttr = #obj_attr {key = AttrKey, 
+                                         value = ObjDef#obj_def.value},
+                    db:dirty_write(ObjAttr)
+            end
         end,
 
     lists:foreach(F, AllObjDef).
