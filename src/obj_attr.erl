@@ -30,7 +30,6 @@ value(All, Attr) when is_list(All) ->
     ObjAttr#obj_attr.value;
 
 value(Id, Attr) ->
-    lager:info("Id ~p, Attr: ~p", [Id, Attr]),
     [ObjAttr] = db:dirty_read(obj_attr, {Id, Attr}),
     ObjAttr#obj_attr.value.
 

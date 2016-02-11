@@ -34,7 +34,8 @@ start(_Type, _Args) ->
     mdb:start(),
 
     lager:info("Import data from database"),
-    db:import(),
+    db:import(<<"obj_type">>, obj_def),
+    db:import(<<"item_type">>, item_def),
 
     lager:info("Starting game process..."),
     game:start(),

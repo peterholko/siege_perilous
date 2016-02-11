@@ -18,7 +18,7 @@
          write/1, read/2, delete/2, index_read/3, select/2,
          dirty_write/1, dirty_read/2, dirty_index_read/3, dirty_delete/2, dirty_match_object/1,
          dirty_delete_object/1, dump/1,
-         import/0,
+         import/2,
          reset_tables/0,
          do/1
         ]).
@@ -45,6 +45,10 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(obj, [{ram_copies, [node()]}, {attributes, record_info(fields, obj)}]),    
     {atomic, ok} = mnesia:create_table(obj_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_attr)}]),    
     {atomic, ok} = mnesia:create_table(obj_def, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_def)}]),    
+    {atomic, ok} = mnesia:create_table(item, [{ram_copies, [node()]}, {attributes, record_info(fields, item)}]),    
+    {atomic, ok} = mnesia:create_table(item_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, item_attr)}]),    
+    {atomic, ok} = mnesia:create_table(item_def, [{ram_copies, [node()]}, {attributes, record_info(fields, item_def)}]),    
+    {atomic, ok} = mnesia:create_table(skill, [{ram_copies, [node()]}, {attributes, record_info(fields, skill)}]),    
     {atomic, ok} = mnesia:create_table(action, [{disc_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource_def, [{disc_copies, [node()]}, {attributes, record_info(fields, resource_def)}]),
     {atomic, ok} = mnesia:create_table(poi_def, [{disc_copies, [node()]}, {attributes, record_info(fields, poi_def)}]),
@@ -69,9 +73,11 @@ create_schema() ->
     mnesia:add_table_index(obj, state),
     mnesia:add_table_index(obj, class),
     mnesia:add_table_index(obj, subclass),
+    mnesia:add_table_index(item, owner),
     mnesia:add_table_index(htn, parent),
     mnesia:add_table_index(effect, id),
     mnesia:add_table_index(resource, name),
+   
 
     mnesia:stop().
 
@@ -80,21 +86,22 @@ start() ->
     mnesia:wait_for_tables([counter, player, connection, map, obj, explored_map, perception,
                             event, action, resource, world], 1000).
 
-import() ->
-    ObjDefTable = mdb:dump(<<"obj_type">>),
+import(Collection, Table) ->
+    ObjDefTable = mdb:dump(Collection),
 
     F = fun(ObjDef) ->
             ObjName = maps:get(<<"name">>, ObjDef),
             ObjList = maps:to_list(ObjDef),
-            import_entry(ObjName, ObjList)
+            import_entry(Table, ObjName, ObjList)
         end,
 
     lists:foreach(F, ObjDefTable).
 
-import_entry(ObjName, ObjList) ->
-    F = fun({Attr, Value}) ->       
+import_entry(Table, ObjName, ObjList) ->
+    F = fun({<<"_id">>, _}) -> nothing;
+           ({Attr, Value}) ->       
             Key = {ObjName, Attr},
-            R = {obj_def, Key, Value},
+            R = {Table, Key, Value},
             db:dirty_write(R)
         end,
 

@@ -63,9 +63,26 @@
 -record(obj_attr, {key, % {id, attr}
                    value}).
 
--record(obj_def, {key,  % {type, attr}
+-record(obj_def, {key,  % {name, attr}
                   value}).
-            
+
+-record(item, {id,
+               name,
+               quantity,
+               owner,
+               class,
+               subclass,
+               weight}).
+
+-record(item_attr, {key, % {id, attr}
+                    value}).
+
+-record(item_def, {key, % {name, attr}
+                   value}).
+
+-record(skill, {key, % {id, name}
+                value}).
+
 -record(charge_time, {unit_id,
                       charge_time}).
 

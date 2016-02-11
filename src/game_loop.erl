@@ -402,6 +402,7 @@ food_upkeep() ->
 
                     game:send_update_stats(Player, Unit#obj.id); 
                 [Item | _Rest] ->
+                    obj:remove_effect(Unit#obj.id, <<"Starving">>),
                     ItemId = maps:get(<<"_id">>, Item),
                     NewQuantity = maps:get(<<"quantity">>, Item) - 1,
                     item:update(ItemId, NewQuantity)

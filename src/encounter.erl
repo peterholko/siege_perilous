@@ -38,7 +38,6 @@ spawn_npc(TileName, Pos) ->
     Random = rand:uniform(length(NPCList)),
     NPCType = lists:nth(Random, NPCList),
     Tiles = get_valid_tiles(Pos),
-    lager:info("Tiles: ~p", [Tiles]),
 
     case Tiles of
         [] -> nothing; %No valid tiles
@@ -56,7 +55,7 @@ generate_loot(NPCId) ->
     LootList = loot_list(),
 
     F = fun({Name, DropRate, Min, Max}) ->
-            case DropRate < rand:uniform() of
+            case DropRate > rand:uniform() of
                 true ->
                     Num = rand:uniform(Max - Min) + Min,
                     lager:info("Id: ~p, Name: ~p", [NPCId, Name]),

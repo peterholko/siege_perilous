@@ -11,6 +11,14 @@
 -export([is_equipable/1, is_slot_free/2]).
 
 get(Id) ->
+    case db:read(item, Id) of
+        [Item] -> Item;
+        _ -> invalid
+    end.
+
+get_info(Id) ->
+    [Item] = db:read(item, Id),
+
     Item = find_one(<<"_id">>, Id),
     Item.
 
