@@ -5,10 +5,10 @@
 
 -include("schema.hrl").
 
--export([get/1, get_by_name/1, get_by_owner/1, get_by_subclass/2, get_equiped/1, get_equiped_weapon/1]).
+-export([get/1, get_by_owner/1, get_by_subclass/2, get_equiped/1, get_equiped_weapon/1]).
 -export([transfer/2, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
--export([obj_perception/1, find/1, find_one/1, find_type/2]).
--export([is_equipable/1, is_slot_free/2]).
+-export([find/1, find_one/1, find_type/2]).
+-export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3]).
 
 get(Id) ->
     case db:read(item, Id) of
@@ -16,31 +16,34 @@ get(Id) ->
         _ -> invalid
     end.
 
-get_info(Id) ->
-    [Item] = db:read(item, Id),
-
-    Item = find_one(<<"_id">>, Id),
-    Item.
-
-get_by_name(Name) ->
-    Item = find_one(<<"name">>, Name),
-    Item.
-
 get_by_owner(OwnerId) ->
-    Items = find(<<"owner">>, OwnerId),
-    Items.
+    Items = db:dirty_index_read(item, OwnerId, #item.owner),
+
+    F = fun(Item) ->            
+            ItemMap = item_to_map(Item),
+            AttrMap = item_attr:all_to_map(Item#item.id),
+            maps:merge(ItemMap, AttrMap)
+        end,
+
+    lists:map(F, Items).
 
 get_by_subclass(OwnerId, SubClass) ->
-    Items = find({owner, OwnerId, subclass, SubClass}),
-    Items.
+    AllItems = get_by_owner(OwnerId),
+    F = fun(ItemMap) -> maps:get(<<"subclass">>, ItemMap) =:= SubClass end,
+    lists:filter(F, AllItems).
 
 get_equiped(OwnerId) ->
-    Items = find({owner, OwnerId, equip, <<"true">>}),
-    Items.
+    AllItems = get_by_owner(OwnerId),
+    F = fun(ItemMap) -> maps:get(<<"equip">>, ItemMap) =:= <<"true">> end,
+    lists:filter(F, AllItems).
 
 get_equiped_weapon(OwnerId) ->
-    Items = find({owner, OwnerId, equip, <<"true">>, class, <<"weapon">>}),
-    Items.
+    AllItems = get_by_owner(OwnerId),
+    F = fun(ItemMap) -> 
+                (maps:get(<<"equip">>, ItemMap) =:= <<"true">>) and
+                (maps:get(<<"class">>, ItemMap) =:= <<"weapon">>)
+        end,
+    lists:filter(F, AllItems).
 
 is_equipable(Item) ->
     case maps:get(<<"class">>, Item) of
@@ -49,96 +52,127 @@ is_equipable(Item) ->
         _ -> false
     end.
 
-is_slot_free(OwnerId, Slot) ->    
-    case find({owner, OwnerId, equip, <<"true">>, slot, Slot}) of
-        [] -> true;
-        _ -> false
+is_slot_free(OwnerId, Slot) ->
+    AllItems = get_by_owner(OwnerId),
+    F = fun(ItemMap) -> 
+                (maps:get(<<"equip">>, ItemMap) =:= <<"true">>) and
+                (maps:get(<<"slot">>, ItemMap) =:= Slot)
+        end,
+    lists:filter(F, AllItems).
+
+is_player_owned(Player, ItemId) ->
+    case db:read(item, ItemId) of
+        [Item] -> Item#item.owner =:= Player;
+        [] -> false
+    end.
+
+is_valid_split(Player, ItemId, Quantity) when Quantity > 1 ->
+    case db:read(item, ItemId) of
+        [Item] -> (Item#item.quantity > Quantity) and (Item#item.owner =:= Player);
+        [] -> false
     end.
 
 transfer(ItemId, TargetId) ->
-    mdb:update(<<"item">>, ItemId, {owner, TargetId}).
-
-split(Item, NewQuantity) ->
-    lager:info("Item: ~p NewQuantity: ~p", [Item, NewQuantity]),
-    ItemId = maps:get(<<"_id">>, Item),
-    Quantity = maps:get(<<"quantity">>, Item),
+    [TransferItem] = db:dirty_read(item, ItemId),
+    AllItems = db:dirty_index_read(item, TargetId, #item.owner),
     
-    NewItem = maps:update(<<"quantity">>, NewQuantity, Item),
-    NewItem2 = maps:remove(<<"_id">>, NewItem),
-    mongo:insert(mdb:get_conn(), <<"item">>, NewItem2),
+    NewItem = case filter_by_name(AllItems, TransferItem#item.name) of
+                  [] -> 
+                      #item{owner = TargetId};
+                  [Item | _Rest] -> 
+                      NewQuantity = Item#item.quantity + TransferItem#item.quantity,
+                      Item#item{quantity = NewQuantity}
+              end,
+    db:write(NewItem).
+                
 
-    lager:info("Updating original item quantity"),
-    update(ItemId, Quantity - NewQuantity).
+split(ItemId, NewQuantity) ->
+    [Item] = db:read(item, ItemId),
+    CurrentQuantity = Item#item.quantity,
+
+    NewItem1 = Item#item{quantity = NewQuantity},
+    NewItem2 = Item#item{quantity = CurrentQuantity - NewQuantity},
+    
+    db:write(NewItem1),
+    db:write(NewItem2).
 
 equip(ItemId) ->
-    mdb:update(<<"item">>, ItemId, {equip, <<"true">>}).
+    [Item] = db:read(item, ItemId),
+    NewItem = Item#item{equip = <<"true">>},
+    db:write(NewItem).
 
 unequip(ItemId) ->
-    mdb:update(<<"item">>, ItemId, {equip, <<"false">>}).
+    [Item] = db:read(item, ItemId),
+    NewItem = Item#item{equip = <<"false">>},
+    db:write(NewItem).
 
 update(ItemId, 0) ->
-    mdb:delete(<<"item">>, ItemId);
+    db:delete(item, ItemId);
 update(ItemId, NewQuantity) ->
-    mdb:update(<<"item">>, ItemId, {quantity, NewQuantity}).
+    [Item] = db:read(item, ItemId),
+    NewItem = Item#item{quantity = NewQuantity},
+    db:write(NewItem).
 
 create(Owner, Name, Quantity) ->
-    % Find existing item type in owner
-    ExistingItem = find({name, Name, owner, Owner}),
-    lager:info("ExistingItem: ~p", [ExistingItem]),
-    case ExistingItem of
-        [] ->
-            [ItemType] = find_type(name, Name),            
+    AllItems = db:dirty_index_read(item, Owner, #item.owner),
 
-            NewItem = maps:remove(<<"_id">>, ItemType),
-            NewItem2 = maps:put(<<"quantity">>, Quantity, NewItem),
-            NewItem3 = maps:put(<<"owner">>, Owner, NewItem2),
+    NewItem = case filter_by_name(AllItems, Name) of
+                  [] -> 
+                      Id = util:get_id(),
+                      create_item_attr(Id, Name),
+                     
+                      Class = item_attr:value(Id, <<"class">>),
+                      Subclass = item_attr:value(Id, <<"subclass">>),
+                      Weight = item_attr:value(Id, <<"weight">>, 0),
 
-            InsertedItem = mongo:insert(mdb:get_conn(), <<"item">>, NewItem3),
-            lager:info("InsertedItem: ~p", [InsertedItem]),
-            InsertedItem;
-        [Item] ->
-            lager:info("Updating existing item"),
-            ItemId = maps:get(<<"_id">>, Item),
-            OldQuantity = maps:get(<<"quantity">>, Item),
-            UpdatedItem = maps:update(<<"quantity">>, OldQuantity + Quantity, Item),
-            
-            lager:info("UpdatedItem: ~p", [UpdatedItem]),
-            mdb:update(<<"item">>, ItemId, UpdatedItem),
-            lager:info("Finished updating item... ~p", [UpdatedItem]),
-            UpdatedItem;
-        Items ->
-            %Pick the first item of the same type and owner
-            lager:info("Found multiple existing items, updating first existing item"),
-            [Item | _Rest] = Items,            
-            ItemId = maps:get(<<"_id">>, Item),
-            OldQuantity = maps:get(<<"quantity">>, Item),
-            UpdatedItem = maps:update(<<"quantity">>, OldQuantity + Quantity, Item),
-            
-            lager:info("UpdatedItem: ~p", [UpdatedItem]),
-            mdb:update(<<"item">>, ItemId, UpdatedItem),
-            UpdatedItem 
-    end.
+                      #item {id = Id,
+                             name = Name,
+                             quantity = Quantity,
+                             owner = Owner,
+                             class = Class,
+                             subclass = Subclass,
+                             weight = Weight};
+
+                  [Item | _Rest] -> 
+                      NewQuantity = Item#item.quantity + Quantity,
+                      Item#item{quantity = NewQuantity}
+              end,
+    
+    db:write(NewItem).
 
 create(Item) ->
     InsertedItem = mongo:insert(mdb:get_conn(), <<"item">>, Item),
     InsertedItem.
 
-obj_perception(ObjId) ->
-    find(owner, ObjId).
-
 % Internal
 
-find_one(Key, Value) ->
-    mdb:find_one(<<"item">>, Key, Value).
+item_to_map(Item) ->
+    #{<<"id">> => Item#item.id,
+      <<"name">> => Item#item.name,
+      <<"quantity">> => Item#item.quantity,
+      <<"owner">> => Item#item.owner,
+      <<"class">> => Item#item.class,
+      <<"subclass">> => Item#item.subclass,
+      <<"weight">> => Item#item.weight,
+      <<"equip">> => Item#item.equip}.
 
-find_one(Tuple) ->
-    mdb:find_one(<<"item">>, Tuple).
+filter_by_name(Items, Name) ->
+    F = fun(Item) -> Item#item.name =:= Name end,
+    lists:filter(F, Items).
 
-find(Key, Value) ->
-    mdb:find(<<"item">>, Key, Value).
+create_item_attr(Id, Name) ->
+    AllItemDef = item_def:all(Name),
+    
+    F = fun(ItemDef) -> 
+            {Name, Attr} = ItemDef#item_def.key,
+            case ItemDef#item_def.key of
+                {Name, Attr} ->
+                    AttrKey = {Id, Attr},
+                    ItemAttr = #item_attr {key = AttrKey, 
+                                           value = ItemDef#item_def.value},
+                    db:dirty_write(ItemAttr)
+            end
+        end,
 
-find(Tuple) ->
-    mdb:find(<<"item">>, Tuple).
+    lists:foreach(F, AllItemDef).
 
-find_type(Key, Value) ->
-    mdb:find(<<"item_type">>, Key, Value).

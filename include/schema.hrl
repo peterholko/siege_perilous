@@ -72,7 +72,8 @@
                owner,
                class,
                subclass,
-               weight}).
+               weight,
+               equip = <<"false">>}).
 
 -record(item_attr, {key, % {id, attr}
                     value}).

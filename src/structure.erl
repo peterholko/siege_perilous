@@ -53,7 +53,7 @@ process(StructureId) ->
     Process = obj_attr:value(StructureId, <<"process">>),
     
     [Item | _Rest] = item:get_by_subclass(StructureId, Process),
-    Id = maps:get(<<"_id">>, Item),
+    Id = maps:get(<<"id">>, Item),
     Quantity = maps:get(<<"quantity">>, Item),
     Produces = maps:get(<<"produces">>, Item),
     
@@ -230,7 +230,7 @@ consume_req([], _Items) ->
     lager:info("Completed consuming items");
 consume_req([#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest], Items) ->
     F = fun(Item) ->
-            ItemId = maps:get(<<"_id">>, Item),
+            ItemId = maps:get(<<"id">>, Item),
             ItemName = maps:get(<<"name">>, Item),
             ItemSubClass = maps:get(<<"subclass">>, Item),
             ItemQuantity = maps:get(<<"quantity">>, Item),
@@ -277,7 +277,7 @@ process_upkeep_item(Structure, Subclass, UpkeepQuantity) ->
     lager:info("~p ~p ~p", [Structure, Subclass, UpkeepQuantity]),
     case item:get_by_subclass(Structure#obj.id, Subclass) of
         [Item | _Rest] ->
-            ItemId = maps:get(<<"_id">>, Item),
+            ItemId = maps:get(<<"id">>, Item),
             Quantity = maps:get(<<"quantity">>, Item),
 
             case Quantity >= UpkeepQuantity of

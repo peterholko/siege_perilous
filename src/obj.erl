@@ -403,7 +403,6 @@ create_obj_attr(Id, Name) ->
     F = fun(ObjDef) -> 
             {Name, Attr} = ObjDef#obj_def.key,
             case ObjDef#obj_def.key of
-                {_, <<"_id">>} -> nothing; %Do not copy the definition's _id 
                 {Name, Attr} ->
                     AttrKey = {Id, Attr},
                     ObjAttr = #obj_attr {key = AttrKey, 

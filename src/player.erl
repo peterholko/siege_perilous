@@ -242,26 +242,16 @@ item_transfer(TargetId, ItemId) ->
 
 item_split(ItemId, Quantity) ->
     Player = get(player_id),
-    Item = item:get(ItemId),
-    Owner = maps:get(<<"owner">>, Item),    
-    CurrentQuantity = maps:get(<<"quantity">>, Item),
 
-    [OwnerObj] = db:read(obj, Owner),
+    Checks = [{item:is_valid_split(Player, ItemId, Quantity), "Cannot split item"}],
 
-    ValidSplit = Player =:= OwnerObj#obj.player andalso
-                 CurrentQuantity > 1 andalso
-                 CurrentQuantity > Quantity,
-
-    case ValidSplit of
+    case process_checks(Checks) of
         true ->
             lager:info("Splitting item"),
-            item:split(Item, Quantity),
-            Perception = item:obj_perception(Owner),
-            lager:info("Perception: ~p", [Perception]),
-            <<"Item split">>;
-        false ->
-            lager:info("Player does not own item: ~p", [ItemId]),
-            <<"Player does not own item">>
+            item:split(ItemId, Quantity),
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
 structure_list() ->
