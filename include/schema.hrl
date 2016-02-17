@@ -73,6 +73,7 @@
                class,
                subclass,
                weight,
+               durability, 
                equip = <<"false">>}).
 
 -record(item_attr, {key, % {id, attr}

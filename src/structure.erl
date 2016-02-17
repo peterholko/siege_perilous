@@ -21,10 +21,11 @@ start_build(PlayerId, Pos, Name, Subclass) ->
                              Subclass,
                              Name, 
                              founded),
+    obj:update_hp(StructureId, 1),    
     StructureId.
 
 check_req(StructureId) ->
-    ReqList = obj_attr:get(StructureId, <<"req">>),
+    ReqList = obj_attr:value(StructureId, <<"req">>),
     Items = item:get_by_owner(StructureId),
     has_req(ReqList, Items).
 

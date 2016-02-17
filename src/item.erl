@@ -5,16 +5,19 @@
 
 -include("schema.hrl").
 
--export([get/1, get_by_owner/1, get_by_subclass/2, get_equiped/1, get_equiped_weapon/1]).
+-export([get_rec/1, get_map/1, get_by_owner/1, get_by_subclass/2, get_by_name/2, get_equiped/1, get_equiped_weapon/1]).
 -export([transfer/2, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
--export([find/1, find_one/1, find_type/2]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3]).
 
-get(Id) ->
+get_rec(Id) ->
     case db:read(item, Id) of
         [Item] -> Item;
         _ -> invalid
     end.
+
+get_map(Id) ->
+    Item = get_rec(Id),
+    item_to_map(Item).
 
 get_by_owner(OwnerId) ->
     Items = db:dirty_index_read(item, OwnerId, #item.owner),
@@ -32,6 +35,11 @@ get_by_subclass(OwnerId, SubClass) ->
     F = fun(ItemMap) -> maps:get(<<"subclass">>, ItemMap) =:= SubClass end,
     lists:filter(F, AllItems).
 
+get_by_name(OwnerId, Name) ->
+    AllItems = get_by_owner(OwnerId),
+    F = fun(ItemMap) -> maps:get(<<"name">>, ItemMap) =:= Name end,
+    lists:filter(F, AllItems).
+
 get_equiped(OwnerId) ->
     AllItems = get_by_owner(OwnerId),
     F = fun(ItemMap) -> maps:get(<<"equip">>, ItemMap) =:= <<"true">> end,
@@ -46,7 +54,7 @@ get_equiped_weapon(OwnerId) ->
     lists:filter(F, AllItems).
 
 is_equipable(Item) ->
-    case maps:get(<<"class">>, Item) of
+    case Item#item.class of
         <<"Weapon">> -> true;
         <<"Armor">> -> true;
         _ -> false
@@ -72,20 +80,31 @@ is_valid_split(Player, ItemId, Quantity) when Quantity > 1 ->
         [] -> false
     end.
 
+can_merge(ItemClass) ->
+    case ItemClass of
+        <<"Weapon">> -> false;
+        <<"Armor">> -> false;
+        _ -> true
+    end.
+
 transfer(ItemId, TargetId) ->
     [TransferItem] = db:dirty_read(item, ItemId),
     AllItems = db:dirty_index_read(item, TargetId, #item.owner),
     
-    NewItem = case filter_by_name(AllItems, TransferItem#item.name) of
-                  [] -> 
-                      #item{owner = TargetId};
-                  [Item | _Rest] -> 
-                      NewQuantity = Item#item.quantity + TransferItem#item.quantity,
-                      Item#item{quantity = NewQuantity}
-              end,
+    NewItem = case can_merge(TransferItem#item.class) of
+                  true ->
+                      case filter_by_name(AllItems, TransferItem#item.name) of
+                          [] -> 
+                              TransferItem#item{owner = TargetId};
+                          [Item | _Rest] -> 
+                              NewQuantity = Item#item.quantity + TransferItem#item.quantity,
+                              Item#item{quantity = NewQuantity}
+                      end;
+                  false ->
+                      TransferItem#item{owner = TargetId}
+             end,
     db:write(NewItem).
                 
-
 split(ItemId, NewQuantity) ->
     [Item] = db:read(item, ItemId),
     CurrentQuantity = Item#item.quantity,
@@ -140,9 +159,36 @@ create(Owner, Name, Quantity) ->
     
     db:write(NewItem).
 
-create(Item) ->
-    InsertedItem = mongo:insert(mdb:get_conn(), <<"item">>, Item),
-    InsertedItem.
+create(ItemMap) ->
+    Id = util:get_id(),
+
+    ItemFields = record_info(fields, item),
+    ItemKeys = maps:keys(ItemMap),
+
+    % Insert the item attributes
+    F = fun(Key) ->
+            case lists:member(Key, ItemFields) of
+                true -> nothing; %Handled manually below
+                false -> 
+                    AttrKey = {Id, Key},
+                    ItemAttr = #item_attr {key = AttrKey, 
+                                           value = maps:get(Key, ItemMap)},
+                    db:dirty_write(ItemAttr)
+            end
+        end,
+
+    lists:foreach(F, ItemKeys),
+
+    % Insert the base item entry
+    NewItem = #item{id = Id,
+                    name = maps:get(<<"name">>, ItemMap),
+                    quantity = maps:get(<<"quantity">>, ItemMap),
+                    owner = maps:get(<<"owner">>, ItemMap),
+                    class = maps:get(<<"class">>, ItemMap),
+                    subclass = maps:get(<<"subclass">>, ItemMap),
+                    weight = maps:get(<<"weight">>, ItemMap, 0)},
+
+    db:write(NewItem).
 
 % Internal
 

@@ -1196,14 +1196,14 @@ function drawLootDialog(jsonData) {
         var imagePath = "/static/art/" + itemName + ".png";
         var icon = new createjs.Container();
         
-        icon._id = jsonData.items[i]._id;
+        icon.itemId = jsonData.items[i].id;
         icon.on("mousedown", function(evt) {
             if(evt.nativeEvent.button == 2) {
                 console.log("Sending loot");
-                sendLoot(selectedPortrait, this._id);
+                sendLoot(selectedPortrait, this.itemId);
             }
             else {
-                sendInfoItem(this._id);
+                sendInfoItem(this.itemId);
             }
         });
 
@@ -1381,10 +1381,10 @@ function drawNewItemsDialog(jsonData) {
         var imagePath = "/static/art/" + itemName + ".png";
         var icon = new createjs.Container();
        
-        icon.id = jsonData.items[i]._id;
+        icon.itemId = jsonData.items[i].id;
         icon.itemName = jsonData.items[i].name;
 
-        if(jsonData.items[i].hasOwnProperty("_id")) {
+        if(jsonData.items[i].hasOwnProperty("id")) {
             icon.by_name = false;
         } 
         else {
@@ -1615,7 +1615,7 @@ function drawInfoUnit(jsonData) {
 
         icon.x = 10 + i * 50;
         icon.y = 325;
-        icon._id = jsonData.items[i]._id;
+        icon.itemId = jsonData.items[i].id;
         icon.owner = jsonData.items[i].owner;
         icon.itemName = jsonData.items[i].name;
         icon.quantity = jsonData.items[i].quantity;
@@ -1624,10 +1624,10 @@ function drawInfoUnit(jsonData) {
             if(!pressmove) {
                 if(evt.nativeEvent.button == 2) {
                     console.log("Right Click!");
-                    drawItemSplit(this._id, this.itemName, this.quantity);
+                    drawItemSplit(this.itemId, this.itemName, this.quantity);
                 }
                 else {
-                    sendInfoItem(this._id);
+                    sendInfoItem(this.itemId);
                 }
             }
         });
@@ -1652,9 +1652,9 @@ function drawInfoUnit(jsonData) {
                 if(infoPanels[i].hitTest(pt.x, pt.y)) {
                     if(infoPanels[i]._id != this.owner) {
                         if(infoPanels[i]._id != undefined) {
-                            console.log("Transfering item: " + infoPanels[i]._id, this._id);
+                            console.log("Transfering item: " + infoPanels[i]._id, this.itemId);
                             transfer = true;
-                            sendItemTransfer(infoPanels[i]._id, this._id);        
+                            sendItemTransfer(infoPanels[i]._id, this.itemId);        
                         }
                     }
                 }

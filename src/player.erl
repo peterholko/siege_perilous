@@ -81,9 +81,9 @@ get_info_unit(Id) ->
             obj:get_info_other(Id)
     end.
 
-get_info_item(Item) ->
-    lager:info("get_info_item ~p", [Item]),
-    item:get(Item).
+get_info_item(ItemId) ->
+    lager:info("get_info_item ~p", [ItemId]),
+    item:get_map(ItemId).
 
 attack(AttackType, SourceId, TargetId) ->
     PlayerId = get(player_id),
@@ -207,8 +207,8 @@ harvest(ObjId, Resource) ->
     add_harvest_event(Result, {ObjId, Resource, Obj#obj.pos, AutoHarvest}, NumTicks).
 
 loot(SourceId, ItemId) ->
-    Item = item:get(ItemId),
-    Owner = maps:get(<<"owner">>, Item),    
+    Item = item:get_rec(ItemId),
+    Owner = Item#item.owner,
 
     item:transfer(ItemId, SourceId),
 
@@ -217,8 +217,8 @@ loot(SourceId, ItemId) ->
 
 item_transfer(TargetId, ItemId) ->
     Player = get(player_id),
-    Item = item:get(ItemId),
-    Owner = maps:get(<<"owner">>, Item),
+    Item = item:get_rec(ItemId),
+    Owner = Item#item.owner,
 
     OwnerObj = obj:get(Owner),   
     TargetObj = obj:get(TargetId), 
@@ -294,7 +294,7 @@ finish_build(SourceId, StructureId) ->
     finish_build(PlayerId, Source, Structure).
 
 finish_build(PlayerId, Source, Structure = #obj {state = founded}) -> 
-    NumTicks = obj_attr:get(Structure#obj.id, <<"build_time">>),
+    NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
     
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
                   Structure#obj.player =:= PlayerId andalso
@@ -307,7 +307,7 @@ finish_build(PlayerId, Source, Structure = #obj {state = founded}) ->
     {<<"build_time">>, NumTicks * 4}];
 
 finish_build(PlayerId, Source, Structure = #obj {state = under_construction}) ->
-    NumTicks = obj_attr:get(Structure#obj.id, <<"build_time">>),
+    NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
 
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
                   Structure#obj.player =:= PlayerId,
@@ -374,9 +374,9 @@ craft(StructureId, Recipe) ->
 equip(ItemId) ->
     Player = get(player_id),
 
-    Item = item:get(ItemId),
-    ItemOwner = maps:get(<<"owner">>, Item),
-    ItemSlot = maps:get(<<"slot">>, Item),
+    Item = item:get_rec(ItemId),
+    ItemOwner = Item#item.owner,
+    ItemSlot = item_attr:value(ItemId, <<"slot">>),
 
     [Obj] = db:read(obj, ItemOwner),
 
@@ -395,10 +395,9 @@ equip(ItemId) ->
 
 unequip(ItemId) ->
     Player = get(player_id),
+    Item = item:get_rec(ItemId),
+    ItemOwner = Item#item.owner,
     
-    Item = item:get(ItemId),
-    ItemOwner = maps:get(<<"owner">>, Item),
-
     [Obj] = db:read(obj, ItemOwner),
 
     Checks = [{Player =:= Obj#obj.player, "Item not owned by player"},

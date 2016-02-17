@@ -232,6 +232,7 @@ process_transition(0) -> nothing;
 process_transition(NumTick) when ((NumTick + ?TICKS_MIN) rem (?TICKS_MIN * 4)) =:= 0 ->
     %Transition from day to blood moon
     transition(bloodmoon),
+    bloodmoon(),
     send_world_update(time, bloodmoon); 
 process_transition(NumTick) when ((NumTick + ?TICKS_MIN) rem (?TICKS_MIN * 2)) =:= 0 ->
     %Transition from day to night
@@ -303,9 +304,6 @@ apply_transition(bloodmoon, Obj = #obj {id = Id, name = Name, vision = Vision}) 
     %Apply night effect 
     obj:add_effect(Id, <<"bloodmoon">>, none),
 
-    %Increase hp x 10
-    Hp = obj_attr:value(Id, <<"hp">>),
-    obj_attr:set(Id, <<"hp">>, Hp * 10),
 
     %Increase vision x 5
     NewObj = Obj#obj {vision = erlang:trunc(Vision * 5)},
@@ -316,20 +314,19 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
         true ->
             obj:remove_effect(Id, <<"bloodmoon">>),
 
-            %Decrease hp x 10
-            Hp = obj_attr:value(Id, <<"hp">>),
-            obj_attr:set(Id, <<"hp">>, Hp * 10),
-
             %Decrease vision / 10
             NewObj = Obj#obj {vision = erlang:trunc(Vision / 5)},
             db:write(NewObj);
         false ->
             nothing
     end;
-apply_transition(night, Obj = #obj {class = Class}) when Class =:= unit ->
-    NewObj = Obj#obj {vision = 2},
+apply_transition(bloodmoon, Obj = #obj{player = Player, class = Class}) when (Player > 1000) and (Class =:= unit) ->
+    NewObj = Obj#obj {vision = 1},
     db:write(NewObj);
-apply_transition(day, Obj = #obj {class = Class}) when Class =:= unit ->
+apply_transition(night, Obj = #obj{player = Player, class = Class}) when (Player > 1000) and (Class =:= unit) ->
+    NewObj = Obj#obj {vision = 1},
+    db:write(NewObj);
+apply_transition(day, Obj = #obj{player = Player, class = Class}) when (Player > 1000) and (Class =:= unit) ->
     NewObj = Obj#obj {vision = 2},
     db:write(NewObj);
 apply_transition(_, _) ->
@@ -369,13 +366,13 @@ mana_upkeep() ->
     Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->
-            Mana = item:find_one({<<"owner">>, Monolith#obj.id, <<"name">>, <<"Mana">>}),
+            Mana = item:get_by_name(Monolith#obj.id, <<"Mana">>),
             update_mana(Monolith, Mana)
         end,
 
     lists:foreach(F, Monoliths).
 
-update_mana(Monolith, #{}) -> 
+update_mana(Monolith, []) -> 
     obj:update_state(Monolith#obj.id, disabled);
 update_mana(Monolith, Mana) ->
     Id = maps:get(<<"id">>, Mana),
@@ -403,7 +400,7 @@ food_upkeep() ->
                     game:send_update_stats(Player, Unit#obj.id); 
                 [Item | _Rest] ->
                     obj:remove_effect(Unit#obj.id, <<"Starving">>),
-                    ItemId = maps:get(<<"_id">>, Item),
+                    ItemId = maps:get(<<"id">>, Item),
                     NewQuantity = maps:get(<<"quantity">>, Item) - 1,
                     item:update(ItemId, NewQuantity)
             end;
@@ -444,3 +441,21 @@ send_world_update(Attr, Value) ->
         end,
 
     lists:foreach(F, Connections).
+
+bloodmoon() ->
+    Num = counter:increment(bloodmoon),	
+    Rand = rand:uniform(5 + Num),
+    npc_mgr:spawn_zombies(Rand),
+    
+    Objs = ets:tab2list(obj),
+
+    F = fun(Obj) ->
+            zombie_powerup(Obj)
+        end,
+
+    lists:foreach(F, Objs).
+
+zombie_powerup(#obj{id = Id, name = Name}) when Name =:= <<"Zombie">> ->
+    Hp = obj_attr:value(Id, <<"hp">>),
+    obj_attr:set(Id, <<"hp">>, Hp + 10);
+zombie_powerup(_) -> nothing.
