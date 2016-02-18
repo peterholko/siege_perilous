@@ -47,8 +47,9 @@ loop(NumTick, LastTime, GamePID) ->
     %Send out new explored maps
     process_explored(Explored),
 
-    %Execute NPC actions
-    execute_npc(NumTick),
+    %NPC generate plan and run plan
+    npc_replan(NumTick),
+    npc_run_plan(NumTick),
 
     %Execute villager tasks
     execute_villager(NumTick),
@@ -254,10 +255,14 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick 
     process_rest_state();
 process_rest(_) -> nothing.
 
-execute_npc(NumTick) when (NumTick rem (?TICKS_SEC * 5)) =:= 0 ->
-    npc:replan(?UNDEAD),
-    npc:run_plan(?UNDEAD);
-execute_npc(_) ->
+npc_replan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
+    npc:replan(?UNDEAD);
+npc_replan(_) ->
+    nothing.
+
+npc_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 2)) =:= 0 ->
+   npc:run_plan(?UNDEAD);
+npc_run_plan(_) ->
     nothing.
 
 execute_villager(NumTick) when (NumTick rem 50) =:= 0 ->

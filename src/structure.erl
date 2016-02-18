@@ -106,7 +106,7 @@ valid_location(_, QueryPos) ->
     Objs =:= [].
 
 process_upkeep(Structure) ->
-    UpkeepList = obj_attr:value(Structure#obj.id, <<"upkeep">>),
+    UpkeepList = obj_attr:value(Structure#obj.id, <<"upkeep">>, []),
 
     F = fun(UpkeepReq, PrevIsDecaying) ->
             Subclass = maps:get(<<"type">>, UpkeepReq),

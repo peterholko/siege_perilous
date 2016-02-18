@@ -179,20 +179,20 @@ process_run_plan('$end_of_table') ->
 process_run_plan(Id) ->
     [NPC] = db:read(npc, Id),
 
-    lager:info("Task State: ~p", [NPC#npc.task_state]),
+    lager:debug("Task State: ~p", [NPC#npc.task_state]),
     case NPC#npc.task_state of
         completed ->
             TaskIndex = NPC#npc.task_index,
             PlanLength = length(NPC#npc.plan),
 
             NextTask = get_next_task(TaskIndex, PlanLength),
-            lager:info("NextTask: ~p", [NextTask]),
+            lager:debug("NextTask: ~p", [NextTask]),
             case NextTask of
                 {next_task, NextTaskIndex} ->
                     NewNPC = NPC#npc {task_index = NextTaskIndex},
                     db:write(NewNPC),
                     TaskToRun = lists:nth(NextTaskIndex, NPC#npc.plan),
-                    lager:info("TaskToRun: ~p", [TaskToRun]),
+                    lager:debug("TaskToRun: ~p", [TaskToRun]),
                     erlang:apply(npc, TaskToRun, [Id]);
                 plan_completed ->
                     NewNPC = NPC#npc { task_state = completed,
@@ -379,7 +379,7 @@ move_to_target(NPCId) ->
     end.
     
 melee_attack(NPCId) ->
-    lager:info("Melee_attack: ~p", [NPCId]),
+    lager:debug("Melee_attack: ~p", [NPCId]),
     [NPC] = db:read(npc, NPCId),
     [NPCObj] = db:read(obj, NPCId),
 
@@ -390,7 +390,7 @@ melee_attack(NPCId) ->
              combat:is_target_alive(TargetObj) andalso
              combat:is_targetable(TargetObj),
 
-    lager:info("Checks: ~p", [Checks]),
+    lager:debug("Checks: ~p", [Checks]),
     NewNPC = case Checks of
                 true ->           
                     CurrentAttacks = NPC#npc.attacks,

@@ -17,15 +17,13 @@ get_rec(Id) ->
 
 get_map(Id) ->
     Item = get_rec(Id),
-    item_to_map(Item).
+    rec_to_map(Item).
 
 get_by_owner(OwnerId) ->
     Items = db:dirty_index_read(item, OwnerId, #item.owner),
 
     F = fun(Item) ->            
-            ItemMap = item_to_map(Item),
-            AttrMap = item_attr:all_to_map(Item#item.id),
-            maps:merge(ItemMap, AttrMap)
+            item_map(Item)
         end,
 
     lists:map(F, Items).
@@ -97,8 +95,15 @@ transfer(ItemId, TargetId) ->
                           [] -> 
                               TransferItem#item{owner = TargetId};
                           [Item | _Rest] -> 
+                              %Update new quantity,
                               NewQuantity = Item#item.quantity + TransferItem#item.quantity,
-                              Item#item{quantity = NewQuantity}
+                                
+                              %Remove the transfer item
+                              db:delete(TransferItem),
+
+                              %Merge with existing item
+                              Item#item{owner = TargetId,
+                                        quantity = NewQuantity}
                       end;
                   false ->
                       TransferItem#item{owner = TargetId}
@@ -157,7 +162,11 @@ create(Owner, Name, Quantity) ->
                       Item#item{quantity = NewQuantity}
               end,
     
-    db:write(NewItem).
+    db:write(NewItem),
+
+    %Return item map with all attrs
+    item_map(NewItem).
+
 
 create(ItemMap) ->
     Id = util:get_id(),
@@ -188,11 +197,14 @@ create(ItemMap) ->
                     subclass = maps:get(<<"subclass">>, ItemMap),
                     weight = maps:get(<<"weight">>, ItemMap, 0)},
 
-    db:write(NewItem).
+    db:write(NewItem),
+    
+    %Return item map with all attrs
+    item_map(NewItem).
 
 % Internal
 
-item_to_map(Item) ->
+rec_to_map(Item) ->
     #{<<"id">> => Item#item.id,
       <<"name">> => Item#item.name,
       <<"quantity">> => Item#item.quantity,
@@ -201,6 +213,11 @@ item_to_map(Item) ->
       <<"subclass">> => Item#item.subclass,
       <<"weight">> => Item#item.weight,
       <<"equip">> => Item#item.equip}.
+
+item_map(Item) ->
+    ItemMap = rec_to_map(Item),
+    AttrMap = item_attr:all_to_map(Item#item.id),
+    maps:merge(ItemMap, AttrMap).
 
 filter_by_name(Items, Name) ->
     F = fun(Item) -> Item#item.name =:= Name end,
@@ -221,4 +238,5 @@ create_item_attr(Id, Name) ->
         end,
 
     lists:foreach(F, AllItemDef).
+
 
