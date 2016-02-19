@@ -12,6 +12,7 @@
          get_info_unit/1,
          get_info_item/1,
          move/2,
+         ford/2,
          attack/3,
          defend/2,
          survey/1,
@@ -106,7 +107,9 @@ attack(AttackType, SourceId, TargetId) ->
 
             game:add_event(self(), attack, AttackType, SourceId, NumTicks),
 
-            #{<<"cooldown">> => NumTicks * ?TICKS_SEC,
+            #{<<"sourceid">> => util:bin_to_hex(SourceId),
+              <<"attacktype">> => AttackType,
+              <<"cooldown">> => NumTicks / ?TICKS_SEC,
               <<"stamina_cost">> => StaminaCost};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
@@ -140,7 +143,6 @@ defend(DefendType, SourceId) ->
 move(SourceId, Pos) ->
     PlayerId = get(player_id),
     [Obj] = db:read(obj, SourceId),
-    NumTicks = obj:movement_cost(Obj, Pos),
 
     Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
@@ -163,7 +165,43 @@ move(SourceId, Pos) ->
                          SourceId,
                          Pos},
 
+            NumTicks = obj:movement_cost(Obj, Pos),
+
             game:add_event(self(), move, EventData, SourceId, NumTicks),
+
+            #{<<"move_time">> => NumTicks * ?TICKS_SEC};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+ford(SourceId, Pos) ->
+    PlayerId = get(player_id),
+    [Obj] = db:read(obj, SourceId),
+
+    Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {not game:has_pre_events(SourceId), "Unit is busy"},
+              {Obj#obj.class =:= unit, "Obj cannot move"},
+              {Obj#obj.state =/= dead, "Unit is dead"}, 
+              {map:is_adjacent(Obj#obj.pos, Pos), "Unit is not adjacent to position"},
+              {map:is_river(Pos), "Can only ford rivers"},
+              {obj:is_hero_nearby(Obj, PlayerId), "Unit not near Hero"}],
+
+    case process_checks(Checks) of
+        true ->
+            game:cancel_event(SourceId),
+
+            %Update state to fording
+            obj:update_state(Obj#obj.id, fording),
+
+            %Create event data
+            EventData = {PlayerId,
+                         SourceId,
+                         Obj#obj.pos, 
+                         Pos},
+
+            NumTicks = obj:movement_cost(Obj, Pos),
+
+            game:add_event(self(), ford, EventData, SourceId, NumTicks),
 
             #{<<"move_time">> => NumTicks * ?TICKS_SEC};
         {false, Error} ->

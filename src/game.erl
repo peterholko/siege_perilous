@@ -191,5 +191,6 @@ code_change(_OldVsn, Data, _Extra) ->
 event_class(attack) -> pre;
 event_class(defend) -> pre;
 event_class(move) -> pre;
+event_class(ford) -> pre;
 event_class(_) -> post.
 

@@ -131,6 +131,18 @@ do_event(move, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {move, Id}),
     true;
 
+do_event(ford, EventData, PlayerPid) ->
+    lager:debug("Processing ford event: ~p", [EventData]),
+    {_Player, Id, Pos, NewPos} = EventData,
+
+    case map:get_ford_pos(Pos, NewPos) of
+        none -> nothing;
+        NextPos -> obj:move(Id, NextPos)
+    end,
+
+    message:send_to_process(PlayerPid, event_complete, {move, Id}),
+    true;
+
 do_event(harvest, EventData, PlayerPid) ->
     lager:debug("Processing harvest event: ~p", [EventData]),
     {ObjId, Resource, Pos, NumTicks, Repeat} = EventData,
@@ -270,17 +282,22 @@ execute_villager(NumTick) when (NumTick rem 50) =:= 0 ->
 execute_villager(_) ->
     nothing.
 
-clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 2)) =:= 0 ->
+clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
     lager:debug("Cleaning up dead objs"),
     Objs = ets:tab2list(obj),
 
     F = fun(Obj) ->
-            case (NumTick - Obj#obj.modtick) > (?TICKS_MIN * 2) of
+            case (NumTick - Obj#obj.modtick) > (?TICKS_MIN * 3) of
                 true ->
-                    case Obj#obj.state of
-                        dead -> obj:remove(Obj#obj.id);
-                        founded -> obj:remove(Obj#obj.id);
-                        _ -> nothing
+                    case Obj#obj.subclass =:= <<"hero">> of
+                        false ->
+                            case Obj#obj.state of
+                                dead -> obj:remove(Obj#obj.id);
+                                founded -> obj:remove(Obj#obj.id);
+                                _ -> nothing
+                            end;
+                        true ->
+                            nothing
                     end;
                 false ->
                     nothing
@@ -448,19 +465,27 @@ send_world_update(Attr, Value) ->
     lists:foreach(F, Connections).
 
 bloodmoon() ->
-    Num = counter:increment(bloodmoon),	
-    Rand = rand:uniform(5 + Num),
-    npc_mgr:spawn_zombies(Rand),
-    
+    %Power up current zombies
     Objs = ets:tab2list(obj),
 
-    F = fun(Obj) ->
-            zombie_powerup(Obj)
+    F = fun(Obj, Acc) ->
+            zombie_powerup(Obj) + Acc
         end,
 
-    lists:foreach(F, Objs).
+    NumZombies = lists:foldl(F, 0, Objs),
 
+    %Spawn more zombies if less than max zombies
+    case NumZombies < ?MAX_ZOMBIES of
+        true ->
+            Num = counter:increment(bloodmoon),	
+            Rand = rand:uniform(5 + Num),
+            npc_mgr:spawn_zombies(Rand);
+        false ->
+            nothing
+    end.
+ 
 zombie_powerup(#obj{id = Id, name = Name}) when Name =:= <<"Zombie">> ->
     Hp = obj_attr:value(Id, <<"hp">>),
-    obj_attr:set(Id, <<"hp">>, Hp + 10);
-zombie_powerup(_) -> nothing.
+    obj_attr:set(Id, <<"hp">>, Hp + 10),
+    1; %Return counted 1 zombie
+zombie_powerup(_) -> 0.

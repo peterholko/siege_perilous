@@ -307,12 +307,11 @@ process_subclass(_, _) ->
 
 movement_cost(_Obj, NextPos) ->
     %Check unit skills 
-    lager:info("NextPos: ~p", [NextPos]),
+    lager:debug("NextPos: ~p", [NextPos]),
     map:movement_cost(NextPos) * 8.
 
 remove(Id) ->
-    ok = db:delete(obj, Id),
-    mdb:delete(<<"obj">>, Id),
+    db:delete(obj, Id),
     game:trigger_perception().
 
 get_visible_objs([], Objs) ->

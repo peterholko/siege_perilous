@@ -301,6 +301,16 @@ message_handle(<<"info_item_by_name">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"ford">>, Message) ->
+    lager:info("message: ford"),
+    HexId = map_get(<<"id">>, Message),
+    BinId = util:hex_to_bin(HexId),
+    X = map_get(<<"x">>, Message),
+    Y = map_get(<<"y">>, Message),
+    Return = player:ford(BinId, {X, Y}),
+    FinalReturn = maps:put(<<"packet">>, <<"ford">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 
     lager:info("~p: ~p~n", [Error, Message]),

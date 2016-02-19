@@ -21,7 +21,7 @@ start_build(PlayerId, Pos, Name, Subclass) ->
                              Subclass,
                              Name, 
                              founded),
-    obj:update_hp(StructureId, 1),    
+    obj_attr:set(StructureId, <<"hp">>, 1),
     StructureId.
 
 check_req(StructureId) ->

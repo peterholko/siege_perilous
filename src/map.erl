@@ -16,10 +16,10 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/2]).
--export([get_nearby_objs/3]).
+-export([get_nearby_objs/3, get_ford_pos/2]).
 -export([add_explored/3]).
--export([neighbours/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
--export([movement_cost/1, is_passable/1, random_location/0]).
+-export([neighbours/1, neighbours/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
+-export([movement_cost/1, is_passable/1, is_river/1, random_location/0]).
 -export([check_distance/4, distance/2]).
 -export([range/2, filter_pos/1]).
 -export([spawn_resources/0, tile_name/1, defense_bonus/1]).
@@ -58,6 +58,11 @@ is_adjacent(SourcePos, TargetPos) ->
     {SX, SY} = SourcePos,
     Neighbours = map:neighbours(SX, SY),
     lists:member(TargetPos, Neighbours).
+
+is_river(Pos) ->
+    [Tile] = db:dirty_read(map, Pos),
+    TileName = tile_name(Tile#map.tile),
+    TileName =:= ?RIVER.
 
 movement_cost(Pos) when is_tuple(Pos) ->
     [Tile] = db:dirty_read(map, Pos),
@@ -99,6 +104,27 @@ random_location(false, _Pos) ->
              obj:is_empty(Pos),
 
     random_location(Result, Pos).
+
+get_ford_pos(Pos, RiverPos) ->
+    Neighbours = sets:from_list([Pos | neighbours(Pos)]),
+    RiverNeighbours = sets:from_list(neighbours(RiverPos)),
+
+    FordSet = sets:subtract(RiverNeighbours, Neighbours),
+    
+    F = fun(FordPos) ->
+            obj:is_empty(FordPos) and is_passable(FordPos)
+        end,
+
+    FordList = lists:filter(F, sets:to_list(FordSet)),
+    NumFord = length(FordList),
+
+    case NumFord > 0 of
+        true -> 
+            Rand = rand:uniform(NumFord),
+            lists:nth(Rand, FordList);
+        false ->
+            none
+    end.    
 
 %% ====================================================================
 %% Server functions
@@ -207,6 +233,9 @@ tiles_msg_format([TileId | Rest], Tiles) ->
     tiles_msg_format(Rest, NewTiles).
 
 %From Amit's article on hex grid: http://www.redblobgames.com/grids/hexagons/#neighbors
+neighbours({X, Y}) ->
+    neighbours(X, Y).
+
 neighbours(Q, R) ->
 
     CubeCoords = odd_q_to_cube({Q,R}),
@@ -650,6 +679,7 @@ mc(?HILLS_GRASSLANDS) -> 3;
 mc(?HILLS_SNOW) -> 3;
 mc(?HILLS_DESERT) -> 3;
 mc(?DECIDUOUS_FOREST) -> 3;
+mc(?RIVER) -> 6;
 mc(_) -> 1.
 
 passable_tile(?OCEAN) -> false;

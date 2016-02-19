@@ -156,7 +156,7 @@ broadcast_to_objs(Objs, Message) ->
     
     F = fun(Player) ->
             [Conn] = db:read(connection, Player),
-            lager:debug("Broadcasting ~p to ~p", [Message, Player]),
+            lager:debug("Broadcasting ~p to ~p", [Message, Conn]),
             Conn#connection.process ! {broadcast, Message}
         end,
     

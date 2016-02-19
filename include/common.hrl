@@ -42,6 +42,7 @@
 -define(HILLS_MC, 2).
 
 -define(UNDEAD, 99).
+-define(MAX_ZOMBIES, 100).
 
 -define(FOOD, <<"Food">>).
 

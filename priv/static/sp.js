@@ -38,6 +38,9 @@ var selectedTile = false;
 
 var hpBar;
 var staminaBar;
+var quickCooldown;
+var preciseCooldown;
+var fierceCooldown;
 
 var attackToggled = false;
 
@@ -103,6 +106,10 @@ var btnCraftRestImg = new Image();
 var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
 var btnEquipRestImg = new Image();
+
+var quickButton = new createjs.Container();
+var preciseButton = new createjs.Container();
+var fierceButton = new createjs.Container();
 
 var gravestone = new Image();
 
@@ -492,6 +499,12 @@ function sendProcess(structureid) {
     websocket.send(e);
 };
 
+function sendFord(sourceid, x, y) {
+    console.log("sendFord");
+    var e = '{"cmd": "ford", "id": "' + selectedPortrait + '", "x": ' + selectedTile['x'] + ', "y": ' + selectedTile['y'] + '}';
+    websocket.send(e);
+};
+
 function sendRecipeList(sourceid) {
     var e = '{"cmd": "recipe_list", "sourceid": "' + sourceid + '"}';
     websocket.send(e);
@@ -599,11 +612,11 @@ function onMessage(evt) {
             explored = jsonData.explored;
             objs = jsonData.objs;
 
+            updateObj(jsonData.objs);
 
             setPlayer();
             clearMap();
             drawMap(jsonData.map);
-            updateObj(jsonData.objs);
         }
         else if(jsonData.packet == "perception") {
             updateObj(jsonData.objs);
@@ -671,6 +684,15 @@ function onMessage(evt) {
                 updateTextLog(jsonData.errmsg);
             } 
         }
+        else if(jsonData.packet == "attack") {
+            if(jsonData.hasOwnProperty("errmsg")) {
+                updateTextLog(jsonData.errmsg);
+            }
+            else {
+                drawAttackClicked(jsonData.attacktype);
+                drawCooldown(jsonData.cooldown);
+            }
+        }
         else if(jsonData.packet == "world") {
             if(jsonData.hasOwnProperty("time")) {
                 if(jsonData.time == "day") {
@@ -691,6 +713,12 @@ function setPlayer() {
     for(var i = 0; i < objs.length; i++) {
         if(objs[i].player == playerId && is_hero(objs[i].type)) {
             heroId = objs[i].id;
+            selectedUnit = heroId;
+            drawSelectedPortrait();
+
+            if(objs[i].state == "dead") {
+                updateTextLog("You are dead...");
+            }
         }
     }
 };
@@ -969,7 +997,14 @@ function drawSelectPanel(tileX, tileY, tileImages) {
         selectIcon.x = 7;
         selectIcon.y = 7;
         selectIcon.name = "selectIcon";
-        selectIcon.visible = false; 
+
+        if(i == 0) {
+            selectIcon.visible = true
+            selectedUnit = localObjs[i].id;    
+        }
+        else {
+            selectIcon.visible = false; 
+        }
      
         icon.addChild(selectIcon);
 
@@ -1078,6 +1113,46 @@ function drawStats(stats) {
         .beginStroke('#009C0A')
         .moveTo(333, stageHeight - 135)
         .lineTo(333 + (staminaRatio * barWidth), stageHeight - 135);
+};
+
+function drawAttackClicked(attacktype) {
+    if(attacktype == "quick") {
+        quickButton.addChild(clicked);
+    }
+    else if(attacktype == "precise") {
+        preciseButton.addChild(clicked);
+    }
+    else if(attacktype == "fierce") {
+        fierceButton.addChild(clicked);
+    }
+};
+
+function drawCooldown(time) {
+    quickCooldown.visible = true;
+    preciseCooldown.visible = true;
+    fierceCooldown.visible = true;
+
+    quickCooldown.scaleY = 1;
+    preciseCooldown.scaleY = 1;
+    fierceCooldown.scaleY = 1;
+
+    quickCooldown.graphics.clear()
+        .beginFill('rgba(50,50,50,0.75)')
+        .rect(0,0,50,50);
+    preciseCooldown.graphics.clear()
+        .beginFill('rgba(50,50,50,0.75)')
+        .rect(0,0,50,50);
+    fierceCooldown.graphics.clear()
+        .beginFill('rgba(50,50,50,0.75)')
+        .rect(0,0,50,50);
+
+    createjs.Tween.get(quickCooldown).to({scaleY: 0}, time*1000).call(cooldownComplete);
+    createjs.Tween.get(preciseCooldown).to({scaleY: 0}, time*1000);
+    createjs.Tween.get(fierceCooldown).to({scaleY: 0}, time*1000);
+
+    function cooldownComplete() {
+        removeClicked();
+    };
 };
 
 function drawDmg(jsonData) {
@@ -1407,55 +1482,6 @@ function drawNewItemsDialog(jsonData) {
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
-};
-
-function drawInfoOnTile(tileType, tileX, tileY, objsOnTile) {
-    showInfoPanel();
-
-    var bandText = new createjs.Text("(" + tileX + ", " + tileY + ")", h1Font, textColor);
-    bandText.x = Math.floor(infoPanelBg.width / 2);
-    bandText.y = 10;
-    bandText.textAlign = "center";
-
-    addChildInfoPanel(bandText);
-
-    var tile = new createjs.Bitmap(tileImages[tileType]);
-    
-    tile.type = tileType;
-    tile.tileX = tileX;
-    tile.tileY = tileY;
-    tile.on("mousedown", function(evt) {
-        sendInfoTile(this.type, this.tileX, this.tileY);
-    });
-
-    tile.x = (infoPanelBg.width / 2) - 36;
-    tile.y = 52;
-
-    addChildInfoPanel(tile);
-
-    for(var i = 0; i < objsOnTile.length; i++) {
-    
-        var objName = objsOnTile[i].type;
-        var imagePath =  "/static/art/" + objName + ".png";
-        var icon = new createjs.Container();
-
-        icon.type = objsOnTile[i].type;
-        icon.obj_id = objsOnTile[i].id;
-        icon.x = i * hexSize;
-        icon.y = 130;
-        icon.on("mousedown", function(evt) {
-            if(this.type == "battle") {
-                sendInfoBattle(this.obj_id);
-            } else { 
-                sendInfoObj(this.obj_id);
-            }
-        });
-
-        addChildInfoPanel(icon);
-
-        imagesQueue.push({id: objName, x: 0, y: 0, target: icon});
-        loaderQueue.loadFile({id: objName, src: imagePath});
-    }
 };
 
 function drawInfoTile(jsonData) {
@@ -1854,6 +1880,7 @@ function drawItemSplit(itemId, itemName, quantity) {
 };
 
 function updateTextLog(newText) {    
+    console.log(newText);
     var metrics = textLog.getMetrics();
     var num_lines = metrics.lines.length;
 
@@ -1947,9 +1974,6 @@ function initUI() {
     var detailsButton = new createjs.Container();
     var gatherButton = new createjs.Container();
     var buildButton = new createjs.Container();
-    var quickButton = new createjs.Container();
-    var preciseButton = new createjs.Container();
-    var fierceButton = new createjs.Container();
     var dodgeButton = new createjs.Container();
     var parryButton = new createjs.Container();
     var braceButton = new createjs.Container();
@@ -1971,21 +1995,40 @@ function initUI() {
     buildButton.y = 96;
     buildButton.mouseChildren = false;
     buildButton.addChild(new createjs.Bitmap(buildRest));
- 
+
+    quickCooldown = new createjs.Shape();
+    preciseCooldown = new createjs.Shape();
+    fierceCooldown = new createjs.Shape();
+
+    quickCooldown.y = 50;
+    preciseCooldown.y = 50;
+    fierceCooldown.y = 50;
+    
+    quickCooldown.regY = 50;
+    preciseCooldown.regY = 50;
+    fierceCooldown.regY = 50;
+
+    quickCooldown.visible = false;
+    preciseCooldown.visible = false;
+    fierceCooldown.visible = false;
+
     quickButton.x = 284;
     quickButton.y = 94;
     quickButton.mouseChildren = false;
     quickButton.addChild(new createjs.Bitmap(quick));
+    quickButton.addChild(quickCooldown);
 
     preciseButton.x = 340;
     preciseButton.y = 94;
     preciseButton.mouseChildren = false;
     preciseButton.addChild(new createjs.Bitmap(precise));
+    preciseButton.addChild(preciseCooldown);
 
     fierceButton.x = 396;
     fierceButton.y = 94;
     fierceButton.mouseChildren = false;
     fierceButton.addChild(new createjs.Bitmap(fierce));
+    fierceButton.addChild(fierceCooldown);
 
     dodgeButton.x = 284;
     dodgeButton.y = 148;
@@ -2029,16 +2072,8 @@ function initUI() {
         sendStructureList();
     });
 
-    //attackButton.on("mouseover", function(evt) {
-    //    this.removeAllChildren();
-    //    this.addChild(new createjs.Bitmap(attackRoll));
-    //});
-
     quickButton.on("mousedown", function(evt) {
-        if(selectedPortrait != false) {       
-            clicked = new createjs.Bitmap(attack_clicked);
-            this.addChild(clicked);
-
+        if(selectedPortrait != false) {
             sendAttack("quick");
         }
     });
@@ -2316,6 +2351,9 @@ function initUI() {
 
     stage.addChild(hpBar);
     stage.addChild(staminaBar);
+
+    //Button click box
+    clicked = new createjs.Bitmap(attack_clicked);
 };
 
 function showBattlePanel() {
@@ -2661,7 +2699,7 @@ function getItemArmor(items) {
 };
 
 function initTextLog() {
-    var lines;
+    var lines = "";
 
     for(var i = 0; i < 10; i++) {
         textLogLines.push("");
@@ -2669,4 +2707,12 @@ function initTextLog() {
     }
 
     textLog.text = lines;
+};
+
+function removeClicked()
+{
+    if(clicked.parent != null) {
+        var button = clicked.parent;
+        button.removeChild(clicked);
+    }
 };
