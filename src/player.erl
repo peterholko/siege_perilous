@@ -271,8 +271,8 @@ item_transfer(TargetId, ItemId) ->
     case process_checks(Checks) of 
         true ->
             lager:info("Transfering item"),
-            item:transfer(ItemId, TargetId),
-            obj:item_transfer(TargetObj, Item),
+            ItemMap = item:transfer(ItemId, TargetId),
+            obj:item_transfer(TargetObj, ItemMap),
             #{<<"result">> => <<"success">>};
        {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}

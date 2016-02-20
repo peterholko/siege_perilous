@@ -606,8 +606,10 @@ function onMessage(evt) {
         if(jsonData.packet == "login") {
             $("#login").hide();        
             $("#navigation").fadeIn('slow');
-            $("#map").fadeIn('slow');
-            
+
+            //var localMapCont = localPanel.getChildByName("localMap")
+            //localMapCont.visible = false;
+
             playerId = jsonData.player;
             explored = jsonData.explored;
             objs = jsonData.objs;
@@ -882,7 +884,11 @@ function drawObj() {
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
                     console.log("new c_x: " + c_x + " c_y: " + c_y);
-                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2));
+                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2)).call(showMap);
+
+                    function showMap() {
+                        $("#map").fadeIn('slow');
+                    };
                 }
             }
 
@@ -1228,6 +1234,8 @@ function drawDmg(jsonData) {
 
             if(jsonData.state == "dead") {
                 if(jsonData.targetid == heroId) {
+                    var sprite = target.icon.getChildByName("sprite");
+                    sprite.gotoAndPlay("die");
                     txt = "You have been killed by " + source.type;
                 } 
                 else if(jsonData.sourceid == heroId) {
@@ -1238,15 +1246,6 @@ function drawDmg(jsonData) {
                 }
 
                 updateTextLog(txt);
-
-                /*var sprite = target.icon.getChildByName("sprite");
-
-                if(in_array(sprite.spriteSheet.animations, 'die')) {
-                    sprite.gotoAndPlay("die");
-                } else {
-                    target.icon.removeChild(sprite);
-                    target.icon.addChild(new createjs.Bitmap(gravestone));
-                }*/
             }
         }        
     }

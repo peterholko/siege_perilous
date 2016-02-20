@@ -72,11 +72,14 @@ is_player_owned(Player, ItemId) ->
         [] -> false
     end.
 
-is_valid_split(Player, ItemId, Quantity) when Quantity > 1 ->
+is_valid_split(Player, ItemId, Quantity) when Quantity > 0 ->
     case db:read(item, ItemId) of
-        [Item] -> (Item#item.quantity > Quantity) and (Item#item.owner =:= Player);
+        [Item] -> 
+            [Owner] = db:read(obj, Item#item.owner),
+            (Item#item.quantity > Quantity) and (Owner#obj.player =:= Player);
         [] -> false
-    end.
+    end;
+is_valid_split(_, _, _) -> false.
 
 can_merge(ItemClass) ->
     case ItemClass of
@@ -85,8 +88,8 @@ can_merge(ItemClass) ->
         _ -> true
     end.
 
-transfer(ItemId, TargetId) ->
-    [TransferItem] = db:dirty_read(item, ItemId),
+transfer(TransferItemId, TargetId) ->
+    [TransferItem] = db:dirty_read(item, TransferItemId),
     AllItems = db:dirty_index_read(item, TargetId, #item.owner),
     
     NewItem = case can_merge(TransferItem#item.class) of
@@ -99,7 +102,7 @@ transfer(ItemId, TargetId) ->
                               NewQuantity = Item#item.quantity + TransferItem#item.quantity,
                                 
                               %Remove the transfer item
-                              db:delete(TransferItem),
+                              db:delete(item, TransferItemId),
 
                               %Merge with existing item
                               Item#item{owner = TargetId,
@@ -108,17 +111,22 @@ transfer(ItemId, TargetId) ->
                   false ->
                       TransferItem#item{owner = TargetId}
              end,
-    db:write(NewItem).
+    db:write(NewItem),
+
+    %Return item map with all the attributes
+    item_map(NewItem).
                 
 split(ItemId, NewQuantity) ->
     [Item] = db:read(item, ItemId),
     CurrentQuantity = Item#item.quantity,
+    NewId = util:get_id(),
 
-    NewItem1 = Item#item{quantity = NewQuantity},
-    NewItem2 = Item#item{quantity = CurrentQuantity - NewQuantity},
+    SourceItem = Item#item{quantity = NewQuantity},
+    NewItem = Item#item{id = NewId,
+                        quantity = CurrentQuantity - NewQuantity},
     
-    db:write(NewItem1),
-    db:write(NewItem2).
+    db:write(SourceItem),
+    db:write(NewItem).
 
 equip(ItemId) ->
     [Item] = db:read(item, ItemId),
