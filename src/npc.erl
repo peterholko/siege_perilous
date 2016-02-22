@@ -236,6 +236,7 @@ get_next_task(_TaskIndex, _PlanLength) ->
 move_next_path(_NPCObj, []) -> nothing;
 move_next_path(NPCObj, Path) -> move_unit(NPCObj, lists:nth(2, Path)).
 
+move_unit(_Obj, none) -> invalid_pos;
 move_unit(#obj {id = Id, player = Player}, NewPos) ->
     NumTicks = ?TICKS_SEC * 8,
 
