@@ -82,9 +82,11 @@ get_info_unit(Id) ->
             obj:get_info_other(Id)
     end.
 
-get_info_item(ItemId) ->
+get_info_item(ItemId) when is_tuple(ItemId) ->
     lager:info("get_info_item ~p", [ItemId]),
-    item:get_map(ItemId).
+    item:get_map(ItemId);
+get_info_item(ItemName) ->
+    item:get_map_by_name(ItemName).
 
 attack(AttackType, SourceId, TargetId) ->
     PlayerId = get(player_id),
@@ -134,7 +136,9 @@ defend(DefendType, SourceId) ->
 
             game:add_event(self(), defend, EventData, SourceId, NumTicks),
 
-            #{<<"cooldown">> => NumTicks * ?TICKS_SEC,
+            #{<<"sourceid">> => util:bin_to_hex(SourceId),
+              <<"defendtype">> => DefendType,
+              <<"cooldown">> => NumTicks / ?TICKS_SEC,
               <<"stamina_cost">> => StaminaCost};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}

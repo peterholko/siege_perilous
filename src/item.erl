@@ -5,7 +5,8 @@
 
 -include("schema.hrl").
 
--export([get_rec/1, get_map/1, get_by_owner/1, get_by_subclass/2, get_by_name/2, get_equiped/1, get_equiped_weapon/1]).
+-export([get_rec/1, get_map/1, get_map_by_name/1, get_by_owner/1, 
+         get_by_subclass/2, get_by_name/2, get_equiped/1, get_equiped_weapon/1]).
 -export([transfer/2, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3]).
 
@@ -18,6 +19,9 @@ get_rec(Id) ->
 get_map(Id) ->
     Item = get_rec(Id),
     rec_to_map(Item).
+
+get_map_by_name(Name) ->
+    item_def:all_to_map(Name).
 
 get_by_owner(OwnerId) ->
     Items = db:dirty_index_read(item, OwnerId, #item.owner),
@@ -172,9 +176,9 @@ create(Owner, Name, Quantity) ->
     
     db:write(NewItem),
 
-    %Return item map with all attrs
-    item_map(NewItem).
-
+    %Return item_def map with quantity
+    ItemDef = item_def:all_to_map(Name),
+    maps:put(<<"quantity">>, Quantity, ItemDef).
 
 create(ItemMap) ->
     Id = util:get_id(),

@@ -204,10 +204,7 @@ craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
     FinalItem = maps:merge(BaseStats, AllItemStats),
     CraftedItem = item:create(FinalItem),
 
-    %Set quantity to 1, as the return of this function 
-    %should be only the new quantity not combined quantity 
-    CraftedItemOnly = maps:update(<<"quantity">>, 1, CraftedItem),
-    [CraftedItemOnly];
+    [CraftedItem];
 craft_item(OwnerId, RecipeName, <<"Material">>, MatchReqList) ->
     nothing.
  

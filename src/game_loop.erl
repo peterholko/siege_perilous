@@ -22,7 +22,7 @@
 loop(NumTick, LastTime, GamePID) ->
     %StartLoopTime = util:get_time(), 
     CurrentTick = counter:increment(tick),	
- 
+
     %Check day/night transition
     process_transition(NumTick),
 
@@ -56,7 +56,7 @@ loop(NumTick, LastTime, GamePID) ->
 
     %Clean up
     clean_up(NumTick),
- 
+
     %Toggle off perception and explored
     game:reset(),
  

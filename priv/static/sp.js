@@ -15,6 +15,7 @@ var activeInfoPanel;
 var dialogPanel;
 var smallDialogPanel;
 var selectPanel;
+var selectHex;
 var portraitPanel;
 
 var textLog;
@@ -32,15 +33,13 @@ var playerPos;
 var heroId;
 var heroPos;
 
+var lastSelectedPos;
 var selectedPortrait = false;
 var selectedUnit = false;
 var selectedTile = false;
 
 var hpBar;
 var staminaBar;
-var quickCooldown;
-var preciseCooldown;
-var fierceCooldown;
 
 var attackToggled = false;
 
@@ -110,6 +109,16 @@ var btnEquipRestImg = new Image();
 var quickButton = new createjs.Container();
 var preciseButton = new createjs.Container();
 var fierceButton = new createjs.Container();
+var dodgeButton = new createjs.Container();
+var parryButton = new createjs.Container();
+var braceButton = new createjs.Container();
+
+var quickCooldown;
+var preciseCooldown;
+var fierceCooldown;
+var dodgeCooldown;
+var parryCooldown;
+var braceCooldown;
 
 var gravestone = new Image();
 
@@ -129,13 +138,6 @@ l.src = "/static/art/regular-concave-l.png";
 r.src = "/static/art/regular-concave-r.png";
 br.src = "/static/art/regular-concave-br.png";
 bl.src = "/static/art/regular-concave-bl.png";
-
-var tileImages = [];
-
-tileImages[0] = "/static/art/basic-tile.png";
-tileImages[1] = "/static/art/desert.png";
-tileImages[2] = "/static/art/green.png";
-tileImages[3] = "/static/art/regular.png";
 
 var tileset;
 
@@ -685,6 +687,9 @@ function onMessage(evt) {
             if(jsonData.hasOwnProperty("errmsg")) {
                 updateTextLog(jsonData.errmsg);
             } 
+            else {
+                drawSelectPanel(selectHex.tileY, selectHex.tileY);
+            }            
         }
         else if(jsonData.packet == "attack") {
             if(jsonData.hasOwnProperty("errmsg")) {
@@ -692,10 +697,19 @@ function onMessage(evt) {
             }
             else {
                 drawAttackClicked(jsonData.attacktype);
-                drawCooldown(jsonData.cooldown);
+                drawAttackCooldown(jsonData.cooldown);
             }
         }
-        else if(jsonData.packet == "world") {
+        else if(jsonData.packet == "defend") {
+            if(jsonData.hasOwnProperty("errmsg")) {
+                updateTextLog(jsonData.errmsg);
+            }
+            else {
+                updateTextLog("You begin to " + jsonData.defendtype + " incoming attacks");
+                drawDefendCooldown(jsonData.cooldown);
+            }
+       }
+       else if(jsonData.packet == "world") {
             if(jsonData.hasOwnProperty("time")) {
                 if(jsonData.time == "day") {
                     updateTextLog("The warmth of the sun arrives");
@@ -738,7 +752,6 @@ function clearObj() {
     var localMapCont = localPanel.getChildByName("localMap");
     var localObjsCont1 = localMapCont.getChildByName("localObjs1"); 
     var localObjsCont2 = localMapCont.getChildByName("localObjs2"); 
-    var selectHex = localMapCont.getChildByName("selectHex");
     
     localObjsCont1.removeAllChildren();
     localObjsCont2.removeAllChildren();
@@ -751,7 +764,6 @@ function drawMap(map) {
     showLocalPanel();
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
-    var selectHex = localMapCont.getChildByName("selectHex");
     var tiles = map;
  
     for(var i = 0; i < tiles.length; i++) {
@@ -778,6 +790,8 @@ function drawMap(map) {
             else {
                 selectHex.x = this.x;
                 selectHex.y = this.y;
+                selectHex.tileX = this.tileX;
+                selectHex.tileY = this.tileY;
                 selectHex.visible = true;
 
                 drawSelectPanel(this.tileX, this.tileY, this.tileImages);
@@ -884,11 +898,13 @@ function drawObj() {
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
                     console.log("new c_x: " + c_x + " c_y: " + c_y);
-                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2)).call(showMap);
-
+                    
                     function showMap() {
                         $("#map").fadeIn('slow');
                     };
+
+                    createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2)).call(showMap);
+
                 }
             }
 
@@ -977,8 +993,9 @@ function drawObj() {
     console.log("drawObj - end");
 };
 
-function drawSelectPanel(tileX, tileY, tileImages) {
+function drawSelectPanel(tileX, tileY) {
     var tile = getLocalTile(tileX, tileY);
+    var tileImages = tile.t.reverse();
     var localObjs = getLocalObjsAt(tileX, tileY);
     var icons = [];
 
@@ -1133,7 +1150,23 @@ function drawAttackClicked(attacktype) {
     }
 };
 
-function drawCooldown(time) {
+function drawDefendClicked(defendtype) {
+    if(defendtype == "dodge") {
+        dodgeButton.addChild(clicked);
+    }
+    else if(defendtype == "parry") {
+        parryButton.addChild(clicked);
+    }
+    else if(defendtype == "brace") {
+        braceButton.addChild(clicked);
+    }
+};
+
+function cooldownComplete() {
+    removeClicked();
+};
+
+function drawAttackCooldown(time) {
     quickCooldown.visible = true;
     preciseCooldown.visible = true;
     fierceCooldown.visible = true;
@@ -1155,10 +1188,30 @@ function drawCooldown(time) {
     createjs.Tween.get(quickCooldown).to({scaleY: 0}, time*1000).call(cooldownComplete);
     createjs.Tween.get(preciseCooldown).to({scaleY: 0}, time*1000);
     createjs.Tween.get(fierceCooldown).to({scaleY: 0}, time*1000);
+};
 
-    function cooldownComplete() {
-        removeClicked();
-    };
+function drawDefendCooldown(time) {
+    dodgeCooldown.visible = true;
+    parryCooldown.visible = true;
+    braceCooldown.visible = true;
+
+    dodgeCooldown.scaleY = 1;
+    parryCooldown.scaleY = 1;
+    braceCooldown.scaleY = 1;
+
+    dodgeCooldown.graphics.clear()
+        .beginFill('rgba(50,50,50,0.75)')
+        .rect(0,0,50,50);
+    parryCooldown.graphics.clear()
+        .beginFill('rgba(50,50,50,0.75)')
+        .rect(0,0,50,50);
+    braceCooldown.graphics.clear()
+        .beginFill('rgba(50,50,50,0.75)')
+        .rect(0,0,50,50);
+
+    createjs.Tween.get(dodgeCooldown).to({scaleY: 0}, time*1000).call(cooldownComplete);
+    createjs.Tween.get(parryCooldown).to({scaleY: 0}, time*1000);
+    createjs.Tween.get(braceCooldown).to({scaleY: 0}, time*1000);
 };
 
 function drawDmg(jsonData) {
@@ -1930,7 +1983,7 @@ function initUI() {
     var localShroudCont = new createjs.Container();
     var textLayer = new createjs.Container();
 
-    var selectHex = new createjs.Bitmap(selectHexImage);
+    selectHex = new createjs.Bitmap(selectHexImage);
 
     localMapCont.width = 1280;
     localMapCont.height = 800;
@@ -1973,9 +2026,6 @@ function initUI() {
     var detailsButton = new createjs.Container();
     var gatherButton = new createjs.Container();
     var buildButton = new createjs.Container();
-    var dodgeButton = new createjs.Container();
-    var parryButton = new createjs.Container();
-    var braceButton = new createjs.Container();
 
     actionBar.x = stageWidth / 2 - 492 / 2;
     actionBar.y = stageHeight - 231;
@@ -1999,17 +2049,33 @@ function initUI() {
     preciseCooldown = new createjs.Shape();
     fierceCooldown = new createjs.Shape();
 
+    dodgeCooldown = new createjs.Shape();
+    parryCooldown = new createjs.Shape();
+    braceCooldown = new createjs.Shape();
+
     quickCooldown.y = 50;
     preciseCooldown.y = 50;
     fierceCooldown.y = 50;
     
+    dodgeCooldown.y = 50;
+    parryCooldown.y = 50;
+    braceCooldown.y = 50;
+
     quickCooldown.regY = 50;
     preciseCooldown.regY = 50;
     fierceCooldown.regY = 50;
 
+    dodgeCooldown.regY = 50;
+    parryCooldown.regY = 50;
+    braceCooldown.regY = 50;
+
     quickCooldown.visible = false;
     preciseCooldown.visible = false;
     fierceCooldown.visible = false;
+
+    dodgeCooldown.visible = false;
+    parryCooldown.visible = false;
+    braceCooldown.visible = false;
 
     quickButton.x = 284;
     quickButton.y = 94;
@@ -2033,16 +2099,19 @@ function initUI() {
     dodgeButton.y = 148;
     dodgeButton.mouseChildren = false;
     dodgeButton.addChild(new createjs.Bitmap(dodge));
+    dodgeButton.addChild(dodgeCooldown);
 
     parryButton.x = 340; 
     parryButton.y = 148;
     parryButton.mouseChildren = false;
     parryButton.addChild(new createjs.Bitmap(parry));
+    parryButton.addChild(parryCooldown);
 
     braceButton.x = 396; 
     braceButton.y = 148;
     braceButton.mouseChildren = false;
     braceButton.addChild(new createjs.Bitmap(brace));
+    braceButton.addChild(braceCooldown);
 
     detailsButton.on("mouseover", function(evt) {
         this.removeAllChildren();
@@ -2664,7 +2733,6 @@ function hideButtons() {
     btnAssign.visible = false; 
     btnEquip.visible = false; 
 };
-
 
 function getItemDamage(items) {
     var damage = 0;

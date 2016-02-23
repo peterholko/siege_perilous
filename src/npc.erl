@@ -133,8 +133,7 @@ filter_targets([PerceptionObj | Rest], Targets) ->
     ObjPlayer = maps:get(<<"player">>, PerceptionObj),
     NewTargets = case valid_target(Player, ObjPlayer) of
                      true ->
-                         Obj = get_obj(PerceptionObj),
-                         [Obj | Targets];
+                         add_obj(PerceptionObj, Targets);
                      false ->
                          Targets
                  end,
@@ -145,10 +144,13 @@ valid_target(_, -1) -> false;
 valid_target(Player, ObjPlayer) when Player =:= ObjPlayer -> false;
 valid_target(_, _) -> true.
 
-get_obj(PerceptionObj) ->
+
+add_obj(PerceptionObj, AllObjs) ->
     Id = maps:get(<<"id">>, PerceptionObj),
-    [Obj] = db:read(obj, Id),
-    Obj.
+    case db:read(obj, Id) of
+        [Obj] -> [Obj | AllObjs];
+        [] -> AllObjs
+    end.
 
 process_replan('$end_of_table') ->
     done;
@@ -236,8 +238,7 @@ get_next_task(_TaskIndex, _PlanLength) ->
 move_next_path(_NPCObj, []) -> nothing;
 move_next_path(NPCObj, Path) -> move_unit(NPCObj, lists:nth(2, Path)).
 
-move_unit(_Obj, none) -> invalid_pos;
-move_unit(#obj {id = Id, player = Player}, NewPos) ->
+move_unit(#obj {id = Id, player = Player}, NewPos) when is_tuple(NewPos) ->
     NumTicks = ?TICKS_SEC * 8,
 
     %Update unit state
@@ -248,7 +249,8 @@ move_unit(#obj {id = Id, player = Player}, NewPos) ->
                  Id,
                  NewPos},
 
-    game:add_event(self(), move, EventData, Id, NumTicks).
+    game:add_event(self(), move, EventData, Id, NumTicks);
+move_unit(_Obj, _) -> invalid_pos.
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->
     EnemyUnit;
