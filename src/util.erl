@@ -13,7 +13,8 @@
 %%
 %% Exported Functions
 %%
--export([round3/1,
+-export([rand/0, rand/1,
+         round3/1,
          ceiling/1,
          floor/1,
          diff_game_days/2,
@@ -35,6 +36,9 @@
 %%
 %% API Functions
 %%
+rand() -> rand:uniform().
+rand(0) -> 0;
+rand(Num) -> rand:uniform(Num).
 
 round3(Num) ->
     RoundedNum = round(Num * 1000),

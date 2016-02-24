@@ -154,6 +154,7 @@ move(SourceId, Pos) ->
               {Obj#obj.state =/= dead, "Unit is dead"}, 
               {map:is_adjacent(Obj#obj.pos, Pos), "Unit is not adjacent to position"},
               {map:is_passable(Pos), "Tile is not passable"},
+              {not obj:is_villager(Obj), "Cannot move villager"},
               {obj:is_empty(Pos), "Position is occupied"},
               {obj:is_hero_nearby(Obj, PlayerId), "Unit not near Hero"}],
               
@@ -470,22 +471,21 @@ rest(ObjId) ->
 assign(SourceId, TargetId) ->
     Player = get(player_id),
     
-    [SourceObj] = db:read(obj, SourceId),
-    [TargetObj] = db:read(obj, TargetId),
+    SourceObj = obj:get(SourceId),
+    TargetObj = obj:get(SourceId),
 
-    ValidPlayer1 = is_player_owned(SourceObj#obj.player, Player),
-    ValidPlayer2 = is_player_owned(TargetObj#obj.player, Player),
-    NearbyHero = obj:is_hero_nearby(SourceObj, Player),
-    
-    Result = ValidPlayer1 and ValidPlayer2 and NearbyHero,
+    Checks = [{is_player_owned(SourceObj, Player), "Source is not owned by player"},
+              {is_player_owned(TargetObj, Player), "Target is not owned by player"},
+              {obj:is_hero_nearby(TargetObj, Player), "Unit is not near Hero"}],
 
-    ReturnMsg = case Result of
-                    true ->
-                        villager:assign(SourceId, TargetId);
-                    false ->
-                        <<"Source or target not owned by player">>
-                end,
-    ReturnMsg.
+    case process_checks(Checks) of
+        true ->
+            lager:info("Assigning villager"),
+            villager:assign(SourceId, TargetId),
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
 
 cancel(SourceId) ->
     PlayerId = get(player_id),

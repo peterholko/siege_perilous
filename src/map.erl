@@ -18,7 +18,8 @@
 -export([get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/2]).
 -export([get_nearby_objs/3, get_ford_pos/2]).
 -export([add_explored/3]).
--export([neighbours/1, neighbours/2, cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
+-export([neighbours/1, neighbours/2, get_random_neighbour/1]).
+-export([cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -export([movement_cost/1, is_passable/1, is_river/1, random_location/0]).
 -export([check_distance/4, distance/2]).
 -export([range/2, filter_pos/1]).
@@ -96,14 +97,32 @@ random_location() ->
 random_location(true, Pos) ->
     Pos;
 random_location(false, _Pos) ->
-    X = rand:uniform(?MAP_WIDTH - 1),
-    Y = rand:uniform(?MAP_HEIGHT - 1),
+    X = util:rand(?MAP_WIDTH - 1),
+    Y = util:rand(?MAP_HEIGHT - 1),
     Pos = {X, Y},
 
     Result = is_passable(Pos) andalso
              obj:is_empty(Pos),
 
     random_location(Result, Pos).
+
+get_random_neighbour(Pos) ->
+    Neighbours = neighbours(Pos),
+
+    F = fun(NeighbourPos) ->
+            obj:is_empty(NeighbourPos) and is_passable(NeighbourPos)
+        end,
+
+    ValidNeighbours = lists:filter(F, Neighbours),
+    NumNeighbours = length(ValidNeighbours),
+
+    case NumNeighbours > 0 of
+        true ->
+            Rand = util:rand(NumNeighbours),
+            lists:nth(Rand, ValidNeighbours);
+        false ->
+            none
+    end.
 
 get_ford_pos(Pos, RiverPos) ->
     Neighbours = sets:from_list([Pos | neighbours(Pos)]),
@@ -120,7 +139,7 @@ get_ford_pos(Pos, RiverPos) ->
 
     case NumFord > 0 of
         true -> 
-            Rand = rand:uniform(NumFord),
+            Rand = util:rand(NumFord),
             lists:nth(Rand, FordList);
         false ->
             none
@@ -567,7 +586,7 @@ spawn_resources() ->
     Tiles = ets:tab2list(map),
 
     F = fun(Tile) ->
-            Rand = rand:uniform(100),
+            Rand = util:rand(100),
             TileName = tile_name(Tile#map.tile),
             spawn_resource(TileName, Tile, Rand)
         end,
@@ -575,10 +594,10 @@ spawn_resources() ->
     lists:foreach(F, Tiles).
 
 spawn_resource(?GRASSLANDS, Tile, Rand) when Rand =< 25 ->
-    Quantity = rand:uniform(20) + 5,
+    Quantity = util:rand(20) + 5,
     resource:create(<<"Crimson Root">>, Quantity, Tile#map.index, false);
 spawn_resource(?PLAINS, Tile, Rand) when Rand =< 15 ->
-    Quantity = rand:uniform(10) + 5,
+    Quantity = util:rand(10) + 5,
     resource:create(<<"Crimson Root">>, Quantity, Tile#map.index, false);
 spawn_resource(?HILLS_PLAINS, Tile, Rand) when Rand =< 15 ->
     {Resource, Rarity} = hill_resource(90, 8, 2),
@@ -611,7 +630,7 @@ spawn_resource(?FROZEN_FOREST, Tile, Rand) when Rand =< 20 ->
 spawn_resource(_, _, _) -> nothing.
 
 forest_resource(Low, Med, High) ->
-    case rand:uniform(100) of 
+    case util:rand(100) of 
         Num when Num =< Low -> {<<"Cragroot Popular">>, common};
         Num when Num =< (Low + Med) -> {<<"Wrapwood Birch">>, uncommon};
         Num when Num =< (Low + Med + High) -> {<<"Skyshroud Oak">>, rare};
@@ -619,7 +638,7 @@ forest_resource(Low, Med, High) ->
     end.
     
 hill_resource(Low, Med, High) ->
-    case rand:uniform(100) of
+    case util:rand(100) of
         Num when Num =< Low -> {<<"Valleyrun Copper Ore">>, common};
         Num when Num =< (Low + Med) -> {<<"Quickforge Iron Ore">>, uncommon};
         Num when Num =< (Low + Med + High) -> {<<"Stronghold Mithril Ore">>, rare};
@@ -628,9 +647,9 @@ hill_resource(Low, Med, High) ->
 
 quantity(Rarity, {CBase, CRange}, {UBase, URange}, {RBase, RRange}) ->
     case Rarity of
-        common -> rand:uniform(CRange) + CBase;
-        uncommon -> rand:uniform(URange) + UBase;
-        rare -> rand:uniform(RRange) + RBase
+        common -> util:rand(CRange) + CBase;
+        uncommon -> util:rand(URange) + UBase;
+        rare -> util:rand(RRange) + RBase
     end.
 
 tile_name(1) -> ?GRASSLANDS;

@@ -92,9 +92,12 @@
                  type,
                  data}).
 
+-record(hero, {player,
+               obj}).
+
 -record(villager, {id,
-                   task,
-                   dwelling}).
+                   task = none,
+                   dwelling = none}).
 
 -record(test, {attr,
                value}).

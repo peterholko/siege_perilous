@@ -244,10 +244,9 @@ message_handle(<<"assign">>, Message) ->
     SourceId = util:hex_to_bin(map_get(<<"sourceid">>, Message)),
     TargetId = util:hex_to_bin(map_get(<<"targetid">>, Message)),
 
-    Result = player:assign(SourceId, TargetId),
-    
-    jsx:encode([{<<"packet">>, <<"assign">>},
-                {<<"result">>, Result}]);
+    Return = player:assign(SourceId, TargetId),
+    FinalReturn = maps:put(<<"packet">>, <<"assign">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"cancel">>, Message) ->
     lager:info("message: cancel"),

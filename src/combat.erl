@@ -122,7 +122,7 @@ process_attack(AttackType, AtkId, DefId) ->
     TotalArmor = BaseDef + get_items_value(<<"armor">>, DefItems),
 
     %Random roll
-    RandomDmg = rand:uniform(DmgRange) + TotalDmg,
+    RandomDmg = util:rand(DmgRange) + TotalDmg,
     DmgRoll = RandomDmg + TotalDmg,
 
     %Apply armor and defend ection reductions

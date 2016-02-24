@@ -18,7 +18,7 @@ check(Pos) ->
     BaseSpawnRate = 0.5,
     EffectiveSpawnRate = NumMod * BaseSpawnRate,
 
-    Random = rand:uniform(),
+    Random = util:rand(),
 
     case Random < EffectiveSpawnRate of
         true -> spawn_npc(TileName, Pos);
@@ -35,14 +35,14 @@ get_wildness(Pos) ->
 
 spawn_npc(TileName, Pos) ->
     NPCList = npc_list(TileName),
-    Random = rand:uniform(length(NPCList)),
+    Random = util:rand(length(NPCList)),
     NPCType = lists:nth(Random, NPCList),
     Tiles = get_valid_tiles(Pos),
 
     case Tiles of
         [] -> nothing; %No valid tiles
         Neighbours ->
-            RandomPos = rand:uniform(length(Neighbours)),
+            RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
             NPCId = obj:create(NPCPos, ?UNDEAD, unit, <<"npc">>, NPCType, none),
             
@@ -55,9 +55,9 @@ generate_loot(NPCId) ->
     LootList = loot_list(),
 
     F = fun({Name, DropRate, Min, Max}) ->
-            case DropRate > rand:uniform() of
+            case DropRate > util:rand() of
                 true ->
-                    Num = rand:uniform(Max - Min) + Min,
+                    Num = util:rand(Max - Min) + Min,
                     lager:info("Id: ~p, Name: ~p", [NPCId, Name]),
                     item:create(NPCId, Name, Num);
                 false ->

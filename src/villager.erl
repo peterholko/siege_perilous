@@ -106,8 +106,17 @@ process_task({structure, StructureId}, Villager, Obj) ->
 
     process_action(Action, Villager, Obj);
 
-process_task(_, _, _) ->
-    nothing.
+process_task(none, _Villager, Obj) ->
+    [Hero] = db:read(hero, Obj#obj.player),
+    [HeroObj] = db:read(obj, Hero#hero.obj),
+    Path = astar:astar(Obj#obj.pos, HeroObj#obj.pos),
+    
+    case Path of
+        failure -> lager:info("~p could not find path", [Obj#obj.id]);
+        PathList ->
+            NextPos = lists:nth(2, PathList),
+            add_move_unit(Obj, NextPos)
+    end.
 
 process_action({move_dest, Dest}, _Villager, Obj) ->
     Pathfinding = astar:astar(Obj#obj.pos, Dest),
@@ -136,6 +145,6 @@ add_move_unit(Obj, NewPos) ->
                  Obj#obj.id,
                  NewPos},
 
-    NumTicks = 30,
+    NumTicks = 16,
 
     game:add_event(self(), move, EventData, Obj#obj.id, NumTicks).

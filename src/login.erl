@@ -50,8 +50,11 @@ login([], [Name, Pass, Socket]) ->
     db:write(ExploredMap),
    
     Pos = map:random_location(),
+    AdjPos = map:get_random_neighbour(Pos),
  
     obj:create(Pos, PlayerId, unit, <<"hero">>, <<"Hero Mage">>, none),
+    obj:create(AdjPos, PlayerId, unit, <<"villager">>, <<"Human Villager">>, none),
+
     map:add_explored(PlayerId, Pos, 2),
 
     {success, PlayerId};

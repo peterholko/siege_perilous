@@ -377,7 +377,7 @@ process_spawn_mana(day) ->
 spawn_mana(5, _NearbyList) -> nothing;
 spawn_mana(N, NearbyList) -> 
     NumPos = length(NearbyList),
-    RandomIndex = rand:uniform(NumPos),   
+    RandomIndex = util:rand(NumPos),   
     RandomPos = lists:nth(RandomIndex, NearbyList),
 
     resource:create(<<"Mana">>, 5, RandomPos, true),
@@ -478,7 +478,7 @@ bloodmoon() ->
     case NumZombies < ?MAX_ZOMBIES of
         true ->
             Num = counter:increment(bloodmoon),	
-            Rand = rand:uniform(5 + Num),
+            Rand = util:rand(5 + Num),
             npc_mgr:spawn_zombies(Rand);
         false ->
             nothing

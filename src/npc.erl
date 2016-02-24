@@ -294,7 +294,7 @@ get_wander_pos(_, _, []) ->
 get_wander_pos(true, RandomPos, _Neighbours) ->
     RandomPos;
 get_wander_pos(false,  _, Neighbours) ->
-    Random = rand:uniform(length(Neighbours)),
+    Random = util:rand(length(Neighbours)),
     RandomPos = lists:nth(Random, Neighbours),
     IsEmpty = obj:is_empty(RandomPos),
 

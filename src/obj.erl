@@ -13,8 +13,8 @@
 -export([update_state/2, update_hp/2, update_stamina/2, update_dead/1]).
 -export([add_effect/3, remove_effect/2, has_effect/2, trigger_effects/2]).
 -export([is_empty/1, movement_cost/2]).
--export([get_by_pos/1, get_unit_by_pos/1]).
--export([is_hero_nearby/2, is_monolith_nearby/1, is_not_npc/1]).
+-export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
+-export([is_hero_nearby/2, is_monolith_nearby/1, is_villager/1, is_not_npc/1]).
 -export([item_transfer/2]).
 -export([get/1, get_stats/1, get_info/1, get_info_other/1]).
 
@@ -36,10 +36,12 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
 
     %Get base attributes
     BaseHp = obj_attr:value(Id, <<"base_hp">>, 0),
+    BaseStamina = obj_attr:value(Id, <<"base_stamina">>, 0),
     Vision = obj_attr:value(Id, <<"base_vision">>, 0),
 
     %Add attributes from base
     obj_attr:add(Id, <<"hp">>, BaseHp),
+    obj_attr:add(Id, <<"stamina">>, BaseStamina),
 
     %Create mnesia obj
     Obj = #obj {id = Id,
@@ -58,7 +60,7 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
     game:trigger_perception(),
 
     %Check subclass for any other post creation tasks
-    process_subclass(Id, Subclass),
+    process_subclass(Obj),
 
     %Return ID
     Id.
@@ -241,6 +243,13 @@ get_unit_by_pos(QueryPos) ->
     Objs = db:select(obj, MS),
     Objs.
 
+get_hero(HeroPlayer) ->
+    MS = ets:fun2ms(fun(N = #obj{player = Player,
+                                 subclass = Subclass}) when Player =:= HeroPlayer,
+                                                            Subclass =:= <<"hero">> -> N end),
+    [Hero] = db:select(obj, MS),
+    Hero.
+
 get_wall(QueryPos) ->
     MS = ets:fun2ms(fun(N = #obj{pos = Pos,
                                  subclass = SubClass}) when Pos =:= QueryPos,
@@ -250,13 +259,14 @@ get_wall(QueryPos) ->
 
 is_hero_nearby(_Target = #obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
     true;
-is_hero_nearby(Target, HeroPlayer) ->
+is_hero_nearby(Target, HeroPlayer) when is_record(Target, obj) ->
     MS = ets:fun2ms(fun(N = #obj{player = Player,
                                  subclass = Subclass}) when Player =:= HeroPlayer,
                                                             Subclass =:= <<"hero">> -> N end),
     [Hero] = db:select(obj, MS),
     Distance = map:distance(Hero#obj.pos, Target#obj.pos),
-    Distance =< Hero#obj.vision.
+    Distance =< Hero#obj.vision;
+is_hero_nearby(_Target, _HeroPlayer) -> false.
 
 is_behind_wall(QueryPos) ->
     MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
@@ -278,19 +288,22 @@ is_monolith_nearby(QueryPos) ->
 
     lists:any(F, Monoliths).
 
-is_not_npc(#obj {player = Player}) when Player >= 1000 -> true;
+is_villager(#obj{subclass = Subclass}) when Subclass =:= <<"villager">> -> true;
+is_villager(_) -> false.
+
+is_not_npc(#obj{player = Player}) when Player >= 1000 -> true;
 is_not_npc(_) -> false.
 
-apply_wall(false, #obj {id = Id}) ->
+apply_wall(false, #obj{id = Id}) ->
     case has_effect(Id, ?FORTIFIED) of
         true -> remove_effect(Id, ?FORTIFIED);
         false -> nothing
     end;
-apply_wall(true, #obj {id = Id, pos = Pos}) ->
+apply_wall(true, #obj{id = Id, pos = Pos}) ->
     Wall = get_wall(Pos),
     add_effect(Id, ?FORTIFIED, Wall#obj.id).
 
-apply_sanctuary(false, #obj {id = Id}) ->
+apply_sanctuary(false, #obj{id = Id}) ->
     case has_effect(Id, ?SANCTUARY) of
         true -> remove_effect(Id, ?SANCTUARY);
         false -> nothing
@@ -298,11 +311,16 @@ apply_sanctuary(false, #obj {id = Id}) ->
 apply_sanctuary(true, #obj{id = Id}) ->
     add_effect(Id, ?SANCTUARY, none).
 
-process_subclass(Id, <<"npc">>) ->
-    %Add npc entry
-    NPC = #npc {id = Id},
+process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= <<"hero">> ->
+    Hero = #hero{player = Player, obj = Id},
+    db:write(Hero);
+process_subclass(#obj{id = Id, subclass = Subclass}) when Subclass =:= <<"npc">> ->
+    NPC = #npc{id = Id},
     db:write(NPC);
-process_subclass(_, _) ->
+process_subclass(#obj{id = Id, subclass = Subclass}) when Subclass =:= <<"villager">> ->
+    Villager = #villager{id = Id},
+    db:write(Villager);
+process_subclass(_) ->
     nothing.
 
 movement_cost(_Obj, NextPos) ->
@@ -311,6 +329,8 @@ movement_cost(_Obj, NextPos) ->
     map:movement_cost(NextPos) * 8.
 
 remove(Id) ->
+    db:delete(villager, Id),
+    db:delete(npc, Id),
     db:delete(obj, Id),
     game:trigger_perception().
 

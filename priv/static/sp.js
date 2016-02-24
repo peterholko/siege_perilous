@@ -687,9 +687,6 @@ function onMessage(evt) {
             if(jsonData.hasOwnProperty("errmsg")) {
                 updateTextLog(jsonData.errmsg);
             } 
-            else {
-                drawSelectPanel(selectHex.tileY, selectHex.tileY);
-            }            
         }
         else if(jsonData.packet == "attack") {
             if(jsonData.hasOwnProperty("errmsg")) {
