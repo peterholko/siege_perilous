@@ -96,8 +96,10 @@
                obj}).
 
 -record(villager, {id,
-                   task = none,
-                   dwelling = none}).
+                   task = gather,
+                   structure = none,
+                   dwelling = none,
+                   morale = 100}).
 
 -record(test, {attr,
                value}).

@@ -80,6 +80,9 @@ process(Id) ->
     [Villager] = db:dirty_read(villager, Id),
     [Obj] = db:dirty_read(obj, Id),
 
+    check_food(Villager, Obj),
+    check_dwelling(Villager, Obj),
+
     process_state(Villager, Obj),
     
     process(mnesia:dirty_next(villager, Id)).
@@ -90,8 +93,8 @@ process_state(Villager, Obj = #obj {state = State}) when State =:= none ->
 process_state(_Villager, _Obj) ->
     nothing.
 
-process_task({structure, StructureId}, Villager, Obj) ->
-    [Structure] = db:dirty_read(obj, StructureId),
+process_task(assign, Villager, Obj) ->
+    [Structure] = db:dirty_read(obj, Villager#villager.structure),
 
     %Check same position    
     SamePos = Structure#obj.pos =:= Obj#obj.pos,
@@ -101,12 +104,24 @@ process_task({structure, StructureId}, Villager, Obj) ->
                 true ->
                     {harvest, Structure#obj.id};
                 false ->
-                    {move_dest, Structure#obj.pos}
+                    {move_to, Structure#obj.pos}
              end,
 
     process_action(Action, Villager, Obj);
 
-process_task(none, _Villager, Obj) ->
+process_task(gather, Villager, Obj) ->
+    Action = case resource:survey(Obj#obj.pos) of
+                [Resource | _Rest] ->
+                    ResourceName = maps:get(<<"name">>, Resource),
+                    {harvest, ResourceName};
+                [] ->
+                    Pos = map:get_random_neighbour(Obj#obj.pos),
+                    {move_to, Pos}
+             end,
+
+    process_action(Action, Villager, Obj);
+
+process_task(follow, _Villager, Obj) ->
     [Hero] = db:read(hero, Obj#obj.player),
     [HeroObj] = db:read(obj, Hero#hero.obj),
     Path = astar:astar(Obj#obj.pos, HeroObj#obj.pos),
@@ -118,7 +133,7 @@ process_task(none, _Villager, Obj) ->
             add_move_unit(Obj, NextPos)
     end.
 
-process_action({move_dest, Dest}, _Villager, Obj) ->
+process_action({move_to, Dest}, _Villager, Obj) ->
     Pathfinding = astar:astar(Obj#obj.pos, Dest),
     
     case Pathfinding of 
@@ -128,10 +143,14 @@ process_action({move_dest, Dest}, _Villager, Obj) ->
             NextPos = lists:nth(2, PathList),
             add_move_unit(Obj, NextPos)
     end;
-process_action({harvest, _StructureId}, _Villager, Obj) ->
+process_action({harvest, ResourceName}, _Villager, Obj) ->
     obj:update_state(Obj#obj.id, harvesting),
-    EventData = {Obj#obj.id, <<"Cragroot Popular">>, 50, true},
-    game:add_event(self(), harvest, EventData, Obj#obj.id, 50);
+    EventData = {Obj#obj.id, ResourceName, Obj#obj.pos, 25, false},
+    game:add_event(self(), harvest, EventData, Obj#obj.id, 25);
+%process_action({harvest, _StructureId}, _Villager, Obj) ->
+%    obj:update_state(Obj#obj.id, harvesting),
+%    EventData = {Obj#obj.id, <<"Cragroot Popular">>, 50, true},
+%    game:add_event(self(), harvest, EventData, Obj#obj.id, 50);
  
 process_action(_, _, _) ->
     nothing.
@@ -148,3 +167,27 @@ add_move_unit(Obj, NewPos) ->
     NumTicks = 16,
 
     game:add_event(self(), move, EventData, Obj#obj.id, NumTicks).
+
+check_food(Villager, Obj) ->
+    case item:get_by_subclass(Obj#obj.id, ?FOOD) of
+        [] -> update_morale(Villager, -5);
+        [_Item | _Rest] -> update_morale(Villager, 5) 
+    end.
+
+check_dwelling(Villager, _Obj) ->
+    case Villager#villager.dwelling of
+        none -> update_morale(Villager, -1);
+        _ -> update_morale(Villager, 1)
+    end.
+
+update_morale(Villager, Value) ->
+    Morale = Villager#villager.morale + Value,
+
+    NewMorale = case Morale > 0 of 
+                    true -> erlang:min(Morale, 100);
+                    false -> 0
+                end,
+
+    NewVillager = Villager#villager {morale = NewMorale},
+    db:write(NewVillager).
+
