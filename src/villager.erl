@@ -42,7 +42,7 @@ init([]) ->
 
 handle_cast(process, Data) ->   
 
-    process(mnesia:dirty_first(villager)),
+    process(db:first(villager)),
 
     {noreply, Data};
 
@@ -77,15 +77,15 @@ terminate(_Reason, _) ->
 process('$end_of_table') ->
     lager:debug("Done processing villagers");
 process(Id) ->
-    [Villager] = db:dirty_read(villager, Id),
-    [Obj] = db:dirty_read(obj, Id),
+    [Villager] = db:read(villager, Id),
+    [Obj] = db:read(obj, Id),
 
     check_food(Villager, Obj),
     check_dwelling(Villager, Obj),
 
     process_state(Villager, Obj),
     
-    process(mnesia:dirty_next(villager, Id)).
+    process(db:next(villager, Id)).
 
 process_state(Villager, Obj = #obj{state = State}) when State =:= none ->
     process_morale(Villager, Obj);
@@ -102,7 +102,7 @@ process_morale(Villager = #villager{morale = Morale}, Obj) when Morale >= 0 ->
     process_abandon(Villager, Obj).
 
 process_task(assign, Villager, Obj) ->
-    [Structure] = db:dirty_read(obj, Villager#villager.structure),
+    [Structure] = db:read(obj, Villager#villager.structure),
 
     %Check same position    
     SamePos = Structure#obj.pos =:= Obj#obj.pos,

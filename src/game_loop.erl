@@ -342,13 +342,25 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
         false ->
             nothing
     end;
-apply_transition(bloodmoon, Obj = #obj{player = Player, class = Class}) when (Player > 1000) and (Class =:= unit) ->
+apply_transition(bloodmoon, Obj = #obj{player = Player, 
+                                       class = Class,
+                                       vision = Vision}) when (Player > 1000) and 
+                                                              (Class =:= unit) and 
+                                                              (Vision > 0) ->
     NewObj = Obj#obj {vision = 1},
     db:write(NewObj);
-apply_transition(night, Obj = #obj{player = Player, class = Class}) when (Player > 1000) and (Class =:= unit) ->
+apply_transition(night, Obj = #obj{player = Player, 
+                                   class = Class,
+                                   vision = Vision}) when (Player > 1000) and 
+                                                          (Class =:= unit) and 
+                                                          (Vision > 0) ->
     NewObj = Obj#obj {vision = 1},
     db:write(NewObj);
-apply_transition(day, Obj = #obj{player = Player, class = Class}) when (Player > 1000) and (Class =:= unit) ->
+apply_transition(day, Obj = #obj{player = Player, 
+                                 class = Class,
+                                 vision = Vision}) when (Player > 1000) and 
+                                                        (Class =:= unit) and 
+                                                        (Vision > 0) ->
     NewObj = Obj#obj {vision = 2},
     db:write(NewObj);
 apply_transition(_, _) ->

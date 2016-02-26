@@ -99,43 +99,42 @@ do_recalculate() ->
     Entities = filter_objs(AllObj),
 
     lager:debug("Calculate perceptions ~p", [Entities]),
-    %Calculate each player entity perception and store to process dict
-    NotifyList = entity_perception(Entities, AllObj, []).
+    %Calculate each player entity perception
+    entity_perception(Entities, AllObj).
 
 filter_objs(AllObj) ->
     F = fun(Obj) -> Obj#obj.vision > 0 end,
     lists:filter(F, AllObj).
 
-entity_perception([], _AllObj, NotifyList) ->
-    NotifyList;
+entity_perception([], _AllObj) ->
+    done;
 
-entity_perception([Entity | Rest], AllObj, NotifyList) ->
+entity_perception([Entity | Rest], AllObj) ->
     lager:debug("Entity perception: ~p", [Entity]),    
     NearbyObjs = visible_objs(AllObj, Entity),
     lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
 
+    %Compare previous perception to new perception
+    PreviousObjs = db:dirty_read(perception, Entity#obj.id),
+
     %Compare old perception to new
-    Result = case db:dirty_read(perception, Entity#obj.id) of
-                 [Old] ->
-                     NearbyObjs =:= Old#perception.data;
-                 [] ->
-                     false
-             end,
+    Result = compare_perception(NearbyObjs, PreviousObjs),
 
-    %Update notify list if perception has changed
-    NewNotifyList = case Result of
-                        true ->
-                             %Store new perception and add entity to notify list
-                             db:dirty_write(#perception {entity=Entity#obj.id, data=NearbyObjs}),
-                             [{Entity#obj.id, NearbyObjs} | NotifyList];
-                        false ->
-                             NotifyList
-                    end,
+    store_perception(Result, Entity#obj.id, NearbyObjs),
 
-    entity_perception(Rest, AllObj, NewNotifyList).
+    send_perception(Result, Entity#obj.player, Entity#obj.id, NearbyObjs),
 
-send_perception(true, _PlayerId, _EntityId, _NewPerception) ->
-    nothing;
+    entity_perception(Rest, AllObj).
+
+compare_perception(_New, []) -> false;
+compare_perception(New, [Old]) -> New =:= Old#perception.data.
+
+store_perception(false, EntityId, NewPerception) ->
+    db:dirty_write(#perception {entity=EntityId, data=NewPerception});
+store_perception(_Result, _EntityId, _NewPerception) ->
+    nothing.
+
+send_perception(true, _, _, _) -> nothing;
 send_perception(false, PlayerId, EntityId, NewPerception) ->
     [Conn] = db:read(connection, PlayerId),
     send_to_process(Conn#connection.process, {EntityId, NewPerception}).

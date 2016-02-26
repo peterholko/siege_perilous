@@ -14,7 +14,7 @@
 %%
 %% Exported Functions
 %%
--export([create_schema/0, start/0, 
+-export([create_schema/0, start/0, first/1, next/2,
          write/1, read/2, delete/2, index_read/3, select/2,
          dirty_write/1, dirty_read/2, dirty_index_read/3, dirty_delete/2, dirty_match_object/1,
          dirty_delete_object/1, dump/1,
@@ -107,6 +107,16 @@ import_entry(Table, ObjName, ObjList) ->
         end,
 
     lists:foreach(F, ObjList).
+
+first(T) ->
+    F = fun() -> mnesia:first(T) end,
+    {atomic, Value} = mnesia:transaction(F),
+    Value.
+
+next(T, K) ->
+    F = fun() -> mnesia:next(T, K) end,
+    {atomic, Value} = mnesia:transaction(F),
+    Value.
 
 write(R) ->
     F = fun() -> mnesia:write(R) end,
