@@ -100,44 +100,39 @@ do_recalculate() ->
 
     lager:debug("Calculate perceptions ~p", [Entities]),
     %Calculate each player entity perception and store to process dict
-    entity_perception(Entities, AllObj).
+    NotifyList = entity_perception(Entities, AllObj, []).
 
 filter_objs(AllObj) ->
     F = fun(Obj) -> Obj#obj.vision > 0 end,
     lists:filter(F, AllObj).
 
-entity_perception([], _AllObj) ->
-    done;
+entity_perception([], _AllObj, NotifyList) ->
+    NotifyList;
 
-entity_perception([Entity | Rest], AllObj) ->
+entity_perception([Entity | Rest], AllObj, NotifyList) ->
     lager:debug("Entity perception: ~p", [Entity]),    
     NearbyObjs = visible_objs(AllObj, Entity),
     lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
 
-    %Get old perception
-    OldPerception = db:dirty_read(perception, Entity#obj.id),
+    %Compare old perception to new
+    Result = case db:dirty_read(perception, Entity#obj.id) of
+                 [Old] ->
+                     NearbyObjs =:= Old#perception.data;
+                 [] ->
+                     false
+             end,
 
-    %Check if new perception equals old perception
-    Result = perception_equal(NearbyObjs, OldPerception),
+    %Update notify list if perception has changed
+    NewNotifyList = case Result of
+                        true ->
+                             %Store new perception and add entity to notify list
+                             db:dirty_write(#perception {entity=Entity#obj.id, data=NearbyObjs}),
+                             [{Entity#obj.id, NearbyObjs} | NotifyList];
+                        false ->
+                             NotifyList
+                    end,
 
-    %Store new perception if is different than old perception
-    store_perception(Result, Entity#obj.id, NearbyObjs),
-    
-    %Send new perception if different than old perception
-    send_perception(Result, Entity#obj.player, Entity#obj.id, NearbyObjs),    
-
-    entity_perception(Rest, AllObj).
-
-perception_equal(_NewData, []) ->
-    false;
-
-perception_equal(New, [Old]) ->
-    New =:= Old#perception.data.
-
-store_perception(false, EntityId, NewPerception) ->
-    db:dirty_write(#perception {entity=EntityId, data=NewPerception});
-store_perception(_Result, _EntityId, _NewPerception) ->
-    nothing.
+    entity_perception(Rest, AllObj, NewNotifyList).
 
 send_perception(true, _PlayerId, _EntityId, _NewPerception) ->
     nothing;

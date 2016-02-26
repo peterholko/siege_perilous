@@ -8,7 +8,7 @@
 -export([get_rec/1, get_map/1, get_map_by_name/1, get_by_owner/1, 
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_equiped_weapon/1]).
 -export([transfer/2, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
--export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3]).
+-export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
 
 get_rec(Id) ->
     case db:read(item, Id) of
@@ -54,6 +54,9 @@ get_equiped_weapon(OwnerId) ->
                 (maps:get(<<"class">>, ItemMap) =:= <<"weapon">>)
         end,
     lists:filter(F, AllItems).
+
+is_subclass(ItemName, Subclass) ->
+    item_def:value(ItemName, <<"subclass">>) =:= Subclass.
 
 is_equipable(Item) ->
     case Item#item.class of

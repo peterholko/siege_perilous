@@ -396,7 +396,10 @@ info(Id) ->
     Info2 = maps:put(<<"items">>, Items, Info1),
     Info3 = maps:put(<<"skills">>, Skills, Info2),
     Info4 = maps:put(<<"effects">>, Effects, Info3),
-    Info4.
+
+    %Check if any subclass specific info should be added
+    AllInfo = info_subclass(Obj#obj.subclass, Obj, Info4),
+    AllInfo.
 
 info_other(Id) ->
     %Get Mnesia obj
@@ -415,6 +418,24 @@ info_other(Id) ->
         dead -> maps:put(<<"items">>, Items, Info4);
         _ -> Info4
     end.
+
+info_subclass(<<"villager">>, Obj, Info) ->
+    [Villager] = db:read(villager, Obj#obj.id),
+       
+    Morale = Villager#villager.morale,
+    Task = atom_to_binary(Villager#villager.task, latin1),
+    DwellingId = Villager#villager.dwelling,
+
+    Dwelling = case db:read(obj, DwellingId) of
+                   [Obj] -> Obj#obj.name;
+                   [] -> <<"none">>
+               end,
+
+    Info1 = maps:put(<<"morale">>, Morale, Info),
+    Info2 = maps:put(<<"task">>, Task, Info1),
+    Info3 = maps:put(<<"dwelling">>, Dwelling, Info2),
+    Info3;
+info_subclass(_, _Obj, Info) -> Info.
 
 create_obj_attr(Id, Name) ->
     AllObjDef = obj_def:all(Name),

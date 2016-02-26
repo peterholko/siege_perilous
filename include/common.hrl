@@ -41,6 +41,7 @@
 -define(FOREST_MC, 2).
 -define(HILLS_MC, 2).
 
+-define(NATIVES, 98).
 -define(UNDEAD, 99).
 -define(MAX_ZOMBIES, 100).
 

@@ -31,4 +31,3 @@ value(All, Attr) when is_list(All) ->
 value(Name, Attr) ->
     [ItemDef] = db:dirty_read(item_def, {Name, Attr}),
     ItemDef#item_def.value.
-

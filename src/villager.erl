@@ -87,11 +87,19 @@ process(Id) ->
     
     process(mnesia:dirty_next(villager, Id)).
 
-process_state(Villager, Obj = #obj {state = State}) when State =:= none ->
-    Task = Villager#villager.task,
-    process_task(Task, Villager, Obj);
+process_state(Villager, Obj = #obj{state = State}) when State =:= none ->
+    process_morale(Villager, Obj);
 process_state(_Villager, _Obj) ->
     nothing.
+
+process_morale(Villager = #villager{morale = Morale}, Obj) when Morale >= 50 ->
+    process_task(Villager#villager.task, Villager, Obj);
+process_morale(Villager = #villager{morale = Morale}, Obj) when Morale >= 25 ->
+    NewVillager = Villager#villager{task = forage},
+    db:write(NewVillager),
+    process_task(Villager#villager.task, Villager, Obj);
+process_morale(Villager = #villager{morale = Morale}, Obj) when Morale >= 0 ->
+    process_abandon(Villager, Obj).
 
 process_task(assign, Villager, Obj) ->
     [Structure] = db:dirty_read(obj, Villager#villager.structure),
@@ -108,13 +116,31 @@ process_task(assign, Villager, Obj) ->
              end,
 
     process_action(Action, Villager, Obj);
-
 process_task(gather, Villager, Obj) ->
     Action = case resource:survey(Obj#obj.pos) of
                 [Resource | _Rest] ->
                     ResourceName = maps:get(<<"name">>, Resource),
                     {harvest, ResourceName};
                 [] ->
+                    Pos = map:get_random_neighbour(Obj#obj.pos),
+                    {move_to, Pos}
+             end,
+
+    process_action(Action, Villager, Obj);
+
+process_task(forage, Villager, Obj) ->
+    Action = case resource:survey(Obj#obj.pos) of
+                 [Resource | _Rest] ->
+                     ResourceName = maps:get(<<"name">>, Resource),
+                     
+                     case item:is_subclass(ResourceName, ?FOOD) of
+                         true -> 
+                             {harvest, ResourceName};
+                         false ->
+                             Pos = map:get_random_neighbour(Obj#obj.pos),
+                             {move_to, Pos}
+                     end;
+                 [] ->
                     Pos = map:get_random_neighbour(Obj#obj.pos),
                     {move_to, Pos}
              end,
@@ -147,14 +173,18 @@ process_action({harvest, ResourceName}, _Villager, Obj) ->
     obj:update_state(Obj#obj.id, harvesting),
     EventData = {Obj#obj.id, ResourceName, Obj#obj.pos, 25, false},
     game:add_event(self(), harvest, EventData, Obj#obj.id, 25);
-%process_action({harvest, _StructureId}, _Villager, Obj) ->
-%    obj:update_state(Obj#obj.id, harvesting),
-%    EventData = {Obj#obj.id, <<"Cragroot Popular">>, 50, true},
-%    game:add_event(self(), harvest, EventData, Obj#obj.id, 50);
- 
 process_action(_, _, _) ->
     nothing.
-    
+
+process_abandon(Villager, Obj) ->
+    NewVillager = Villager#villager{task = forage,
+                                    morale = 50}, 
+
+    [NewObj] = Obj#obj{player = ?NATIVES},
+
+    db:write(NewVillager),
+    db:write(NewObj).
+
 add_move_unit(Obj, NewPos) ->
     %Update unit state
     obj:update_state(Obj#obj.id, moving),

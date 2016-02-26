@@ -167,8 +167,10 @@ do(Q) ->
 
 test_tables() ->
     [
+     {connection, 98, none},     
      {connection, 99, none},     
      {connection, 100, none},     
+     {player, 98, <<"natives">>, <<"123123">>, 0, false, true},
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {counter, player, 1000},

@@ -99,7 +99,7 @@
                    task = gather,
                    structure = none,
                    dwelling = none,
-                   morale = 100}).
+                   morale = 51}).
 
 -record(test, {attr,
                value}).
