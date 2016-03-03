@@ -532,6 +532,11 @@ function sendEquip(item) {
     websocket.send(e);
 };
 
+function sendRest(sourceid) {
+    var e = '{"cmd": "rest", "sourceid": "' + selectedPortrait + '"}';
+    websocket.send(e);
+};
+
 function sendItemTransfer(targetid, item) {
     console.log("targetid: " + targetid);
     var e = '{"cmd": "item_transfer", "targetid": "' + targetid + '", "item": "' + item + '"}';
@@ -581,11 +586,6 @@ function sendInfoItemByName(name) {
 
 function sendInfoTile(x, y) {
     var info = '{"cmd": "info_tile", "id": "' + heroId + '", "x": ' + x + ', "y": ' + y + '}';
-    websocket.send(info);
-};
-
-function sendInfoBattle(id) {
-    var info = '{"cmd": "info_battle", "id": "' + id + '"}';
     websocket.send(info);
 };
 

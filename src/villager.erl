@@ -154,6 +154,7 @@ process_task(follow, _Villager, Obj) ->
     
     case Path of
         failure -> lager:info("~p could not find path", [Obj#obj.id]);
+        PathList when length(PathList) =< 2 -> lager:info("Adjacent to following target");
         PathList ->
             NextPos = lists:nth(2, PathList),
             add_move_unit(Obj, NextPos)
@@ -195,7 +196,7 @@ add_move_unit(Obj, NewPos) ->
                  NewPos},
 
     NumTicks = 16,
-
+    lager:info("Villager add move ~p", [NewPos]),
     game:add_event(self(), move, EventData, Obj#obj.id, NumTicks).
 
 check_food(Villager, Obj) ->

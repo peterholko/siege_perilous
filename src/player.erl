@@ -461,12 +461,15 @@ rest(ObjId) ->
     Checks = [{is_player_owned(Player, Obj#obj.player), "Unit not owned by player"},
               {is_state(Obj#obj.state, none), "Unit is busy"}],
 
-    Result = process_checks(Checks),
-
-    add_rest(Result, ObjId),
-
-    Reply = to_reply(Result),
-    Reply.
+    case process_checks(Checks) of
+        true ->
+            lager:info("Resting"),
+            obj:update_state(Obj, resting),
+            
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
 
 assign(SourceId, TargetId) ->
     Player = get(player_id),
@@ -551,11 +554,6 @@ add_unequip({false, Error}, _Data) ->
     lager:info("Unequip failed error: ~p", [Error]);
 add_unequip(true, ItemId) ->
     item:unequip(ItemId).
-
-add_rest({false, Error}, _Data) ->
-    lager:info("Rest failed error: ~p", [Error]);
-add_rest(true, ObjId) ->
-    obj:update_state(ObjId, rest).
 
 cancel_event(false, _SourceId) ->
     <<"Invalid sourceid">>;

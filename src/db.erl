@@ -58,10 +58,12 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(villager, [{ram_copies, [node()]}, {attributes, record_info(fields, villager)}]),    
     {atomic, ok} = mnesia:create_table(htn, [{ram_copies, [node()]}, {attributes, record_info(fields, htn)}]),    
     {atomic, ok} = mnesia:create_table(npc, [{ram_copies, [node()]}, {attributes, record_info(fields, npc)}]),    
+    {atomic, ok} = mnesia:create_table(state, [{ram_copies, [node()]}, {attributes, record_info(fields, state)}]),    
     {atomic, ok} = mnesia:create_table(effect, [{ram_copies, [node()]}, {attributes, record_info(fields, effect)}]),    
     {atomic, ok} = mnesia:create_table(combat, [{ram_copies, [node()]}, {attributes, record_info(fields, combat)}]),  
     {atomic, ok} = mnesia:create_table(world, [{ram_copies, [node()]}, {attributes, record_info(fields, world)}]),  
     {atomic, ok} = mnesia:create_table(encounter, [{ram_copies, [node()]}, {attributes, record_info(fields, encounter)}]),  
+    {atomic, ok} = mnesia:create_table(pevent, [{ram_copies, [node()]}, {attributes, record_info(fields, pevent)}]),  
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
@@ -184,7 +186,8 @@ test_tables() ->
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {counter, player, 1000},
-     {world, time, day}
+     {world, time, day},
+     {pevent, <<"The Light or Darkness?">>, [<<"Light is Pure">>, <<"Darkness is Chaos">>], [{light, 1}, {darkness, 1}]}
     ].
 
 reset_tables() ->

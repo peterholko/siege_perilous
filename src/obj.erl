@@ -11,7 +11,7 @@
 -export([init_perception/1]).
 -export([create/6, remove/1, move/2]).
 -export([update_state/2, update_hp/2, update_stamina/2, update_dead/1]).
--export([add_effect/3, remove_effect/2, has_effect/2, trigger_effects/2]).
+-export([add_effect/3, remove_effect/2, has_effect/2, trigger_effects/1]).
 -export([is_empty/1, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_villager/1, is_not_npc/1]).
@@ -43,7 +43,7 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
     obj_attr:add(Id, <<"hp">>, BaseHp),
     obj_attr:add(Id, <<"stamina">>, BaseStamina),
 
-    %Create mnesia obj
+    %Create obj
     Obj = #obj {id = Id,
                 pos = Pos,
                 player = PlayerId,
@@ -54,6 +54,11 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
                 vision = Vision,
                 modtick = counter:value(tick)}, 
     db:write(Obj),
+
+    StateRec = #state {id = Id,
+                    state = State,
+                    modtick = counter:value(tick)},
+    db:write(StateRec),
 
     lager:debug("Triggering perception"),
     %Trigger perception to be recalculated
@@ -67,10 +72,10 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
 
 move(Id, Pos) ->
     [Obj] = db:read(obj, Id),
+    NewObj = Obj#obj {pos = Pos},
 
-    NewObj = Obj#obj {pos = Pos,
-                      state = none},
-    db:write(NewObj),
+    %Update state to none
+    update_state(NewObj, none),
 
     %Update wall effect
     IsBehindWall = is_behind_wall(Pos),
@@ -95,16 +100,54 @@ move(Id, Pos) ->
         false -> nothing
     end.
 
-update_state(Id, State) ->
-    lager:debug("Update state: ~p ~p", [Id, State]),
-    [Obj] = db:read(obj, Id),
-    NewObj = Obj#obj {state = State},
-    db:write(NewObj),
+update_state(Obj, State) when is_record(Obj, obj) ->
+    F = fun() ->
+            %Update state table
+            NewState = #state {id = Obj#obj.id, 
+                               state = State, 
+                               modtick = counter:value(tick)},            
+            mnesia:write(NewState),
+
+            %Update obj state
+            NewObj = Obj#obj {state = State},
+            mnesia:write(NewObj),
+
+            %Return new obj
+            NewObj   
+        end,
+
+    {atomic, NewObj} = mnesia:transaction(F),
 
     %Trigger new perception
     game:trigger_perception(),
 
-    NewObj.
+    %Trigger any new effects
+    obj:trigger_effects(NewObj);
+
+update_state(Id, State) ->
+    F = fun() ->
+            %Update state table
+            NewState = #state {id = Id, 
+                               state = State, 
+                               modtick = counter:value(tick)},            
+            mnesia:write(NewState),
+            
+            %Update obj state
+            [Obj] = mnesia:read(obj, Id),
+            NewObj = Obj#obj {state = State},        
+            mnesia:write(NewObj),
+
+            %Return NewObj
+            NewObj
+        end,
+
+    {atomic, NewObj} = mnesia:transaction(F),
+
+    %Trigger new perception
+    game:trigger_perception(),
+
+    %Check if any effects are triggered
+    obj:trigger_effects(NewObj).
 
 update_hp(Id, Value) ->
     Hp = obj_attr:value(Id, <<"hp">>),
@@ -143,7 +186,8 @@ add_effect(Id, EffectType, EffectData) ->
     Effect = #effect {key = {Id, EffectType},
                       id = Id,
                       type = EffectType,
-                      data = EffectData},
+                      data = EffectData,
+                      modtick = counter:value(tick)},
     db:write(Effect).
 
 remove_effect(Id, EffectType) ->
@@ -163,7 +207,8 @@ get_effects(Id) ->
 
     lists:foldl(F, [], Effects).
 
-trigger_effects(add, #obj{id = WallId, pos = Pos, subclass = Subclass}) when Subclass =:= ?WALL ->
+trigger_effects(#obj{id = WallId, pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
+                                                                                       (State =/= dead) ->
     Objs = get_by_pos(Pos),
 
     F = fun(Obj) ->
@@ -174,7 +219,8 @@ trigger_effects(add, #obj{id = WallId, pos = Pos, subclass = Subclass}) when Sub
         end,
     lists:foreach(F, Objs);
 
-trigger_effects(remove, #obj{pos = Pos, subclass = Subclass}) when Subclass =:= ?WALL ->
+trigger_effects(#obj{pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
+                                                                          (State =:= dead) ->
     Objs = get_by_pos(Pos),
 
     F = fun(Obj) ->
@@ -184,7 +230,7 @@ trigger_effects(remove, #obj{pos = Pos, subclass = Subclass}) when Subclass =:= 
             end
         end,
     lists:foreach(F, Objs);
-trigger_effects(_, _) -> nothing.
+trigger_effects(_) -> nothing.
 
 is_empty(Pos) ->
     Objs = db:dirty_index_read(obj, Pos, #obj.pos),
@@ -332,6 +378,7 @@ remove(Id) ->
     db:delete(villager, Id),
     db:delete(npc, Id),
     db:delete(obj, Id),
+    db:delete(state, Id),
     game:trigger_perception().
 
 get_visible_objs([], Objs) ->

@@ -238,6 +238,15 @@ message_handle(<<"unequip">>, Message) ->
     jsx:encode([{<<"packet">>, <<"unequip">>},
                 {<<"result">>, Result}]);    
 
+message_handle(<<"rest">>, Message) ->
+    lager:info("message: rest"),
+
+    SourceId = util:hex_to_bin(map_get(<<"sourceid">>, Message)),
+
+    Return = player:rest(SourceId),
+    FinalReturn = maps:put(<<"packet">>, <<"rest">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"assign">>, Message) ->
     lager:info("message: assign"),
     
@@ -344,7 +353,10 @@ prepare(new_items, Message) ->
 
 prepare(stats, Message) ->
     [{<<"packet">>, <<"stats">>},
-     {<<"stats">>, to_hex(Message)}]; 
+     {<<"stats">>, to_hex(Message)}];
+
+prepare(pevent, Message) ->
+    maps:put(<<"packet">>, <<"pevent">>, Message);
 
 prepare(world, Message) ->
     maps:put(<<"packet">>, <<"world">>, Message);

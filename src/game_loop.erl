@@ -125,7 +125,7 @@ do_event(move, EventData, PlayerPid) ->
         true ->
             obj:move(Id, NewPos);
         false ->
-            nothing
+            obj:update_state(Id, none)
     end,
 
     message:send_to_process(PlayerPid, event_complete, {move, Id}),
@@ -181,14 +181,11 @@ do_event(finish_build, EventData, _PlayerPid) ->
     obj:update_state(ObjId, none),
 
     %Set structure state to none
-    StructureObj = obj:update_state(StructureId, none), 
+    obj:update_state(StructureId, none), 
 
     %Set structure hp to max
     BaseHp = obj_attr:value(StructureId, <<"base_hp">>),
     obj_attr:set(StructureId, <<"hp">>, BaseHp),
-
-    %Trigger any effects caused by new structure
-    obj:trigger_effects(add, StructureObj), 
 
     true;
 

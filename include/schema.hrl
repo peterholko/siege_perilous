@@ -96,10 +96,10 @@
                obj}).
 
 -record(villager, {id,
-                   task = gather,
+                   task = follow,
                    structure = none,
                    dwelling = none,
-                   morale = 51}).
+                   morale = 55}).
 
 -record(test, {attr,
                value}).
@@ -123,10 +123,15 @@
               path = none,
               attacks = []}).
 
+-record(state, {id, 
+                state,
+                modtick}).
+
 -record(effect, {key,
                  id,
                  type,
-                 data}).
+                 data,
+                 modtick}).
 
 -record(combat, {id, 
                  attacks}).
@@ -134,3 +139,8 @@
 -record(encounter, {pos, 
                     num,
                     modtick}).
+
+-record(pevent, {text,
+                 responses = [],
+                 effects = []}).
+
