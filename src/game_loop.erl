@@ -261,7 +261,7 @@ process_upkeep(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTic
 process_upkeep(_) -> nothing.
 
 process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
-    process_rest_state();
+    process_rest_state(NumTick);
 process_rest(_) -> nothing.
 
 npc_replan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
@@ -449,14 +449,16 @@ structure_upkeep() ->
 
     lists:foreach(F, Structures).
 
-process_rest_state() ->
+process_rest_state(NumTick) ->
     Objs = db:index_read(obj, rest, #obj.state),
 
     F = fun(Obj) ->
             case obj:has_effect(Obj#obj.id, <<"Starving">>) of
                 false -> obj:update_hp(Obj#obj.id, 1);
                 true -> nothing
-            end
+            end,
+
+            check_pevent(NumTick, Obj#obj.id)
         end,
 
     lists:foreach(F, Objs).
@@ -498,3 +500,14 @@ zombie_powerup(#obj{id = Id, name = Name}) when Name =:= <<"Zombie">> ->
     obj_attr:set(Id, <<"hp">>, Hp + 10),
     1; %Return counted 1 zombie
 zombie_powerup(_) -> 0.
+
+check_pevent(NumTick, Id) ->
+    [State] = db:read(state, Id),
+
+    TickDiff = NumTick - State#state.modtick,
+
+    case TickDiff > (?TICKS_MIN) of
+        true -> lager:info("Trigger pevent");
+        false -> nothing
+    end.
+
