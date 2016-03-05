@@ -355,8 +355,9 @@ prepare(stats, Message) ->
     [{<<"packet">>, <<"stats">>},
      {<<"stats">>, to_hex(Message)}];
 
-prepare(pevent, Message) ->
-    maps:put(<<"packet">>, <<"pevent">>, Message);
+prepare(revent, Message) ->
+    lager:info("Sending revent: ~p", [Message]),
+    maps:put(<<"packet">>, <<"revent">>, Message);
 
 prepare(world, Message) ->
     maps:put(<<"packet">>, <<"world">>, Message);

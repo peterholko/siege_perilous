@@ -140,7 +140,7 @@
                     num,
                     modtick}).
 
--record(pevent, {text,
+-record(revent, {text,
                  responses = [],
                  effects = []}).
 

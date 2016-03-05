@@ -450,7 +450,7 @@ structure_upkeep() ->
     lists:foreach(F, Structures).
 
 process_rest_state(NumTick) ->
-    Objs = db:index_read(obj, rest, #obj.state),
+    Objs = db:index_read(obj, resting, #obj.state),
 
     F = fun(Obj) ->
             case obj:has_effect(Obj#obj.id, <<"Starving">>) of
@@ -458,7 +458,7 @@ process_rest_state(NumTick) ->
                 true -> nothing
             end,
 
-            check_pevent(NumTick, Obj#obj.id)
+            check_random_event(NumTick, Obj)
         end,
 
     lists:foreach(F, Objs).
@@ -501,13 +501,15 @@ zombie_powerup(#obj{id = Id, name = Name}) when Name =:= <<"Zombie">> ->
     1; %Return counted 1 zombie
 zombie_powerup(_) -> 0.
 
-check_pevent(NumTick, Id) ->
-    [State] = db:read(state, Id),
+check_random_event(NumTick, Obj) ->
+    [State] = db:read(state, Obj#obj.id),
 
     TickDiff = NumTick - State#state.modtick,
 
-    case TickDiff > (?TICKS_MIN) of
-        true -> lager:info("Trigger pevent");
+    case TickDiff > ?TICKS_MIN of
+        true -> 
+            obj:update_state(Obj, revent),
+            game:send_revent(Obj#obj.player);
         false -> nothing
     end.
 

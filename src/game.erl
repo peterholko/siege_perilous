@@ -17,8 +17,8 @@
 -export([add_event/5, has_pre_events/1, cancel_event/1]).
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
--export([send_update_items/3, send_update_stats/2]).
--export([get_info_tile/1]).
+-export([send_update_items/3, send_update_stats/2, send_revent/1]).
+-export([get_info_tile/1, get_revent/0]).
 
 
 %% Common functions
@@ -41,6 +41,11 @@ send_update_stats(PlayerId, ObjId) when PlayerId > 1000 ->
 send_update_stats(_, _) -> 
     nothing.
 
+send_revent(PlayerId) ->
+    REvent = get_revent(),
+    [Conn] = db:read(connection, PlayerId),
+    message:send_to_process(Conn#connection.process, revent, REvent).
+
 get_info_tile(Pos) ->
     {X, Y} = Pos,
     [Tile] = map:get_tile(Pos),
@@ -60,6 +65,16 @@ get_info_tile(Pos) ->
     Info6 = maps:put(<<"wildness">>, WildnessLevel, Info5),
 
     Info6.
+
+get_revent() ->
+    AllREvents = ets:tab2list(revent),
+    Num = length(AllREvents),
+    Rand = util:rand(Num),
+    REvent = lists:nth(Rand, AllREvents),
+
+    REvent0 = maps:put(<<"text">>, REvent#revent.text, #{}),
+    REvent1 = maps:put(<<"responses">>, REvent#revent.responses, REvent0),
+    REvent1.
 
 %%
 %% API Functions

@@ -17,6 +17,7 @@ var smallDialogPanel;
 var selectPanel;
 var selectHex;
 var portraitPanel;
+var reventPanel;
 
 var textLog;
 var textLogLines = [];
@@ -65,6 +66,8 @@ var selectHexImage = new Image();
 var selectIconImage = new Image();
 var actionBarBgImage = new Image();
 var portraitBg = new Image();
+var reventBg = new Image();
+
 var leftImage = new Image();
 var rightImage = new Image();
 
@@ -155,6 +158,7 @@ selectHexImage.src = "/static/art/hover-hex.png";
 selectIconImage.src = "/static/art/select2.png";
 portraitBg.src = "/static/art/selected_bg.png";
 actionBarBgImage.src = "/static/art/ab_bg.png";
+reventBg.src = "/static/art/revent_bg.png";
 
 attackActive.src = "/static/art/ab_attack_active.png";
 attackRest.src = "/static/art/ab_attack_rest.png";
@@ -170,6 +174,7 @@ detailsActive.src = "/static/art/ab_details_active.png";
 detailsRest.src = "/static/art/ab_details_rest.png";
 detailsRoll.src = "/static/art/ab_details_roll.png";
 
+reventBg.src = "/static/art/revent_bg.png";
 quick.src = "/static/art/quick_rest.png"; 
 precise.src = "/static/art/precise_rest.png"; 
 fierce.src = "/static/art/fierce_rest.png"; 
@@ -642,11 +647,14 @@ function onMessage(evt) {
             }
         }
         else if(jsonData.packet == "new_items") {
-           drawNewItemsDialog(jsonData);
+            drawNewItemsDialog(jsonData);
 
-           for(var i = 0; i < jsonData.items.length; i++) {
-               updateTextLog("You acquired item [" + jsonData.items[i].name + "]x" + jsonData.items[i].quantity);
-           }
+            for(var i = 0; i < jsonData.items.length; i++) {
+                updateTextLog("You acquired item [" + jsonData.items[i].name + "]x" + jsonData.items[i].quantity);
+            }
+        }
+        else if(jsonData.packet == "revent") {
+            drawReventPanel(jsonData);
         }
         else if(jsonData.packet == "stats") {
             var id = jsonData.stats._id;
@@ -1928,6 +1936,29 @@ function drawItemSplit(itemId, itemName, quantity) {
     addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconRight});
 };
 
+function drawReventPanel(jsonData) {
+    reventPanel.visible = true;
+
+    var content = reventPanel.getChildByName("content");
+    content.removeAllChildren();
+
+    var header = new createjs.Text("Random Event", "18px Book Antiqua Bold", textColor);
+    
+    header.x = Math.floor(464 / 2);
+    header.y = 80;
+    header.textAlign = "center";
+
+    content.addChild(header);
+
+    var text = new createjs.Text(jsonData.text, "12px Arial Regular", textColor);
+    
+    text.x = Math.floor(464 / 2);
+    text.y = 120;
+    text.textAlign = "center";
+
+    content.addChild(text);
+};
+
 function updateTextLog(newText) {    
     console.log(newText);
     var metrics = textLog.getMetrics();
@@ -2419,6 +2450,20 @@ function initUI() {
 
     //Button click box
     clicked = new createjs.Bitmap(attack_clicked);
+
+    reventPanel = new createjs.Container();
+    
+    reventPanel.x = stageWidth / 2 - 464 / 2;
+    reventPanel.y = stageHeight / 2 - 265;
+    reventPanel.visible = false;
+
+    var content = new createjs.Container();
+    content.name = "content";
+
+    reventPanel.addChild(new createjs.Bitmap(reventBg));
+    reventPanel.addChild(content);
+
+    stage.addChild(reventPanel);
 };
 
 function showBattlePanel() {

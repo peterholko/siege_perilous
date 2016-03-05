@@ -63,7 +63,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(combat, [{ram_copies, [node()]}, {attributes, record_info(fields, combat)}]),  
     {atomic, ok} = mnesia:create_table(world, [{ram_copies, [node()]}, {attributes, record_info(fields, world)}]),  
     {atomic, ok} = mnesia:create_table(encounter, [{ram_copies, [node()]}, {attributes, record_info(fields, encounter)}]),  
-    {atomic, ok} = mnesia:create_table(pevent, [{ram_copies, [node()]}, {attributes, record_info(fields, pevent)}]),  
+    {atomic, ok} = mnesia:create_table(revent, [{ram_copies, [node()]}, {attributes, record_info(fields, revent)}]),  
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
@@ -187,7 +187,7 @@ test_tables() ->
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {counter, player, 1000},
      {world, time, day},
-     {pevent, <<"The Light or Darkness?">>, [<<"Light is Pure">>, <<"Darkness is Chaos">>], [{light, 1}, {darkness, 1}]}
+     {revent, <<"The Light or Darkness?">>, [<<"Light is Pure">>, <<"Darkness is Chaos">>], [{light, 1}, {darkness, 1}]}
     ].
 
 reset_tables() ->
