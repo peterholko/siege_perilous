@@ -7,6 +7,7 @@
 -include("common.hrl").
 
 -export([init_perception/1,
+         init_state/1,
          get_stats/1, 
          get_info_tile/2,
          get_info_unit/1,
@@ -46,6 +47,14 @@ init_perception(PlayerId) ->
     lager:info([{player, PlayerId}], "Objs: ~p", [Objs]),
 
     {PlayerId, Explored, Objs}.
+
+init_state(PlayerId) ->
+    Hero = obj:get_hero(PlayerId),
+
+    case Hero#obj.state of
+        revent -> game:send_revent(PlayerId);
+        _ -> nothing
+    end.
 
 get_stats(Id) ->
     Player = get(player_id),

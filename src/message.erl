@@ -47,7 +47,12 @@ message_handle(<<"login">>, Message) ->
             %Stored player id in process dict for easy access
             put(player_id, PlayerId),
 
+            %Get init perception 
             {PlayerId, ExploredMap, Objs} = player:init_perception(PlayerId),
+
+            %Check if initial login state requires any special data
+            player:init_state(PlayerId),
+
             Perception = [{<<"packet">>, <<"login">>},
                           {<<"player">>, PlayerId},
                           {<<"map">>, ExploredMap},
@@ -318,6 +323,9 @@ message_handle(<<"ford">>, Message) ->
     Return = player:ford(BinId, {X, Y}),
     FinalReturn = maps:put(<<"packet">>, <<"ford">>, Return),
     jsx:encode(FinalReturn);
+
+message_handle(<<"revent">>, Message) ->
+    lager:info("message: revent"),
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

@@ -67,6 +67,7 @@ var selectIconImage = new Image();
 var actionBarBgImage = new Image();
 var portraitBg = new Image();
 var reventBg = new Image();
+var reventButtonBg = new Image();
 
 var leftImage = new Image();
 var rightImage = new Image();
@@ -159,6 +160,7 @@ selectIconImage.src = "/static/art/select2.png";
 portraitBg.src = "/static/art/selected_bg.png";
 actionBarBgImage.src = "/static/art/ab_bg.png";
 reventBg.src = "/static/art/revent_bg.png";
+reventButtonBg.src = "/static/art/revent_button.png";
 
 attackActive.src = "/static/art/ab_attack_active.png";
 attackRest.src = "/static/art/ab_attack_rest.png";
@@ -592,6 +594,11 @@ function sendInfoItemByName(name) {
 function sendInfoTile(x, y) {
     var info = '{"cmd": "info_tile", "id": "' + heroId + '", "x": ' + x + ', "y": ' + y + '}';
     websocket.send(info);
+};
+
+function sendRevent(responseNum) {
+    var revent = '{"cmd": "revent", "response_num": ' + responseNum + '}';
+    websocket.send(revent);
 };
 
 function onOpen(evt) { 
@@ -1957,6 +1964,15 @@ function drawReventPanel(jsonData) {
     text.textAlign = "center";
 
     content.addChild(text);
+
+    for(var i = 0; i < jsonData.responses.length; i++) {
+        var button = new reventButton(jsonData.responses[i], jsonData.effects[i]);
+
+        button.x = 27;
+        button.y = 250 + i * 30;
+
+        content.addChild(button);
+    }
 };
 
 function updateTextLog(newText) {    
@@ -2824,4 +2840,46 @@ function removeClicked()
         var button = clicked.parent;
         button.removeChild(clicked);
     }
+};
+
+function reventButton(responseNum, response, effect)
+{
+    var button = new createjs.Container();
+    button.responseNum = responseNum;
+    
+    var response = new createjs.Text(response, "12px Arial Regular", textColor);
+    var effect = new createjs.Text(effect, "12px Arial Regular", textColor);
+    
+    response.x = Math.floor(410 / 2);
+    effect.x = Math.floor(410 / 2);
+
+    response.y = 3;
+    effect.y = 3;
+
+    response.textAlign = "center";
+    effect.textAlign = "center";
+ 
+    response.visible = true;
+    effect.visible = false;
+
+    button.addChild(new createjs.Bitmap(reventButtonBg));
+    button.addChild(response);
+    button.addChild(effect);
+
+    button.on("rollover", function(evt) {
+        response.visible = false;
+        effect.visible = true;
+    });
+
+    button.on("rollout", function(evt) {
+        response.visible = true;
+        effect.visible = false;
+    });
+
+    button.on("click", function(evt) {
+        console.log("Send Revent clicked");
+        sendRevent(this.responseNum);
+    });
+
+    return button;
 };

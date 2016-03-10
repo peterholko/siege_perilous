@@ -74,7 +74,8 @@ get_revent() ->
 
     REvent0 = maps:put(<<"text">>, REvent#revent.text, #{}),
     REvent1 = maps:put(<<"responses">>, REvent#revent.responses, REvent0),
-    REvent1.
+    REvent2 = maps:put(<<"effects">>, REvent#revent.effects, REvent1),
+    REvent2.
 
 %%
 %% API Functions
