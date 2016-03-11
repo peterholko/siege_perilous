@@ -501,15 +501,17 @@ zombie_powerup(#obj{id = Id, name = Name}) when Name =:= <<"Zombie">> ->
     1; %Return counted 1 zombie
 zombie_powerup(_) -> 0.
 
-check_random_event(NumTick, Obj) ->
+check_random_event(NumTick, Obj = #obj{subclass = Subclass}) when Subclass =:= <<"hero">> ->
     [State] = db:read(state, Obj#obj.id),
 
     TickDiff = NumTick - State#state.modtick,
 
     case TickDiff > ?TICKS_MIN of
         true -> 
-            obj:update_state(Obj, revent),
-            game:send_revent(Obj#obj.player);
-        false -> nothing
-    end.
+            REvent = game:create_revent(),
+            obj:update_state(Obj, revent, REvent#revent.id),
 
+            game:send_revent(Obj#obj.player, REvent);
+        false -> nothing
+    end;
+check_random_event(_, _) -> nothing.

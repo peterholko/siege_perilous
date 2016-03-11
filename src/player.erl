@@ -52,7 +52,9 @@ init_state(PlayerId) ->
     Hero = obj:get_hero(PlayerId),
 
     case Hero#obj.state of
-        revent -> game:send_revent(PlayerId);
+        revent -> 
+            REvent = game:get_revent(Hero#obj.id),
+            game:send_revent(PlayerId, REvent);
         _ -> nothing
     end.
 

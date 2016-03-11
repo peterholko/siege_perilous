@@ -125,6 +125,7 @@
 
 -record(state, {id, 
                 state,
+                data,
                 modtick}).
 
 -record(effect, {key,
@@ -140,7 +141,9 @@
                     num,
                     modtick}).
 
--record(revent, {text,
+-record(revent, {id,
+                 title, 
+                 text,
                  responses = [],
                  effects = []}).
 

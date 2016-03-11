@@ -10,7 +10,7 @@
 
 -export([init_perception/1]).
 -export([create/6, remove/1, move/2]).
--export([update_state/2, update_hp/2, update_stamina/2, update_dead/1]).
+-export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
 -export([add_effect/3, remove_effect/2, has_effect/2, trigger_effects/1]).
 -export([is_empty/1, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
@@ -100,11 +100,15 @@ move(Id, Pos) ->
         false -> nothing
     end.
 
-update_state(Obj, State) when is_record(Obj, obj) ->
+update_state(Obj, State) ->
+    update_state(Obj, State, none).
+
+update_state(Obj, State, StateData) when is_record(Obj, obj) ->
     F = fun() ->
             %Update state table
             NewState = #state {id = Obj#obj.id, 
                                state = State, 
+                               data = StateData,
                                modtick = counter:value(tick)},            
             mnesia:write(NewState),
 
@@ -124,11 +128,12 @@ update_state(Obj, State) when is_record(Obj, obj) ->
     %Trigger any new effects
     obj:trigger_effects(NewObj);
 
-update_state(Id, State) ->
+update_state(Id, State, StateData) ->
     F = fun() ->
             %Update state table
             NewState = #state {id = Id, 
                                state = State, 
+                               data = StateData,
                                modtick = counter:value(tick)},            
             mnesia:write(NewState),
             

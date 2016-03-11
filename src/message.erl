@@ -326,6 +326,9 @@ message_handle(<<"ford">>, Message) ->
 
 message_handle(<<"revent">>, Message) ->
     lager:info("message: revent"),
+    ResponseNum = map_get(<<"response_num">>, Message),
+    Return = player:revent(ResponseNum),
+    jsx:encode(Return);
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

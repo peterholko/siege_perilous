@@ -187,7 +187,7 @@ test_tables() ->
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {counter, player, 1000},
      {world, time, day},
-     {revent, <<"The Light or Darkness?">>, [<<"Light is Pure">>, <<"Darkness is Chaos">>], [<<"Light + 1">>, <<"Darkness + 1">>]}
+     {revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>]}
     ].
 
 reset_tables() ->

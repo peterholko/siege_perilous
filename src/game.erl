@@ -17,8 +17,8 @@
 -export([add_event/5, has_pre_events/1, cancel_event/1]).
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
--export([send_update_items/3, send_update_stats/2, send_revent/1]).
--export([get_info_tile/1, get_revent/0]).
+-export([send_update_items/3, send_update_stats/2, send_revent/2]).
+-export([get_info_tile/1, create_revent/0, get_revent/1, revent_map/1]).
 
 
 %% Common functions
@@ -41,8 +41,7 @@ send_update_stats(PlayerId, ObjId) when PlayerId > 1000 ->
 send_update_stats(_, _) -> 
     nothing.
 
-send_revent(PlayerId) ->
-    REvent = get_revent(),
+send_revent(PlayerId, REvent) ->
     [Conn] = db:read(connection, PlayerId),
     message:send_to_process(Conn#connection.process, revent, REvent).
 
@@ -66,12 +65,20 @@ get_info_tile(Pos) ->
 
     Info6.
 
-get_revent() ->
+create_revent() ->
     AllREvents = ets:tab2list(revent),
     Num = length(AllREvents),
     Rand = util:rand(Num),
     REvent = lists:nth(Rand, AllREvents),
+    REvent.
 
+get_revent(ObjId) ->
+    [State] = db:read(state, ObjId),
+    REventId = State#state.data,
+    [REvent] = db:read(revent, REventId),
+    REvent.
+
+revent_map(REvent) ->
     REvent0 = maps:put(<<"text">>, REvent#revent.text, #{}),
     REvent1 = maps:put(<<"responses">>, REvent#revent.responses, REvent0),
     REvent2 = maps:put(<<"effects">>, REvent#revent.effects, REvent1),
