@@ -6,7 +6,7 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([check/1, get_wildness/1]).
+-export([check/1, get_wildness/1, spawn_npc/2, generate_loot/1]).
 
 check(Pos) ->
     [Tile] = map:get_tile(Pos),
@@ -21,7 +21,7 @@ check(Pos) ->
     Random = util:rand(),
 
     case Random < EffectiveSpawnRate of
-        true -> spawn_npc(TileName, Pos);
+        true -> spawn_random_npc(TileName, Pos);
         false -> nothing
     end.
 
@@ -33,7 +33,7 @@ get_wildness(Pos) ->
             wildness(0)
     end.
 
-spawn_npc(TileName, Pos) ->
+spawn_random_npc(TileName, Pos) ->
     NPCList = npc_list(TileName),
     Random = util:rand(length(NPCList)),
     NPCType = lists:nth(Random, NPCList),
@@ -51,6 +51,18 @@ spawn_npc(TileName, Pos) ->
             increase_num(NPCPos)
     end.
 
+spawn_npc(NPCType, Pos) ->
+    Tiles = get_valid_tiles(Pos),
+
+    case Tiles of
+        [] -> nothing; %No valid tiles
+        Neighbours ->
+            RandomPos = util:rand(length(Neighbours)),
+            NPCPos = lists:nth(RandomPos, Neighbours),
+            NPCId = obj:create(NPCPos, ?UNDEAD, unit, <<"npc">>, NPCType, none),
+            generate_loot(NPCId)
+    end.
+
 generate_loot(NPCId) ->
     LootList = loot_list(),
 
@@ -58,7 +70,6 @@ generate_loot(NPCId) ->
             case DropRate > util:rand() of
                 true ->
                     Num = util:rand(Max - Min) + Min,
-                    lager:info("Id: ~p, Name: ~p", [NPCId, Name]),
                     item:create(NPCId, Name, Num);
                 false ->
                     nothing

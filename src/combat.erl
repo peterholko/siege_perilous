@@ -206,7 +206,7 @@ process_unit_dead(DefId) ->
     npc:remove(DefId),
 
     %Trigger removal of any effects caused by this obj
-    obj:trigger_effects(remove, NewObj).
+    obj:trigger_effects(NewObj).
 
 attack_type_mod(?QUICK) -> 0.5;
 attack_type_mod(?PRECISE) -> 1;

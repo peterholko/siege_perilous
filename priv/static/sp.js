@@ -596,8 +596,8 @@ function sendInfoTile(x, y) {
     websocket.send(info);
 };
 
-function sendRevent(responseNum) {
-    var revent = '{"cmd": "revent", "response_num": ' + responseNum + '}';
+function sendReventResponse(responseNum) {
+    var revent = '{"cmd": "revent_response", "response_num": ' + responseNum + '}';
     websocket.send(revent);
 };
 
@@ -1962,6 +1962,7 @@ function drawReventPanel(jsonData) {
     text.x = Math.floor(464 / 2);
     text.y = 120;
     text.textAlign = "center";
+    text.lineWidth = 464 - 10;
 
     content.addChild(text);
 
@@ -1970,6 +1971,13 @@ function drawReventPanel(jsonData) {
 
         button.x = 27;
         button.y = 250 + i * 30;
+        button.responseNum = i + 1;
+
+        button.on("click", function(evt) {
+            console.log("Send Revent clicked");
+            sendReventResponse(this.responseNum);
+            reventPanel.visible = false;
+        });
 
         content.addChild(button);
     }
@@ -2842,19 +2850,18 @@ function removeClicked()
     }
 };
 
-function reventButton(responseNum, response, effect)
+function reventButton(response, effect)
 {
     var button = new createjs.Container();
-    button.responseNum = responseNum;
     
-    var response = new createjs.Text(response, "12px Arial Regular", textColor);
-    var effect = new createjs.Text(effect, "12px Arial Regular", textColor);
+    var response = new createjs.Text(response, "12px Arial Regular", "#ECECEC");
+    var effect = new createjs.Text(effect, "12px Arial Regular", "#ECECEC");
     
     response.x = Math.floor(410 / 2);
     effect.x = Math.floor(410 / 2);
 
-    response.y = 3;
-    effect.y = 3;
+    response.y = 5;
+    effect.y = 5;
 
     response.textAlign = "center";
     effect.textAlign = "center";
@@ -2876,10 +2883,6 @@ function reventButton(responseNum, response, effect)
         effect.visible = false;
     });
 
-    button.on("click", function(evt) {
-        console.log("Send Revent clicked");
-        sendRevent(this.responseNum);
-    });
 
     return button;
 };

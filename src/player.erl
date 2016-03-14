@@ -32,6 +32,7 @@
          rest/1,
          assign/2,
          cancel/1,
+         revent_response/1,
          set_event_lock/2,
          process_checks/1]).
 
@@ -53,8 +54,9 @@ init_state(PlayerId) ->
 
     case Hero#obj.state of
         revent -> 
-            REvent = game:get_revent(Hero#obj.id),
-            game:send_revent(PlayerId, REvent);
+            REvent = revent:get(Hero#obj.id),
+            REventMap = revent:to_map(REvent),
+            game:send_revent(PlayerId, REventMap);
         _ -> nothing
     end.
 
@@ -508,6 +510,18 @@ cancel(SourceId) ->
     ValidOwner = PlayerId =:= Obj#obj.player,
     
     cancel_event(ValidOwner, SourceId).
+
+revent_response(ResponseNum) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+    REvent = revent:get(Hero#obj.id),
+
+    revent:apply_effect(Hero#obj.id, REvent, ResponseNum),
+
+    obj:update_state(Hero#obj.id, none),
+
+    #{<<"result">> => <<"success">>}.
+ 
 %
 %Internal functions
 %

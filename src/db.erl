@@ -187,7 +187,9 @@ test_tables() ->
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
      {counter, player, 1000},
      {world, time, day},
-     {revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>]}
+     %{revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>], [none]},
+     %{revent, 1, <<"The Baying Hounds">>, <<"Haunting howls, from what you hope are dogs, surround your camp.">>, [<<"Post a watch.">>, <<"They'll leave us alone. Do nothing.">>], [<<"Lose 10% Morale.">>, <<"Potential Danger...">>], [{attrmod, {morale, -10}}, {random, [{45, spawn, <<"Wolf">>}]} ]}
+     {revent, 1, <<"The Overgrown Tombstone">>, <<"You find an an ancient tombstone just outside your camp.  It appears to have been left undisturbed by both man and beast for a long time.">>, [<<"Leave it alone.">>, <<"Dig up the grave.">>, <<"Bless the site.">>], [<<"Nothing happens.">>, <<"Possible loot...">>, <<"Gain Morale 10%">>], [none, {random, [{75, loot}, {25, spawn, <<"Skeleton">>}]}, {attrmod, {morale, 10}}]}
     ].
 
 reset_tables() ->

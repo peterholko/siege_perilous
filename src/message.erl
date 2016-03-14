@@ -324,11 +324,12 @@ message_handle(<<"ford">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"ford">>, Return),
     jsx:encode(FinalReturn);
 
-message_handle(<<"revent">>, Message) ->
+message_handle(<<"revent_response">>, Message) ->
     lager:info("message: revent"),
     ResponseNum = map_get(<<"response_num">>, Message),
-    Return = player:revent(ResponseNum),
-    jsx:encode(Return);
+    Return = player:revent_response(ResponseNum),
+    FinalReturn = maps:put(<<"packet">>, <<"revent_response">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

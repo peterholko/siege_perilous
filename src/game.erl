@@ -18,7 +18,7 @@
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
 -export([send_update_items/3, send_update_stats/2, send_revent/2]).
--export([get_info_tile/1, create_revent/0, get_revent/1, revent_map/1]).
+-export([get_info_tile/1]).
 
 
 %% Common functions
@@ -65,24 +65,6 @@ get_info_tile(Pos) ->
 
     Info6.
 
-create_revent() ->
-    AllREvents = ets:tab2list(revent),
-    Num = length(AllREvents),
-    Rand = util:rand(Num),
-    REvent = lists:nth(Rand, AllREvents),
-    REvent.
-
-get_revent(ObjId) ->
-    [State] = db:read(state, ObjId),
-    REventId = State#state.data,
-    [REvent] = db:read(revent, REventId),
-    REvent.
-
-revent_map(REvent) ->
-    REvent0 = maps:put(<<"text">>, REvent#revent.text, #{}),
-    REvent1 = maps:put(<<"responses">>, REvent#revent.responses, REvent0),
-    REvent2 = maps:put(<<"effects">>, REvent#revent.effects, REvent1),
-    REvent2.
 
 %%
 %% API Functions

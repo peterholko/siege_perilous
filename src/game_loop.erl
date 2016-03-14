@@ -260,7 +260,7 @@ process_upkeep(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTic
     structure_upkeep();
 process_upkeep(_) -> nothing.
 
-process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 30)) =:= 0) and (NumTick > 0) ->
+process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 10)) =:= 0) and (NumTick > 0) ->
     process_rest_state(NumTick);
 process_rest(_) -> nothing.
 
@@ -506,12 +506,14 @@ check_random_event(NumTick, Obj = #obj{subclass = Subclass}) when Subclass =:= <
 
     TickDiff = NumTick - State#state.modtick,
 
-    case TickDiff > ?TICKS_MIN of
+    case TickDiff > (?TICKS_SEC * 10) of
         true -> 
-            REvent = game:create_revent(),
+            REvent = revent:create(),
+            REventMap = revent:to_map(REvent),
+            
             obj:update_state(Obj, revent, REvent#revent.id),
 
-            game:send_revent(Obj#obj.player, REvent);
+            game:send_revent(Obj#obj.player, REventMap);
         false -> nothing
     end;
 check_random_event(_, _) -> nothing.
