@@ -157,7 +157,7 @@ rightImage.src = "/static/art/select_bar_right.png";
 close_rest.src = "/static/art/close_rest.png";
 selectHexImage.src = "/static/art/hover-hex.png";
 selectIconImage.src = "/static/art/select2.png";
-portraitBg.src = "/static/art/selected_bg.png";
+portraitBg.src = "/static/art/unit_badge.png";
 actionBarBgImage.src = "/static/art/ab_bg.png";
 reventBg.src = "/static/art/revent_bg.png";
 reventButtonBg.src = "/static/art/revent_button.png";
@@ -661,7 +661,10 @@ function onMessage(evt) {
             }
         }
         else if(jsonData.packet == "revent") {
-            drawReventPanel(jsonData);
+            drawReventPanel(jsonData, "responses");
+        }
+        else if(jsonData.packet == "revent_effects") {
+            drawReventPanel(jsonData, "effects");
         }
         else if(jsonData.packet == "stats") {
             var id = jsonData.stats._id;
@@ -1125,7 +1128,16 @@ function drawSelectedPortrait() {
             var objName = obj.type.toLowerCase().replace(/ /g, '');
             var imagePath =  "/static/art/" + objName + ".png";
 
-            addImage({id: objName, path: imagePath, x: 0, y: 0, target: content});
+            var text = new createjs.Text(obj.type, h1Font, textColor);
+
+            text.x = 160;
+            text.y = 9;
+            text.textAlign = "center";
+            text.lineWidth = 160; 
+
+            content.addChild(text);
+
+            addImage({id: objName, path: imagePath, x: 10, y: 5, target: content});
 
             sendGetStats(selectedPortrait);
         }
@@ -1133,21 +1145,21 @@ function drawSelectedPortrait() {
 };
 
 function drawStats(stats) {
-    var barWidth = 80;
+    var barWidth = 152;
     var hpRatio = stats.hp / stats.base_hp;
     var staminaRatio = stats.stamina / stats.base_stamina;
 
     hpBar.graphics.clear()
         .setStrokeStyle(10)
         .beginStroke('#8E0000')
-        .moveTo(333, stageHeight - 150)
-        .lineTo(333 + (hpRatio * barWidth), stageHeight - 150);
+        .moveTo(100, 40)
+        .lineTo(100 + (hpRatio * barWidth), 40);
 
     staminaBar.graphics.clear()
         .setStrokeStyle(10)
         .beginStroke('#009C0A')
-        .moveTo(333, stageHeight - 135)
-        .lineTo(333 + (staminaRatio * barWidth), stageHeight - 135);
+        .moveTo(100, 55)
+        .lineTo(100 + (staminaRatio * barWidth), 55);
 };
 
 function drawAttackClicked(attacktype) {
@@ -1943,7 +1955,7 @@ function drawItemSplit(itemId, itemName, quantity) {
     addImage({id: imageName, path: imagePath, x: 0, y: 0, target: iconRight});
 };
 
-function drawReventPanel(jsonData) {
+function drawReventPanel(jsonData, reventState) {
     reventPanel.visible = true;
 
     var content = reventPanel.getChildByName("content");
@@ -1966,20 +1978,31 @@ function drawReventPanel(jsonData) {
 
     content.addChild(text);
 
-    for(var i = 0; i < jsonData.responses.length; i++) {
-        var button = new reventButton(jsonData.responses[i], jsonData.effects[i]);
+    if(reventState == "responses") {
+        for(var i = 0; i < jsonData.responses.length; i++) {
+            var button = new reventButton(jsonData.responses[i], jsonData.effects[i]);
 
-        button.x = 27;
-        button.y = 250 + i * 30;
-        button.responseNum = i + 1;
+            button.x = 27;
+            button.y = 250 + i * 30;
+            button.responseNum = i + 1;
 
-        button.on("click", function(evt) {
-            console.log("Send Revent clicked");
-            sendReventResponse(this.responseNum);
-            reventPanel.visible = false;
-        });
+            button.on("click", function(evt) {
+                console.log("Send Revent clicked");
+                sendReventResponse(this.responseNum);
+                reventPanel.visible = false;
+            });
 
-        content.addChild(button);
+            content.addChild(button);
+        }
+    } else if(reventState == "effects") {
+        for(var i = 0; i < jsonData.effects.length; i++) {
+            var text = new createjs.Text(jsonData.effects[i], "12px Arial Regular", textColor);
+
+            text.x = 15;
+            text.y = 255 + i * 30;
+
+            content.addChild(text);
+        }
     }
 };
 
@@ -2294,8 +2317,8 @@ function initUI() {
     portraitPanel.addChild(bgPanel);
     portraitPanel.addChild(content);
  
-    portraitPanel.x = 333;
-    portraitPanel.y = stageHeight - 125;
+    portraitPanel.x = 15;
+    portraitPanel.y = 5;
 
     stage.addChild(portraitPanel);
 
