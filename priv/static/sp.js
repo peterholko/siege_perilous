@@ -67,6 +67,7 @@ var selectIconImage = new Image();
 var actionBarBgImage = new Image();
 var portraitBg = new Image();
 var reventBg = new Image();
+var reventOkButton = new Image();
 var reventButtonBg = new Image();
 
 var leftImage = new Image();
@@ -161,6 +162,7 @@ portraitBg.src = "/static/art/unit_badge.png";
 actionBarBgImage.src = "/static/art/ab_bg.png";
 reventBg.src = "/static/art/revent_bg.png";
 reventButtonBg.src = "/static/art/revent_button.png";
+reventOkButton.src = "/static/art/revent_ok_button.png";
 
 attackActive.src = "/static/art/ab_attack_active.png";
 attackRest.src = "/static/art/ab_attack_rest.png";
@@ -663,8 +665,8 @@ function onMessage(evt) {
         else if(jsonData.packet == "revent") {
             drawReventPanel(jsonData, "responses");
         }
-        else if(jsonData.packet == "revent_effects") {
-            drawReventPanel(jsonData, "effects");
+        else if(jsonData.packet == "revent_resolution") {
+            drawReventPanel(jsonData, "resolution");
         }
         else if(jsonData.packet == "stats") {
             var id = jsonData.stats._id;
@@ -1961,7 +1963,10 @@ function drawReventPanel(jsonData, reventState) {
     var content = reventPanel.getChildByName("content");
     content.removeAllChildren();
 
-    var header = new createjs.Text("Random Event", "18px Book Antiqua Bold", textColor);
+    var okButton = reventPanel.getChildByName("okButton");
+    okButton.visible = false;
+
+    var header = new createjs.Text(jsonData.title, "18px Book Antiqua Bold", textColor);
     
     header.x = Math.floor(464 / 2);
     header.y = 80;
@@ -1980,10 +1985,10 @@ function drawReventPanel(jsonData, reventState) {
 
     if(reventState == "responses") {
         for(var i = 0; i < jsonData.responses.length; i++) {
-            var button = new reventButton(jsonData.responses[i], jsonData.effects[i]);
+            var button = new reventButton(jsonData.responses[i]);
 
             button.x = 27;
-            button.y = 250 + i * 30;
+            button.y = 255 + i * 30;
             button.responseNum = i + 1;
 
             button.on("click", function(evt) {
@@ -1994,16 +1999,19 @@ function drawReventPanel(jsonData, reventState) {
 
             content.addChild(button);
         }
-    } else if(reventState == "effects") {
+    } else if(reventState == "resolution") {
+        okButton.visible = true;
+
         for(var i = 0; i < jsonData.effects.length; i++) {
             var text = new createjs.Text(jsonData.effects[i], "12px Arial Regular", textColor);
 
-            text.x = 15;
-            text.y = 255 + i * 30;
+            text.x = 25;
+            text.y = 255 + i * 20;
 
             content.addChild(text);
         }
     }
+
 };
 
 function updateTextLog(newText) {    
@@ -2510,6 +2518,20 @@ function initUI() {
     reventPanel.addChild(new createjs.Bitmap(reventBg));
     reventPanel.addChild(content);
 
+    var okButton = new createjs.Container();
+    okButton.name = "okButton";
+
+    okButton.addChild(new createjs.Bitmap(reventOkButton));
+
+    okButton.x = 464 / 2 - 103 / 2;
+    okButton.y = 335;
+
+    okButton.on('click', function(evt) {
+        reventPanel.visible = false;
+    });
+
+    reventPanel.addChild(okButton);
+
     stage.addChild(reventPanel);
 };
 
@@ -2873,39 +2895,20 @@ function removeClicked()
     }
 };
 
-function reventButton(response, effect)
+function reventButton(response)
 {
     var button = new createjs.Container();
     
     var response = new createjs.Text(response, "12px Arial Regular", "#ECECEC");
-    var effect = new createjs.Text(effect, "12px Arial Regular", "#ECECEC");
     
     response.x = Math.floor(410 / 2);
-    effect.x = Math.floor(410 / 2);
-
     response.y = 5;
-    effect.y = 5;
 
     response.textAlign = "center";
-    effect.textAlign = "center";
- 
     response.visible = true;
-    effect.visible = false;
 
     button.addChild(new createjs.Bitmap(reventButtonBg));
     button.addChild(response);
-    button.addChild(effect);
-
-    button.on("rollover", function(evt) {
-        response.visible = false;
-        effect.visible = true;
-    });
-
-    button.on("rollout", function(evt) {
-        response.visible = true;
-        effect.visible = false;
-    });
-
 
     return button;
 };

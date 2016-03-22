@@ -328,7 +328,7 @@ message_handle(<<"revent_response">>, Message) ->
     lager:info("message: revent"),
     ResponseNum = map_get(<<"response_num">>, Message),
     Return = player:revent_response(ResponseNum),
-    FinalReturn = maps:put(<<"packet">>, <<"revent_response">>, Return),
+    FinalReturn = maps:put(<<"packet">>, <<"revent_resolution">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(_Cmd, Message) ->

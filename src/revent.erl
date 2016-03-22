@@ -22,26 +22,34 @@ get(ObjId) ->
     REvent.
 
 to_map(REvent) ->
-    REvent0 = maps:put(<<"text">>, REvent#revent.text, #{}),
-    REvent1 = maps:put(<<"responses">>, REvent#revent.responses_text, REvent0),
-    REvent2 = maps:put(<<"effects">>, REvent#revent.effects_text, REvent1),
+    REvent0 = maps:put(<<"title">>, REvent#revent.title, #{}),
+    REvent1 = maps:put(<<"text">>, REvent#revent.text, REvent0),
+    REvent2 = maps:put(<<"responses">>, REvent#revent.responses, REvent1),
     REvent2.
 
 apply_effect(ObjId, REvent, ResponseNum) ->
     Effect = lists:nth(ResponseNum, REvent#revent.effects),
     lager:info("Apply affect ~p", [Effect]),
 
-    case Effect of
-        {attrmod, AttrMod} ->
-            lager:info("Apply attrmod: ~p", [AttrMod]);
-        {random, RandomList} ->
-            Rand = util:rand(100),
-            SelectedEffect = get_random(Rand, 0, RandomList, none),
-            lager:info("SelectedEffect: ~p", [SelectedEffect]),
-            apply_random(ObjId, SelectedEffect);
-        _ -> 
-            lager:info("Effect nothing")
-    end.
+    %Apply effect
+    EffectsText = case Effect of
+                    {attrmod, AttrMod} ->
+                        lager:info("Apply attrmod: ~p", [AttrMod]),
+                        [<<"Gained Stat">>];
+                    {random, RandomList} ->
+                        Rand = util:rand(100),
+                        SelectedEffect = get_random(Rand, 0, RandomList, none),
+                        lager:info("SelectedEffect: ~p", [SelectedEffect]),
+                        apply_random(ObjId, SelectedEffect);
+                    _ -> 
+                        lager:info("Effect nothing"),
+                        []
+                  end,
+
+    %Return resolution text
+    ResolutionText = lists:nth(ResponseNum, REvent#revent.resolutions),
+
+    {ResolutionText, EffectsText}.
             
 apply_random(_ObjId, none) -> nothing;
 apply_random(ObjId, SelectedEffect) ->
@@ -52,13 +60,18 @@ apply_random(ObjId, SelectedEffect) ->
             lager:info("Spawning npc..."),
             SpawnType = element(3, SelectedEffect),
             [Obj] = db:read(obj, ObjId),            
-            encounter:spawn_npc(SpawnType, Obj#obj.pos);
+            encounter:spawn_npc(SpawnType, Obj#obj.pos),
+            
+            effect_text(spawn, SpawnType); 
         loot ->
             lager:info("Generating loot"),
-            encounter:generate_loot(ObjId);
+            Items = encounter:generate_loot(ObjId),
             
+            effect_text(loot, Items);
         _ ->
-            lager:info("Unknown effect type")
+            lager:info("Unknown effect type"),
+
+            effect_text(unknown, none)
     end.
     
 get_random(_RandNum, _SumChance, [], SelectedRandom) ->
@@ -76,3 +89,16 @@ get_random(RandNum, SumChance, [Random | Rest], none) ->
     get_random(RandNum, NewSumChance, Rest, NewSelectedRandom);
 get_random(_RandNum, _SumChance, _RandomList, SelectedRandom) ->
     SelectedRandom.
+
+effect_text(spawn, SpawnType) ->
+    [ iolist_to_binary([<<"A ">>, SpawnType, <<" appears!">>]) ];
+effect_text(loot, Items) ->
+    
+    F = fun(Item, EffectsText) ->
+           ItemName = maps:get(<<"name">>, Item),
+           [ iolist_to_binary([<<"Received ">>, ItemName, <<".">>]) | EffectsText]
+        end,
+
+    lists:foldl(F, [], Items);
+effect_text(_, _) -> 
+    [].    

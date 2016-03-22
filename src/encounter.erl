@@ -66,17 +66,18 @@ spawn_npc(NPCType, Pos) ->
 generate_loot(NPCId) ->
     LootList = loot_list(),
 
-    F = fun({Name, DropRate, Min, Max}) ->
+    F = fun({Name, DropRate, Min, Max}, ItemList) ->
             case DropRate > util:rand() of
                 true ->
                     Num = util:rand(Max - Min) + Min,
-                    item:create(NPCId, Name, Num);
+                    ItemMap = item:create(NPCId, Name, Num),
+                    [ItemMap | ItemList];
                 false ->
-                    nothing
+                    ItemList
             end
         end,
     
-   lists:foreach(F, LootList).    
+   lists:foldl(F, [], LootList).    
 
 npc_list(TileName) ->
     case TileName of

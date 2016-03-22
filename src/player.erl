@@ -516,12 +516,14 @@ revent_response(ResponseNum) ->
     Hero = obj:get_hero(PlayerId),
     REvent = revent:get(Hero#obj.id),
 
-    revent:apply_effect(Hero#obj.id, REvent, ResponseNum),
-
     obj:update_state(Hero#obj.id, none),
 
-    #{<<"result">> => <<"success">>}.
- 
+    lager:info("Apply revent effects"),
+    {ResolutionText, EffectsText} = revent:apply_effect(Hero#obj.id, REvent, ResponseNum),
+
+    #{<<"title">> => REvent#revent.title,
+      <<"text">> => ResolutionText,
+      <<"effects">> => EffectsText}.
 %
 %Internal functions
 %

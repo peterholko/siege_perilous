@@ -144,7 +144,7 @@
 -record(revent, {id,
                  title, 
                  text,
-                 responses_text = [],
-                 effects_text = [],
+                 responses = [],
+                 resolutions = [],
                  effects = []}).
 
