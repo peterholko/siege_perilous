@@ -2330,6 +2330,13 @@ function initUI() {
 
     stage.addChild(portraitPanel);
 
+    //HpBar and StaminaBar
+    hpBar = new createjs.Shape();
+    staminaBar = new createjs.Shape();
+
+    stage.addChild(hpBar);
+    stage.addChild(staminaBar);
+
     //Initialize infoPanels
     for(var i = 0; i < 4; i++) {
         var panel = new createjs.Container();
@@ -2495,13 +2502,6 @@ function initUI() {
     initTextLog();
 
     stage.addChild(textLog); 
-
-    //HpBar and StaminaBar
-    hpBar = new createjs.Shape();
-    staminaBar = new createjs.Shape();
-
-    stage.addChild(hpBar);
-    stage.addChild(staminaBar);
 
     //Button click box
     clicked = new createjs.Bitmap(attack_clicked);

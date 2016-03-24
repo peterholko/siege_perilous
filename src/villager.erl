@@ -29,8 +29,8 @@ check_task() ->
 
 assign(SourceId, TargetId) ->
     Villager = #villager {id = SourceId,
-                          task = {structure, TargetId},
-                          dwelling = none},
+                          task = assign,
+                          structure = TargetId},
     db:write(Villager).
 
 %% ====================================================================
@@ -80,8 +80,7 @@ process(Id) ->
     [Villager] = db:read(villager, Id),
     [Obj] = db:read(obj, Id),
 
-    check_food(Villager, Obj),
-    check_dwelling(Villager, Obj),
+    check_food_dwelling(Villager, Obj),
 
     process_state(Villager, Obj),
     
@@ -199,19 +198,26 @@ add_move_unit(Obj, NewPos) ->
     lager:info("Villager add move ~p", [NewPos]),
     game:add_event(self(), move, EventData, Obj#obj.id, NumTicks).
 
-check_food(Villager, Obj) ->
-    case item:get_by_subclass(Obj#obj.id, ?FOOD) of
-        [] -> update_morale(Villager, -5);
-        [_Item | _Rest] -> update_morale(Villager, 5) 
-    end.
+check_food_dwelling(Villager, Obj) ->
+    Food = case item:get_by_subclass(Obj#obj.id, ?FOOD) of
+              [] -> false;
+              [_Item | _Rest] -> true
+           end,
 
-check_dwelling(Villager, _Obj) ->
-    case Villager#villager.dwelling of
-        none -> update_morale(Villager, -1);
-        _ -> update_morale(Villager, 1)
+    Dwelling = case Villager#villager.dwelling of
+                   none -> false;
+                   _ -> true
+               end,
+
+    case {Food, Dwelling} of
+        {true, true} -> update_morale(Villager, 1);
+        {false, true} -> update_morale(Villager, -5);
+        {true, false} -> update_morale(Villager, -1);
+        {false, false} -> update_morale(Villager, -8)
     end.
 
 update_morale(Villager, Value) ->
+    lager:info("Update morale ~p", [Value]),
     Morale = Villager#villager.morale + Value,
 
     NewMorale = case Morale > 0 of 

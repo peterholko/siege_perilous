@@ -52,8 +52,11 @@ login([], [Name, Pass, Socket]) ->
     Pos = map:random_location(),
     AdjPos = map:get_random_neighbour(Pos),
  
-    obj:create(Pos, PlayerId, unit, <<"hero">>, <<"Hero Mage">>, none),
-    obj:create(AdjPos, PlayerId, unit, <<"villager">>, <<"Human Villager">>, none),
+    HeroId = obj:create(Pos, PlayerId, unit, <<"hero">>, <<"Hero Mage">>, none),
+    VillagerId = obj:create(AdjPos, PlayerId, unit, <<"villager">>, <<"Human Villager">>, none),
+
+    item:create(HeroId, <<"Crimson Root">>, 100),
+    item:create(VillagerId, <<"Crimson Root">>, 100),
 
     map:add_explored(PlayerId, Pos, 2),
 

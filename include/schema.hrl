@@ -99,7 +99,7 @@
                    task = follow,
                    structure = none,
                    dwelling = none,
-                   morale = 55}).
+                   morale = 60}).
 
 -record(test, {attr,
                value}).
