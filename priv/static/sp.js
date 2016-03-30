@@ -130,20 +130,6 @@ var gravestone = new Image();
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
 
-var tl = new Image();
-var tr = new Image();
-var l = new Image();
-var r = new Image();
-var br = new Image();
-var bl = new Image();
-
-tl.src = "/static/art/regular-concave-tl.png";
-tr.src = "/static/art/regular-concave-tr.png";
-l.src = "/static/art/regular-concave-l.png";
-r.src = "/static/art/regular-concave-r.png";
-br.src = "/static/art/regular-concave-br.png";
-bl.src = "/static/art/regular-concave-bl.png";
-
 var tileset;
 
 var shroud = "/static/art/shroud.png";
@@ -1007,6 +993,56 @@ function drawObj() {
         }
     }
 
+    var stockades = [];
+
+    for(var id in localObjs) {
+        var obj = localObjs[id];
+
+        if(obj.type == "Stockade" && obj.state == "none") {
+            stockades.push(obj);
+        }
+    }
+
+    for(var stockadeId in stockades) {
+        var stockade = stockades[stockadeId];
+        var neighbours = getNeighbours(stockade.x, stockade.y);
+
+        for(var neighbourId in neighbours) {
+            var neighbour = neighbours[neighbourId];
+
+            for(var otherId in stockades) {
+                var other = stockades[otherId];
+
+                if((neighbour.q == other.x) && (neighbour.r == other.y)) {
+                    if(stockade.icon.numChildren > 0) {
+                        if(neighbour.d == "nw") {
+                            console.log("Children: " + stockade.icon.numChildren);
+                            stockade.icon.getChildAt(0).visible = false;
+                        } else if(neighbour.d == "ne") {
+                            console.log("Children: " + stockade.icon.numChildren);
+                            stockade.icon.getChildAt(1).visible = false;
+                        } else if(neighbour.d == "n") {
+                            console.log("Children: " + stockade.icon.numChildren);
+                            stockade.icon.getChildAt(0).visible = false;
+                            stockade.icon.getChildAt(1).visible = false;
+                        } else if(neighbour.d == "s") {
+                            console.log("Children: " + stockade.icon.numChildren);
+                            stockade.icon.getChildAt(4).visible = false;
+                            stockade.icon.getChildAt(5).visible = false;
+                        } else if(neighbour.d == "sw") {
+                            console.log("Children: " + stockade.icon.numChildren);
+                            stockade.icon.getChildAt(2).visible = false;
+                        } else if(neighbour.d == "se") {
+                            console.log("Children: " + stockade.icon.numChildren);
+                            stockade.icon.getChildAt(3).visible = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     console.log("drawObj - end");
 };
 
@@ -1621,13 +1657,24 @@ function drawInfoUnit(jsonData) {
         var dmg_range = Number(jsonData.dmg_range) + itemDamage;
         var armor = Number(jsonData.base_def) + itemArmor;
 
-        var stats = "--- Stats --- \n"
+        if(jsonData.subclass = "villager") {
+            var stats = "--- Stats --- \n"
+                  + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
+                  + "Defense: " + armor + "\n"
+                  + "Speed: " + jsonData.base_speed + "\n"
+                  + "State: " + jsonData.state + "\n"
+                  + "Dwelling: " + jsonData.dwelling + "\n"
+                  + "Task: " + jsonData.task + "\n"
+                  + "Morale: " + jsonData.morale;
+        } else {
+            var stats = "--- Stats --- \n"
                   + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
                   + "Damage: " + base_dmg + " - " + dmg_range + "\n" 
                   + "Defense: " + armor + "\n"
                   + "Speed: " + jsonData.base_speed + "\n"
                   + "State: " + jsonData.state + "\n"
                   + "Xp: " + jsonData.xp + "\n";
+        }
 
         var statsText = new createjs.Text(stats, h1Font, textColor);
 
@@ -2676,6 +2723,19 @@ function getNeighbours(Q, R) {
   for(i = 0; i < conversion.length; i++) {
       var offset = conversion[i];
       var odd_q = cube_to_odd_q(cube.x + offset[0], cube.y + offset[1], cube.z + offset[2]);
+
+      if(i == 0) 
+          odd_q["d"] = "se";
+      else if(i == 1)
+          odd_q["d"] = "ne";
+      else if(i == 2)
+          odd_q["d"] = "n";
+      else if(i == 3)
+          odd_q["d"] = "nw";
+      else if(i == 4)
+          odd_q["d"] = "sw";
+      else if(i == 5)
+          odd_q["d"] = "s";
 
       neighbours.push(odd_q)
   }

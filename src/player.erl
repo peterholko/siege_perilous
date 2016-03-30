@@ -107,6 +107,7 @@ attack(AttackType, SourceId, TargetId) ->
     [TargetObj] = db:read(obj, TargetId),
 
     Checks = [{is_player_owned(SourceObj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(SourceObj), "Can only attack with your hero"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
               {map:is_adjacent(SourceObj#obj.pos, TargetObj#obj.pos), "Target is not adjacent"},
               {combat:is_target_alive(TargetObj), "Target is dead"},
@@ -135,6 +136,7 @@ defend(DefendType, SourceId) ->
     [Obj] = db:read(obj, SourceId),
 
     Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(Obj), "Can only defend with your hero"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
               {combat:has_stamina(SourceId, {defend, DefendType}), "Not enough stamina"}],
 
@@ -162,6 +164,7 @@ move(SourceId, Pos) ->
     [Obj] = db:read(obj, SourceId),
 
     Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(Obj), "Can only move your hero"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
               {Obj#obj.class =:= unit, "Obj cannot move"},
               {Obj#obj.state =/= dead, "Unit is dead"}, 
@@ -197,6 +200,7 @@ ford(SourceId, Pos) ->
     [Obj] = db:read(obj, SourceId),
 
     Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(Obj), "Can only ford with your hero"},
               {not game:has_pre_events(SourceId), "Unit is busy"},
               {Obj#obj.class =:= unit, "Obj cannot move"},
               {Obj#obj.state =/= dead, "Unit is dead"}, 
@@ -605,6 +609,8 @@ is_player_owned(ObjPlayer, Player) when is_record(ObjPlayer, obj) ->
     ObjPlayer#obj.player == Player;
 is_player_owned(ObjPlayer, Player) ->
     ObjPlayer == Player.
+
+is_hero(Obj) -> Obj#obj.subclass =:= <<"hero">>.
 
 is_same_pos(SourceObj, TargetObj) when (SourceObj =:= false) or (TargetObj =:= false) ->
     false;

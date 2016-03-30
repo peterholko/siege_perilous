@@ -6,7 +6,7 @@
 -include("schema.hrl").
 
 -export([all/1, all_to_map/1, value/2, value/3]).
--export([add/3, set/3, update/3]). 
+-export([set/3, update/3]). 
 
 all(Id) ->
     db:dirty_match_object({obj_attr, {Id, '_'}, '_'}).
@@ -39,15 +39,10 @@ value(Id, Attr, Default) ->
         [] -> Default
     end.
 
-add(Id, Attr, Value) ->
+set(Id, Attr, Value) ->
     ObjAttr = #obj_attr{key = {Id, Attr},
                         value = Value},
     db:dirty_write(ObjAttr).
-
-set(Id, Attr, Value) ->
-    [ObjAttr] = db:dirty_read(obj_attr, {Id, Attr}),
-    NewObjAttr = ObjAttr#obj_attr {value = Value},
-    db:dirty_write(NewObjAttr).
 
 update(Id, Attr, Value) ->
     [ObjAttr] = db:dirty_read(obj_attr, {Id, Attr}),

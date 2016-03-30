@@ -56,6 +56,7 @@ login([], [Name, Pass, Socket]) ->
     VillagerId = obj:create(AdjPos, PlayerId, unit, <<"villager">>, <<"Human Villager">>, none),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
+    item:create(HeroId, <<"Cragroot Popular">>, 10),
     item:create(VillagerId, <<"Crimson Root">>, 100),
 
     map:add_explored(PlayerId, Pos, 2),

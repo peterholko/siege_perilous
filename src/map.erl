@@ -364,6 +364,8 @@ odd_q_to_cube({Q, R}) ->
 
 tileset() ->
     lager:debug("Parsing tileset"),
+    {ok, Cwd} = file:get_cwd(),
+    lager:info("Cwd: ~p", [Cwd]),
     {ok, Bin} = file:read_file("lib/sp-1/priv/static/test3.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     TilesetList = process_tileset(C, []),

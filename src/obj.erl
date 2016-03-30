@@ -40,8 +40,8 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
     Vision = obj_attr:value(Id, <<"base_vision">>, 0),
 
     %Add attributes from base
-    obj_attr:add(Id, <<"hp">>, BaseHp),
-    obj_attr:add(Id, <<"stamina">>, BaseStamina),
+    obj_attr:set(Id, <<"hp">>, BaseHp),
+    obj_attr:set(Id, <<"stamina">>, BaseStamina),
 
     %Create obj
     Obj = #obj {id = Id,
@@ -157,9 +157,7 @@ update_state(Id, State, StateData) ->
 update_hp(Id, Value) ->
     Hp = obj_attr:value(Id, <<"hp">>),
     BaseHp = obj_attr:value(Id, <<"base_hp">>),
-    lager:info("Hp: ~p, BaseHp: ~p Value: ~p", [Hp, BaseHp, Value]),
     NewHp = set_attr(Hp, BaseHp, Value),
-    lager:info("NewHp: ~p", [NewHp]),
 
     case NewHp =< 0 of
         true -> update_dead(Id);
@@ -177,9 +175,22 @@ update_stamina(Id, Value) ->
 
 update_dead(Id) ->
     [Obj] = db:read(obj, Id),
-    NewObj = Obj#obj {class = corpse,
-                      state = dead,
-                      vision = 0},
+
+    NewObj = case Obj#obj.class of
+                unit ->
+                     Obj#obj {class = corpse,
+                              state = dead,
+                              vision = 0};
+                structure ->
+                     %Remove structure reference from villagers
+                     villager:remove_structure(Id),
+ 
+                     Obj#obj {class = ruins,
+                              state = dead,
+                              vision = 0};
+                _ ->
+                     Obj#obj {state = dead}
+             end,
     db:write(NewObj),
 
     %Trigger new perception
@@ -454,7 +465,6 @@ info(Id) ->
     AllInfo.
 
 info_other(Id) ->
-    %Get Mnesia obj
     [Obj] = db:read(obj, Id),
     
     Items = item:get_by_owner(Id),    
@@ -478,14 +488,14 @@ info_subclass(<<"villager">>, Obj, Info) ->
     Task = atom_to_binary(Villager#villager.task, latin1),
     DwellingId = Villager#villager.dwelling,
 
-    Dwelling = case db:read(obj, DwellingId) of
-                   [Obj] -> Obj#obj.name;
-                   [] -> <<"none">>
-               end,
+    DwellingName = case db:read(obj, DwellingId) of
+                       [Dwelling] -> Dwelling#obj.name;
+                       [] -> <<"none">>
+                   end,
 
     Info1 = maps:put(<<"morale">>, Morale, Info),
     Info2 = maps:put(<<"task">>, Task, Info1),
-    Info3 = maps:put(<<"dwelling">>, Dwelling, Info2),
+    Info3 = maps:put(<<"dwelling">>, DwellingName, Info2),
     Info3;
 info_subclass(_, _Obj, Info) -> Info.
 
