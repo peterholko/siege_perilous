@@ -774,12 +774,13 @@ function drawMap(map) {
     showLocalPanel();
     var localMapCont = localPanel.getChildByName("localMap");
     var localTilesCont = localMapCont.getChildByName("localTiles");
+    var voidCont = localMapCont.getChildByName("void");
     var tiles = map;
  
     for(var i = 0; i < tiles.length; i++) {
         var tile = tiles[i];
         var pixel = hex_to_pixel(tile.x, tile.y);
-        var tileImages = tile.t.reverse();
+        var tileImages = tile.t;
 
         var icon = new createjs.Container();
 
@@ -816,17 +817,23 @@ function drawMap(map) {
         var trans = new createjs.Container();
         trans.name = "trans";
 
+        var oversize = new createjs.Container();
+        oversize.name = "oversize";
+
+        var voidLayer = new createjs.Container();
+        voidLayer.name = "void";
+        
         icon.addChild(base);
         icon.addChild(trans);
+        icon.addChild(oversize);
+        icon.addChild(voidLayer);
 
-        for(var j = 0; j < tileImages.length; j++) {
-            var tileImageId = tileImages[j] - 1;
-            var imagePath = "/static/art/" + tileset[tileImageId].image;
-            var offsetX = tileset[tileImageId].offsetx;
-            var offsetY = -1 * tileset[tileImageId].offsety;
-         
-            addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: base, index: j});
-        }
+        var tileImageId = tileImages[tileImages.length - 1] - 1;
+        var imagePath = "/static/art/" + tileset[tileImageId].image;
+        var offsetX = tileset[tileImageId].offsetx;
+        var offsetY = -1 * tileset[tileImageId].offsety;
+     
+        addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: base, index: 0});
 
         tile.icon = icon;
 
@@ -835,9 +842,10 @@ function drawMap(map) {
 
     for(var tileKey in localTiles) {
         var tile = localTiles[tileKey];
-        var tileType = tile.t[0];
+        var tileType = tile.t[tile.t.length - 1];
 
         var trans = tile.icon.getChildByName("trans");
+        trans.removeAllChildren();
 
         if(tileType == 3 || tileType == 4 || tileType == 5 || tileType == 17) { //Water
             var neighbours = getNeighbours(tile.x, tile.y);
@@ -849,7 +857,7 @@ function drawMap(map) {
                 if(otherTile == false)
                     continue;
 
-                var otherTileType = otherTile.t[0];
+                var otherTileType = otherTile.t[otherTile.t.length - 1];
 
                 if(otherTileType != 3 && otherTileType != 4 &&
                    otherTileType != 5 && otherTileType != 17) {
@@ -884,47 +892,102 @@ function drawMap(map) {
                 if(otherTile == false)
                     continue;
 
-                var otherTileType = otherTile.t[0];
+                var otherTileType = otherTile.t[otherTile.t.length - 1];
             
                 if(otherTileType == 6 || otherTileType == 7 || otherTileType == 8 || otherTileType == 9) {
                     var imagePath = "/static/art/tileset/grass/dry-abrupt-" + neighbour.d + ".png";
-                    addImage({id: "plains" + neighbour.d, path: imagePath, x: 0, y: 0, target: tile.icon, index: tile.t.length});
-                } else if(otherTileType == 1 || otherTileType == 13) {
+                    addImage({id: "plains" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                } else if(otherTileType == 1) {
                     var imagePath = "/static/art/tileset/grass/green-abrupt-" + neighbour.d + ".png";
-                    addImage({id: "grass" + neighbour.d, path: imagePath, x: 0, y: 0, target: tile.icon, index: tile.t.length});
+                    addImage({id: "grass" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                }
+            }
+        } else if(tileType == 1) {
+            var neighbours = getNeighbours(tile.x, tile.y);
+
+            for(var neighbourId in neighbours) {
+                var neighbour = neighbours[neighbourId];
+                var otherTile = getLocalTile(neighbour.q, neighbour.r);
+
+                if(otherTile == false)
+                    continue;
+
+                var otherTileType = otherTile.t[otherTile.t.length - 1];
+
+                if(otherTileType == 13) {
+                    var imagePath = "/static/art/tileset/hills/regular-" + neighbour.d + ".png";
+                    addImage({id: "hillsgrass" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
                 }
             }
         }
     }
 
+    for(var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        var tileImages = tile.t;
+
+        var t = getLocalTile(tile.x, tile.y);
+        var oversize = t.icon.getChildByName("oversize");
+
+        for(var j = 0; j < tileImages.length - 1; j++) { 
+
+            var tileImageId = tileImages[j] - 1;
+            var imagePath = "/static/art/" + tileset[tileImageId].image;
+            var offsetX = tileset[tileImageId].offsetx;
+            var offsetY = -1 * tileset[tileImageId].offsety;
+         
+            addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: oversize, index: j});
+        } 
+    }
+
     var directions = ['n', 'ne', 'nw', 's', 'se', 'sw'];
+
+    voidCont.removeAllChildren();
 
     for(var tileKey in localTiles) {
         var tile = localTiles[tileKey];
         var neighbours = getNeighbours(tile.x, tile.y);
         
-        var trans = tile.icon.getChildByName("trans");
-
         var tileNeighbours = [];
 
         for(var neighbourId in neighbours) {
             var neighbour = neighbours[neighbourId];
 
-            var tile = getLocalTile(neighbour.q, neighbour.r);
+            var neighbourTile = getLocalTile(neighbour.q, neighbour.r);
 
-            if(tile == false) 
-                tileNeighbours.push(neighbour.d);
+            if(neighbourTile == false) 
+                tileNeighbours.push(neighbour);
         }
 
         if(tileNeighbours.length > 0) {
             for(var i = 0; i < tileNeighbours.length; i++) {
-                var missingDir = tileNeighbours[i];
+                var neighbour = tileNeighbours[i];
+        
+                var pixel = hex_to_pixel(tile.x, tile.y);
+                var icon = new createjs.Container();
 
-                var imagePath = "/static/art/tileset/void/void-" + missingDir + ".png";
-                addImage({id: "void" + missingDir, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                icon.x = pixel.x;
+                icon.y = pixel.y;
+
+                voidCont.addChild(icon);
+
+                var imagePath = "/static/art/tileset/void/void-" + neighbour.d + ".png";
+                addImage({id: "void" + neighbour.d, path: imagePath, x: 0, y: 0, target: icon, index: 0});
+                
+                var border = new createjs.Container();
+                pixel = hex_to_pixel(neighbour.q, neighbour.r); 
+
+                border.x = pixel.x;
+                border.y = pixel.y;
+
+                voidCont.addChild(border);
+
+                var imagePath = "/static/art/tileset/void/void.png"
+                addImage({id: "void", path: imagePath, x: 0, y: 0, target: border, index: 0});
             }
         }
     }
+
 };
 
 function updateObj(objs) {
@@ -1253,7 +1316,7 @@ function drawSelectPanel(tileX, tileY) {
     content.addChild(icon);
 
     var tileImageId = tileImages[tileImages.length - 1] - 1;
-    var imagePath = "/static/" + tileset[tileImageId].image;
+    var imagePath = "/static/art/" + tileset[tileImageId].image;
     var offsetX = tileset[tileImageId].offsetx;
     var offsetY = -1 * tileset[tileImageId].offsety;
      
@@ -2220,6 +2283,7 @@ function initUI() {
     var localObjsCont1 = new createjs.Container();
     var localObjsCont2 = new createjs.Container();
     var localShroudCont = new createjs.Container();
+    var voidCont = new createjs.Container();
     var textLayer = new createjs.Container();
 
     selectHex = new createjs.Bitmap(selectHexImage);
@@ -2241,6 +2305,7 @@ function initUI() {
     localShroudCont.name = "localShroud";
     localObjsCont1.name = "localObjs1";
     localObjsCont2.name = "localObjs2";
+    voidCont.name = "void";
     textLayer.name = "textLayer";
 
     selectHex.name = "selectHex";
@@ -2254,6 +2319,7 @@ function initUI() {
     localMapCont.addChild(localShroudCont);
     localMapCont.addChild(localObjsCont1);
     localMapCont.addChild(localObjsCont2);
+    localMapCont.addChild(voidCont);
     localMapCont.addChild(selectHex);
     localMapCont.addChild(textLayer);
 
