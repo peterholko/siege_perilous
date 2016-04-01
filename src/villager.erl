@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([check_task/0, assign/2, remove_structure/1]).
+-export([check_task/0, assign/2, remove/1, remove_structure/1]).
 
 %% ====================================================================
 %% External functions
@@ -32,6 +32,9 @@ assign(SourceId, TargetId) ->
                           task = assign,
                           structure = TargetId},
     db:write(Villager).
+
+remove(ObjId) ->
+    db:delete(villager, ObjId).
 
 remove_structure(StructureId) ->
     remove_dwellings(StructureId),

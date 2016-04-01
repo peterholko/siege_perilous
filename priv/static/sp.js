@@ -134,6 +134,13 @@ var tileset;
 
 var shroud = "/static/art/shroud.png";
 
+var bank_n = "/static/art/tileset/flat/bank-n.png";
+var bank_ne = "/static/art/tileset/flat/bank-ne.png";
+var bank_nw = "/static/art/tileset/flat/bank-nw.png";
+var bank_s = "/static/art/tileset/flat/bank-s.png";
+var bank_se = "/static/art/tileset/flat/bank-se.png";
+var bank_sw = "/static/art/tileset/flat/bank-sw.png";
+
 infoPanelBg.src = "/static/art/ui_pane.png";
 dialogPanelBg.src = "/static/art/dialog.png";
 smallDialogPanelBg.src = "/static/art/small_dialog.png";
@@ -803,16 +810,120 @@ function drawMap(map) {
 
         addChildLocalMap(icon, "localTiles");
 
+        var base = new createjs.Container();
+        base.name = "base";
+
+        var trans = new createjs.Container();
+        trans.name = "trans";
+
+        icon.addChild(base);
+        icon.addChild(trans);
+
         for(var j = 0; j < tileImages.length; j++) {
             var tileImageId = tileImages[j] - 1;
             var imagePath = "/static/art/" + tileset[tileImageId].image;
             var offsetX = tileset[tileImageId].offsetx;
             var offsetY = -1 * tileset[tileImageId].offsety;
          
-            addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: j});
+            addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: base, index: j});
         }
 
+        tile.icon = icon;
+
         addLocalTile(tile);
+    }
+
+    for(var tileKey in localTiles) {
+        var tile = localTiles[tileKey];
+        var tileType = tile.t[0];
+
+        var trans = tile.icon.getChildByName("trans");
+
+        if(tileType == 3 || tileType == 4 || tileType == 5 || tileType == 17) { //Water
+            var neighbours = getNeighbours(tile.x, tile.y);
+
+            for(var neighbourId in neighbours) {
+                var neighbour = neighbours[neighbourId];
+                var otherTile = getLocalTile(neighbour.q, neighbour.r);
+
+                if(otherTile == false)
+                    continue;
+
+                var otherTileType = otherTile.t[0];
+
+                if(otherTileType != 3 && otherTileType != 4 &&
+                   otherTileType != 5 && otherTileType != 17) {
+                    if(otherTileType == 2 || otherTileType == 16 || otherTileType == 33 || otherTileType == 37 || otherTileType == 38) {
+                        var imagePath = "/static/art/tileset/frozen/snow-" + neighbour.d + ".png";
+                        addImage({id: "snow" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                    } else if(otherTileType == 6 || otherTileType == 7 || otherTileType == 8 || otherTileType == 9) {
+                        var imagePath = "/static/art/tileset/flat/bank-to-ice-" + neighbour.d + ".png";
+                        addImage({id: neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+
+                        var imagePath = "/static/art/tileset/grass/dry-abrupt-" + neighbour.d + ".png";
+                        addImage({id: "plains" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 1});
+                    } else if(otherTileType == 10 || otherTileType == 12) {
+                        var imagePath = "/static/art/tileset/sand/desert-" + neighbour.d + ".png";
+                        addImage({id: "desert" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                    } else {
+                        var imagePath = "/static/art/tileset/flat/bank-to-ice-" + neighbour.d + ".png";
+                        addImage({id: neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+
+                        var imagePath = "/static/art/tileset/grass/green-abrupt-" + neighbour.d + ".png";
+                        addImage({id: "grass" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 1});
+                    }
+                }
+            }
+        } else if(tileType == 2 || tileType == 16) {
+            var neighbours = getNeighbours(tile.x, tile.y);
+
+            for(var neighbourId in neighbours) {
+                var neighbour = neighbours[neighbourId];
+                var otherTile = getLocalTile(neighbour.q, neighbour.r);
+
+                if(otherTile == false)
+                    continue;
+
+                var otherTileType = otherTile.t[0];
+            
+                if(otherTileType == 6 || otherTileType == 7 || otherTileType == 8 || otherTileType == 9) {
+                    var imagePath = "/static/art/tileset/grass/dry-abrupt-" + neighbour.d + ".png";
+                    addImage({id: "plains" + neighbour.d, path: imagePath, x: 0, y: 0, target: tile.icon, index: tile.t.length});
+                } else if(otherTileType == 1 || otherTileType == 13) {
+                    var imagePath = "/static/art/tileset/grass/green-abrupt-" + neighbour.d + ".png";
+                    addImage({id: "grass" + neighbour.d, path: imagePath, x: 0, y: 0, target: tile.icon, index: tile.t.length});
+                }
+            }
+        }
+    }
+
+    var directions = ['n', 'ne', 'nw', 's', 'se', 'sw'];
+
+    for(var tileKey in localTiles) {
+        var tile = localTiles[tileKey];
+        var neighbours = getNeighbours(tile.x, tile.y);
+        
+        var trans = tile.icon.getChildByName("trans");
+
+        var tileNeighbours = [];
+
+        for(var neighbourId in neighbours) {
+            var neighbour = neighbours[neighbourId];
+
+            var tile = getLocalTile(neighbour.q, neighbour.r);
+
+            if(tile == false) 
+                tileNeighbours.push(neighbour.d);
+        }
+
+        if(tileNeighbours.length > 0) {
+            for(var i = 0; i < tileNeighbours.length; i++) {
+                var missingDir = tileNeighbours[i];
+
+                var imagePath = "/static/art/tileset/void/void-" + missingDir + ".png";
+                addImage({id: "void" + missingDir, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+            }
+        }
     }
 };
 
@@ -1016,25 +1127,23 @@ function drawObj() {
                 if((neighbour.q == other.x) && (neighbour.r == other.y)) {
                     if(stockade.icon.numChildren > 0) {
                         if(neighbour.d == "nw") {
-                            console.log("Children: " + stockade.icon.numChildren);
-                            stockade.icon.getChildAt(0).visible = false;
+                            stockade.icon.getChildAt(2).visible = false;
+                            stockade.icon.getChildAt(4).visible = false;
                         } else if(neighbour.d == "ne") {
-                            console.log("Children: " + stockade.icon.numChildren);
-                            stockade.icon.getChildAt(1).visible = false;
+                            stockade.icon.getChildAt(3).visible = false;
+                            stockade.icon.getChildAt(5).visible = false;
                         } else if(neighbour.d == "n") {
-                            console.log("Children: " + stockade.icon.numChildren);
-                            stockade.icon.getChildAt(0).visible = false;
+                            stockade.icon.getChildAt(0).visible = false; 
                             stockade.icon.getChildAt(1).visible = false;
-                        } else if(neighbour.d == "s") {
-                            console.log("Children: " + stockade.icon.numChildren);
                             stockade.icon.getChildAt(4).visible = false;
                             stockade.icon.getChildAt(5).visible = false;
+                        } else if(neighbour.d == "s") {
+                            stockade.icon.getChildAt(8).visible = false;
+                            stockade.icon.getChildAt(9).visible = false;
                         } else if(neighbour.d == "sw") {
-                            console.log("Children: " + stockade.icon.numChildren);
-                            stockade.icon.getChildAt(2).visible = false;
+                            stockade.icon.getChildAt(6).visible = false;
                         } else if(neighbour.d == "se") {
-                            console.log("Children: " + stockade.icon.numChildren);
-                            stockade.icon.getChildAt(3).visible = false;
+                            stockade.icon.getChildAt(7).visible = false;
                         }
                     }
                 }
@@ -2971,4 +3080,14 @@ function reventButton(response)
     button.addChild(response);
 
     return button;
+};
+
+function findMissingElement(array1, array2) {
+    var size1 = array1.length;
+    var size2 = array2.length;
+
+    for(var i = 0; i < array2.length; i++) {
+        if(array1.indexOf(array2[i]) == -1)
+            return 
+    }
 };

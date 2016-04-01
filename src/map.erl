@@ -106,6 +106,8 @@ random_location(false, _Pos) ->
 
     random_location(Result, Pos).
 
+get_random_neighbour(none) ->
+    lager:info("get_random_neighbour none");
 get_random_neighbour(Pos) ->
     Neighbours = neighbours(Pos),
 

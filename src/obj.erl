@@ -178,6 +178,11 @@ update_dead(Id) ->
 
     NewObj = case Obj#obj.class of
                 unit ->
+                     case Obj#obj.subclass of
+                         <<"villager">> -> villager:remove(Obj#obj.id);
+                         _ -> nothing
+                     end, 
+
                      Obj#obj {class = corpse,
                               state = dead,
                               vision = 0};

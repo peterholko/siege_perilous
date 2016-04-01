@@ -1,13 +1,21 @@
 {
     "frames": [
-        [0,0,126,180,0,54,108],
-        [0,0,126,144,1,0,72],
-        [0,0,126,144,2,54,36],
-        [0,0,126,180,3,0,72],
-        [0,0,126,144,4,0,0],
-        [0,0,126,180,5,54,36]
+        [0,0,126,144,0,0,72],
+        [0,0,126,180,1,54,108],
+        [0,0,126,180,2,54,108],
+        [0,0,126,144,3,0,72],
+        [0,0,126,180,4,54,108],
+        [0,0,126,144,5,0,72],
+        [0,0,126,144,6,54,36],
+        [0,0,126,180,7,0,72],
+        [0,0,126,144,8,0,0],
+        [0,0,126,180,9,54,36]
     ],
-    "images": ["/static/art/regular-concave-tl.png",
+    "images": ["/static/art/regular-concave-br.png",
+               "/static/art/regular-concave-bl.png",
+               "/static/art/regular-concave-r.png",
+               "/static/art/regular-concave-l.png",
+               "/static/art/regular-concave-tl.png",
                "/static/art/regular-concave-tr.png",
                "/static/art/regular-concave-l.png",
                "/static/art/regular-concave-r.png",
