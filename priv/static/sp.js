@@ -25,7 +25,7 @@ var textLogLines = [];
 var explored = {};
 var objs = {};
 var localObjs = {};
-var localTiles = [];
+var localTiles = {};
 var units = {};
 var stats = {};
 
@@ -626,7 +626,6 @@ function onMessage(evt) {
             updateObj(jsonData.objs);
 
             setPlayer();
-            clearMap();
             drawMap(jsonData.map);
         }
         else if(jsonData.packet == "perception") {
@@ -751,10 +750,10 @@ function setPlayer() {
 
 function clearMap() {
     var localMapCont = localPanel.getChildByName("localMap");
-    var localTilesCont = localMapCont.getChildByName("localTiles");
+    var baseCont = localMapCont.getChildByName("localTiles");
     var localShroudCont = localMapCont.getChildByName("localShroud");
 
-    localTilesCont.removeAllChildren();
+    baseCont.removeAllChildren();
     localShroudCont.removeAllChildren();
 };
 
@@ -769,16 +768,34 @@ function clearObj() {
     selectHex.visible = false;
 };
 
-function drawMap(map) {
+function drawMap(tiles) {
     console.log("drawMap");
     showLocalPanel();
     var localMapCont = localPanel.getChildByName("localMap");
-    var localTilesCont = localMapCont.getChildByName("localTiles");
+    var baseCont = localMapCont.getChildByName("base");
+    var transCont = localMapCont.getChildByName("trans");
+    var extraCont = localMapCont.getChildByName("extra");
     var voidCont = localMapCont.getChildByName("void");
-    var tiles = map;
- 
-    for(var i = 0; i < tiles.length; i++) {
-        var tile = tiles[i];
+
+    baseCont.removeAllChildren();
+    transCont.removeAllChildren();
+    extraCont.removeAllChildren();
+    voidCont.removeAllChildren();
+
+    for(var i = 0; i < tiles.length; i++)
+        addLocalTile(tiles[i]);
+
+    var tileArray = [];
+
+    for(var tileKey in localTiles) {
+        tileArray.push(localTiles[tileKey])
+    }
+
+    tileArray.sort(function(a,b) {return (a.y > b.y) ? 1 : ((b.y > a.y) ? -1 : 0);} );     
+
+
+    for(var i = 0; i < tileArray.length; i++) {
+        var tile = tileArray[i];
         var pixel = hex_to_pixel(tile.x, tile.y);
         var tileImages = tile.t;
 
@@ -809,43 +826,31 @@ function drawMap(map) {
             }
         });
 
-        addChildLocalMap(icon, "localTiles");
+        baseCont.addChild(icon);
 
-        var base = new createjs.Container();
-        base.name = "base";
+        for(var j = 0; j < tile.t.length; j++) {
+            var tileType = tile.t[j];
 
-        var trans = new createjs.Container();
-        trans.name = "trans";
-
-        var oversize = new createjs.Container();
-        oversize.name = "oversize";
-
-        var voidLayer = new createjs.Container();
-        voidLayer.name = "void";
-        
-        icon.addChild(base);
-        icon.addChild(trans);
-        icon.addChild(oversize);
-        icon.addChild(voidLayer);
-
-        var tileImageId = tileImages[tileImages.length - 1] - 1;
-        var imagePath = "/static/art/" + tileset[tileImageId].image;
-        var offsetX = tileset[tileImageId].offsetx;
-        var offsetY = -1 * tileset[tileImageId].offsety;
-     
-        addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: base, index: 0});
+            if(tileType < 18) {
+                var tileImageId = tileImages[j] - 1;
+                var imagePath = "/static/art/" + tileset[tileImageId].image;
+                var offsetX = tileset[tileImageId].offsetx;
+                var offsetY = -1 * tileset[tileImageId].offsety;
+             
+                addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: 0});
+            } else {
+                var imagePath = "/static/art/" + tileset[0].image;
+                addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: 0});
+            }
+        }
 
         tile.icon = icon;
-
-        addLocalTile(tile);
     }
 
-    for(var tileKey in localTiles) {
-        var tile = localTiles[tileKey];
+    for(var i = 0; i < tileArray.length; i++) {
+        var tile = tileArray[i];
         var tileType = tile.t[tile.t.length - 1];
-
-        var trans = tile.icon.getChildByName("trans");
-        trans.removeAllChildren();
+        var pixel = hex_to_pixel(tile.x, tile.y);
 
         if(tileType == 3 || tileType == 4 || tileType == 5 || tileType == 17) { //Water
             var neighbours = getNeighbours(tile.x, tile.y);
@@ -863,22 +868,22 @@ function drawMap(map) {
                    otherTileType != 5 && otherTileType != 17) {
                     if(otherTileType == 2 || otherTileType == 16 || otherTileType == 33 || otherTileType == 37 || otherTileType == 38) {
                         var imagePath = "/static/art/tileset/frozen/snow-" + neighbour.d + ".png";
-                        addImage({id: "snow" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                        addImage({id: "snow" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
                     } else if(otherTileType == 6 || otherTileType == 7 || otherTileType == 8 || otherTileType == 9) {
                         var imagePath = "/static/art/tileset/flat/bank-to-ice-" + neighbour.d + ".png";
-                        addImage({id: neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                        addImage({id: neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
 
                         var imagePath = "/static/art/tileset/grass/dry-abrupt-" + neighbour.d + ".png";
-                        addImage({id: "plains" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 1});
+                        addImage({id: "plains" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 1});
                     } else if(otherTileType == 10 || otherTileType == 12) {
                         var imagePath = "/static/art/tileset/sand/desert-" + neighbour.d + ".png";
-                        addImage({id: "desert" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                        addImage({id: "desert" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
                     } else {
                         var imagePath = "/static/art/tileset/flat/bank-to-ice-" + neighbour.d + ".png";
-                        addImage({id: neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                        addImage({id: neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
 
                         var imagePath = "/static/art/tileset/grass/green-abrupt-" + neighbour.d + ".png";
-                        addImage({id: "grass" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 1});
+                        addImage({id: "grass" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 1});
                     }
                 }
             }
@@ -896,10 +901,10 @@ function drawMap(map) {
             
                 if(otherTileType == 6 || otherTileType == 7 || otherTileType == 8 || otherTileType == 9) {
                     var imagePath = "/static/art/tileset/grass/dry-abrupt-" + neighbour.d + ".png";
-                    addImage({id: "plains" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                    addImage({id: "plains" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
                 } else if(otherTileType == 1) {
                     var imagePath = "/static/art/tileset/grass/green-abrupt-" + neighbour.d + ".png";
-                    addImage({id: "grass" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                    addImage({id: "grass" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
                 }
             }
         } else if(tileType == 1) {
@@ -916,33 +921,34 @@ function drawMap(map) {
 
                 if(otherTileType == 13) {
                     var imagePath = "/static/art/tileset/hills/regular-" + neighbour.d + ".png";
-                    addImage({id: "hillsgrass" + neighbour.d, path: imagePath, x: 0, y: 0, target: trans, index: 0});
+                    addImage({id: "hillsgrass" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
                 }
             }
         }
     }
 
-    for(var i = 0; i < tiles.length; i++) {
-        var tile = tiles[i];
+    for(var i = 0; i < tileArray.length; i++) {
+        var tile = tileArray[i];
         var tileImages = tile.t;
+        var pixel = hex_to_pixel(tile.x, tile.y);
 
-        var t = getLocalTile(tile.x, tile.y);
-        var oversize = t.icon.getChildByName("oversize");
 
-        for(var j = 0; j < tileImages.length - 1; j++) { 
+        if(tileType >= 18) {
+            for(var j = 0; j < tile.t.length; j++) { 
+                var tileType = tile.t[j];
 
-            var tileImageId = tileImages[j] - 1;
-            var imagePath = "/static/art/" + tileset[tileImageId].image;
-            var offsetX = tileset[tileImageId].offsetx;
-            var offsetY = -1 * tileset[tileImageId].offsety;
-         
-            addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: oversize, index: j});
-        } 
+                var tileImageId = tileImages[j] - 1;
+                var imagePath = "/static/art/" + tileset[tileImageId].image;
+                var offsetX = parseInt(tileset[tileImageId].offsetx);
+                var offsetY = parseInt(-1 * tileset[tileImageId].offsety);
+             
+                addImage({id: tileImageId, path: imagePath, x: offsetX + pixel.x, y: offsetY + pixel.y, target: extraCont, index: j});
+            } 
+        }
     }
 
     var directions = ['n', 'ne', 'nw', 's', 'se', 'sw'];
 
-    voidCont.removeAllChildren();
 
     for(var tileKey in localTiles) {
         var tile = localTiles[tileKey];
@@ -2279,12 +2285,18 @@ function initUI() {
     var bg = new createjs.Shape();
     var close = new createjs.Bitmap(close_rest);
     var localMapCont = new createjs.Container();
-    var localTilesCont = new createjs.Container();
+    var baseCont = new createjs.Container();
     var localObjsCont1 = new createjs.Container();
     var localObjsCont2 = new createjs.Container();
     var localShroudCont = new createjs.Container();
+    var transCont = new createjs.Container();
+    var extraCont = new createjs.Container();
     var voidCont = new createjs.Container();
     var textLayer = new createjs.Container();
+
+    transCont.mouseEnabled = false;
+    extraCont.mouseEnabled = false;
+    voidCont.mouseEnabled = false;
 
     selectHex = new createjs.Bitmap(selectHexImage);
 
@@ -2301,7 +2313,9 @@ function initUI() {
     });
 
     localMapCont.name = "localMap";
-    localTilesCont.name = "localTiles";
+    baseCont.name = "base";
+    transCont.name = "trans";
+    extraCont.name = "extra";
     localShroudCont.name = "localShroud";
     localObjsCont1.name = "localObjs1";
     localObjsCont2.name = "localObjs2";
@@ -2315,7 +2329,9 @@ function initUI() {
     localPanel.addChild(close);
     localPanel.addChild(localMapCont);
     
-    localMapCont.addChild(localTilesCont);
+    localMapCont.addChild(baseCont);
+    localMapCont.addChild(transCont);
+    localMapCont.addChild(extraCont);
     localMapCont.addChild(localShroudCont);
     localMapCont.addChild(localObjsCont1);
     localMapCont.addChild(localObjsCont2);
@@ -3148,12 +3164,4 @@ function reventButton(response)
     return button;
 };
 
-function findMissingElement(array1, array2) {
-    var size1 = array1.length;
-    var size2 = array2.length;
 
-    for(var i = 0; i < array2.length; i++) {
-        if(array1.indexOf(array2[i]) == -1)
-            return 
-    }
-};

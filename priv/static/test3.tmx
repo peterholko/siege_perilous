@@ -56,7 +56,7 @@
  <tileset firstgid="18" name="120x112" tilewidth="120" tileheight="112" tilecount="1">
   <tileoffset x="-24" y="18"/>
   <tile id="0">
-   <image width="120" height="112" source="../../../../../data/tileset/swamp/reed.png"/>
+   <image width="120" height="112" source="tileset/swamp/reed.png"/>
   </tile>
  </tileset>
  <tileset firstgid="19" name="144x144" tilewidth="144" tileheight="144" tilecount="13">
