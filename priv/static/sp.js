@@ -127,6 +127,8 @@ var braceCooldown;
 
 var gravestone = new Image();
 
+var forests = [18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31];
+
 var h1Font = "14px Verdana"
 var textColor = "#FFFFFF";
 
@@ -838,9 +840,9 @@ function drawMap(tiles) {
                 var offsetY = -1 * tileset[tileImageId].offsety;
              
                 addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: 0});
-            } else {
+            } else if(forests.indexOf(tileType) == -1) {
                 var imagePath = "/static/art/" + tileset[0].image;
-                addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: 0});
+                addImage({id: 0, path: imagePath, x: offsetX, y: offsetY, target: icon, index: 0});
             }
         }
 
@@ -905,6 +907,9 @@ function drawMap(tiles) {
                 } else if(otherTileType == 1) {
                     var imagePath = "/static/art/tileset/grass/green-abrupt-" + neighbour.d + ".png";
                     addImage({id: "grass" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
+                } else if(otherTileType == 16) {
+                    var imagePath = "/static/art/tileset/hills/snow-" + neighbour.d + ".png";
+                    addImage({id: "hillssnow" + neighbour.d, path: imagePath, x: pixel.x, y: pixel.y, target: transCont, index: 0});
                 }
             }
         } else if(tileType == 1) {
@@ -933,18 +938,20 @@ function drawMap(tiles) {
         var pixel = hex_to_pixel(tile.x, tile.y);
 
 
-        if(tileType >= 18) {
-            for(var j = 0; j < tile.t.length; j++) { 
-                var tileType = tile.t[j];
+        for(var j = 0; j < tile.t.length; j++) { 
+            var tileType = tile.t[j];
 
-                var tileImageId = tileImages[j] - 1;
-                var imagePath = "/static/art/" + tileset[tileImageId].image;
-                var offsetX = parseInt(tileset[tileImageId].offsetx);
-                var offsetY = parseInt(-1 * tileset[tileImageId].offsety);
-             
-                addImage({id: tileImageId, path: imagePath, x: offsetX + pixel.x, y: offsetY + pixel.y, target: extraCont, index: j});
-            } 
-        }
+            //tileTypes under 18 have already been drawn above
+            if(tileType < 18)
+                continue
+
+            var tileImageId = tileImages[j] - 1;
+            var imagePath = "/static/art/" + tileset[tileImageId].image;
+            var offsetX = parseInt(tileset[tileImageId].offsetx);
+            var offsetY = parseInt(-1 * tileset[tileImageId].offsety);
+         
+            addImage({id: tileImageId, path: imagePath, x: offsetX + pixel.x, y: offsetY + pixel.y, target: extraCont});
+        } 
     }
 
     var directions = ['n', 'ne', 'nw', 's', 'se', 'sw'];
