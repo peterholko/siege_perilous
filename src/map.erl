@@ -619,8 +619,8 @@ spawn_resource(?HILLS_DESERT, Tile, Rand) when Rand =< 20 ->
     {Resource, Rarity} = hill_resource(0, 100, 0),
     Quantity = quantity(Rarity, {5, 10}, {10, 20}, {10, 10}),
     resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?DECIDUOUS_FOREST, Tile, Rand) when Rand =< 20 ->
-    {Resource, Rarity} = forest_resource(85, 13, 2),
+spawn_resource(?DECIDUOUS_FOREST, Tile, Rand) when Rand =< 75 ->
+    {Resource, Rarity} = forest_resource(90, 8, 2),
     Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 5}),
     resource:create(Resource, Quantity, Tile#map.index, false);
 spawn_resource(?PINE_FOREST, Tile, Rand) when Rand =< 20 ->

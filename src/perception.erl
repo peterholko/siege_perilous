@@ -120,9 +120,9 @@ entity_perception([Entity | Rest], AllObj) ->
     %Compare old perception to new
     Result = compare_perception(NearbyObjs, PreviousObjs),
 
-    store_perception(Result, Entity#obj.id, NearbyObjs),
+    store_perception(Result, Entity, NearbyObjs),
 
-    send_perception(Result, Entity#obj.player, Entity#obj.id, NearbyObjs),
+    send_perception(Result, Entity, NearbyObjs),
 
     entity_perception(Rest, AllObj).
 
@@ -134,10 +134,17 @@ store_perception(false, EntityId, NewPerception) ->
 store_perception(_Result, _EntityId, _NewPerception) ->
     nothing.
 
-send_perception(true, _, _, _) -> nothing;
-send_perception(false, PlayerId, EntityId, NewPerception) ->
-    [Conn] = db:read(connection, PlayerId),
-    send_to_process(Conn#connection.process, {EntityId, NewPerception}).
+send_perception(true, _, _) -> nothing;
+send_perception(false, Entity, NewPerception) ->
+    Process = case Entity#obj.subclass of
+                  <<"villager">> -> 
+                      global:whereis_name(villager);
+                  _ -> 
+                      [Conn] = db:read(connection, Entity#obj.player),
+                      Conn#connection.process
+              end,
+
+    send_to_process(Process, {Entity#obj.id, NewPerception}).
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [NewPerception, Process]),

@@ -32,6 +32,7 @@ login(Name, Pass, Socket)
 %%
 
 login([], [Name, Pass, Socket]) ->
+    lager:info("Creating new player..."),
     PlayerId = counter:increment(player),
     
     Player = #player {id = PlayerId,
@@ -65,6 +66,7 @@ login([], [Name, Pass, Socket]) ->
 
 login([PlayerInfo], [_Name, Pass,_] = Args)
   when is_record(PlayerInfo, player) ->
+    lager:info("Found player - checking player state and connection"),
     PlayerId = PlayerInfo#player.id,
     PlayerConn = case db:read(connection, PlayerId) of
                      [P] ->

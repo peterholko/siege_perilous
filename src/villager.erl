@@ -16,6 +16,8 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([check_task/0, assign/2, remove/1, remove_structure/1]).
+-export([create_plan/0, run_plan/0]).
+-export([enemy_visible/1, move_to_dwelling/1]).
 
 %% ====================================================================
 %% External functions
@@ -23,6 +25,38 @@
 
 start() ->
     gen_server:start({global, villager}, villager, [], []).
+
+create_plan() ->
+    gen_server:cast({global, villager}, create_plan).
+
+run_plan() ->
+    gen_server:cast({global, villager}, run_plan).
+
+enemy_visible(Id) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.enemy =/= none.
+
+move_to_dwelling(Id) ->
+    [Villager] = db:read(villager, Id),
+    [VillagerObj] = db:read(obj, Id),
+
+    case Villager#villager.enemy of
+        none -> 
+            %Enemy gone
+            NewVillager = Villager#villager {task_state = completed}
+            db:write(NewVillager);
+        _ ->
+            [Dwelling] = db:read(obj, Villager#villager.dwelling),
+
+            Path = astar:astar(VillagerObj#obj.pos, Dwelling#obj.pos),
+
+            NewVillager = Villager#villager {task_state = incomplete,
+                                             path = Path},
+
+            db:write(NewVillager),
+
+            %Add move action
+    end.
 
 check_task() ->
     gen_server:cast({global, villager}, process).
@@ -69,6 +103,14 @@ remove_assigns(StructureId) ->
 init([]) ->
     {ok, []}.
 
+handle_cast(create_plan, Data) ->
+    process_create_plan(db:first(villager)),
+    {noreply, Data};
+
+handle_cast(run_plan, Data) ->
+    process_run_plan(db:first(villager)),
+    {noreply, Data};
+
 handle_cast(process, Data) ->   
 
     process(db:first(villager)),
@@ -87,7 +129,17 @@ handle_call(Event, From, Data) ->
                              ]),
     {noreply, Data}.
 
+handle_info({perception, {VillagerId, Objs}}, Data) ->
+    [Villager] = db:read(obj, VillagerId),
+
+    case find_enemies(Villager, Objs) of
+        [] -> nothing
+    end,
+
+    {noreply, Data};
+
 handle_info(Info, Data) ->
+    lager:info("~p", Info),
     error_logger:info_report([{module, ?MODULE}, 
                               {line, ?LINE},
                               {self, self()}, 
@@ -103,6 +155,77 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
+%%
+
+process_create_plan('$end_of_table') ->
+    done;
+process_create_plan(Id) ->
+    [Villager] = db:read(villager, Id),
+
+    CurrentPlan = Villager#villager.plan,
+    NewPlan = htn:plan(villager, Id),
+
+    case NewPlan =:= CurrentPlan of
+        false ->
+            %New plan cancel current event
+            game:cancel_event(Id),
+
+            %Reset Villager statistics
+            NewVillager = Villager#villager {plan = NewPlan,
+                                             new_plan = true,
+                                             task_state = completed,
+                                             task_index = 0},
+            db:write(NewVillager);
+        true ->
+            nothing
+    end,
+
+    process_create_plan(mnesia:next(villager, Id)).
+
+process_run_plan('$end_of_table') ->
+    done;
+process_run_plan(Id) ->
+    [Villager] = db:read(villager, Id),
+
+    case Villager#villager.task_state of
+        completed ->
+            TaskIndex = Villager#villager.task_index,
+            PlanLength = length(Villager#villager.plan),
+
+            NextTask = get_next_task(TaskIndex, PlanLength),
+
+            case NextTask of
+                {next_task, NextTaskIndex} ->
+                    NewVillager = Villager#villager {task_index = NextTask}, 
+                    db:write(NewVillager),
+
+                    TaskToRun = lists:nth(NextTaskIndex, Villager#villager.plan),
+
+                    erlang:apply(villager, TaskToRun, [Id]);
+                plan_completed ->
+                    NewVillager = Villager#villager {task_state = completed,
+                                                     task_index = 0},
+                    db:write(NewVillager)
+            end;
+        _ ->
+            nothing
+    end,
+
+    process_run_plan(mnesia:next(villager, Id)).
+
+find_enemies(Villager, Objs) ->
+    find_enemies(Villager, Objs, []).
+
+find_enemies(_Villager, [], Enemies) ->
+    Enemies;
+find_enemies(Villager, [Obj | Rest], Enemies) ->
+    NewEnemies = case Villager#obj.player =:= Obj#obj.player of
+                     true -> Enemies;
+                     false -> [Obj | Enemies]
+                 end,
+
+    find_enemies(Villager, Rest, NewEnemies).
+
 process('$end_of_table') ->
     lager:debug("Done processing villagers");
 process(Id) ->
@@ -144,6 +267,7 @@ check_morale(Villager = #villager{morale = Morale}, Obj) when Morale >= 25 ->
     NewVillager;
 check_morale(Villager = #villager{morale = Morale}, Obj) when Morale >= 0 ->
     %Switch player to natives player
+    lager:info("Obj: ~p", [Obj]),
     [NewObj] = Obj#obj{player = ?NATIVES},
     db:write(NewObj),
 
@@ -302,4 +426,10 @@ update_morale(Villager, Value) ->
 
     NewVillager = Villager#villager {morale = NewMorale},
     NewVillager.
+
+get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
+        NewTaskIndex = TaskIndex + 1,
+            {next_task, NewTaskIndex};
+get_next_task(_TaskIndex, _PlanLength) ->
+        plan_completed.
 

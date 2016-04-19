@@ -13,7 +13,8 @@
 
 load() ->
     wander(),
-    guard().
+    guard(),
+    villager().
 
 wander() ->
     new(wander),
@@ -34,6 +35,19 @@ guard() ->
     add_primitive(melee_attack, do_attack, [], [], melee_attack),
     add_select_all(do_guard, guard, [], []),
     add_primitive(move_guard_pos2, do_guard, [], [], move_guard_pos).
+
+villager() ->
+    new(villager),
+    add_select_one(nearby_enemy, villager, [enemy_visible], []),
+        add_select_all(do_flee, nearby_enemy, [], []),
+            add_primitive(move_to_dwelling, do_flee, [], [], move_to_dwelling),
+    add_select_one(process_task, villager, [morale_normal], []),
+        add_select_one(do_follow, process_task, [task_follow], []),
+            add_primitive(follow_hero, do_follow, [], [], follow_hero),
+    add_select_one(process_forage, villager, [morale_low], []),
+        add_primitive(do_forage, process_forage, [], [], do_forage),
+    add_select_one(process_abandon, villager, [morale_very_low], []),
+        add_primitive(do_abandon, process_abandon, [], [], do_abandon).
 
 plan(PlanName, NPC) ->
     [Parent] = db:dirty_read(htn, {PlanName, PlanName}),

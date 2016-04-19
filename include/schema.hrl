@@ -96,10 +96,16 @@
                obj}).
 
 -record(villager, {id,
-                   task = follow,
+                   order = none,
                    structure = none,
                    dwelling = none,
-                   morale = 60}).
+                   morale = 60,
+                   enemy = none,
+                   plan = [],
+                   new_plan = false,
+                   task_state = none,
+                   task_index = 0,
+                   path = none}).
 
 -record(test, {attr,
                value}).

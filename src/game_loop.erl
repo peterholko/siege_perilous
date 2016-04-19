@@ -48,11 +48,12 @@ loop(NumTick, LastTime, GamePID) ->
     process_explored(Explored),
 
     %NPC generate plan and run plan
-    npc_replan(NumTick),
+    npc_create_plan(NumTick),
     npc_run_plan(NumTick),
 
-    %Execute villager tasks
-    execute_villager(NumTick),
+    %Villager generate plan and run plan
+    villager_create_plan(NumTick),
+    villager_run_plan(NumTick),
 
     %Clean up
     clean_up(NumTick),
@@ -264,14 +265,24 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 10)) =:= 0) and (NumTick 
     process_rest_state(NumTick);
 process_rest(_) -> nothing.
 
-npc_replan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
+npc_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
     npc:replan(?UNDEAD);
-npc_replan(_) ->
+npc_create_plan(_) ->
     nothing.
 
 npc_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 2)) =:= 0 ->
    npc:run_plan(?UNDEAD);
 npc_run_plan(_) ->
+    nothing.
+
+villager_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 5)) =:= 0 ->
+    villager:create_plan();
+villager_create_plan(_) ->
+    nothing.
+
+villager_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 5)) =:= 0 ->
+    villager:run_plan();
+villager_run_plan(_) ->
     nothing.
 
 execute_villager(NumTick) when (NumTick rem 50) =:= 0 ->
