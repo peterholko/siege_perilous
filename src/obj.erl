@@ -490,7 +490,7 @@ info_subclass(<<"villager">>, Obj, Info) ->
     [Villager] = db:read(villager, Obj#obj.id),
        
     Morale = Villager#villager.morale,
-    Task = atom_to_binary(Villager#villager.task, latin1),
+    Order = atom_to_binary(Villager#villager.order, latin1),
     DwellingId = Villager#villager.dwelling,
 
     DwellingName = case db:read(obj, DwellingId) of
@@ -499,7 +499,7 @@ info_subclass(<<"villager">>, Obj, Info) ->
                    end,
 
     Info1 = maps:put(<<"morale">>, Morale, Info),
-    Info2 = maps:put(<<"task">>, Task, Info1),
+    Info2 = maps:put(<<"order">>, Order, Info1),
     Info3 = maps:put(<<"dwelling">>, DwellingName, Info2),
     Info3;
 info_subclass(_, _Obj, Info) -> Info.

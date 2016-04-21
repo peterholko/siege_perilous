@@ -285,11 +285,6 @@ villager_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 5)) 
 villager_run_plan(_) ->
     nothing.
 
-execute_villager(NumTick) when (NumTick rem 50) =:= 0 ->
-    villager:check_task();
-execute_villager(_) ->
-    nothing.
-
 clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
     lager:debug("Cleaning up dead objs"),
     Objs = ets:tab2list(obj),

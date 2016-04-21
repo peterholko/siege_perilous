@@ -8,11 +8,38 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([start_build/4, valid_location/2]).
+-export([get_by_player/1, find_available/1, start_build/4, valid_location/2]).
 -export([list/0, recipe_list/1, process/1, craft/2]).
 -export([check_req/1, has_process_res/1, check_recipe_req/2]).
 -export([combine_stats/2, craft_item_name/2]).
 -export([process_upkeep/1, process_upkeep_item/3]).
+
+get_by_player(Player) ->
+    Objs = db:index_read(obj, Player, #obj.player),
+
+    F = fun(Obj) ->
+            Obj#obj.class =:= structure
+        end,
+
+    lists:filter(F, Objs).
+
+find_available(Player) ->
+    Objs = db:index_read(obj, Player, #obj.player),
+
+    F = fun(Structure) ->
+            Occupied = obj_attr:value(Structure#obj.id, <<"occupied">>, <<"false">>),
+
+            (Structure#obj.class =:= <<"structure">>) and
+            (Structure#obj.subclass =:= <<"resource">>) and
+            (Occupied =:= <<"false">>)
+        end,
+            
+    AvailableList = lists:filter(F, Objs),
+
+    case AvailableList of
+        [] -> none;
+        [Available | _Rest] -> Available
+    end.
 
 start_build(PlayerId, Pos, Name, Subclass) ->
     StructureId = obj:create(Pos, 

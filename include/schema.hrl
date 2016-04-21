@@ -101,11 +101,13 @@
                    dwelling = none,
                    morale = 60,
                    enemy = none,
+                   dest = none,
                    plan = [],
                    new_plan = false,
                    task_state = none,
                    task_index = 0,
-                   path = none}).
+                   path = none
+                   }).
 
 -record(test, {attr,
                value}).

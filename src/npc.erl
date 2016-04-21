@@ -158,7 +158,7 @@ process_replan(Id) ->
     [NPC] = db:read(npc, Id),
 
     CurrPlan = NPC#npc.plan,
-    NewPlan = htn:plan(NPC#npc.orders, Id),
+    NewPlan = htn:plan(NPC#npc.orders, Id, npc),
     case NewPlan =:= CurrPlan of
         false ->
             %New plan cancel current event
