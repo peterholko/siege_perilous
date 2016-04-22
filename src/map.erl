@@ -603,19 +603,19 @@ spawn_resource(?GRASSLANDS, Tile, Rand) when Rand =< 25 ->
 spawn_resource(?PLAINS, Tile, Rand) when Rand =< 15 ->
     Quantity = util:rand(10) + 5,
     resource:create(<<"Crimson Root">>, Quantity, Tile#map.index, false);
-spawn_resource(?HILLS_PLAINS, Tile, Rand) when Rand =< 15 ->
+spawn_resource(?HILLS_PLAINS, Tile, Rand) when Rand =< 99 ->
     {Resource, Rarity} = hill_resource(90, 8, 2),
     Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 3}),
     resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?HILLS_GRASSLANDS, Tile, Rand) when Rand =< 25 ->
+spawn_resource(?HILLS_GRASSLANDS, Tile, Rand) when Rand =< 99 ->
     {Resource, Rarity} = hill_resource(85, 13, 2),
     Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 3}),
     resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?HILLS_SNOW, Tile, Rand) when Rand =< 20 ->
+spawn_resource(?HILLS_SNOW, Tile, Rand) when Rand =< 99 ->
     {Resource, Rarity} = hill_resource(0, 0, 100),
     Quantity = quantity(Rarity, {5, 10}, {10, 20}, {10, 10}),
     resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?HILLS_DESERT, Tile, Rand) when Rand =< 20 ->
+spawn_resource(?HILLS_DESERT, Tile, Rand) when Rand =< 99 ->
     {Resource, Rarity} = hill_resource(0, 100, 0),
     Quantity = quantity(Rarity, {5, 10}, {10, 20}, {10, 10}),
     resource:create(Resource, Quantity, Tile#map.index, false);

@@ -174,6 +174,20 @@ do_event(harvest, EventData, PlayerPid) ->
 
     false; 
 
+do_event(sharvest, EventData, _Pid) ->
+    {VillagerId, StructureId} = EventData,
+    Villager = db:read(obj, VillagerId),
+    Structure = db:read(obj, StructureId),
+
+    case structure:harvest(Villager, Structure) of
+        success ->
+            message:send_to_process(global:whereis_name(villager), event_complete, {harvest, VillagerId});
+        {error, ErrMsg} ->
+            lager:debug("sharvest error: ~p", [ErrMsg])
+    end,
+
+    false;
+
 do_event(finish_build, EventData, _PlayerPid) ->
     lager:debug("Processing build event: ~p", [EventData]),
     {ObjId, StructureId} = EventData,
