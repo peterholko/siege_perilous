@@ -17,12 +17,13 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([remove/1, remove_structure/1]).
 -export([create_plan/0, run_plan/0]).
--export([enemy_visible/1, move_to_pos/1, has_dwelling/1, hero_nearby/1]).
+-export([enemy_visible/1, move_to_pos/1, has_dwelling/1, has_storage/1, hero_nearby/1]).
 -export([set_pos_dwelling/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
 -export([order_follow/1, dwelling_needed/1, claim_dwelling/1, find_dwelling/1]).
 -export([structure_needed/1, find_structure/1, has_structure/1, harvest/1]).
--export([find_structure/2, claim_structure/1]).
+-export([claim_structure/1, structure_not_empty/1]).
+-export([structure_not_full/1, load_resources/1, find_storage/1, set_pos_storage/1, set_emptying/1, set_none/1, not_emptying/1]).
 
 %% ====================================================================
 %% External functions
@@ -53,6 +54,10 @@ has_structure(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.structure =/= none.
 
+has_storage(Id) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.storage =/= none.
+
 hero_nearby(Id) ->
     [VillagerObj] = db:read(obj, Id),
     Hero = obj:get_hero(VillagerObj#obj.player),
@@ -64,6 +69,14 @@ morale_low(Id) ->
     morale(Id, 25).
 morale_very_low(Id) ->
     morale(Id, 0).
+
+morale(Id, Value) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.morale >= Value.
+
+order_follow(Id) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.order =:= follow.
 
 dwelling_needed(Id) ->
     [Villager] = db:read(villager, Id), 
@@ -83,35 +96,55 @@ structure_needed(Id) ->
 
     StructureNeeded and StructureAvailable.
 
+structure_not_full(Id) ->
+    [Villager] = db:read(villager, Id), 
+    Capacity = obj:get_capacity(Villager#villager.structure),
+    
+    %Assume "full" is 85% of capacity or over
+    %and if 15% of capacity cannot fit, structure is full
+    Capacity15 = erlang:trunc(Capacity * 0.15),
+
+    obj:has_space(Villager#villager.structure, Capacity15).
+
+structure_not_empty(Id) ->
+    [Villager] = db:read(villager, Id),
+    TotalWeight = item:get_total_weight(Villager#villager.storage),
+    TotalWeight =/= 0.
+
+not_emptying(Id) ->
+    [Villager] = db:read(villager, Id), 
+    Villager#villager.activity =/= emptying.
+
 %%% 
 %%% HTN Primitive Tasks
 %%%
-set_pos_dwelling(Id) ->
-    [Villager] = db:read(villager, Id),
+set_pos_dwelling(Villager) ->
     [Dwelling] = db:read(obj, Villager#villager.dwelling),
+    Villager#villager {dest = Dwelling#obj.pos, task_state = completed}.
 
-    NewVillager = Villager#villager {dest = Dwelling#obj.pos, task_state = completed},
-    db:write(NewVillager).
-
-set_pos_structure(Id) ->
-    [Villager] = db:read(villager, Id),
+set_pos_structure(Villager) ->
     [Structure] = db:read(obj, Villager#villager.structure),
+    Villager#villager {dest = Structure#obj.pos, task_state = completed}.
 
-    NewVillager = Villager#villager {dest = Structure#obj.pos, task_state = completed},
-    db:write(NewVillager).
+set_pos_storage(Villager) ->
+    [Storage] = db:read(obj, Villager#villager.storage),
+    Villager#villager {dest = Storage#obj.pos, task_state = completed}.
 
-set_pos_hero(Id) ->
-    [Villager] = db:read(villager, Id),
-    [VillagerObj] = db:read(obj, Id),
+set_pos_hero(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
 
     Hero = obj:get_hero(VillagerObj#obj.player),
     
-    NewVillager = Villager#villager {dest = Hero#obj.pos, task_state = completed},
-    db:write(NewVillager).
+    Villager#villager {dest = Hero#obj.pos, task_state = completed}.
 
-move_to_pos(Id) ->
-    [Villager] = db:read(villager, Id),
-    [VillagerObj] = db:read(obj, Id),
+set_emptying(Villager) ->
+    Villager#villager {activity = emptying, task_state = completed}.
+
+set_none(Villager) ->
+    Villager#villager {activity = none, task_state = completed}.
+
+move_to_pos(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
 
     Dest = Villager#villager.dest,
 
@@ -120,27 +153,22 @@ move_to_pos(Id) ->
                       true ->
                          Path = astar:astar(VillagerObj#obj.pos, Dest),
 
-                         %Add move action to next path location
-                         move_next_path(VillagerObj, Path),
-
-                         Villager#villager {task_state = inprogress, path = Path};
+                         case Path of
+                             [] -> 
+                                 %No path, move task completed
+                                 Villager#villager {task_state = completed};
+                             _ -> 
+                                 %Move to next path location
+                                 move_unit(VillagerObj, lists:nth(2, Path)),
+                                 Villager#villager {task_state = running, path = Path}
+                         end;
                       false ->
                          Villager#villager {task_state = completed}
                  end,
+    NewVillager.
 
-    db:write(NewVillager).
-
-morale(Id, Value) ->
-    [Villager] = db:read(villager, Id),
-    Villager#villager.morale >= Value.
-
-order_follow(Id) ->
-    [Villager] = db:read(villager, Id),
-    Villager#villager.order =:= follow.
-
-find_dwelling(Id) ->
-    [Villager] = db:read(villager, Id),
-    [VillagerObj] = db:read(obj, Id),
+find_dwelling(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
 
     Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
 
@@ -148,14 +176,13 @@ find_dwelling(Id) ->
                       {found, Dwelling} -> 
                           Villager#villager {dest = Dwelling#obj.pos};
                       _ -> 
-                          nothing
+                          Villager
                   end,
 
-    db:write(NewVillager#villager{task_state = completed}).
+    NewVillager#villager {task_state = completed}.
 
-claim_dwelling(Id) ->
-    [Villager] = db:read(villager, Id), 
-    [VillagerObj] = db:read(obj, Id),
+claim_dwelling(Villager) -> 
+    [VillagerObj] = db:read(obj, Villager#villager.id),
 
     Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
 
@@ -165,17 +192,15 @@ claim_dwelling(Id) ->
                               true ->
                                   Villager#villager{dwelling = Dwelling#obj.id};
                               false ->
-                                  nothing
+                                  Villager
                           end;
                       _ ->
-                          nothing
+                          Villager
                   end, 
-    
-    db:write(NewVillager#villager{task_state = completed}).
+    NewVillager#villager {task_state = completed}.
 
-find_structure(Id) ->
-    [Villager] = db:read(villager, Id), 
-    [VillagerObj] = db:read(obj, Id),
+find_structure(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
 
     Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
 
@@ -184,14 +209,26 @@ find_structure(Id) ->
                           Villager#villager {structure = Structure#obj.id,
                                              dest = Structure#obj.pos};
                       _ -> 
-                          nothing
+                          Villager
                   end,
+    NewVillager#villager {task_state = completed}.
 
-    db:write(NewVillager#villager{task_state = completed}).
+find_storage(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
 
-claim_structure(Id) ->
-    [Villager] = db:read(villager, Id), 
-    [VillagerObj] = db:read(obj, Id),
+    Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
+
+    NewVillager = case find_storage(Objs, none) of
+                      {found, Storage} ->
+                          Villager#villager {storage = Storage#obj.id,
+                                             dest = Storage#obj.pos};
+                      _ ->
+                          Villager
+                  end,
+    NewVillager#villager {task_state = completed}.
+
+claim_structure(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
 
     Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
 
@@ -201,19 +238,53 @@ claim_structure(Id) ->
                               true ->
                                   Villager#villager{structure = Structure#obj.id};
                               false ->
-                                  nothing
+                                  Villager
                           end;
                       _ ->
-                          nothing
+                          Villager
                   end, 
-    
-    db:write(NewVillager#villager{task_state = completed}).
+    NewVillager#villager {task_state = completed}.
 
-harvest(Id) ->
-    [Villager] = db:read(villager, Id),
-    EventData = {Id, Villager#villager.structure},
+harvest(Villager) ->
+    EventData = {Villager#villager.id, Villager#villager.structure},
     NumTicks = ?TICKS_SEC * 8,
-    game:add_event(self(), sharvest, EventData, Id, NumTicks).
+    game:add_event(self(), sharvest, EventData, Villager#villager.id, NumTicks),
+
+    Villager#villager {task_state = running}.
+
+load_resources(Villager) ->
+    Capacity = obj:get_capacity(Villager#villager.id),
+    Items = item:get_by_owner(Villager#villager.structure),
+
+    F = fun(Item) ->
+            ItemWeight = Item#item.weight * Item#item.quantity,
+            TotalWeight = item:get_total_weight(Villager#villager.id),
+
+            case (TotalWeight + ItemWeight) =< Capacity of
+                true ->
+                    item:transfer(Item#item.id, Villager#villager.id);
+                false ->
+                    Space = Capacity - TotalWeight,
+                    Quantity = erlang:trunc(Space / Item#item.weight),
+
+                    case Quantity of
+                        0 -> 
+                            nothing;
+                        Quantity -> 
+                            item:split(Item#item.id, Quantity),
+                            item:transfer(Item#item.id, Villager#villager.id)
+                    end
+            end
+        end,
+
+    lists:foreach(F, Items).
+
+unload_resources(Villager) ->
+    Capacity = obj:get_capacity(Villager#villager.storage).
+
+
+
+%%% End of HTN functions %%%
 
 remove(ObjId) ->
     db:delete(villager, ObjId).
@@ -294,6 +365,15 @@ handle_info({event_complete, {_Event, Id}}, Data) ->
     Villager = db:read(villager, Id),
     process_event_complete(Villager),
     {noreply, Data};
+handle_info({event_failure, {_Event, Id, Error, EventData}}, Data) ->
+    Villager = db:read(villager, Id),
+
+    case Error of
+        <<"Not enough capacity">> -> process_full_capacity(Villager, EventData);
+        _ -> nothing
+    end,
+
+    {noreply, Data};
 handle_info(Info, Data) ->
     lager:info("~p", Info),
     error_logger:info_report([{module, ?MODULE}, 
@@ -316,6 +396,7 @@ terminate(_Reason, _) ->
 process_create_plan('$end_of_table') ->
     done;
 process_create_plan(Id) ->
+    lager:info("Villager Create plan ~p", [Id]),
     [Villager] = db:read(villager, Id),
 
     CurrentPlan = Villager#villager.plan,
@@ -329,8 +410,8 @@ process_create_plan(Id) ->
             %Reset Villager statistics
             NewVillager = Villager#villager {plan = NewPlan,
                                              new_plan = true,
-                                             task_state = completed,
-                                             task_index = 0},
+                                             task_state = init,
+                                             task_index = 1},
             db:write(NewVillager);
         true ->
             nothing
@@ -344,42 +425,49 @@ process_run_plan(Id) ->
     lager:info("Villager Run plan ~p", [Id]),
     [Villager] = db:read(villager, Id),
 
-    case Villager#villager.task_state of
-        completed ->
-            TaskIndex = Villager#villager.task_index,
-            PlanLength = length(Villager#villager.plan),
-
-            lager:info("Villager: ~p ~p", [TaskIndex, PlanLength]),
-            NextTask = get_next_task(TaskIndex, PlanLength),
-
-            case NextTask of
-                {next_task, NextTaskIndex} ->
-                    NewVillager = Villager#villager {task_index = NextTaskIndex}, 
-                    db:write(NewVillager),
-
-                    TaskToRun = lists:nth(NextTaskIndex, Villager#villager.plan),
-
-                    erlang:apply(villager, TaskToRun, [Id]);
-                plan_completed ->
-                    NewVillager = Villager#villager {task_state = completed,
-                                                     task_index = 0},
-                    db:write(NewVillager)
-            end;
-        _ ->
-            nothing
+    %Skip if plan is empty
+    case Villager#villager.plan of
+        [] -> nothing;
+        _ -> %Process villager task state
+             NewVillager = process_task_state(Villager#villager.task_state, Villager),
+             db:write(NewVillager)
     end,
 
     process_run_plan(db:next(villager, Id)).
 
+process_task_state(init, Villager) ->
+    TaskToRun = lists:nth(1, Villager#villager.plan),
+    NewVillager = erlang:apply(villager, TaskToRun, [Villager]),
+    NewVillager;
+process_task_state(completed, Villager) ->
+    TaskIndex = Villager#villager.task_index,
+    PlanLength = length(Villager#villager.plan),
+
+    NextTask = get_next_task(TaskIndex, PlanLength),
+    lager:info("Villager NextTask: ~p", [NextTask]),
+
+    case NextTask of
+        {next_task, NextTaskIndex} ->
+            TaskToRun = lists:nth(NextTaskIndex, Villager#villager.plan),
+            NewVillager = erlang:apply(villager, TaskToRun, [Villager]),
+            NewVillager#villager{task_index = NextTaskIndex};
+        plan_completed ->
+            Villager#villager {task_state = init, task_index = 1}
+    end;
+process_task_state(running, Villager) ->
+    Villager.
+
 process_event_complete([Villager]) ->
     Id = Villager#villager.id,
 
-    lager:info("Villager: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
+    lager:info("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
     Task = lists:nth(Villager#villager.task_index, Villager#villager.plan),
     obj:update_state(Id, none),
 
+    lager:info("Villager Task: ~p", [Task]),
+
     case Task of
-        move_to_pos -> move_to_pos(Id);
+        move_to_pos -> complete_task(Villager);
         claim_dwelling -> complete_task(Villager);
         harvest -> complete_task(Villager);
         _ -> nothing
@@ -468,10 +556,22 @@ new_structure(Obj = #obj{subclass = Subclass, state = State}) when (Subclass =:=
         [_Villager] -> none;
         [] -> {found, Obj}
     end;
-new_structure(Obj) -> 
-    lager:info("Obj: ~p", [Obj]),
+new_structure(_Obj) -> 
     none.
 
+find_storage(_Objs, {found, Storage}) ->
+    {found, Storage};
+find_storage([], _) ->
+    none;
+find_storage([Obj | Rest], _Storage) ->
+    NewStorage = new_storage(Obj),
+    find_storage(Rest, NewStorage). 
+
+new_storage(Obj = #obj{subclass = Subclass, state = State}) when (Subclass =:= <<"storage">>) and
+                                                             (State =:= none) ->
+    {found, Obj};
+new_storage(_Obj) ->
+    none.
 process_morale(Villager, Obj) ->
     Food = case item:get_by_subclass(Obj#obj.id, ?FOOD) of
               [] -> false;
@@ -508,10 +608,7 @@ get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
 get_next_task(_TaskIndex, _PlanLength) ->
         plan_completed.
 
-move_next_path(_Obj, []) -> nothing;
-move_next_path(Obj, Path) -> move_unit(Obj, lists:nth(2, Path)).
-
-move_unit(#obj {id = Id, player = Player}, NewPos) when is_tuple(NewPos) ->
+move_unit(#obj {id = Id, player = Player}, NewPos) ->
     NumTicks = ?TICKS_SEC * 8,
 
     %Update unit state
@@ -520,57 +617,7 @@ move_unit(#obj {id = Id, player = Player}, NewPos) when is_tuple(NewPos) ->
     %Create event data
     EventData = {Player, Id, NewPos},
 
-    game:add_event(self(), move, EventData, Id, NumTicks);
-move_unit(_Obj, _) -> invalid_pos.
+    lager:info("Villager: adding game move event"),
+    game:add_event(self(), move, EventData, Id, NumTicks).
 
-%process_task(assign, Villager, Obj) ->
-%    [Structure] = db:read(obj, Villager#villager.structure),
-%
-%    %Check same position    
-%    SamePos = Structure#obj.pos =:= Obj#obj.pos,
-%    
-%    %Assign action
-%    Action = case SamePos of
-%                true ->
-%                    {harvest, Structure#obj.id};
-%                false ->
-%                    {move_to, Structure#obj.pos}
-%             end,
-%
-%    process_action(Action, Villager, Obj);
-%process_task(gather, Villager, Obj) ->
-%    Action = case resource:survey(Obj#obj.pos) of
-%                [Resource | _Rest] ->
-%                    ResourceName = maps:get(<<"name">>, Resource),
-%                    {harvest, ResourceName};
-%                [] ->
-%                    Pos = map:get_random_neighbour(Obj#obj.pos),
-%                    {move_to, Pos}
-%             end,
-%
-%    process_action(Action, Villager, Obj);
-%process_task(forage, Villager, Obj) ->
-%    Action = case resource:survey(Obj#obj.pos) of
-%                 [Resource | _Rest] ->
-%                     ResourceName = maps:get(<<"name">>, Resource),
-%                     
-%                     case item:is_subclass(ResourceName, ?FOOD) of
-%                         true -> 
-%                             {harvest, ResourceName};
-%                         false ->
-%                             Pos = map:get_random_neighbour(Obj#obj.pos),
-%                             {move_to, Pos}
-%                     end;
-%                 [] ->
-%                    Pos = map:get_random_neighbour(Obj#obj.pos),
-%                    {move_to, Pos}
-%             end,
-%    process_action(Action, Villager, Obj).
-%
-%process_action({harvest, ResourceName}, _Villager, Obj) ->
-%    obj:update_state(Obj#obj.id, harvesting),
-%    EventData = {Obj#obj.id, ResourceName, Obj#obj.pos, 25, false},
-%    game:add_event(self(), harvest, EventData, Obj#obj.id, 25);
-%process_action(_, _, _) ->
-%    nothing.
 

@@ -11,13 +11,31 @@
 
 harvest(ObjId, ResourceType, Pos) ->
     [Resource] = db:read(resource, Pos),
-    Quantity = Resource#resource.quantity,
     lager:info("Harvesting resource: ~p", [Resource]),
 
-    NewQuantity = Quantity - 1,
+    HarvestQuantity = 1, 
+    ItemWeight = item:weight(ResourceType, HarvestQuantity),
 
-    case NewQuantity =< 0 of
+    case obj:has_space(ObjId, ItemWeight) of
         true ->
+            %Decrement the resource quantity on the tile
+            update_resource(Resource, HarvestQuantity),
+
+            %Create new item
+            NewItem = item:create(ObjId, ResourceType, 1),
+        
+            %Set quantity to 1, as the returns of this function 
+            %should be only the new quantity not combined quantity 
+            NewItemOnly = maps:update(<<"quantity">>, 1, NewItem),
+            [NewItemOnly];
+        false ->
+            {error, <<"Not enough capacity">>}
+    end.
+
+update_resource(Resource, HarvestQuantity) ->
+    Quantity = Resource#resource.quantity,
+    case (Quantity - HarvestQuantity) > 0 of
+        true ->          
             case Resource#resource.obj =/= none of
                 true ->
                     obj:remove(Resource#resource.obj);
@@ -27,16 +45,9 @@ harvest(ObjId, ResourceType, Pos) ->
 
             db:delete(resource, Resource#resource.index);
         false ->
-            NewResource = Resource#resource {quantity = NewQuantity},
+            NewResource = Resource#resource {quantity = Quantity - HarvestQuantity},
             db:write(NewResource)
-    end,
-
-    NewItem = item:create(ObjId, ResourceType, 1),
-
-    %Set quantity to 1, as the returns of this function 
-    %should be only the new quantity not combined quantity 
-    NewItemOnly = maps:update(<<"quantity">>, 1, NewItem),
-    [NewItemOnly].
+    end.
 
 survey(Pos) ->
     lager:info("Survey ~p", [Pos]),

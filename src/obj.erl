@@ -15,8 +15,8 @@
 -export([is_empty/1, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_villager/1, is_not_npc/1]).
--export([item_transfer/2]).
--export([get/1, get_stats/1, get_info/1, get_info_other/1]).
+-export([item_transfer/2, has_space/2]).
+-export([get/1, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
 
 init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
@@ -296,10 +296,6 @@ get_info(Id) ->
 get_info_other(Id) ->
     info_other(Id).
 
-%%
-%% Internal Functions
-%%
-
 get_by_pos(Pos) ->
     db:index_read(obj, Pos, #obj.pos).
 
@@ -323,6 +319,9 @@ get_wall(QueryPos) ->
                                                             SubClass =:= ?WALL -> N end),
     [Wall] = db:select(obj, MS),
     Wall.
+
+get_capacity(ObjId) ->
+    obj_attr:value(ObjId, <<"capacity">>, 0).
 
 is_hero_nearby(_Target = #obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
     true;
@@ -360,6 +359,11 @@ is_villager(_) -> false.
 
 is_not_npc(#obj{player = Player}) when Player >= 1000 -> true;
 is_not_npc(_) -> false.
+
+has_space(ObjId, NewItemWeight) ->
+    Capacity = get_capacity(ObjId),
+    TotalWeight = item:get_total_weight(ObjId),
+    (TotalWeight + NewItemWeight) =< Capacity.
 
 apply_wall(false, #obj{id = Id}) ->
     case has_effect(Id, ?FORTIFIED) of

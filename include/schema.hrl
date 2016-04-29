@@ -97,8 +97,10 @@
 
 -record(villager, {id,
                    order = none,
+                   activity = none,
                    structure = none,
                    dwelling = none,
+                   storage = none,
                    morale = 60,
                    enemy = none,
                    dest = none,

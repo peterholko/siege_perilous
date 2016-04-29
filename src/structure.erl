@@ -27,17 +27,18 @@ get_harvesters(Player) ->
     lists:filter(F, Objs).
 
 harvest([_Villager], [Structure]) ->
-    [Resource | _Rest] = resource:survey(Structure#obj.pos),
-
-    case length(Resource) > 0 of
-        true ->
-            resource:harvest(Structure#obj.id, Resource, Structure#obj.pos),
-            success;
-        false ->
-            {error, "Invalid resource"}
+    case resource:survey(Structure#obj.pos) of
+        [Resource | _Rest] ->
+            ResourceName = maps:get(<<"name">>, Resource),
+            case resource:harvest(Structure#obj.id, ResourceName, Structure#obj.pos) of
+                {error, ErrMsg} -> {error, ErrMsg};
+                _ -> success
+            end;
+        [] ->
+            {error, <<"Invalid resource">>}
     end;
 harvest(_, _) -> 
-    {error, "Invalid villager or structure"}.
+    {error, <<"Invalid villager or structure">>}.
 
 start_build(PlayerId, Pos, Name, Subclass) ->
     StructureId = obj:create(Pos, 

@@ -9,6 +9,7 @@
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_equiped_weapon/1]).
 -export([transfer/2, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
+-export([get_total_weight/1, weight/2]).
 
 get_rec(Id) ->
     case db:read(item, Id) of
@@ -55,6 +56,17 @@ get_equiped_weapon(OwnerId) ->
         end,
     lists:filter(F, AllItems).
 
+get_total_weight(ObjId) ->
+    AllItems = db:dirty_index_read(item, ObjId, #item.owner),
+
+    F = fun(Item, AccWeight) ->
+            ItemWeight = Item#item.quantity * Item#item.weight,
+            ItemWeight + AccWeight
+        end,
+
+    TotalWeight = lists:foldl(F, 0, AllItems),
+    TotalWeight.   
+
 is_subclass(ItemName, Subclass) ->
     item_def:value(ItemName, <<"subclass">>) =:= Subclass.
 
@@ -87,6 +99,10 @@ is_valid_split(Player, ItemId, Quantity) when Quantity > 0 ->
         [] -> false
     end;
 is_valid_split(_, _, _) -> false.
+
+weight(ItemName, ItemQuantity) ->
+    ItemWeight = item_def:value(ItemName, <<"weight">>),
+    ItemWeight * ItemQuantity.
 
 can_merge(ItemClass) ->
     case ItemClass of
@@ -153,6 +169,7 @@ update(ItemId, NewQuantity) ->
     db:write(NewItem).
 
 create(Owner, Name, Quantity) ->
+    lager:debug("Owner: ~p Name: ~p Quantity: ~p", [Owner, Name, Quantity]),
     AllItems = db:dirty_index_read(item, Owner, #item.owner),
 
     NewItem = case filter_by_name(AllItems, Name) of
@@ -162,7 +179,7 @@ create(Owner, Name, Quantity) ->
                      
                       Class = item_attr:value(Id, <<"class">>),
                       Subclass = item_attr:value(Id, <<"subclass">>),
-                      Weight = item_attr:value(Id, <<"weight">>, 0),
+                      Weight = item_attr:value(Id, <<"weight">>),
 
                       #item {id = Id,
                              name = Name,

@@ -183,7 +183,9 @@ do_event(sharvest, EventData, _Pid) ->
         success ->
             message:send_to_process(global:whereis_name(villager), event_complete, {harvest, VillagerId});
         {error, ErrMsg} ->
-            lager:debug("sharvest error: ~p", [ErrMsg])
+            lager:debug("sharvest error: ~p", [ErrMsg]),
+            FailureData = StructureId,
+            message:send_to_process(global:whereis_name(villager), event_failure, {harvest, VillagerId, ErrMsg, FailureData})
     end,
 
     false;
