@@ -5,8 +5,8 @@
 
 -include("schema.hrl").
 
--export([get_rec/1, get_map/1, get_map_by_name/1, get_by_owner/1, 
-         get_by_subclass/2, get_by_name/2, get_equiped/1, get_equiped_weapon/1]).
+-export([get_rec/1, get_map/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
+         get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1]).
 -export([transfer/2, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
 -export([get_total_weight/1, weight/2]).
@@ -25,13 +25,17 @@ get_map_by_name(Name) ->
     item_def:all_to_map(Name).
 
 get_by_owner(OwnerId) ->
-    Items = db:dirty_index_read(item, OwnerId, #item.owner),
+    Items = db:index_read(item, OwnerId, #item.owner),
 
     F = fun(Item) ->            
             item_map(Item)
         end,
 
     lists:map(F, Items).
+
+get_by_owner_rec(OwnerId) ->
+    Items = db:index_read(item, OwnerId, #item.owner),
+    Items.
 
 get_by_subclass(OwnerId, SubClass) ->
     AllItems = get_by_owner(OwnerId),
@@ -46,6 +50,11 @@ get_by_name(OwnerId, Name) ->
 get_equiped(OwnerId) ->
     AllItems = get_by_owner(OwnerId),
     F = fun(ItemMap) -> maps:get(<<"equip">>, ItemMap) =:= <<"true">> end,
+    lists:filter(F, AllItems).
+
+get_non_equiped(OwnerId) ->
+    AllItems = get_by_owner(OwnerId),
+    F = fun(ItemMap) -> maps:get(<<"equip">>, ItemMap) =:= <<"false">> end,
     lists:filter(F, AllItems).
 
 get_equiped_weapon(OwnerId) ->
@@ -197,8 +206,10 @@ create(Owner, Name, Quantity) ->
     db:write(NewItem),
 
     %Return item_def map with quantity
-    ItemDef = item_def:all_to_map(Name),
-    maps:put(<<"quantity">>, Quantity, ItemDef).
+    ItemDef1 = item_def:all_to_map(Name),
+    ItemDef2 = maps:put(<<"quantity">>, Quantity, ItemDef1),
+    ItemDef3 = maps:put(<<"id">>, NewItem#item.id, ItemDef2),
+    ItemDef3.
 
 create(ItemMap) ->
     Id = util:get_id(),
@@ -259,12 +270,12 @@ create_item_attr(Id, Name) ->
     AllItemDef = item_def:all(Name),
     
     F = fun(ItemDef) -> 
-            {Name, Attr} = ItemDef#item_def.key,
-            case ItemDef#item_def.key of
+            {Name, Attr} = item_def:key(ItemDef),
+            case item_def:key(ItemDef) of
                 {Name, Attr} ->
                     AttrKey = {Id, Attr},
                     ItemAttr = #item_attr {key = AttrKey, 
-                                           value = ItemDef#item_def.value},
+                                           value = item_def:value(ItemDef)},
                     db:dirty_write(ItemAttr)
             end
         end,

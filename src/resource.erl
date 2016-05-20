@@ -33,9 +33,13 @@ harvest(ObjId, ResourceType, Pos) ->
     end.
 
 update_resource(Resource, HarvestQuantity) ->
+    lager:info("Resource: ~p HarvestQuantity: ~p", [Resource, HarvestQuantity]),
     Quantity = Resource#resource.quantity,
     case (Quantity - HarvestQuantity) > 0 of
         true ->          
+            NewResource = Resource#resource {quantity = Quantity - HarvestQuantity},
+            db:write(NewResource);
+        false ->
             case Resource#resource.obj =/= none of
                 true ->
                     obj:remove(Resource#resource.obj);
@@ -43,10 +47,7 @@ update_resource(Resource, HarvestQuantity) ->
                     nothing
             end,
 
-            db:delete(resource, Resource#resource.index);
-        false ->
-            NewResource = Resource#resource {quantity = Quantity - HarvestQuantity},
-            db:write(NewResource)
+            db:delete(resource, Resource#resource.index)
     end.
 
 survey(Pos) ->

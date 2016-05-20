@@ -363,6 +363,7 @@ is_not_npc(_) -> false.
 has_space(ObjId, NewItemWeight) ->
     Capacity = get_capacity(ObjId),
     TotalWeight = item:get_total_weight(ObjId),
+    lager:info("TotalWeight: ~p NewItemWeight: ~p Capacity: ~p", [TotalWeight, NewItemWeight, Capacity]),
     (TotalWeight + NewItemWeight) =< Capacity.
 
 apply_wall(false, #obj{id = Id}) ->
@@ -492,20 +493,52 @@ info_other(Id) ->
 
 info_subclass(<<"villager">>, Obj, Info) ->
     [Villager] = db:read(villager, Obj#obj.id),
-       
+    
+    TotalWeight = item:get_total_weight(Obj#obj.id),
+    Capacity = obj:get_capacity(Obj#obj.id),
     Morale = Villager#villager.morale,
     Order = atom_to_binary(Villager#villager.order, latin1),
     DwellingId = Villager#villager.dwelling,
+    StructureId = Villager#villager.structure,
 
     DwellingName = case db:read(obj, DwellingId) of
                        [Dwelling] -> Dwelling#obj.name;
                        [] -> <<"none">>
                    end,
 
-    Info1 = maps:put(<<"morale">>, Morale, Info),
-    Info2 = maps:put(<<"order">>, Order, Info1),
-    Info3 = maps:put(<<"dwelling">>, DwellingName, Info2),
-    Info3;
+    StructureName = case db:read(obj, StructureId) of
+                        [Structure] -> Structure#obj.name;
+                        [] -> <<"none">>
+                    end,
+
+    Info0 = maps:put(<<"total_weight">>, TotalWeight, Info),
+    Info1 = maps:put(<<"capacity">>, Capacity, Info0),
+    Info2 = maps:put(<<"morale">>, Morale, Info1),
+    Info3 = maps:put(<<"order">>, Order, Info2),
+    Info4 = maps:put(<<"dwelling">>, DwellingName, Info3),
+    Info5 = maps:put(<<"structure">>, StructureName, Info4),
+    Info5;
+info_subclass(<<"hero">>, Obj, Info) -> 
+    TotalWeight = item:get_total_weight(Obj#obj.id),
+    Capacity = obj:get_capacity(Obj#obj.id),
+
+    Info0 = maps:put(<<"total_weight">>, TotalWeight, Info),
+    Info1 = maps:put(<<"capacity">>, Capacity, Info0),
+    Info1;
+info_subclass(<<"resource">>, Obj, Info) -> 
+    TotalWeight = item:get_total_weight(Obj#obj.id),
+    Capacity = obj:get_capacity(Obj#obj.id),
+    
+    Info0 = maps:put(<<"total_weight">>, TotalWeight, Info),
+    Info1 = maps:put(<<"capacity">>, Capacity, Info0),
+    Info1;
+info_subclass(<<"storage">>, Obj, Info) -> 
+    TotalWeight = item:get_total_weight(Obj#obj.id),
+    Capacity = obj:get_capacity(Obj#obj.id),
+    
+    Info0 = maps:put(<<"total_weight">>, TotalWeight, Info),
+    Info1 = maps:put(<<"capacity">>, Capacity, Info0),
+    Info1;
 info_subclass(_, _Obj, Info) -> Info.
 
 create_obj_attr(Id, Name) ->

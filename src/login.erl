@@ -50,15 +50,21 @@ login([], [Name, Pass, Socket]) ->
     db:write(Connection),
     db:write(ExploredMap),
    
-    Pos = map:random_location(),
-    AdjPos = map:get_random_neighbour(Pos),
+    %Pos = map:random_location(),
+    %AdjPos = map:get_random_neighbour(Pos),
+    Pos = {17,35},
+    AdjPos = {16,35},
  
     HeroId = obj:create(Pos, PlayerId, unit, <<"hero">>, <<"Hero Mage">>, none),
     VillagerId = obj:create(AdjPos, PlayerId, unit, <<"villager">>, <<"Human Villager">>, none),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(HeroId, <<"Cragroot Popular">>, 10),
-    item:create(VillagerId, <<"Crimson Root">>, 100),
+
+    ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
+    ItemId = maps:get(<<"id">>, ItemMap),
+
+    item:equip(ItemId),
 
     map:add_explored(PlayerId, Pos, 2),
 

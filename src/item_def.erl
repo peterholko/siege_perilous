@@ -5,7 +5,10 @@
 
 -include("schema.hrl").
 
--export([all/1, all_to_map/1, value/2]).
+-export([all/1, all_to_map/1, value/2, value/1, key/1]).
+
+-opaque item_def() :: #item_def{}.
+-export_type([item_def/0]).
 
 all(Name) ->
     db:dirty_match_object({item_def, {Name, '_'}, '_'}).
@@ -31,3 +34,10 @@ value(All, Attr) when is_list(All) ->
 value(Name, Attr) ->
     [ItemDef] = db:dirty_read(item_def, {Name, Attr}),
     ItemDef#item_def.value.
+
+value(ItemDef) -> 
+    ItemDef#item_def.value.
+
+key(ItemDef) ->
+    ItemDef#item_def.key.
+

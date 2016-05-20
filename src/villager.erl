@@ -22,8 +22,9 @@
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
 -export([order_follow/1, dwelling_needed/1, claim_dwelling/1, find_dwelling/1]).
 -export([structure_needed/1, find_structure/1, has_structure/1, harvest/1]).
--export([claim_structure/1, structure_not_empty/1]).
--export([structure_not_full/1, load_resources/1, find_storage/1, set_pos_storage/1, set_emptying/1, set_none/1, not_emptying/1]).
+-export([claim_structure/1]).
+-export([structure_not_full/1, load_resources/1, unload_resources/1, find_storage/1]).
+-export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1, storage_needed/1]).
 
 %% ====================================================================
 %% External functions
@@ -96,6 +97,15 @@ structure_needed(Id) ->
 
     StructureNeeded and StructureAvailable.
 
+storage_needed(Id) ->
+    [Villager] = db:read(villager, Id),
+    [VillagerObj] = db:read(obj, Id),
+    
+    StorageNeeded = Villager#villager.storage =:= none,
+    StorageAvailable = storage_available(VillagerObj#obj.player),
+
+    StorageNeeded and StorageAvailable.
+
 structure_not_full(Id) ->
     [Villager] = db:read(villager, Id), 
     Capacity = obj:get_capacity(Villager#villager.structure),
@@ -106,14 +116,9 @@ structure_not_full(Id) ->
 
     obj:has_space(Villager#villager.structure, Capacity15).
 
-structure_not_empty(Id) ->
-    [Villager] = db:read(villager, Id),
-    TotalWeight = item:get_total_weight(Villager#villager.storage),
-    TotalWeight =/= 0.
-
-not_emptying(Id) ->
+not_hauling(Id) ->
     [Villager] = db:read(villager, Id), 
-    Villager#villager.activity =/= emptying.
+    Villager#villager.activity =/= hauling.
 
 %%% 
 %%% HTN Primitive Tasks
@@ -137,8 +142,8 @@ set_pos_hero(Villager) ->
     
     Villager#villager {dest = Hero#obj.pos, task_state = completed}.
 
-set_emptying(Villager) ->
-    Villager#villager {activity = emptying, task_state = completed}.
+set_hauling(Villager) ->
+    Villager#villager {activity = hauling, task_state = completed}.
 
 set_none(Villager) ->
     Villager#villager {activity = none, task_state = completed}.
@@ -163,8 +168,10 @@ move_to_pos(Villager) ->
                                  Villager#villager {task_state = running, path = Path}
                          end;
                       false ->
+                         lager:info("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
                          Villager#villager {task_state = completed}
                  end,
+    lager:info("Move Villager: ~p",[NewVillager]),
     NewVillager.
 
 find_dwelling(Villager) ->
@@ -254,35 +261,69 @@ harvest(Villager) ->
 
 load_resources(Villager) ->
     Capacity = obj:get_capacity(Villager#villager.id),
-    Items = item:get_by_owner(Villager#villager.structure),
+    Items = item:get_non_equiped(Villager#villager.structure),
 
     F = fun(Item) ->
-            ItemWeight = Item#item.weight * Item#item.quantity,
+            ItemId = maps:get(<<"id">>, Item),
+            ItemWeight = maps:get(<<"weight">>, Item),
+            ItemQuantity = maps:get(<<"quantity">>, Item),
+            ItemTotalWeight = ItemWeight * ItemQuantity,
+
             TotalWeight = item:get_total_weight(Villager#villager.id),
 
-            case (TotalWeight + ItemWeight) =< Capacity of
+            case (TotalWeight + ItemTotalWeight) =< Capacity of
                 true ->
-                    item:transfer(Item#item.id, Villager#villager.id);
+                    item:transfer(ItemId, Villager#villager.id);
                 false ->
                     Space = Capacity - TotalWeight,
-                    Quantity = erlang:trunc(Space / Item#item.weight),
+                    Quantity = erlang:trunc(Space / ItemWeight),
 
                     case Quantity of
                         0 -> 
                             nothing;
                         Quantity -> 
-                            item:split(Item#item.id, Quantity),
-                            item:transfer(Item#item.id, Villager#villager.id)
+                            item:split(ItemId, Quantity),
+                            item:transfer(ItemId, Villager#villager.id)
                     end
             end
         end,
 
-    lists:foreach(F, Items).
+    lists:foreach(F, Items),
+
+    Villager#villager {task_state = completed}.
 
 unload_resources(Villager) ->
-    Capacity = obj:get_capacity(Villager#villager.storage).
+    Capacity = obj:get_capacity(Villager#villager.storage),
+    Items = item:get_non_equiped(Villager#villager.id),
 
+    F = fun(Item) ->           
+            ItemId = maps:get(<<"id">>, Item),
+            ItemWeight = maps:get(<<"weight">>, Item),
+            ItemQuantity = maps:get(<<"quantity">>, Item),
+            ItemTotalWeight = ItemWeight * ItemQuantity,
+           
+            TotalWeight = item:get_total_weight(Villager#villager.storage),
 
+            case (TotalWeight + ItemTotalWeight) =< Capacity of
+                true ->
+                    item:transfer(ItemId, Villager#villager.storage);
+                false ->
+                    Space = Capacity - TotalWeight,
+                    Quantity = erlang:trunc(Space / ItemWeight),
+
+                    case Quantity of
+                        0 ->
+                            nothing;
+                        Quantity ->
+                            item:split(ItemId, Quantity),
+                            item:transfer(ItemId, Villager#villager.storage)
+                    end
+            end
+        end,
+
+    lists:foreach(F, Items),
+
+    Villager#villager {task_state = completed}.
 
 %%% End of HTN functions %%%
 
@@ -369,8 +410,7 @@ handle_info({event_failure, {_Event, Id, Error, EventData}}, Data) ->
     Villager = db:read(villager, Id),
 
     case Error of
-        <<"Not enough capacity">> -> process_full_capacity(Villager, EventData);
-        _ -> nothing
+        _ -> lager:info("Event failure: ~p", [Error])
     end,
 
     {noreply, Data};
@@ -467,12 +507,23 @@ process_event_complete([Villager]) ->
     lager:info("Villager Task: ~p", [Task]),
 
     case Task of
-        move_to_pos -> complete_task(Villager);
+        move_to_pos -> process_move_complete(Villager);
         claim_dwelling -> complete_task(Villager);
         harvest -> complete_task(Villager);
         _ -> nothing
     end;
 process_event_complete([]) -> nothing.
+
+process_move_complete(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
+
+    case VillagerObj#obj.pos =:= Villager#villager.dest of
+        true -> 
+            NewVillager = Villager#villager {task_state = completed},           
+            db:write(NewVillager);
+        false ->
+            move_to_pos(Villager)
+    end.
 
 complete_task(Villager) ->
     NewVillager = Villager#villager {task_state = completed},
@@ -484,13 +535,13 @@ find_enemies(Villager, Objs) ->
 find_enemies(_Villager, [], Enemies) ->
     Enemies;
 find_enemies(Villager, [PerceptionObj | Rest], Enemies) ->
-    Player = maps:get(<<"player">>, PerceptionObj),
-    NewEnemies = case Villager#obj.player =:= Player of
-                     true -> Enemies;
-                     false -> [PerceptionObj | Enemies]
-                 end,
+    NewEnemies = filter_objs(Villager#obj.player, PerceptionObj, Enemies),
 
     find_enemies(Villager, Rest, NewEnemies).
+
+filter_objs(_Player, #{<<"state">> := State}, Enemies) when State =:= dead -> Enemies;
+filter_objs(Player, #{<<"player">> := ObjPlayer}, Enemies) when Player =:= ObjPlayer -> Enemies;
+filter_objs(_Player, Obj, Enemies) -> [Obj | Enemies].
 
 process('$end_of_table') ->
     lager:debug("Done processing villagers");
@@ -559,6 +610,14 @@ new_structure(Obj = #obj{subclass = Subclass, state = State}) when (Subclass =:=
 new_structure(_Obj) -> 
     none.
 
+storage_available(Player) ->
+    Objs = db:index_read(obj, Player, #obj.player),
+
+    case find_storage(Objs, none) of
+        {found, _Storage} -> true;
+        _ -> false
+    end.
+
 find_storage(_Objs, {found, Storage}) ->
     {found, Storage};
 find_storage([], _) ->
@@ -567,9 +626,18 @@ find_storage([Obj | Rest], _Storage) ->
     NewStorage = new_storage(Obj),
     find_storage(Rest, NewStorage). 
 
-new_storage(Obj = #obj{subclass = Subclass, state = State}) when (Subclass =:= <<"storage">>) and
-                                                             (State =:= none) ->
-    {found, Obj};
+new_storage(Obj = #obj{id = Id, subclass = Subclass, state = State}) when (Subclass =:= <<"storage">>) and
+                                                                          (State =:= none) ->
+
+    Capacity = obj:get_capacity(Id),
+    Capacity10 = erlang:trunc(Capacity * 0.10),
+
+    lager:info("Capacity: ~p ~p", [Capacity, Capacity10]),
+
+    case obj:has_space(Id, Capacity10) of
+        true -> {found, Obj};
+        false -> none
+    end;
 new_storage(_Obj) ->
     none.
 process_morale(Villager, Obj) ->

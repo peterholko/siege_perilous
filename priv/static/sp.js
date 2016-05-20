@@ -1842,14 +1842,14 @@ function drawInfoUnit(jsonData) {
         var dmg_range = Number(jsonData.dmg_range) + itemDamage;
         var armor = Number(jsonData.base_def) + itemArmor;
 
-        if(jsonData.subclass = "villager") {
+        if(jsonData.subclass == "villager") {
             var stats = "--- Stats --- \n"
                   + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
                   + "Defense: " + armor + "\n"
                   + "Speed: " + jsonData.base_speed + "\n"
                   + "State: " + jsonData.state + "\n"
+                  + "Capacity: " + jsonData.total_weight + "/" + jsonData.capacity + "\n"
                   + "Dwelling: " + jsonData.dwelling + "\n"
-                  + "Task: " + jsonData.task + "\n"
                   + "Morale: " + jsonData.morale;
         } else {
             var stats = "--- Stats --- \n"
@@ -1858,6 +1858,7 @@ function drawInfoUnit(jsonData) {
                   + "Defense: " + armor + "\n"
                   + "Speed: " + jsonData.base_speed + "\n"
                   + "State: " + jsonData.state + "\n"
+                  + "Capacity: " + jsonData.total_weight + "/" + jsonData.capacity + "\n"
                   + "Xp: " + jsonData.xp + "\n";
         }
 
@@ -1905,7 +1906,8 @@ function drawInfoUnit(jsonData) {
     else if(jsonData.class == "structure") {
         var stats = "--- Stats --- \n"
                   + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
-                  + "State: " + jsonData.state + "\n";
+                  + "State: " + jsonData.state + "\n"
+                  + "Capacity: " + jsonData.total_weight + "/" + jsonData.capacity + "\n";
 
         var statsText = new createjs.Text(stats, h1Font, textColor);
 
