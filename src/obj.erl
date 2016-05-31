@@ -16,7 +16,8 @@
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_villager/1, is_not_npc/1]).
 -export([item_transfer/2, has_space/2]).
--export([get/1, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
+-export([get/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
+-export([class/1, subclass/1, state/1]).
 
 init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
@@ -284,6 +285,29 @@ get(Id) ->
         _ -> invalid
     end.
 
+get_by_attr(Player, AttrList) ->
+    Objs = db:index_read(obj, Player, #obj.player),
+
+    F = fun(Obj) ->
+            process_attrlist(Obj, AttrList)
+        end,
+
+    lists:filter(F, Objs).
+
+process_attrlist(Obj, AttrList) ->
+    F = fun({class, Value}, Acc) when is_list(Value) -> lists:member(class(Obj), Value) and Acc;
+           ({class, Value}, Acc) -> (class(Obj) =:= Value) and Acc;
+           ({subclass, Value}, Acc) when is_list(Value) -> lists:member(subclass(Obj), Value) and Acc;
+           ({subclass, Value}, Acc) -> (subclass(Obj) =:= Value) and Acc;
+           ({state, Value}, Acc) -> (state(Obj) =:= Value) and Acc
+        end,
+
+    lists:foldl(F, true, AttrList).
+
+class(Obj = #obj{}) -> Obj#obj.class.
+subclass(Obj = #obj{}) -> Obj#obj.subclass.
+state(Obj = #obj{}) -> Obj#obj.state.
+
 %Get vital stats
 get_stats(Id) ->
     stats(Id).
@@ -389,8 +413,8 @@ process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subcl
 process_subclass(#obj{id = Id, subclass = Subclass}) when Subclass =:= <<"npc">> ->
     NPC = #npc{id = Id},
     db:write(NPC);
-process_subclass(#obj{id = Id, subclass = Subclass}) when Subclass =:= <<"villager">> ->
-    Villager = #villager{id = Id},
+process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= <<"villager">> ->
+    Villager = #villager{id = Id, player = Player},
     db:write(Villager);
 process_subclass(_) ->
     nothing.
@@ -498,7 +522,7 @@ info_subclass(<<"villager">>, Obj, Info) ->
     Capacity = obj:get_capacity(Obj#obj.id),
     Morale = Villager#villager.morale,
     Order = atom_to_binary(Villager#villager.order, latin1),
-    DwellingId = Villager#villager.dwelling,
+    DwellingId = Villager#villager.shelter,
     StructureId = Villager#villager.structure,
 
     DwellingName = case db:read(obj, DwellingId) of
@@ -515,7 +539,7 @@ info_subclass(<<"villager">>, Obj, Info) ->
     Info1 = maps:put(<<"capacity">>, Capacity, Info0),
     Info2 = maps:put(<<"morale">>, Morale, Info1),
     Info3 = maps:put(<<"order">>, Order, Info2),
-    Info4 = maps:put(<<"dwelling">>, DwellingName, Info3),
+    Info4 = maps:put(<<"shelter">>, DwellingName, Info3),
     Info5 = maps:put(<<"structure">>, StructureName, Info4),
     Info5;
 info_subclass(<<"hero">>, Obj, Info) -> 

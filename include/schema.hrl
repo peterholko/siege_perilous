@@ -96,15 +96,17 @@
                obj}).
 
 -record(villager, {id,
+                   player,
                    order = none,
                    activity = none,
                    structure = none,
-                   dwelling = none,
+                   shelter = none,
                    storage = none,
                    morale = 60,
                    enemy = none,
                    dest = none,
                    plan = [],
+                   plan_data = none,
                    new_plan = false,
                    task_state = none,
                    task_index = 0,
@@ -157,4 +159,5 @@
                  responses = [],
                  resolutions = [],
                  effects = []}).
+
 

@@ -151,6 +151,8 @@ process_upkeep(Structure) ->
         false ->
             obj:remove_effect(Structure#obj.id, <<"Decaying">>)
     end.
+
+
 %
 % Internal functions
 %

@@ -17,14 +17,17 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([remove/1, remove_structure/1]).
 -export([create_plan/0, run_plan/0]).
--export([enemy_visible/1, move_to_pos/1, has_dwelling/1, has_storage/1, hero_nearby/1]).
--export([set_pos_dwelling/1, set_pos_hero/1, set_pos_structure/1]).
+-export([enemy_visible/1, move_to_pos/1, hero_nearby/1]).
+-export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
--export([order_follow/1, dwelling_needed/1, claim_dwelling/1, find_dwelling/1]).
--export([structure_needed/1, find_structure/1, has_structure/1, harvest/1]).
--export([claim_structure/1]).
--export([structure_not_full/1, load_resources/1, unload_resources/1, find_storage/1]).
--export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1, storage_needed/1]).
+-export([order_follow/1, has_order/1]).
+-export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
+-export([has_shelter/1, has_harvester/1, has_craft/1, has_storage/1]).
+-export([free_structure/1, free_harvester/1, free_craft/1, free_shelter/1, free_storage/1]).
+-export([find_shelter/1, find_harvester/1, find_craft/1, find_storage/1]).
+-export([structure_not_full/1, load_resources/1, unload_resources/1]).
+-export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
+-export([idle/1]).
 
 %% ====================================================================
 %% External functions
@@ -47,13 +50,31 @@ enemy_visible(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.enemy =/= none.
 
-has_dwelling(Id) ->
+has_shelter(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.dwelling =/= none.
+    Villager#villager.shelter =/= none.
 
-has_structure(Id) ->
+has_harvester(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.structure =/= none.
+    case obj:get(Villager#villager.structure) of
+        invalid -> false;
+        Obj -> 
+            case obj:subclass(Obj) of
+                <<"resource">> -> true;
+                _ -> false
+            end
+    end.
+
+has_craft(Id) ->
+    [Villager] = db:read(villager, Id),
+    case obj:get(Villager#villager.structure) of
+        invalid -> false;
+        Obj -> 
+            case obj:subclass(Obj) of
+                <<"craft">> -> true;
+                _ -> false
+            end
+    end.
 
 has_storage(Id) ->
     [Villager] = db:read(villager, Id),
@@ -75,36 +96,54 @@ morale(Id, Value) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.morale >= Value.
 
+has_order(Id) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.order =/= none.
+
 order_follow(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.order =:= follow.
 
-dwelling_needed(Id) ->
+shelter_needed(Id) ->
     [Villager] = db:read(villager, Id), 
-    [VillagerObj] = db:read(obj, Id),
-   
-    DwellingNeeded = Villager#villager.dwelling =:= none,
-    DwellingAvailable = dwelling_available(VillagerObj#obj.player),
-
-    DwellingNeeded and DwellingAvailable.
+    Villager#villager.shelter =:= none.
 
 structure_needed(Id) ->
     [Villager] = db:read(villager, Id), 
-    [VillagerObj] = db:read(obj, Id),
-    
-    StructureNeeded = Villager#villager.structure =:= none,
-    StructureAvailable = structure_available(VillagerObj#obj.player),
-
-    StructureNeeded and StructureAvailable.
+    Villager#villager.structure =:= none.
 
 storage_needed(Id) ->
     [Villager] = db:read(villager, Id),
-    [VillagerObj] = db:read(obj, Id),
-    
-    StorageNeeded = Villager#villager.storage =:= none,
-    StorageAvailable = storage_available(VillagerObj#obj.player),
+    Villager#villager.storage =:= none.
 
-    StorageNeeded and StorageAvailable.
+free_structure(Id) -> free_structure(Id, structure, [{subclass, [<<"resource">>, <<"craft">>]}]).
+free_harvester(Id) -> free_structure(Id, structure, [{subclass, <<"resource">>}]).
+free_craft(Id) -> free_structure(Id, structure, [{subclass, <<"craft">>}]).
+free_shelter(Id) -> free_structure(Id, shelter, [{subclass, <<"shelter">>}]).
+free_storage(Id) -> free_structure(Id, storage, [{subclass, <<"storage">>}]).
+                        
+free_structure(Id, StructureClass, StructureTypes) ->    
+    [Villager] = db:read(villager, Id),
+
+    ClaimedList = case StructureClass of
+                      structure -> get_claimed_structures(Villager#villager.player);
+                      shelter -> get_claimed_shelters(Villager#villager.player);
+                      storage -> [] % Cannot claim storage
+                  end,
+
+    StateComplete = [{state, none}],
+    Structures = obj:get_by_attr(Villager#villager.player, StructureTypes ++ StateComplete),
+
+    lager:info("ClaimedList: ~p", [ClaimedList]),
+
+    F = fun(Structure, Acc) -> 
+            FreeStructure = not lists:member(Structure#obj.id, ClaimedList),
+            FreeStructure or Acc 
+        end,
+
+    Result = lists:foldl(F, false, Structures),
+    lager:info("free_structure: ~p ~p", [StructureTypes, Result]),
+    Result.
 
 structure_not_full(Id) ->
     [Villager] = db:read(villager, Id), 
@@ -123,8 +162,33 @@ not_hauling(Id) ->
 %%% 
 %%% HTN Primitive Tasks
 %%%
-set_pos_dwelling(Villager) ->
-    [Dwelling] = db:read(obj, Villager#villager.dwelling),
+
+find_shelter(Villager) ->
+    Shelter = find_structure(Villager, <<"shelter">>),
+    Villager#villager {shelter = Shelter#obj.id,
+                       dest = Shelter#obj.pos,
+                       task_state = completed}.
+
+find_harvester(Villager) ->
+    Harvester = find_structure(Villager, <<"resource">>),
+    Villager#villager {structure = Harvester#obj.id,
+                       dest = Harvester#obj.pos,
+                       task_state = completed}.
+
+find_craft(Villager) ->
+    Craft = find_structure(Villager, <<"craft">>),
+    Villager#villager {structure = Craft#obj.id,
+                       dest = Craft#obj.pos,
+                       task_state = completed}.
+
+find_storage(Villager) ->
+    Storage = find_structure(Villager, <<"storage">>),
+    Villager#villager {storage = Storage#obj.id,
+                       dest = Storage#obj.pos,
+                       task_state = completed}.
+
+set_pos_shelter(Villager) ->
+    [Dwelling] = db:read(obj, Villager#villager.shelter),
     Villager#villager {dest = Dwelling#obj.pos, task_state = completed}.
 
 set_pos_structure(Villager) ->
@@ -137,7 +201,6 @@ set_pos_storage(Villager) ->
 
 set_pos_hero(Villager) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
-
     Hero = obj:get_hero(VillagerObj#obj.player),
     
     Villager#villager {dest = Hero#obj.pos, task_state = completed}.
@@ -173,84 +236,6 @@ move_to_pos(Villager) ->
                  end,
     lager:info("Move Villager: ~p",[NewVillager]),
     NewVillager.
-
-find_dwelling(Villager) ->
-    [VillagerObj] = db:read(obj, Villager#villager.id),
-
-    Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
-
-    NewVillager = case find_dwelling(Objs, none) of
-                      {found, Dwelling} -> 
-                          Villager#villager {dest = Dwelling#obj.pos};
-                      _ -> 
-                          Villager
-                  end,
-
-    NewVillager#villager {task_state = completed}.
-
-claim_dwelling(Villager) -> 
-    [VillagerObj] = db:read(obj, Villager#villager.id),
-
-    Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
-
-    NewVillager = case find_dwelling(Objs, none) of
-                      {found, Dwelling} ->
-                          case Dwelling#obj.pos =:= VillagerObj#obj.pos of
-                              true ->
-                                  Villager#villager{dwelling = Dwelling#obj.id};
-                              false ->
-                                  Villager
-                          end;
-                      _ ->
-                          Villager
-                  end, 
-    NewVillager#villager {task_state = completed}.
-
-find_structure(Villager) ->
-    [VillagerObj] = db:read(obj, Villager#villager.id),
-
-    Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
-
-    NewVillager = case find_structure(Objs, none) of
-                      {found, Structure} -> 
-                          Villager#villager {structure = Structure#obj.id,
-                                             dest = Structure#obj.pos};
-                      _ -> 
-                          Villager
-                  end,
-    NewVillager#villager {task_state = completed}.
-
-find_storage(Villager) ->
-    [VillagerObj] = db:read(obj, Villager#villager.id),
-
-    Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
-
-    NewVillager = case find_storage(Objs, none) of
-                      {found, Storage} ->
-                          Villager#villager {storage = Storage#obj.id,
-                                             dest = Storage#obj.pos};
-                      _ ->
-                          Villager
-                  end,
-    NewVillager#villager {task_state = completed}.
-
-claim_structure(Villager) ->
-    [VillagerObj] = db:read(obj, Villager#villager.id),
-
-    Objs = db:index_read(obj, VillagerObj#obj.player, #obj.player),
-
-    NewVillager = case find_structure(Objs, none) of
-                      {found, Structure} ->
-                          case Structure#obj.pos =:= VillagerObj#obj.pos of
-                              true ->
-                                  Villager#villager{structure = Structure#obj.id};
-                              false ->
-                                  Villager
-                          end;
-                      _ ->
-                          Villager
-                  end, 
-    NewVillager#villager {task_state = completed}.
 
 harvest(Villager) ->
     EventData = {Villager#villager.id, Villager#villager.structure},
@@ -325,20 +310,24 @@ unload_resources(Villager) ->
 
     Villager#villager {task_state = completed}.
 
+idle(Villager) ->
+    lager:info("Villager idling"),
+    Villager#villager {task_state = completed}.
+
 %%% End of HTN functions %%%
 
 remove(ObjId) ->
     db:delete(villager, ObjId).
 
 remove_structure(StructureId) ->
-    remove_dwellings(StructureId),
+    remove_shelters(StructureId),
     remove_assigns(StructureId).
 
-remove_dwellings(StructureId) ->
-    Villagers = db:index_read(villager, StructureId, #villager.dwelling),
+remove_shelters(StructureId) ->
+    Villagers = db:index_read(villager, StructureId, #villager.shelter),
 
     F = fun(Villager) -> 
-            NewVillager = Villager#villager{dwelling = none},
+            NewVillager = Villager#villager{shelter = none},
             db:write(NewVillager)
         end,
 
@@ -406,8 +395,8 @@ handle_info({event_complete, {_Event, Id}}, Data) ->
     Villager = db:read(villager, Id),
     process_event_complete(Villager),
     {noreply, Data};
-handle_info({event_failure, {_Event, Id, Error, EventData}}, Data) ->
-    Villager = db:read(villager, Id),
+handle_info({event_failure, {_Event, Id, Error, _EventData}}, Data) ->
+    _Villager = db:read(villager, Id),
 
     case Error of
         _ -> lager:info("Event failure: ~p", [Error])
@@ -508,7 +497,7 @@ process_event_complete([Villager]) ->
 
     case Task of
         move_to_pos -> process_move_complete(Villager);
-        claim_dwelling -> complete_task(Villager);
+        claim_shelter -> complete_task(Villager);
         harvest -> complete_task(Villager);
         _ -> nothing
     end;
@@ -559,94 +548,35 @@ process(Id) ->
     
     process(db:next(villager, Id)).
 
-dwelling_available(Player) ->
-    Objs = db:index_read(obj, Player, #obj.player),
-    
-    case find_dwelling(Objs, none) of
-        {found, _Dwelling} -> true;
-        _ -> false
-    end.
+find_structure(Villager, Type) ->       
+    lager:debug("find_structure: ~p", [Type]),
+    Structures  = obj:get_by_attr(Villager#villager.player, [{subclass, Type}, {state, none}]),
 
-find_dwelling(_Objs, {found, Dwelling}) ->
-    {found, Dwelling};
-find_dwelling([], _) ->
-    none;
-find_dwelling([Obj | Rest], _Dwelling) ->
-    NewDwelling = new_dwelling(Obj),
-    find_dwelling(Rest, NewDwelling).
+    ClaimedList = case Type of
+                      <<"shelter">> -> get_claimed_shelters(Villager#villager.player);
+                      <<"resource">> -> get_claimed_structures(Villager#villager.player);
+                      <<"craft">> -> get_claimed_structures(Villager#villager.player);
+                      <<"storage">> -> [] % Cannot claim storage
+                  end,
 
-new_dwelling(Obj = #obj{subclass = Subclass, state = State}) when (Subclass =:= <<"shelter">>) and 
-                                                                  (State =:= none) ->
-    case db:index_read(villager, Obj#obj.id, #villager.dwelling) of
-        [_Villager] -> none;
-        [] -> {found, Obj}
-    end;
-new_dwelling(_) -> 
-    none.
+    lager:debug("ClaimedList: ~p", [ClaimedList]),
+    F = fun(Structure, Acc) ->
+            case lists:member(Structure#obj.id, ClaimedList) of
+                false -> [Structure | Acc];
+                true -> Acc
+            end    
+        end,
 
-structure_available(Player) ->
-    Objs = db:index_read(obj, Player, #obj.player),
+    [First | _Rest] = lists:foldl(F, [], Structures),
+    First.
 
-    case find_structure(Objs, none) of
-        {found, _Structure} -> true;
-        _ -> false
-    end.
-
-find_structure(_Objs, {found, Structure}) ->
-    {found, Structure};
-find_structure([], _) ->
-    none;
-find_structure([Obj | Rest], _Structure) ->
-    NewStructure = new_structure(Obj),
-    find_structure(Rest, NewStructure).
-
-new_structure(Obj = #obj{subclass = Subclass, state = State}) when (Subclass =:= <<"resource">>) and
-                                                                   (State =:= none) ->
-    lager:info("Match Obj: ~p", [Obj]),
-    case db:index_read(villager, Obj#obj.id, #villager.structure) of
-        [_Villager] -> none;
-        [] -> {found, Obj}
-    end;
-new_structure(_Obj) -> 
-    none.
-
-storage_available(Player) ->
-    Objs = db:index_read(obj, Player, #obj.player),
-
-    case find_storage(Objs, none) of
-        {found, _Storage} -> true;
-        _ -> false
-    end.
-
-find_storage(_Objs, {found, Storage}) ->
-    {found, Storage};
-find_storage([], _) ->
-    none;
-find_storage([Obj | Rest], _Storage) ->
-    NewStorage = new_storage(Obj),
-    find_storage(Rest, NewStorage). 
-
-new_storage(Obj = #obj{id = Id, subclass = Subclass, state = State}) when (Subclass =:= <<"storage">>) and
-                                                                          (State =:= none) ->
-
-    Capacity = obj:get_capacity(Id),
-    Capacity10 = erlang:trunc(Capacity * 0.10),
-
-    lager:info("Capacity: ~p ~p", [Capacity, Capacity10]),
-
-    case obj:has_space(Id, Capacity10) of
-        true -> {found, Obj};
-        false -> none
-    end;
-new_storage(_Obj) ->
-    none.
 process_morale(Villager, Obj) ->
     Food = case item:get_by_subclass(Obj#obj.id, ?FOOD) of
               [] -> false;
               [_Item | _Rest] -> true
            end,
 
-    Dwelling = case Villager#villager.dwelling of
+    Dwelling = case Villager#villager.shelter of
                    none -> false;
                    _ -> true
                end,
@@ -688,4 +618,20 @@ move_unit(#obj {id = Id, player = Player}, NewPos) ->
     lager:info("Villager: adding game move event"),
     game:add_event(self(), move, EventData, Id, NumTicks).
 
+get_claimed_structures(Player) ->
+    Villagers = db:index_read(villager, Player, #villager.player),
 
+    F = fun(#villager{id = Id, structure = Structure}, Acc) when Structure =/= none -> [Id | Acc];
+           (_, Acc) -> Acc
+        end,
+
+    lists:foldl(F, [], Villagers).
+
+get_claimed_shelters(Player) ->
+    Villagers = db:index_read(villager, Player, #villager.player),
+
+    F = fun(#villager{id = Id, shelter = Shelter}, Acc) when Shelter =/= none -> [Id | Acc];
+           (_, Acc) -> Acc
+        end,
+
+    lists:foldl(F, [], Villagers).
