@@ -103,7 +103,7 @@
                    shelter = none,
                    storage = none,
                    morale = 60,
-                   enemy = none,
+                   enemies = none,
                    dest = none,
                    plan = [],
                    plan_data = none,

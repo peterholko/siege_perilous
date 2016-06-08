@@ -12,11 +12,11 @@
 -export([create/6, remove/1, move/2]).
 -export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
 -export([add_effect/3, remove_effect/2, has_effect/2, trigger_effects/1]).
--export([is_empty/1, movement_cost/2]).
+-export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
--export([is_hero_nearby/2, is_monolith_nearby/1, is_villager/1, is_not_npc/1]).
+-export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1]).
 -export([item_transfer/2, has_space/2]).
--export([get/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
+-export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
 -export([class/1, subclass/1, state/1]).
 
 init_perception(PlayerId) ->
@@ -96,7 +96,7 @@ move(Id, Pos) ->
     end,
 
     %Check if player triggered encounter
-    case is_not_npc(Obj) of
+    case is_player(Obj) of
         true -> encounter:check(Pos);
         false -> nothing
     end.
@@ -259,6 +259,23 @@ is_empty(Pos) ->
     Units = filter_units(Objs),
     Units =:= [].
 
+is_empty(SourceObj, Pos) when is_record(SourceObj, obj) ->
+    Objs = db:dirty_index_read(obj, Pos, #obj.pos),
+
+    F = fun(Obj) ->
+            case is_player(Obj) of
+                true ->
+                    (SourceObj#obj.player =/= Obj#obj.player) and (Obj#obj.class =:= unit);
+                false ->
+                    Obj#obj.class =:= unit
+            end
+        end,
+
+    lists:filter(F, Objs) =:= [];
+is_empty(SourceId, Pos) ->
+    [Obj] = db:read(obj, SourceId),
+    is_empty(Obj, Pos).
+
 item_transfer(#obj {id = Id, 
                     subclass = Subclass, 
                     state = State}, Item) when (Subclass =:= ?MONOLITH) and 
@@ -284,6 +301,14 @@ get(Id) ->
         [Obj] -> Obj;
         _ -> invalid
     end.
+
+get_by_attr(AttrList) ->
+    Objs = ets:tab2list(obj),
+    F = fun(Obj) ->
+            process_attrlist(Obj, AttrList)
+        end,
+
+    lists:filter(F, Objs).
 
 get_by_attr(Player, AttrList) ->
     Objs = db:index_read(obj, Player, #obj.player),
@@ -378,11 +403,11 @@ is_monolith_nearby(QueryPos) ->
 
     lists:any(F, Monoliths).
 
-is_villager(#obj{subclass = Subclass}) when Subclass =:= <<"villager">> -> true;
-is_villager(_) -> false.
+is_subclass(IsSubclass, #obj{subclass = Subclass}) when Subclass =:= IsSubclass -> true;
+is_subclass(_, _) -> false.
 
-is_not_npc(#obj{player = Player}) when Player >= 1000 -> true;
-is_not_npc(_) -> false.
+is_player(#obj{player = Player}) when Player >= 1000 -> true;
+is_player(_) -> false.
 
 has_space(ObjId, NewItemWeight) ->
     Capacity = get_capacity(ObjId),

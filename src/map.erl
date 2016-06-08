@@ -20,7 +20,7 @@
 -export([add_explored/3]).
 -export([neighbours/1, neighbours/2, get_random_neighbour/1]).
 -export([cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
--export([movement_cost/1, is_passable/1, is_river/1, random_location/0]).
+-export([movement_cost/1, is_passable/1, is_not_blocked/2, is_river/1, random_location/0]).
 -export([check_distance/4, distance/2]).
 -export([range/2, filter_pos/1]).
 -export([spawn_resources/0, tile_name/1, defense_bonus/1]).
@@ -82,6 +82,17 @@ is_passable(Pos) when is_tuple(Pos) ->
     passable_tile(TileName);
 is_passable(TileName) when is_binary(TileName) ->
     passable_tile(TileName).
+
+is_not_blocked(SourcePlayer, Pos) ->
+    Objs = obj:get_by_pos(Pos),
+
+    F = fun(Obj) ->
+            (Obj#obj.player =/= SourcePlayer) and
+            (Obj#obj.subclass =:= ?WALL) and
+            (Obj#obj.state =:= none) 
+        end,
+
+    lists:filter(F, Objs) =:= [].
 
 defense_bonus(Pos) when is_tuple(Pos) ->
     [Tile] = db:dirty_read(map, Pos),

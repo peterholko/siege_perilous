@@ -122,7 +122,7 @@ do_event(move, EventData, PlayerPid) ->
     lager:debug("Processing move_obj event: ~p", [EventData]),
     {_Player, Id, NewPos} = EventData,
 
-    case obj:is_empty(NewPos) of
+    case obj:is_empty(Id, NewPos) of
         true ->
             obj:move(Id, NewPos);
         false ->
@@ -463,7 +463,7 @@ food_upkeep() ->
     lists:foreach(F, Units).
 
 structure_upkeep() ->
-    Structures = db:index_read(obj, structure, #obj.class),
+    Structures = obj:get_by_attr([{class, structure}, {state, none}]),
 
     F = fun(Structure) ->
             structure:process_upkeep(Structure)

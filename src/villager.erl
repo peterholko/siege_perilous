@@ -15,19 +15,20 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([remove/1, remove_structure/1]).
+-export([assign/2, remove/1, remove_structure/1]).
 -export([create_plan/0, run_plan/0]).
 -export([enemy_visible/1, move_to_pos/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
 -export([order_follow/1, has_order/1]).
 -export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
--export([has_shelter/1, has_harvester/1, has_craft/1, has_storage/1]).
+-export([has_shelter/1, assigned_harvester/1, assigned_craft/1, has_storage/1]).
 -export([free_structure/1, free_harvester/1, free_craft/1, free_shelter/1, free_storage/1]).
 -export([find_shelter/1, find_harvester/1, find_craft/1, find_storage/1]).
 -export([structure_not_full/1, load_resources/1, unload_resources/1]).
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
--export([idle/1]).
+-export([can_refine/1, can_craft/1, can_experiment/1, has_resources/1]).
+-export([idle/1, refine/1, craft/1]).
 
 %% ====================================================================
 %% External functions
@@ -48,13 +49,13 @@ run_plan() ->
 
 enemy_visible(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.enemy =/= none.
+    Villager#villager.enemies =/= [].
 
 has_shelter(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.shelter =/= none.
 
-has_harvester(Id) ->
+assigned_harvester(Id) ->
     [Villager] = db:read(villager, Id),
     case obj:get(Villager#villager.structure) of
         invalid -> false;
@@ -65,7 +66,7 @@ has_harvester(Id) ->
             end
     end.
 
-has_craft(Id) ->
+assigned_craft(Id) ->
     [Villager] = db:read(villager, Id),
     case obj:get(Villager#villager.structure) of
         invalid -> false;
@@ -159,6 +160,25 @@ not_hauling(Id) ->
     [Villager] = db:read(villager, Id), 
     Villager#villager.activity =/= hauling.
 
+can_refine(Id) ->
+    [Villager] = db:read(villager, Id),
+    structure:can_process(Villager#villager.structure).
+
+can_craft(Id) ->
+    [Villager] = db:read(villager, Id),
+    structure:can_craft(Villager#villager.structure).
+
+can_experiment(_Id) ->
+    false.
+
+has_resources(Id) ->
+    [Villager] = db:read(villager, Id),
+    
+    case Villager#villager.storage =/= none of
+        true -> true;
+        false -> false
+    end.
+    
 %%% 
 %%% HTN Primitive Tasks
 %%%
@@ -219,7 +239,7 @@ move_to_pos(Villager) ->
     %If dest is set and dest does not equal villager current pos
     NewVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
                       true ->
-                         Path = astar:astar(VillagerObj#obj.pos, Dest),
+                         Path = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
 
                          case Path of
                              [] -> 
@@ -245,8 +265,13 @@ harvest(Villager) ->
     Villager#villager {task_state = running}.
 
 load_resources(Villager) ->
+    VillagerObj = obj:get(Villager#villager.id),
+    AllObjs = obj:get_by_pos(VillagerObj#obj.pos),
+    [Structure | _Rest] = lists:filter(fun(Obj) -> Obj#obj.class =:= structure end, AllObjs),
+    StructureId = Structure#obj.id,
+
     Capacity = obj:get_capacity(Villager#villager.id),
-    Items = item:get_non_equiped(Villager#villager.structure),
+    Items = item:get_non_equiped(StructureId),
 
     F = fun(Item) ->
             ItemId = maps:get(<<"id">>, Item),
@@ -278,7 +303,12 @@ load_resources(Villager) ->
     Villager#villager {task_state = completed}.
 
 unload_resources(Villager) ->
-    Capacity = obj:get_capacity(Villager#villager.storage),
+    VillagerObj = obj:get(Villager#villager.id),
+    AllObjs = obj:get_by_pos(VillagerObj#obj.pos),
+    [Structure | _Rest] = lists:filter(fun(Obj) -> Obj#obj.class =:= structure end, AllObjs),
+    StructureId = Structure#obj.id,
+   
+    Capacity = obj:get_capacity(StructureId),
     Items = item:get_non_equiped(Villager#villager.id),
 
     F = fun(Item) ->           
@@ -287,11 +317,11 @@ unload_resources(Villager) ->
             ItemQuantity = maps:get(<<"quantity">>, Item),
             ItemTotalWeight = ItemWeight * ItemQuantity,
            
-            TotalWeight = item:get_total_weight(Villager#villager.storage),
+            TotalWeight = item:get_total_weight(StructureId),
 
             case (TotalWeight + ItemTotalWeight) =< Capacity of
                 true ->
-                    item:transfer(ItemId, Villager#villager.storage);
+                    item:transfer(ItemId, StructureId);
                 false ->
                     Space = Capacity - TotalWeight,
                     Quantity = erlang:trunc(Space / ItemWeight),
@@ -301,7 +331,7 @@ unload_resources(Villager) ->
                             nothing;
                         Quantity ->
                             item:split(ItemId, Quantity),
-                            item:transfer(ItemId, Villager#villager.storage)
+                            item:transfer(ItemId, StructureId)
                     end
             end
         end,
@@ -314,14 +344,38 @@ idle(Villager) ->
     lager:info("Villager idling"),
     Villager#villager {task_state = completed}.
 
+refine(Villager) ->
+    structure:process(Villager#villager.structure),
+    Villager#villager {task_state = running}.
+
+craft(Villager) ->
+    lager:info("Villager crafting"),
+
+    Recipe = structure:get_craftable_recipe(Villager#villager.structure),
+    RecipeName = structure:recipe_name(Recipe),
+   
+    EventData = {Villager#villager.structure, 
+                 Villager#villager.id, 
+                 RecipeName},
+    lager:info("Craft event_data: ~p", [EventData]),
+    obj:update_state(Villager#villager.id, crafting),
+    game:add_event(self(), craft, EventData, Villager#villager.id, ?TICKS_SEC * 10),
+
+    Villager#villager {task_state = running}.
+
 %%% End of HTN functions %%%
+
+assign(SourceId, TargetId) ->
+    [Villager] = db:read(villager, SourceId),
+    db:write(Villager#villager {structure = TargetId}). 
 
 remove(ObjId) ->
     db:delete(villager, ObjId).
 
 remove_structure(StructureId) ->
     remove_shelters(StructureId),
-    remove_assigns(StructureId).
+    remove_assigns(StructureId),
+    remove_storage(StructureId).
 
 remove_shelters(StructureId) ->
     Villagers = db:index_read(villager, StructureId, #villager.shelter),
@@ -343,8 +397,15 @@ remove_assigns(StructureId) ->
 
     lists:foreach(F, Villagers).
 
+remove_storage(StructureId) ->
+    Villagers = db:index_read(villager, StructureId, #villager.storage),
 
+    F = fun(Villager) -> 
+            NewVillager = Villager#villager{storage = none},
+            db:write(NewVillager)
+        end,
 
+    lists:foreach(F, Villagers).
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -382,13 +443,9 @@ handle_info({perception, {VillagerId, Objs}}, Data) ->
     [Villager] = db:read(villager, VillagerId),
     [VillagerObj] = db:read(obj, VillagerId),
 
-    case find_enemies(VillagerObj, Objs) of
-        [] -> 
-            nothing;
-        Enemies -> 
-            NewVillager = Villager#villager{enemy = Enemies},
-            db:write(NewVillager)
-    end,
+    Enemies = find_enemies(VillagerObj, Objs),
+    NewVillager = Villager#villager{enemies = Enemies},
+    db:write(NewVillager),
 
     {noreply, Data};
 handle_info({event_complete, {_Event, Id}}, Data) ->
@@ -499,6 +556,8 @@ process_event_complete([Villager]) ->
         move_to_pos -> process_move_complete(Villager);
         claim_shelter -> complete_task(Villager);
         harvest -> complete_task(Villager);
+        refine -> complete_task(Villager);
+        craft -> complete_task(Villager);
         _ -> nothing
     end;
 process_event_complete([]) -> nothing.

@@ -14,6 +14,11 @@
 -export([combine_stats/2, craft_item_name/2]).
 -export([process_upkeep/1, process_upkeep_item/3]).
 -export([get_harvesters/1, harvest/2]).
+-export([get_craftable_recipe/1, get_recipes/1]).
+-export([can_craft/1, can_process/1]).
+-export([recipe_name/1]).
+
+recipe_name(Recipe) -> maps:get(<<"item">>, Recipe).
 
 get_harvesters(Player) ->
     Objs = db:index_read(obj, Player, #obj.player),
@@ -93,7 +98,44 @@ process(StructureId) ->
 
     NewItems = lists:foldl(F, [], Produces),
     NewItems.
-    
+
+can_process(StructureId) ->
+    Process = obj_attr:value(StructureId, <<"process">>),
+    item:get_by_subclass(StructureId, Process) =/= [].
+
+can_craft(StructureId) ->
+    [Structure] = db:read(obj, StructureId),
+    Recipes = filter_process_res(get_recipes(Structure#obj.name)),
+
+    F = fun(Recipe, Acc) ->
+            RecipeName = maps:get(<<"item">>, Recipe),
+            check_recipe_req(StructureId, RecipeName) or Acc
+        end,
+
+    lists:foldl(F, false, Recipes).
+
+get_craftable_recipe(StructureId) ->
+    [Structure] = db:read(obj, StructureId),
+    Recipes = filter_process_res(get_recipes(Structure#obj.name)),
+
+    F = fun(Recipe) ->
+            RecipeName = maps:get(<<"item">>, Recipe),
+            check_recipe_req(StructureId, RecipeName)
+        end,
+
+    Craftable = lists:filter(F, Recipes),
+
+    %Pick one at random
+    Random = util:rand(length(Craftable)),    
+    lists:nth(Random, Craftable).
+
+filter_process_res(Recipes) ->
+    F = fun(Recipe) ->
+            maps:get(<<"class">>, Recipe) =/= <<"process_res">>
+        end,
+
+    lists:filter(F, Recipes).
+
 craft(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
 
@@ -210,11 +252,10 @@ match_req(Item, ReqType, ReqQuantity) ->
 craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
     lager:debug("Crafting ~p", [RecipeName]),
 
-
     F = fun(MatchReq, ItemStats) ->
-            Stats = [{damage, maps:get(<<"damage">>, MatchReq, 0)},
-                     {durability, maps:get(<<"durability">>, MatchReq, 0)},
-                     {speed, maps:get(<<"speed">>, MatchReq, 0)}],
+            Stats = [{<<"damage">>, maps:get(<<"damage">>, MatchReq, 0)},
+                     {<<"durability">>, maps:get(<<"durability">>, MatchReq, 0)},
+                     {<<"speed">>, maps:get(<<"speed">>, MatchReq, 0)}],
 
             combine_stats(Stats, ItemStats)
         end,
@@ -233,13 +274,37 @@ craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
     CraftedItem = item:create(FinalItem),
 
     [CraftedItem];
-craft_item(OwnerId, RecipeName, <<"Material">>, MatchReqList) ->
+craft_item(OwnerId, RecipeName, <<"Armor">>, MatchReqList) ->
+     F = fun(MatchReq, ItemStats) ->
+            Stats = [{<<"armor">>, maps:get(<<"armor">>, MatchReq, 0)},
+                     {<<"durability">>, maps:get(<<"durability">>, MatchReq, 0)}],
+
+            combine_stats(Stats, ItemStats)
+        end,
+
+    AllItemStats = lists:foldl(F, #{}, MatchReqList),
+    
+    ItemName = craft_item_name(RecipeName, MatchReqList),
+
+    BaseStats = #{<<"owner">> => OwnerId, 
+                  <<"class">> => <<"Armor">>,
+                  <<"subclass">> => RecipeName,
+                  <<"name">> => ItemName,
+                  <<"quantity">> => 1},
+    
+    FinalItem = maps:merge(BaseStats, AllItemStats),
+    CraftedItem = item:create(FinalItem),
+
+    [CraftedItem];  
+craft_item(_OwnerId, _RecipeName, <<"Material">>, _MatchReqList) ->
     nothing.
  
 combine_stats([], Item) ->
     Item;
 combine_stats([{StatName, StatValue} | Rest], Item) ->
+    lager:info("StatName: ~p StatValue: ~p", [StatName, StatValue]),
     NewItem = add_stat(StatName, StatValue, Item),
+    lager:info("NewItem: ~p", [NewItem]),
     combine_stats(Rest, NewItem).
 
 add_stat(_StatName, 0, ItemStats) -> ItemStats;

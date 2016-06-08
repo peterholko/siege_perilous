@@ -221,7 +221,7 @@ message_handle(<<"craft">>, Message) ->
     Result = player:craft(SourceBinId, Recipe),
 
     jsx:encode([{<<"packet">>, <<"craft">>},
-                {<<"result">>, <<"true">>}]);
+                {<<"result">>, Result}]);
 
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),

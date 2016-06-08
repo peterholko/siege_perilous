@@ -369,7 +369,7 @@ move_to_target(NPCId) ->
 
             case IsAdjacent of
                 false ->
-                    Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos),
+                    Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos, NPCObj),
                     NewNPC = NPC#npc {task_state = inprogress,
                                       path = Path},
                     db:write(NewNPC),
@@ -380,7 +380,8 @@ move_to_target(NPCId) ->
                     db:write(NewNPC)
             end
     end.
-    
+
+
 melee_attack(NPCId) ->
     lager:debug("Melee_attack: ~p", [NPCId]),
     [NPC] = db:read(npc, NPCId),
@@ -420,7 +421,7 @@ move_guard_pos(NPCId) ->
 
     case NPCObj#obj.pos =:= GuardPos of
         false ->
-            Path = astar:astar(NPCObj#obj.pos, GuardPos),
+            Path = astar:astar(NPCObj#obj.pos, GuardPos, NPCObj),
             NewNPC = NPC#npc {task_state = inprogress,
                               path = Path},
             db:write(NewNPC),

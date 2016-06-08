@@ -5,9 +5,9 @@
 
 -include("schema.hrl").
 
--export([get_rec/1, get_map/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
+-export([get_rec/1, get_map/1, get_all_attr/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1]).
--export([transfer/2, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
+-export([transfer/2, transfer/3, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
 -export([get_total_weight/1, weight/2]).
 
@@ -21,6 +21,12 @@ get_map(Id) ->
     Item = get_rec(Id),
     rec_to_map(Item).
 
+get_all_attr(Id) ->
+    case get_rec(Id) of
+        invalid -> invalid;
+        ItemRec -> all_attr_map(ItemRec)
+    end.
+
 get_map_by_name(Name) ->
     item_def:all_to_map(Name).
 
@@ -28,7 +34,7 @@ get_by_owner(OwnerId) ->
     Items = db:index_read(item, OwnerId, #item.owner),
 
     F = fun(Item) ->            
-            item_map(Item)
+            all_attr_map(Item)
         end,
 
     lists:map(F, Items).
@@ -92,7 +98,9 @@ is_slot_free(OwnerId, Slot) ->
                 (maps:get(<<"equip">>, ItemMap) =:= <<"true">>) and
                 (maps:get(<<"slot">>, ItemMap) =:= Slot)
         end,
-    lists:filter(F, AllItems).
+
+    ItemsInSlot = lists:filter(F, AllItems),
+    ItemsInSlot =:= [].
 
 is_player_owned(Player, ItemId) ->
     case db:read(item, ItemId) of
@@ -146,8 +154,12 @@ transfer(TransferItemId, TargetId) ->
     db:write(NewItem),
 
     %Return item map with all the attributes
-    item_map(NewItem).
+    all_attr_map(NewItem).
                 
+transfer(ItemId, TargetId, Quantity) ->
+    NewItem = split(ItemId, Quantity),
+    transfer(NewItem#item.id, TargetId).
+
 split(ItemId, NewQuantity) ->
     [Item] = db:read(item, ItemId),
     CurrentQuantity = Item#item.quantity,
@@ -158,7 +170,9 @@ split(ItemId, NewQuantity) ->
                         quantity = CurrentQuantity - NewQuantity},
     
     db:write(SourceItem),
-    db:write(NewItem).
+    db:write(NewItem),
+
+    SourceItem.
 
 equip(ItemId) ->
     [Item] = db:read(item, ItemId),
@@ -243,11 +257,11 @@ create(ItemMap) ->
     db:write(NewItem),
     
     %Return item map with all attrs
-    item_map(NewItem).
+    all_attr_map(NewItem).
 
 % Internal
 
-rec_to_map(Item) ->
+rec_to_map(Item) when is_record(Item, item) ->
     #{<<"id">> => Item#item.id,
       <<"name">> => Item#item.name,
       <<"quantity">> => Item#item.quantity,
@@ -255,9 +269,10 @@ rec_to_map(Item) ->
       <<"class">> => Item#item.class,
       <<"subclass">> => Item#item.subclass,
       <<"weight">> => Item#item.weight,
-      <<"equip">> => Item#item.equip}.
+      <<"equip">> => Item#item.equip};
+rec_to_map(Item) -> Item.
 
-item_map(Item) ->
+all_attr_map(Item) ->
     ItemMap = rec_to_map(Item),
     AttrMap = item_attr:all_to_map(Item#item.id),
     maps:merge(ItemMap, AttrMap).

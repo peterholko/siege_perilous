@@ -97,7 +97,10 @@ get_info_unit(Id) ->
 
 get_info_item(ItemId) when is_tuple(ItemId) ->
     lager:info("get_info_item ~p", [ItemId]),
-    item:get_map(ItemId);
+    case item:get_all_attr(ItemId) of
+        invalid -> #{<<"errmsg">> => <<"Invalid Item">>};
+        ItemMap -> ItemMap
+    end;
 get_info_item(ItemName) ->
     item:get_map_by_name(ItemName).
 
@@ -170,8 +173,8 @@ move(SourceId, Pos) ->
               {Obj#obj.state =/= dead, "Unit is dead"}, 
               {map:is_adjacent(Obj#obj.pos, Pos), "Unit is not adjacent to position"},
               {map:is_passable(Pos), "Tile is not passable"},
-              {not obj:is_villager(Obj), "Cannot move villager"},
-              {obj:is_empty(Pos), "Position is occupied"},
+              {not obj:is_subclass(?VILLAGER, Obj), "Cannot move villager"},
+              {obj:is_empty(Obj, Pos), "Position is occupied"},
               {obj:is_hero_nearby(Obj, PlayerId), "Unit not near Hero"}],
               
     case process_checks(Checks) of
@@ -282,19 +285,18 @@ item_transfer(TargetId, ItemId) ->
 
     OwnerObj = obj:get(Owner),   
     TargetObj = obj:get(TargetId), 
-    lager:info("OwnerObj: ~p", [OwnerObj]),
-    lager:info("TargetObj: ~p", [TargetObj]),
 
     Checks = [{TargetObj =/= false, "Invalid transfer target"},
               {is_player_owned(OwnerObj, Player), "Item not owned by player"},              
               {is_same_pos(OwnerObj, TargetObj) or
-               map:is_adjacent(OwnerObj, TargetObj), "Item is not nearby"}],
+               map:is_adjacent(OwnerObj, TargetObj), "Item is not nearby"},
+              {is_structure_req(Item, TargetObj), "Item not required for structure construction"}],
 
     case process_checks(Checks) of 
         true ->
             lager:info("Transfering item"),
-            ItemMap = item:transfer(ItemId, TargetId),
-            obj:item_transfer(TargetObj, ItemMap),
+
+            process_item_transfer(Item, TargetObj),
             #{<<"result">> => <<"success">>};
        {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
@@ -492,11 +494,14 @@ assign(SourceId, TargetId) ->
     Player = get(player_id),
     
     SourceObj = obj:get(SourceId),
-    TargetObj = obj:get(SourceId),
+    TargetObj = obj:get(TargetId),
 
     Checks = [{is_player_owned(SourceObj, Player), "Source is not owned by player"},
               {is_player_owned(TargetObj, Player), "Target is not owned by player"},
-              {obj:is_hero_nearby(TargetObj, Player), "Unit is not near Hero"}],
+              {obj:is_hero_nearby(TargetObj, Player), "Unit is not near Hero"},
+              {obj:is_subclass(?VILLAGER, SourceObj), "Can only assign villagers"},
+              {obj:is_subclass(?HARVESTER, TargetObj) or 
+               obj:is_subclass(?CRAFT, TargetObj), "Can only assign to crafting or harvesting buildings"}],
 
     case process_checks(Checks) of
         true ->
@@ -531,6 +536,22 @@ revent_response(ResponseNum) ->
 %
 %Internal functions
 %
+
+process_item_transfer(Item, TargetObj = #obj{id = Id, class = Class, state = State}) when Class =:= structure, State =/= none ->
+    ReqList = obj_attr:value(Id, <<"req">>),
+    
+    F = fun(Req) ->
+            ReqType = maps:get(<<"type">>, Req),
+            ReqType =:= Item#item.subclass
+        end,
+
+    [First | _] = lists:filter(F, ReqList),
+    ReqQuantity = maps:get(<<"quantity">>, First),
+    ItemMap = item:transfer(Item#item.id, Id, ReqQuantity),
+    obj:item_transfer(TargetObj, ItemMap);
+process_item_transfer(Item, TargetObj) ->
+    ItemMap = item:transfer(Item#item.id, TargetObj#obj.id),
+    obj:item_transfer(TargetObj, ItemMap).
 
 add_harvest_event(false, _EventData, _Ticks) ->
     lager:info("Harvest failed"),
@@ -630,6 +651,17 @@ is_event_locked(SourceId) ->
                  State -> State
              end,
     Result.
+
+is_structure_req(Item, #obj{id = Id, class = Class, state = State}) when Class =:= structure, State =/= none ->
+    ReqList = obj_attr:value(Id, <<"req">>),
+
+    F = fun(Req) ->
+            ReqType = maps:get(<<"type">>, Req),
+            ReqType =:= Item#item.subclass
+        end,
+
+    lists:any(F, ReqList);
+is_structure_req(_Item, _Obj) -> true.
 
 process_checks([]) ->
     true;

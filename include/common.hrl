@@ -51,8 +51,14 @@
 -define(SANCTUARY, <<"Sanctuary">>).
 -define(FORTIFIED, <<"Fortified">>).
 
--define(WALL, <<"Wall">>).
 -define(MONOLITH, <<"monolith">>).
+
+-define(VILLAGER, <<"villager">>).
+-define(WALL, <<"Wall">>).
+-define(HARVESTER, <<"resource">>).
+-define(CRAFT, <<"craft">>).
+-define(STORAGE, <<"resource">>).
+-define(SHELTER, <<"shelter">>).
 
 -define(QUICK, <<"quick">>).
 -define(PRECISE, <<"precise">>).
