@@ -224,11 +224,18 @@ do_event(process_resource, EventData, PlayerPid) ->
 do_event(craft, EventData, PlayerPid) ->
     lager:debug("Processing craft event: ~p", [EventData]),
     {StructureId, UnitId, Recipe} = EventData,
+    VillagerId = villager:get_by_structure(StructureId),
 
     case structure:check_recipe_req(StructureId, Recipe) of
         true ->
+            %Craft items
             NewItems = structure:craft(StructureId, Recipe),
-            game:send_update_items(StructureId, NewItems, PlayerPid);
+            
+            %Send update to player
+            game:send_update_items(StructureId, NewItems, PlayerPid),
+            
+            %Send event_complete to villager
+            message:send_to_process(global:whereis_name(villager), event_complete, {craft, VillagerId});
         false ->
             nothing
     end,

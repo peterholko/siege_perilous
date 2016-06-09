@@ -15,19 +15,19 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([assign/2, remove/1, remove_structure/1]).
+-export([has_assigned/1, assign/2, remove/1, remove_structure/1, set_craft_order/2, get_by_structure/1]).
 -export([create_plan/0, run_plan/0]).
 -export([enemy_visible/1, move_to_pos/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
--export([order_follow/1, has_order/1]).
+-export([has_order_follow/1, has_order_craft/1, has_order_experiment/1]).
 -export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
 -export([has_shelter/1, assigned_harvester/1, assigned_craft/1, has_storage/1]).
 -export([free_structure/1, free_harvester/1, free_craft/1, free_shelter/1, free_storage/1]).
 -export([find_shelter/1, find_harvester/1, find_craft/1, find_storage/1]).
 -export([structure_not_full/1, load_resources/1, unload_resources/1]).
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
--export([can_refine/1, can_craft/1, can_experiment/1, has_resources/1]).
+-export([can_refine/1, has_resources/1]).
 -export([idle/1, refine/1, craft/1]).
 
 %% ====================================================================
@@ -97,13 +97,20 @@ morale(Id, Value) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.morale >= Value.
 
-has_order(Id) ->
-    [Villager] = db:read(villager, Id),
-    Villager#villager.order =/= none.
-
-order_follow(Id) ->
+has_order_follow(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.order =:= follow.
+
+has_order_craft(Id) ->
+    [Villager] = db:read(villager, Id),
+    case Villager#villager.order of
+        {craft, _RecipeName} -> true;
+        _ -> false
+    end.
+
+has_order_experiment(Id) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.order =:= experiment.
 
 shelter_needed(Id) ->
     [Villager] = db:read(villager, Id), 
@@ -163,13 +170,6 @@ not_hauling(Id) ->
 can_refine(Id) ->
     [Villager] = db:read(villager, Id),
     structure:can_process(Villager#villager.structure).
-
-can_craft(Id) ->
-    [Villager] = db:read(villager, Id),
-    structure:can_craft(Villager#villager.structure).
-
-can_experiment(_Id) ->
-    false.
 
 has_resources(Id) ->
     [Villager] = db:read(villager, Id),
@@ -351,12 +351,12 @@ refine(Villager) ->
 craft(Villager) ->
     lager:info("Villager crafting"),
 
-    Recipe = structure:get_craftable_recipe(Villager#villager.structure),
-    RecipeName = structure:recipe_name(Recipe),
-   
+    {craft, RecipeName} = Villager#villager.order,
+    
     EventData = {Villager#villager.structure, 
                  Villager#villager.id, 
                  RecipeName},
+
     lager:info("Craft event_data: ~p", [EventData]),
     obj:update_state(Villager#villager.id, crafting),
     game:add_event(self(), craft, EventData, Villager#villager.id, ?TICKS_SEC * 10),
@@ -364,10 +364,20 @@ craft(Villager) ->
     Villager#villager {task_state = running}.
 
 %%% End of HTN functions %%%
+has_assigned(StructureId) ->
+    db:index_read(villager, StructureId, #villager.structure) =/= [].
+
+get_by_structure(StructureId) ->
+    [Villager] = db:index_read(villager, StructureId, #villager.structure),
+    Villager#villager.id.
 
 assign(SourceId, TargetId) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {structure = TargetId}). 
+
+set_craft_order(SourceId, RecipeName) ->
+    [Villager] = db:read(villager, SourceId),
+    db:write(Villager#villager {order = {craft, RecipeName}}). 
 
 remove(ObjId) ->
     db:delete(villager, ObjId).
@@ -557,7 +567,7 @@ process_event_complete([Villager]) ->
         claim_shelter -> complete_task(Villager);
         harvest -> complete_task(Villager);
         refine -> complete_task(Villager);
-        craft -> complete_task(Villager);
+        craft -> process_craft_complete(Villager);
         _ -> nothing
     end;
 process_event_complete([]) -> nothing.
@@ -572,6 +582,10 @@ process_move_complete(Villager) ->
         false ->
             move_to_pos(Villager)
     end.
+
+process_craft_complete(Villager) ->
+    NewVillager = Villager#villager {order = none, task_state = completed},
+    db:write(NewVillager).
 
 complete_task(Villager) ->
     NewVillager = Villager#villager {task_state = completed},

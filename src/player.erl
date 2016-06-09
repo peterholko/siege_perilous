@@ -417,21 +417,21 @@ process_resource(StructureId) ->
 craft(StructureId, Recipe) ->
     Player = get(player_id),
     [Structure] = db:read(obj, StructureId),
-    [Unit] = obj:get_unit_by_pos(Structure#obj.pos),
 
     Checks = [{not is_event_locked(StructureId), "Event in process"},
               {Player =:= Structure#obj.player, "Structure not owned by player"},
-              {Player =:= Unit#obj.player, "Unit not owned by player"},
+              {villager:has_assigned(StructureId), "Missing assigned villager to structure"},
               {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"}],
 
-    NumTicks = ?TICKS_SEC * 10,
-
-    Result = process_checks(Checks),
-
-    add_craft(Result, StructureId, Unit#obj.id, Recipe, NumTicks),
-
-    Reply = to_reply(Result) ++ [{<<"process_time">>, NumTicks}],
-    Reply.
+    case process_checks(Checks) of
+        true ->
+            lager:info("Craft process_checks success"),
+            VillagerId = villager:get_by_structure(StructureId),
+            villager:set_craft_order(VillagerId, Recipe),
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
 
 equip(ItemId) ->
     Player = get(player_id),
