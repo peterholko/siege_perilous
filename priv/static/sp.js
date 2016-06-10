@@ -632,6 +632,15 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "perception") {
             updateObj(jsonData.objs);
+            
+            for(var i = infoPanels.length - 1; i >= 0; i--) {
+                if(infoPanels[i].hasOwnProperty("unitName")) {
+                    if(infoPanels[i].visible == true) {
+                        infoPanels[i].visible = false;
+                        sendInfoUnit(infoPanels[i]._id);
+                    }
+                }
+            }
         }
         else if(jsonData.packet == "map") {
             drawMap(jsonData.map);
@@ -1682,14 +1691,14 @@ function drawStructureListDialog(jsonData) {
 }
 
 function drawCraftListDialog(jsonData) {
-    showDialogPanel();
+    showSmallDialogPanel();
 
     var title = new createjs.Text("Recipes", h1Font, textColor);
-    title.x = Math.floor(dialogPanelBg.width / 2);
+    title.x = Math.floor(smallDialogPanelBg.width / 2);
     title.y = 5;
     title.textAlign = "center";
 
-    addChildDialogPanel(title);
+    addChildSmallDialogPanel(title);
 
     for(var i = 0; i < jsonData.result.length; i++) {
         var recipe = jsonData.result[i];
@@ -1716,7 +1725,7 @@ function drawCraftListDialog(jsonData) {
             dialogPanel.visible = false;
         });
 
-        addChildDialogPanel(icon);
+        addChildSmallDialogPanel(icon);
         addImage({id: recipeImage, path: imagePath, x: 0, y: 0, target: icon});
 
         var name = new createjs.Text(recipe.item, h1Font, textColor);
@@ -1724,7 +1733,7 @@ function drawCraftListDialog(jsonData) {
         name.x = 25 + i * 75;
         name.y = 130;
         
-        addChildDialogPanel(name);
+        addChildSmallDialogPanel(name);
 
         for(var j = 0; j < recipe.req.length; j++) {
             var req = recipe.req[j];
@@ -1733,7 +1742,7 @@ function drawCraftListDialog(jsonData) {
             reqText.x = 25 + i * 75;
             reqText.y = 145 + j * 20;
 
-            addChildDialogPanel(reqText);
+            addChildSmallDialogPanel(reqText);
         }
     }
 };

@@ -74,7 +74,7 @@ villager() ->
         add_select_all(harvest_idle, process_harvester, [], []),
             add_primitive(idle, harvest_idle, [], [], idle),
     add_select_one(process_craft, villager, [morale_normal, assigned_craft], []),
-        add_select_all(refine, process_craft, [can_refine], []),
+        add_select_all(refine, process_craft, [has_order_refine], []),
             add_primitive(set_pos_structure, refine, [], [], set_pos_structure),
             add_primitive(move_to_structure, refine, [], [], move_to_pos),
             add_primitive(do_refine, refine, [], [], refine),

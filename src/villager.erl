@@ -15,19 +15,20 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([has_assigned/1, assign/2, remove/1, remove_structure/1, set_craft_order/2, get_by_structure/1]).
+-export([has_assigned/1, assign/2, remove/1, remove_structure/1, get_by_structure/1]).
 -export([create_plan/0, run_plan/0]).
 -export([enemy_visible/1, move_to_pos/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
--export([has_order_follow/1, has_order_craft/1, has_order_experiment/1]).
+-export([set_order_refine/1, set_order_craft/2]).
+-export([has_order_follow/1, has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
 -export([has_shelter/1, assigned_harvester/1, assigned_craft/1, has_storage/1]).
 -export([free_structure/1, free_harvester/1, free_craft/1, free_shelter/1, free_storage/1]).
 -export([find_shelter/1, find_harvester/1, find_craft/1, find_storage/1]).
 -export([structure_not_full/1, load_resources/1, unload_resources/1]).
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
--export([can_refine/1, has_resources/1]).
+-export([has_resources/1]).
 -export([idle/1, refine/1, craft/1]).
 
 %% ====================================================================
@@ -101,6 +102,10 @@ has_order_follow(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.order =:= follow.
 
+has_order_refine(Id) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.order =:= refine.
+
 has_order_craft(Id) ->
     [Villager] = db:read(villager, Id),
     case Villager#villager.order of
@@ -166,10 +171,6 @@ structure_not_full(Id) ->
 not_hauling(Id) ->
     [Villager] = db:read(villager, Id), 
     Villager#villager.activity =/= hauling.
-
-can_refine(Id) ->
-    [Villager] = db:read(villager, Id),
-    structure:can_process(Villager#villager.structure).
 
 has_resources(Id) ->
     [Villager] = db:read(villager, Id),
@@ -375,9 +376,14 @@ assign(SourceId, TargetId) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {structure = TargetId}). 
 
-set_craft_order(SourceId, RecipeName) ->
+set_order_refine(SourceId) ->
+    [Villager] = db:read(villager, SourceId),
+    db:write(Villager#villager {order = refine}). 
+
+set_order_craft(SourceId, RecipeName) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {order = {craft, RecipeName}}). 
+
 
 remove(ObjId) ->
     db:delete(villager, ObjId).
