@@ -120,7 +120,7 @@ entity_perception([Entity | Rest], AllObj) ->
     %Compare old perception to new
     Result = compare_perception(NearbyObjs, PreviousObjs),
 
-    store_perception(Result, Entity, NearbyObjs),
+    store_perception(Result, Entity#obj.id, NearbyObjs),
 
     send_perception(Result, Entity, NearbyObjs),
 
