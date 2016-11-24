@@ -164,8 +164,9 @@ valid_location(?WALL, QueryPos) ->
 valid_location(_, QueryPos) ->
     %TODO determine atom vs binary for class and subclass
     MS = ets:fun2ms(fun(N = #obj{pos = Pos, 
-                                 class = structure,
-                                 subclass = Subclass}) when Subclass =/= ?WALL,
+                                 class = Class,
+                                 subclass = Subclass}) when (Class =:= structure orelse Class =:= poi),
+                                                            Subclass =/= ?WALL,
                                                             Pos =:= QueryPos -> N end),
     Objs = db:select(obj, MS),
     lager:info("Objs: ~p", [Objs]),

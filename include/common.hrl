@@ -52,8 +52,9 @@
 -define(FORTIFIED, <<"Fortified">>).
 
 -define(MONOLITH, <<"monolith">>).
-
 -define(VILLAGER, <<"villager">>).
+-define(HERO, <<"hero">>).
+
 -define(WALL, <<"Wall">>).
 -define(HARVESTER, <<"resource">>).
 -define(CRAFT, <<"craft">>).

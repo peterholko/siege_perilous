@@ -54,17 +54,19 @@ login([], [Name, Pass, Socket]) ->
     %AdjPos = map:get_random_neighbour(Pos),
     Pos = {17,35},
     AdjPos = {16,35},
+    AdjPos2 = {18,35},
  
-    HeroId = obj:create(Pos, PlayerId, unit, <<"hero">>, <<"Hero Mage">>, none),
-    VillagerId = obj:create(AdjPos, PlayerId, unit, <<"villager">>, <<"Human Villager">>, none),
+    HeroId = obj:create(Pos, PlayerId, unit, ?HERO, <<"Hero Mage">>, none),
+    VillagerId = obj:create(AdjPos, PlayerId, unit, ?VILLAGER, <<"Human Villager">>, none),
+    MonolithId = obj:create(AdjPos2, PlayerId, poi, ?MONOLITH, <<"Monolith">>, none),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(HeroId, <<"Cragroot Popular">>, 10),
+    item:create(VillagerId, <<"Crimson Root">>, 100),
+    item:create(MonolithId, <<"Mana">>, 25),
 
-    ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
-    ItemId = maps:get(<<"id">>, ItemMap),
-
-    item:equip(ItemId),
+    %ItemId = maps:get(<<"id">>, ItemMap),
+    %item:equip(ItemId),
 
     map:add_explored(PlayerId, Pos, 2),
 

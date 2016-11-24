@@ -392,35 +392,6 @@ apply_transition(day, Obj = #obj{player = Player,
 apply_transition(_, _) ->
     nothing.
 
-process_spawn_mana(night) ->
-    Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
-
-    F = fun(Monolith) ->
-            NearbyList = map:filter_pos(map:range(Monolith#obj.pos, 4)),
-            spawn_mana(0, NearbyList)
-        end,
-
-    lists:foreach(F, Monoliths);
-process_spawn_mana(day) -> 
-    Manas = db:index_read(resource, <<"Mana">>, #resource.name),
-
-    F = fun(Mana) ->
-            lager:debug("Removing Obj: ~p", [Mana#resource.obj]),
-            obj:remove(Mana#resource.obj),
-            db:delete(resource, Mana#resource.index)
-        end,
-
-    lists:foreach(F, Manas).
-
-spawn_mana(5, _NearbyList) -> nothing;
-spawn_mana(N, NearbyList) -> 
-    NumPos = length(NearbyList),
-    RandomIndex = util:rand(NumPos),   
-    RandomPos = lists:nth(RandomIndex, NearbyList),
-
-    resource:create(<<"Mana">>, 5, RandomPos, true),
-    NewNearbyList = lists:delete(RandomPos, NearbyList),
-    spawn_mana(N + 1, NewNearbyList).
 
 mana_upkeep() ->
     Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
@@ -546,3 +517,34 @@ check_random_event(NumTick, Obj = #obj{subclass = Subclass}) when Subclass =:= <
         false -> nothing
     end;
 check_random_event(_, _) -> nothing.
+
+process_spawn_mana(night) ->
+    Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
+
+    F = fun(Monolith) ->
+            NearbyList = map:filter_pos(map:range(Monolith#obj.pos, 4)),
+            spawn_mana(0, NearbyList)
+        end,
+
+    lists:foreach(F, Monoliths);
+process_spawn_mana(day) -> 
+    Manas = db:index_read(resource, <<"Mana">>, #resource.name),
+
+    F = fun(Mana) ->
+            lager:debug("Removing Obj: ~p", [Mana#resource.obj]),
+            obj:remove(Mana#resource.obj),
+            db:delete(resource, Mana#resource.index)
+        end,
+
+    lists:foreach(F, Manas).
+
+spawn_mana(5, _NearbyList) -> nothing;
+spawn_mana(N, NearbyList) -> 
+    NumPos = length(NearbyList),
+    RandomIndex = util:rand(NumPos),   
+    RandomPos = lists:nth(RandomIndex, NearbyList),
+
+    resource:create(<<"Mana">>, 5, RandomPos, true),
+    NewNearbyList = lists:delete(RandomPos, NearbyList),
+    spawn_mana(N + 1, NewNearbyList).
+
