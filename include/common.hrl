@@ -46,6 +46,7 @@
 -define(MAX_ZOMBIES, 100).
 
 -define(FOOD, <<"Food">>).
+-define(MANA, <<"Mana">>).
 
 -define(STARVING, <<"Starving">>).
 -define(SANCTUARY, <<"Sanctuary">>).

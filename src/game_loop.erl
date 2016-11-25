@@ -397,27 +397,17 @@ mana_upkeep() ->
     Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->
-            Mana = item:get_by_name(Monolith#obj.id, <<"Mana">>),
-            update_mana(Monolith, Mana)
+            case item:get_by_subclass(Monolith#obj.id, ?MANA) of
+               [] ->
+                    obj:update_state(Monolith#obj.id, disabled);
+               [Mana | _Rest] -> 
+                    Id = maps:get(<<"id">>, Mana),
+                    NewQuantity = maps:get(<<"quantity">>, Mana) - 1,
+                    item:update(Id, NewQuantity)
+            end
         end,
 
     lists:foreach(F, Monoliths).
-
-update_mana(Monolith, []) -> 
-    obj:update_state(Monolith#obj.id, disabled);
-update_mana(Monolith, Mana) ->
-    Id = maps:get(<<"id">>, Mana),
-    Quantity = maps:get(<<"quantity">>, Mana),
-    NewQuantity = Quantity - 1,
-
-    item:update(Id, NewQuantity),
-
-    case NewQuantity > 0 of
-        false ->
-            obj:update_state(Monolith#obj.id, disabled);
-        true ->
-            nothing
-    end.
 
 food_upkeep() ->
     Units = db:index_read(obj, unit, #obj.class),
