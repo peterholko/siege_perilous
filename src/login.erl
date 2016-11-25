@@ -62,11 +62,12 @@ login([], [Name, Pass, Socket]) ->
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(HeroId, <<"Cragroot Popular">>, 10),
-    item:create(VillagerId, <<"Crimson Root">>, 100),
     item:create(MonolithId, <<"Mana">>, 25),
-
-    %ItemId = maps:get(<<"id">>, ItemMap),
-    %item:equip(ItemId),
+   
+    % Equip food so it isn't dumped
+    ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
+    ItemId = maps:get(<<"id">>, ItemMap),
+    item:equip(ItemId),
 
     map:add_explored(PlayerId, Pos, 2),
 
