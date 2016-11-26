@@ -252,6 +252,24 @@ trigger_effects(#obj{pos = Pos, subclass = Subclass, state = State}) when (Subcl
             end
         end,
     lists:foreach(F, Objs);
+
+trigger_effects(#obj{pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?MONOLITH) ->
+    AllAdjPos = map:range(Pos, 1),
+
+    F = fun(AdjPos) ->
+            Objs = get_by_pos(AdjPos),
+            G = fun(Obj) -> 
+                    case State of
+                        none -> add_effect(Obj#obj.id, ?SANCTUARY, none);
+                        disabled -> remove_effect(Obj#obj.id, ?SANCTUARY)
+                    end
+                end,
+
+            lists:foreach(G, Objs)
+        end,
+
+    lists:foreach(F, AllAdjPos);
+
 trigger_effects(_) -> nothing.
 
 is_empty(Pos) ->

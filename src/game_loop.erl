@@ -392,7 +392,6 @@ apply_transition(day, Obj = #obj{player = Player,
 apply_transition(_, _) ->
     nothing.
 
-
 mana_upkeep() ->
     Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
