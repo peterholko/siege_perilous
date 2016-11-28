@@ -179,7 +179,7 @@ get_unique_players([Obj | Rest], Players) ->
 valid_player(PlayerId) when PlayerId < 1 -> false;
 valid_player(_PlayerId) -> true.
 
-visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?UNDEAD ->
+visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player <= ?NPC ->
     F = fun(Target, Visible) ->
             Result = Target#obj.state =/= hiding andalso
                      map:distance(Pos, Target#obj.pos) =< Vision andalso

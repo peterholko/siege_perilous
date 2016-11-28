@@ -62,7 +62,7 @@ login([], [Name, Pass, Socket]) ->
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(HeroId, <<"Cragroot Popular">>, 10),
-    item:create(MonolithId, <<"Mana">>, 25),
+    item:create(MonolithId, <<"Mana">>, 2500),
    
     % Equip food so it isn't dumped
     ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),

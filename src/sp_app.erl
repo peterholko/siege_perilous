@@ -20,7 +20,7 @@ start(_Type, _Args) ->
 			{"/static/[...]", cowboy_static, {priv_dir, sp, "static"}}
 		]}
 	]),
-	{ok, _} = cowboy:start_http(http, 100, [{port, 10100}],
+	{ok, _} = cowboy:start_http(http, 100, [{port, 8080}],
 		[{env, [{dispatch, Dispatch}]}]),
 
     lager:info("Creating schema..."),

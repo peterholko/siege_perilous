@@ -632,15 +632,6 @@ function onMessage(evt) {
         }
         else if(jsonData.packet == "perception") {
             updateObj(jsonData.objs);
-            
-            for(var i = infoPanels.length - 1; i >= 0; i--) {
-                if(infoPanels[i].hasOwnProperty("unitName")) {
-                    if(infoPanels[i].visible == true) {
-                        infoPanels[i].visible = false;
-                        sendInfoUnit(infoPanels[i]._id);
-                    }
-                }
-            }
         }
         else if(jsonData.packet == "map") {
             drawMap(jsonData.map);

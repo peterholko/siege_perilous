@@ -34,7 +34,7 @@ send_update_items(ObjId, NewItems, PlayerPid) ->
             nothing
     end.
 
-send_update_stats(PlayerId, ObjId) when PlayerId > 1000 ->
+send_update_stats(PlayerId, ObjId) when PlayerId > ?NPC ->
     Stats = obj:get_stats(ObjId),
     [Conn] = db:read(connection, PlayerId),
     message:send_to_process(Conn#connection.process, stats, Stats);

@@ -370,21 +370,21 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
     end;
 apply_transition(bloodmoon, Obj = #obj{player = Player, 
                                        class = Class,
-                                       vision = Vision}) when (Player > 1000) and 
+                                       vision = Vision}) when (Player > ?NPC) and 
                                                               (Class =:= unit) and 
                                                               (Vision > 0) ->
     NewObj = Obj#obj {vision = 1},
     db:write(NewObj);
 apply_transition(night, Obj = #obj{player = Player, 
                                    class = Class,
-                                   vision = Vision}) when (Player > 1000) and 
+                                   vision = Vision}) when (Player > ?NPC) and 
                                                           (Class =:= unit) and 
                                                           (Vision > 0) ->
     NewObj = Obj#obj {vision = 1},
     db:write(NewObj);
 apply_transition(day, Obj = #obj{player = Player, 
                                  class = Class,
-                                 vision = Vision}) when (Player > 1000) and 
+                                 vision = Vision}) when (Player > ?NPC) and 
                                                         (Class =:= unit) and 
                                                         (Vision > 0) ->
     NewObj = Obj#obj {vision = 2},

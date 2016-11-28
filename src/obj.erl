@@ -424,7 +424,7 @@ is_monolith_nearby(QueryPos) ->
 is_subclass(IsSubclass, #obj{subclass = Subclass}) when Subclass =:= IsSubclass -> true;
 is_subclass(_, _) -> false.
 
-is_player(#obj{player = Player}) when Player >= 1000 -> true;
+is_player(#obj{player = Player}) when Player > ?NPC -> true;
 is_player(_) -> false.
 
 has_space(ObjId, NewItemWeight) ->

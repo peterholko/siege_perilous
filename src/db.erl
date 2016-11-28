@@ -188,7 +188,7 @@ test_tables() ->
      {player, 98, <<"natives">>, <<"123123">>, 0, false, true},
      {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
      {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
-     {counter, player, 1000},
+     {counter, player, ?NPC},
      {world, time, day},
      %{revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>], [none]},
      %{revent, 1, <<"The Baying Hounds">>, <<"Haunting howls, from what you hope are dogs, surround your camp.">>, [<<"Post a watch.">>, <<"They'll leave us alone. Do nothing.">>], [<<"Lose 10% Morale.">>, <<"Potential Danger...">>], [{attrmod, {morale, -10}}, {random, [{45, spawn, <<"Wolf">>}]} ]}
