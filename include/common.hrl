@@ -41,7 +41,7 @@
 -define(FOREST_MC, 2).
 -define(HILLS_MC, 2).
 
--define(NPC, 1000)
+-define(NPC, 1000).
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).

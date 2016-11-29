@@ -547,15 +547,17 @@ info_other(Id) ->
     Items = item:get_by_owner(Id),    
     Effects = get_effects(Id),
 
-    Info1 = maps:put(<<"_id">>, Id, #{}),
-    Info2 = maps:put(<<"name">>, Obj#obj.name, Info1),
-    Info3 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info2),
-    Info4 = maps:put(<<"effects">>, Effects, Info3),
+    Info0 = maps:put(<<"_id">>, Id, #{}),
+    Info1 = maps:put(<<"class">>, atom_to_binary(Obj#obj.class, latin1), Info0),
+    Info2 = maps:put(<<"subclass">>, Obj#obj.subclass, Info1),
+    Info3 = maps:put(<<"name">>, Obj#obj.name, Info2),
+    Info4 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info3),
+    Info5 = maps:put(<<"effects">>, Effects, Info4),
 
     % Add items if obj is dead to info
     case Obj#obj.state of
-        dead -> maps:put(<<"items">>, Items, Info4);
-        _ -> Info4
+        dead -> maps:put(<<"items">>, Items, Info5);
+        _ -> Info5
     end.
 
 info_subclass(<<"villager">>, Obj, Info) ->

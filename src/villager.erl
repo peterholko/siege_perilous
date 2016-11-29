@@ -147,7 +147,7 @@ free_structure(Id, StructureClass, StructureTypes) ->
     StateComplete = [{state, none}],
     Structures = obj:get_by_attr(Villager#villager.player, StructureTypes ++ StateComplete),
 
-    lager:info("ClaimedList: ~p", [ClaimedList]),
+    lager:debug("ClaimedList: ~p", [ClaimedList]),
 
     F = fun(Structure, Acc) -> 
             FreeStructure = not lists:member(Structure#obj.id, ClaimedList),
@@ -155,7 +155,7 @@ free_structure(Id, StructureClass, StructureTypes) ->
         end,
 
     Result = lists:foldl(F, false, Structures),
-    lager:info("free_structure: ~p ~p", [StructureTypes, Result]),
+    lager:debug("free_structure: ~p ~p", [StructureTypes, Result]),
     Result.
 
 structure_not_full(Id) ->
@@ -524,7 +524,7 @@ process_create_plan(Id) ->
 process_run_plan('$end_of_table') ->
     done;
 process_run_plan(Id) ->
-    lager:info("Villager Run plan ~p", [Id]),
+    lager:debug("Villager Run plan ~p", [Id]),
     [Villager] = db:read(villager, Id),
 
     %Skip if plan is empty

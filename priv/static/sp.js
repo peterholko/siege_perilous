@@ -1853,6 +1853,7 @@ function drawInfoUnit(jsonData) {
                   + "Morale: " + jsonData.morale;
         } else {
             var stats = "--- Stats --- \n"
+                  + "Id: " + jsonData._id
                   + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
                   + "Damage: " + base_dmg + " - " + dmg_range + "\n" 
                   + "Defense: " + armor + "\n"

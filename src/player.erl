@@ -92,7 +92,9 @@ get_info_unit(Id) ->
         true -> 
             obj:get_info(Id);
         false ->
-            obj:get_info_other(Id)
+            Info = obj:get_info_other(Id),
+            lager:info("Info Unit: ~p", [Info]),
+            Info
     end.
 
 get_info_item(ItemId) when is_tuple(ItemId) ->
