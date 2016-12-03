@@ -342,7 +342,6 @@ unload_resources(Villager) ->
     Villager#villager {task_state = completed}.
 
 idle(Villager) ->
-    lager:info("Villager idling"),
     Villager#villager {task_state = completed}.
 
 refine(Villager) ->
@@ -498,7 +497,6 @@ terminate(_Reason, _) ->
 process_create_plan('$end_of_table') ->
     done;
 process_create_plan(Id) ->
-    lager:info("Villager Create plan ~p", [Id]),
     [Villager] = db:read(villager, Id),
 
     CurrentPlan = Villager#villager.plan,
@@ -546,7 +544,6 @@ process_task_state(completed, Villager) ->
     PlanLength = length(Villager#villager.plan),
 
     NextTask = get_next_task(TaskIndex, PlanLength),
-    lager:info("Villager NextTask: ~p", [NextTask]),
 
     case NextTask of
         {next_task, NextTaskIndex} ->

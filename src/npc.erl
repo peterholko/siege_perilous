@@ -289,6 +289,12 @@ remove_structures(ObjList) ->
         end,
     lists:filter(F, ObjList).
 
+remove_poi(ObjList) ->
+    F = fun(Obj) ->
+            Obj#obj.class =/= poi
+        end,
+    lists:filter(F, ObjList).
+
 get_wander_pos(_, _, []) ->
     none;
 get_wander_pos(true, RandomPos, _Neighbours) ->
@@ -322,12 +328,12 @@ find_target(NPCObj, AllEnemyUnits) ->
 find_target(_NPCObj, _, _, []) ->
     none;
 find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
-    EnemyUnits = remove_structures(remove_dead(AllEnemyUnits)),
+    EnemyUnits = remove_poi(remove_structures(remove_dead(AllEnemyUnits))),
     EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
     Target = check_wall(EnemyUnit),
     return_target(Target);
 find_target(NPCObj, <<"animal">>, <<"high">>, AllEnemyUnits) ->
-    EnemyUnits = remove_structures(remove_dead(remove_fortified(AllEnemyUnits))),
+    EnemyUnits = remove_poi(remove_structures(remove_dead(remove_fortified(AllEnemyUnits)))),
     EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
     return_target(EnemyUnit). 
 
