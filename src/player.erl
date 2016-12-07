@@ -430,7 +430,7 @@ craft(StructureId, Recipe) ->
         true ->
             lager:info("Craft process_checks success"),
             VillagerId = villager:get_by_structure(StructureId),
-            villager:set_craft_order(VillagerId, Recipe),
+            villager:set_order_craft(VillagerId, Recipe),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}

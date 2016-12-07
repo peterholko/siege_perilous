@@ -595,7 +595,13 @@ complete_task(Villager) ->
     db:write(NewVillager).
 
 find_enemies(Villager, Objs) ->
-    find_enemies(Villager, Objs, []).
+    % If Villager has Sanctuary ignore enemies
+    case obj:has_effect(Villager#obj.id, ?SANCTUARY) of
+        true ->
+            [];
+        false ->
+            find_enemies(Villager, Objs, [])
+    end.
 
 find_enemies(_Villager, [], Enemies) ->
     Enemies;
