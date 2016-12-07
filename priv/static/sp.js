@@ -257,7 +257,7 @@ function initImages() {
                      src: "ui_pane.png", id: "ui_pane",
                      src: "close_rest.png" , id: "close_rest"}];
                 
-    loaderQueue = new createjs.LoadQueue(false);
+    loaderQueue = new createjs.LoadQueue(true);
     loaderQueue.on("complete", handleQueueComplete);
     loaderQueue.on("fileerror", handleQueueFileError);
     loaderQueue.on("error", handleQueueError);
@@ -1941,84 +1941,87 @@ function drawInfoUnit(jsonData) {
     
     addChildInfoPanel(itemText);
 
-    for(var i = 0; i < jsonData.items.length; i++) {
-        var itemName = jsonData.items[i].name;
-        var itemSubclass = jsonData.items[i].subclass;
+    if(jsonData.hasOwnProperty("items")) {	
 
-        itemName = itemName.toLowerCase().replace(/ /g,'');
+        for(var i = 0; i < jsonData.items.length; i++) {
+            var itemName = jsonData.items[i].name;
+            var itemSubclass = jsonData.items[i].subclass;
 
-        var imagePath = "/static/art/" + itemName + ".png";
-        var altImagePath = "/static/art/" + itemSubclass.toLowerCase() + ".png";
+            itemName = itemName.toLowerCase().replace(/ /g,'');
 
-        var icon = new createjs.Container();
+            var imagePath = "/static/art/" + itemName + ".png";
+            var altImagePath = "/static/art/" + itemSubclass.toLowerCase() + ".png";
 
-        icon.x = 10 + i * 50;
-        icon.y = 325;
-        icon.itemId = jsonData.items[i].id;
-        icon.owner = jsonData.items[i].owner;
-        icon.itemName = jsonData.items[i].name;
-        icon.quantity = jsonData.items[i].quantity;
+            var icon = new createjs.Container();
 
-        icon.on("click", function(evt) {
-            if(!pressmove) {
-                if(evt.nativeEvent.button == 2) {
-                    console.log("Right Click!");
-                    drawItemSplit(this.itemId, this.itemName, this.quantity);
+            icon.x = 10 + i * 50;
+            icon.y = 325;
+            icon.itemId = jsonData.items[i].id;
+            icon.owner = jsonData.items[i].owner;
+            icon.itemName = jsonData.items[i].name;
+            icon.quantity = jsonData.items[i].quantity;
+
+            icon.on("click", function(evt) {
+                if(!pressmove) {
+                    if(evt.nativeEvent.button == 2) {
+                        console.log("Right Click!");
+                        drawItemSplit(this.itemId, this.itemName, this.quantity);
+                    }
+                    else {
+                        sendInfoItem(this.itemId);
+                    }
                 }
-                else {
-                    sendInfoItem(this.itemId);
+            });
+
+            icon.on("pressmove", function(evt) {
+                if(evt.nativeEvent.button != 2) {
+                    pressmove = true;
+
+                    evt.target.x = evt.localX - 25;
+                    evt.target.y = evt.localY - 25;
+                
+                    stage.setChildIndex(this.parent.parent, stage.numChildren - 1);
                 }
-            }
-        });
+            });
+            icon.on("pressup", function(evt) { 
+                pressmove = false;
+                
+                var transfer = false;
 
-        icon.on("pressmove", function(evt) {
-            if(evt.nativeEvent.button != 2) {
-                pressmove = true;
-
-                evt.target.x = evt.localX - 25;
-                evt.target.y = evt.localY - 25;
-            
-                stage.setChildIndex(this.parent.parent, stage.numChildren - 1);
-            }
-        });
-        icon.on("pressup", function(evt) { 
-            pressmove = false;
-            
-            var transfer = false;
-
-            for(var i = 0; i < infoPanels.length; i++) {
-                var pt = infoPanels[i].globalToLocal(evt.stageX, evt.stageY);
-                if(infoPanels[i].hitTest(pt.x, pt.y)) {
-                    if(infoPanels[i]._id != this.owner) {
-                        if(infoPanels[i]._id != undefined) {
-                            console.log("Transfering item: " + infoPanels[i]._id, this.itemId);
-                            transfer = true;
-                            sendItemTransfer(infoPanels[i]._id, this.itemId);        
+                for(var i = 0; i < infoPanels.length; i++) {
+                    var pt = infoPanels[i].globalToLocal(evt.stageX, evt.stageY);
+                    if(infoPanels[i].hitTest(pt.x, pt.y)) {
+                        if(infoPanels[i]._id != this.owner) {
+                            if(infoPanels[i]._id != undefined) {
+                                console.log("Transfering item: " + infoPanels[i]._id, this.itemId);
+                                transfer = true;
+                                sendItemTransfer(infoPanels[i]._id, this.itemId);        
+                            }
                         }
                     }
                 }
-            }
 
-            if(!transfer) {
-                evt.target.x = 0;
-                evt.target.y = 0;
-            }
-    
-        });
+                if(!transfer) {
+                    evt.target.x = 0;
+                    evt.target.y = 0;
+                }
+        
+            });
 
-        addChildInfoPanel(icon);
+            addChildInfoPanel(icon);
 
-        var path;    
+            var path = imagePath;
 
-        //Quick fix to be replaced by lookup table
-        if(imageExists(imagePath)) {
-            path = imagePath;
-        } 
-        else {
-            path = altImagePath;    
+            /*Quick fix to be replaced by lookup table
+            if(imageExists(imagePath)) {
+                path = imagePath;
+            } 
+            else {
+                path = altImagePath;    
+            }*/
+
+            addImage({id: itemName, path: path, x: 0, y: 0, target: icon});
         }
-
-        addImage({id: itemName, path: path, x: 0, y: 0, target: icon});
     }
 
 
