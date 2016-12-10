@@ -596,7 +596,7 @@ complete_task(Villager) ->
 
 find_enemies(Villager, Objs) ->
     % If Villager has Sanctuary ignore enemies
-    case obj:has_effect(Villager#obj.id, ?SANCTUARY) of
+    case effect:has_effect(Villager#obj.id, ?SANCTUARY) of
         true ->
             [];
         false ->

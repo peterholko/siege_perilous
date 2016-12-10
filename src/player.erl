@@ -42,7 +42,7 @@ init_perception(PlayerId) ->
 
     %Get explored tile list
     Explored = map:get_explored(PlayerId, all),
-    Objs = get_visible_objs(AllObjs, []),
+    Objs = util:unique_list(get_visible_objs(AllObjs, [])),
 
     lager:info([{player, PlayerId}], "Explored: ~p", [Explored]),
     lager:info([{player, PlayerId}], "Objs: ~p", [Objs]),

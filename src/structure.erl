@@ -189,12 +189,11 @@ process_upkeep(Structure) ->
 
     case Decaying of
         true ->
-            obj:add_effect(Structure#obj.id, <<"Decaying">>, none),
+            effect:add(Structure#obj.id, ?DECAYING, none),
             obj:update_hp(Structure#obj.id, -1);
         false ->
-            obj:remove_effect(Structure#obj.id, <<"Decaying">>)
+            effect:remove(Structure#obj.id, ?DECAYING)
     end.
-
 
 %
 % Internal functions

@@ -302,9 +302,18 @@ function handleQueueComplete()
                 sprite.y = spriteTask.y;
                 sprite.name = "sprite";
             
-                sprite.gotoAndPlay(spriteTask.animation);
-            
-                spriteTask.target.addChild(sprite);
+                if(!in_array(spriteSheet.animations, spriteTask.animation)) {
+                    if(spriteTask.animation == 'dead') {
+                        spriteTask.target.addChild(new createjs.Bitmap(gravestone));
+                    }
+                    else {
+                        sprite.gotoAndPlay(spriteTask.animation);
+                        spriteTask.target.addChild(sprite);
+                    }
+                } else {
+                    sprite.gotoAndPlay(spriteTask.animation);
+                    spriteTask.target.addChild(sprite);
+                }
             } 
             else {  
                 for(var i = 0; i < spriteSheet.getNumFrames(); i++) {

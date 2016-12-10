@@ -99,9 +99,13 @@ loot_list() ->
      {<<"Gold Coins">>, 0.99, 1, 10}].
 
 get_num(Pos) ->
-    case db:read(encounter, Pos) of
-        [] -> 0;            
-        [Encounter] -> Encounter#encounter.num
+    case effect:has_effect({tile, Pos}, [?SANCTUARY, ?FORTIFIED]) of
+        true -> 0;
+        false ->
+            case db:read(encounter, Pos) of
+                [] -> 0;            
+                [Encounter] -> Encounter#encounter.num
+            end
     end.
 
 get_valid_tiles({X, Y}) ->

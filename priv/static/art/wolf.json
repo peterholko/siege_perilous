@@ -5,7 +5,6 @@
     },
     "animations": {
         "die": [0],
-        "dead": [0],
         "attack": {
             "frames": [3,2,1],
             "next": "none",

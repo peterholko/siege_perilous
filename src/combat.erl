@@ -90,7 +90,7 @@ process_defend(SourceId, DefendType) ->
     obj:update_stamina(SourceId, -1 * StaminaCost),
 
     %Add defense effect
-    obj:add_effect(SourceId, DefendType, none).
+    effect:add(SourceId, DefendType, none).
 
 process_attack(AttackType, AtkId, DefId) ->
     [AtkObj] = db:read(obj, AtkId),
@@ -117,8 +117,11 @@ process_attack(AttackType, AtkId, DefId) ->
     %Remove Defend effect
     remove_defend(Countered, DefId, HasDefend),
 
+    %Check if Attacker is Fortified
+    FortifyPenalty = check_fortified(AtkId, AtkWeapons),
+
     %Add item stats
-    TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)) * FinalComboDmg,
+    TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)) * FinalComboDmg * FortifyPenalty,
     TotalArmor = BaseDef + get_items_value(<<"armor">>, DefItems),
 
     %Random roll
@@ -183,7 +186,7 @@ is_adjacent(SourceObj, TargetObj) ->
     end.
 
 is_targetable(#obj{id = Id}) ->
-    HasWall = obj:has_effect(Id, ?FORTIFIED),
+    HasWall = effect:has_effect(Id, ?FORTIFIED),
     IsTargetable = not HasWall,
     lager:info("is_targetable: ~p", [IsTargetable]),
     IsTargetable.
@@ -311,9 +314,9 @@ skill_gain_atk(AtkId, Weapons, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (Dmg
 skill_gain_atk(_AtkId, _Weapons, _RandomDmg, _DmgRange, _Dmg) -> nothing.
 
 has_defend(DefId) ->
-    DefendList = [{obj:has_effect(DefId, ?DODGE), ?DODGE},
-                  {obj:has_effect(DefId, ?PARRY), ?PARRY},
-                  {obj:has_effect(DefId, ?BRACE), ?BRACE}],
+    DefendList = [{effect:has_effect(DefId, ?DODGE), ?DODGE},
+                  {effect:has_effect(DefId, ?PARRY), ?PARRY},
+                  {effect:has_effect(DefId, ?BRACE), ?BRACE}],
     
     F = fun({true, DefendType}, _Acc) -> DefendType;
            ({false, _}, Acc) -> Acc
@@ -324,9 +327,27 @@ has_defend(DefId) ->
 countered(true, DefendType) -> DefendType;
 countered(false, _) -> none.
 
-remove_defend(true, DefId, DefendType) -> obj:remove_effect(DefId, DefendType);
+remove_defend(true, DefId, DefendType) -> effect:remove(DefId, DefendType);
 remove_defend(false, _, _) -> nothing.
 
+is_range(<<"Bow">>) -> true;
+is_range(_) -> false.
+
+check_fortified(AtkId, AtkWeapons) ->
+    F = fun(Weapon) ->
+            WeaponSubClass = maps:get(<<"subclass">>, Weapon),
+            is_range(WeaponSubClass)
+        end,
+
+    HasRange = lists:any(F, AtkWeapons),
+    HasFortified = effect:has_effect(AtkId, ?FORTIFIED),
+
+    %Penalize melee attackers with fortified by 75%
+    case {HasFortified, HasRange} of 
+        {true, true} -> 1;
+        {true, false} -> 0.25;
+        _ -> 1
+    end.
 
 broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) ->
     %Convert id here as message is being built
@@ -346,14 +367,3 @@ broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) 
     TargetPos = TargetObj#obj.pos,
 
     perception:broadcast(SourcePos, TargetPos, Message).
-
-%set_combat_state(#obj{state = State}) when State =:= combat ->
-%    nothing;
-%set_combat_state(#obj{id = Id}) ->
-%    obj:update_state(Id, combat).
-
-%is_state_not(NotExpectedState, State) when NotExpectedState =:= State -> false;
-%is_state_not(_NotExpectedState, _State) -> true.
-%
-%is_visible(SourceObj, TargetObj) ->
-%    perception:is_visible(SourceObj#obj.id, TargetObj#obj.id).

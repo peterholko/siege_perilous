@@ -19,6 +19,7 @@
 -export([get_perception/0, get_explored/0, reset/0]).
 -export([send_update_items/3, send_update_stats/2, send_revent/2]).
 -export([get_info_tile/1]).
+-export([spawn_hero/1, hero_dead/2]).
 
 
 %% Common functions
@@ -34,7 +35,7 @@ send_update_items(ObjId, NewItems, PlayerPid) ->
             nothing
     end.
 
-send_update_stats(PlayerId, ObjId) when PlayerId > ?NPC ->
+send_update_stats(PlayerId, ObjId) when PlayerId > ?NPC_ID ->
     Stats = obj:get_stats(ObjId),
     [Conn] = db:read(connection, PlayerId),
     message:send_to_process(Conn#connection.process, stats, Stats);
@@ -65,7 +66,31 @@ get_info_tile(Pos) ->
 
     Info6.
 
+spawn_hero(PlayerId) ->
+    %Pos = map:random_location(),
+    %AdjPos = map:get_random_neighbour(Pos),
+    Pos = {17,35},
+    AdjPos = {16,35},
+    AdjPos2 = {18,35},
+ 
+    HeroId = obj:create(Pos, PlayerId, unit, ?HERO, <<"Hero Mage">>, none),
+    VillagerId = obj:create(AdjPos, PlayerId, unit, ?VILLAGER, <<"Human Villager">>, none),
+    MonolithId = obj:create(AdjPos2, PlayerId, poi, ?MONOLITH, <<"Monolith">>, none),
 
+    item:create(HeroId, <<"Crimson Root">>, 100),
+    item:create(HeroId, <<"Cragroot Popular">>, 10),
+    item:create(MonolithId, <<"Mana">>, 2500),
+   
+    % Equip food so it isn't dumped
+    ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
+    ItemId = maps:get(<<"id">>, ItemMap),
+    item:equip(ItemId),
+
+    map:add_explored(PlayerId, Pos, 2).
+
+hero_dead(PlayerId, HeroId) ->
+    lager:info("Hero killed").
+    
 %%
 %% API Functions
 %%

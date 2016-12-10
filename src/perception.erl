@@ -179,11 +179,11 @@ get_unique_players([Obj | Rest], Players) ->
 valid_player(PlayerId) when PlayerId < 1 -> false;
 valid_player(_PlayerId) -> true.
 
-visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =< ?NPC ->
+visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =< ?NPC_ID ->
     F = fun(Target, Visible) ->
             Result = Target#obj.state =/= hiding andalso
                      map:distance(Pos, Target#obj.pos) =< Vision andalso
-                     not obj:has_effect(Target#obj.id, ?SANCTUARY),
+                     not effect:has_effect(Target#obj.id, ?SANCTUARY),
             
             case Result of
                 true -> [build_message(Target) | Visible];

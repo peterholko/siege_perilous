@@ -41,7 +41,7 @@
 -define(FOREST_MC, 2).
 -define(HILLS_MC, 2).
 
--define(NPC, 1000).
+-define(NPC_ID, 1000).
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
@@ -53,8 +53,11 @@
 -define(STARVING, <<"Starving">>).
 -define(SANCTUARY, <<"Sanctuary">>).
 -define(FORTIFIED, <<"Fortified">>).
+-define(DECAYING, <<"Decaying">>).
+-define(BLOODMOON, <<"Bloodmoon">>).
 
 -define(MONOLITH, <<"monolith">>).
+-define(NPC, <<"npc">>).
 -define(VILLAGER, <<"villager">>).
 -define(HERO, <<"hero">>).
 

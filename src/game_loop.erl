@@ -113,7 +113,7 @@ do_event(defend, EventData, PlayerPid) ->
     
     {ObjId, DefendType} = EventData,
 
-    obj:remove_effect(ObjId, DefendType),
+    effect:remove(ObjId, DefendType),
 
     message:send_to_process(PlayerPid, event_complete, {defend, EventData}),
     false;
@@ -350,17 +350,16 @@ transition(Time) ->
 
 apply_transition(bloodmoon, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
     %Apply night effect 
-    obj:add_effect(Id, <<"bloodmoon">>, none),
-
+    effect:add(Id, ?BLOODMOON, none),
 
     %Increase vision x 5
     NewObj = Obj#obj {vision = erlang:trunc(Vision * 5)},
     db:write(NewObj);
 apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when Name =:= <<"Zombie">> ->
     %Check if night undead is applied 
-    case obj:has_effect(Id, <<"bloodmoon">>) of
+    case effect:has_effect(Id, ?BLOODMOON) of
         true ->
-            obj:remove_effect(Id, <<"bloodmoon">>),
+            effect:remove(Id, ?BLOODMOON),
 
             %Decrease vision / 10
             NewObj = Obj#obj {vision = erlang:trunc(Vision / 5)},
@@ -370,21 +369,21 @@ apply_transition(day, Obj = #obj {id = Id, name = Name, vision = Vision}) when N
     end;
 apply_transition(bloodmoon, Obj = #obj{player = Player, 
                                        class = Class,
-                                       vision = Vision}) when (Player > ?NPC) and 
+                                       vision = Vision}) when (Player > ?NPC_ID) and 
                                                               (Class =:= unit) and 
                                                               (Vision > 0) ->
     NewObj = Obj#obj {vision = 1},
     db:write(NewObj);
 apply_transition(night, Obj = #obj{player = Player, 
                                    class = Class,
-                                   vision = Vision}) when (Player > ?NPC) and 
+                                   vision = Vision}) when (Player > ?NPC_ID) and 
                                                           (Class =:= unit) and 
                                                           (Vision > 0) ->
     NewObj = Obj#obj {vision = 1},
     db:write(NewObj);
 apply_transition(day, Obj = #obj{player = Player, 
                                  class = Class,
-                                 vision = Vision}) when (Player > ?NPC) and 
+                                 vision = Vision}) when (Player > ?NPC_ID) and 
                                                         (Class =:= unit) and 
                                                         (Vision > 0) ->
     NewObj = Obj#obj {vision = 2},
@@ -414,12 +413,12 @@ food_upkeep() ->
     F = fun(Unit = #obj{player = Player}) when Player =/= ?UNDEAD ->
             case item:get_by_subclass(Unit#obj.id, ?FOOD) of
                 [] ->
-                    obj:add_effect(Unit#obj.id, <<"Starving">>, none),
+                    effect:add(Unit#obj.id, ?STARVING, none),
                     obj:update_hp(Unit#obj.id, -1),
 
                     game:send_update_stats(Player, Unit#obj.id); 
                 [Item | _Rest] ->
-                    obj:remove_effect(Unit#obj.id, <<"Starving">>),
+                    effect:remove(Unit#obj.id, ?STARVING),
                     ItemId = maps:get(<<"id">>, Item),
                     NewQuantity = maps:get(<<"quantity">>, Item) - 1,
                     item:update(ItemId, NewQuantity)
@@ -442,7 +441,7 @@ process_rest_state(NumTick) ->
     Objs = db:index_read(obj, resting, #obj.state),
 
     F = fun(Obj) ->
-            case obj:has_effect(Obj#obj.id, <<"Starving">>) of
+            case effect:has_effect(Obj#obj.id, <<"Starving">>) of
                 false -> obj:update_hp(Obj#obj.id, 1);
                 true -> nothing
             end,

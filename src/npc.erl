@@ -272,7 +272,7 @@ compare_distance(NewDistance, Distance, New, _Old) when NewDistance < Distance -
 
 remove_fortified(ObjList) ->
     F = fun(Obj) ->
-            IsFortified = obj:has_effect(Obj#obj.id, ?FORTIFIED),
+            IsFortified = effect:has_effect(Obj#obj.id, ?FORTIFIED),
             not IsFortified
         end,
     lists:filter(F, ObjList).
@@ -309,13 +309,9 @@ get_wander_pos(false,  _, Neighbours) ->
     get_wander_pos(IsEmpty, RandomPos, NewNeighbours).
 
 check_wall(#obj{id = Id} = EnemyUnit) ->    
-    case db:read(effect, {Id, ?FORTIFIED}) of
-        [Effect] ->
-            WallId = Effect#effect.data,
-            [Wall] = db:read(obj, WallId),
-            Wall;
-        [] ->
-            EnemyUnit
+    case effect:get_effect_data(Id, ?FORTIFIED) of
+        invalid -> EnemyUnit;
+        WallId -> obj:get(WallId)
     end;
 check_wall(_) ->
     none.

@@ -9,12 +9,12 @@
 -include("common.hrl").
 
 -export([init_perception/1]).
--export([create/6, remove/1, move/2]).
+-export([create/6, remove/1, move/2, teleport/2]).
 -export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
--export([add_effect/3, remove_effect/2, has_effect/2, trigger_effects/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1]).
+-export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
 -export([class/1, subclass/1, state/1]).
@@ -101,6 +101,30 @@ move(Id, Pos) ->
         false -> nothing
     end.
 
+teleport(Id, Pos) ->
+    [Obj] = db:read(obj, Id),
+    NewObj = Obj#obj {pos = Pos},
+
+    %Update state to none
+    update_state(NewObj, none),
+
+    %Update wall effect
+    IsBehindWall = is_behind_wall(Pos),
+    apply_wall(IsBehindWall, NewObj),
+
+    %Update sanctuary effect
+    IsNearbyMonolith = is_monolith_nearby(Pos),
+    apply_sanctuary(IsNearbyMonolith, NewObj),
+
+    %Add explored if object is granted vision
+    case Obj#obj.vision > -1 of
+        true ->
+            map:add_explored(Obj#obj.player, Pos, Obj#obj.vision),
+            game:trigger_explored(Obj#obj.player);
+        false ->
+            nothing
+    end.
+
 update_state(Obj, State) ->
     update_state(Obj, State, none).
 
@@ -180,7 +204,8 @@ update_dead(Id) ->
     NewObj = case Obj#obj.class of
                 unit ->
                      case Obj#obj.subclass of
-                         <<"villager">> -> villager:remove(Obj#obj.id);
+                         ?HERO -> game:hero_dead(Obj#obj.player, Obj#obj.id); 
+                         ?VILLAGER -> villager:remove(Obj#obj.id);
                          _ -> nothing
                      end, 
 
@@ -204,38 +229,13 @@ update_dead(Id) ->
 
     NewObj.
 
-add_effect(Id, EffectType, EffectData) ->
-    Effect = #effect {key = {Id, EffectType},
-                      id = Id,
-                      type = EffectType,
-                      data = EffectData,
-                      modtick = counter:value(tick)},
-    db:write(Effect).
-
-remove_effect(Id, EffectType) ->
-    db:delete(effect, {Id, EffectType}).
-
-has_effect(Id, EffectType) ->
-    Result = db:dirty_read(effect, {Id, EffectType}),
-    length(Result) > 0.
-
-get_effects(Id) ->
-    Effects = db:index_read(effect, Id, #effect.id),
-    
-    F = fun(Effect, Acc) ->
-            EffectMap = #{<<"name">> => Effect#effect.type},
-            [EffectMap | Acc]
-        end,
-
-    lists:foldl(F, [], Effects).
-
 trigger_effects(#obj{id = WallId, pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
                                                                                        (State =/= dead) ->
     Objs = get_by_pos(Pos),
 
     F = fun(Obj) ->
             case Obj#obj.class =:= unit of
-                true -> add_effect(Obj#obj.id, ?FORTIFIED, WallId);
+                true -> effect:add(Obj#obj.id, ?FORTIFIED, WallId);
                 false -> nothing
             end
         end,
@@ -247,25 +247,33 @@ trigger_effects(#obj{pos = Pos, subclass = Subclass, state = State}) when (Subcl
 
     F = fun(Obj) ->
             case Obj#obj.class =:= unit of 
-                true -> remove_effect(Obj#obj.id, ?FORTIFIED);
+                true -> effect:remove(Obj#obj.id, ?FORTIFIED);
                 false -> nothing
             end
         end,
     lists:foreach(F, Objs);
 
-trigger_effects(#obj{pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?MONOLITH) ->
-    AllAdjPos = map:range(Pos, 1),
+trigger_effects(#obj{pos = Pos, name = Name, subclass = Subclass, state = State}) when (Subclass =:= ?MONOLITH) ->
+    Radius = get_monolith_radius(Name),
+    AllAdjPos = map:range(Pos, Radius),
 
     F = fun(AdjPos) ->
+            %Update Sanctuary on objs
             Objs = get_by_pos(AdjPos),
             G = fun(Obj) -> 
                     case State of
-                        none -> add_effect(Obj#obj.id, ?SANCTUARY, none);
-                        disabled -> remove_effect(Obj#obj.id, ?SANCTUARY)
+                        none -> effect:add(Obj#obj.id, ?SANCTUARY, none);
+                        disabled -> effect:remove(Obj#obj.id, ?SANCTUARY)
                     end
                 end,
 
-            lists:foreach(G, Objs)
+            lists:foreach(G, Objs),
+
+            %Update Sanctuary on tiles
+            case State of
+                none -> effect:add({tile, AdjPos}, ?SANCTUARY, none);
+                disabled -> effect:remove({tile, AdjPos}, ?SANCTUARY)
+            end
         end,
 
     lists:foreach(F, AllAdjPos);
@@ -308,7 +316,7 @@ item_transfer(#obj {id = Id, class = Class}, Item) when Class =:= unit ->
     Subclass = maps:get(<<"subclass">>, Item, none),
     
     case Subclass of
-        ?FOOD -> remove_effect(Id, <<"starving">>);
+        ?FOOD -> effect:remove(Id, <<"starving">>);
         _ -> nothing
      end;
 item_transfer(_Obj, _Item) -> nothing.
@@ -424,7 +432,7 @@ is_monolith_nearby(QueryPos) ->
 is_subclass(IsSubclass, #obj{subclass = Subclass}) when Subclass =:= IsSubclass -> true;
 is_subclass(_, _) -> false.
 
-is_player(#obj{player = Player}) when Player > ?NPC -> true;
+is_player(#obj{player = Player}) when Player > ?NPC_ID -> true;
 is_player(_) -> false.
 
 has_space(ObjId, NewItemWeight) ->
@@ -434,31 +442,40 @@ has_space(ObjId, NewItemWeight) ->
     (TotalWeight + NewItemWeight) =< Capacity.
 
 apply_wall(false, #obj{id = Id}) ->
-    case has_effect(Id, ?FORTIFIED) of
-        true -> remove_effect(Id, ?FORTIFIED);
+    case effect:has_effect(Id, ?FORTIFIED) of
+        true -> effect:remove(Id, ?FORTIFIED);
         false -> nothing
     end;
 apply_wall(true, #obj{id = Id, pos = Pos}) ->
     Wall = get_wall(Pos),
-    add_effect(Id, ?FORTIFIED, Wall#obj.id).
+    effect:add(Id, ?FORTIFIED, Wall#obj.id).
 
 apply_sanctuary(false, #obj{id = Id}) ->
-    case has_effect(Id, ?SANCTUARY) of
-        true -> remove_effect(Id, ?SANCTUARY);
+    case effect:has_effect(Id, ?SANCTUARY) of
+        true -> effect:remove(Id, ?SANCTUARY);
         false -> nothing
     end;
 apply_sanctuary(true, #obj{id = Id}) ->
-    add_effect(Id, ?SANCTUARY, none).
+    effect:add(Id, ?SANCTUARY, none).
 
-process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= <<"hero">> ->
+process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= ?HERO ->
     Hero = #hero{player = Player, obj = Id},
     db:write(Hero);
-process_subclass(#obj{id = Id, subclass = Subclass}) when Subclass =:= <<"npc">> ->
+process_subclass(#obj{id = Id, subclass = Subclass}) when Subclass =:= ?NPC ->
     NPC = #npc{id = Id},
     db:write(NPC);
-process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= <<"villager">> ->
+process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= ?VILLAGER ->
     Villager = #villager{id = Id, player = Player},
     db:write(Villager);
+process_subclass(#obj{pos = Pos, name = Name, subclass = Subclass}) when Subclass =:= ?MONOLITH ->
+    Radius = get_monolith_radius(Name),
+    NearbyPosList = map:range(Pos, Radius), 
+
+    F = fun(NearbyPos) ->
+            effect:add({tile, NearbyPos}, ?SANCTUARY, none)
+        end,
+
+    lists:foreach(F, NearbyPosList);
 process_subclass(_) ->
     nothing.
 
@@ -508,7 +525,7 @@ stats(Id) ->
     Stamina = obj_attr:value(Id, <<"stamina">>),
     BaseStamina = obj_attr:value(Id, <<"base_stamina">>),
 
-    Effects = get_effects(Id),
+    Effects = effect:get_effects(Id),
 
     Stats0 = maps:put(<<"_id">>, Id, Stats),
     Stats1 = maps:put(<<"hp">>, Hp, Stats0),
@@ -525,7 +542,7 @@ info(Id) ->
     %Get items & skills & effects
     Items = item:get_by_owner(Id),
     Skills = skill:get_by_owner(Id),
-    Effects = get_effects(Id),
+    Effects = effect:get_effects(Id),
 
     %Get attrs
     Attrs = obj_attr:all_to_map(Id),
@@ -545,7 +562,7 @@ info_other(Id) ->
     [Obj] = db:read(obj, Id),
     
     Items = item:get_by_owner(Id),    
-    Effects = get_effects(Id),
+    Effects = effect:get_effects(Id),
 
     Info0 = maps:put(<<"_id">>, Id, #{}),
     Info1 = maps:put(<<"class">>, atom_to_binary(Obj#obj.class, latin1), Info0),
