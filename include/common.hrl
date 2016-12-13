@@ -45,6 +45,7 @@
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
+-define(ANIMAL, 100).
 -define(MAX_ZOMBIES, 100).
 
 -define(FOOD, <<"Food">>).

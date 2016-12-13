@@ -15,10 +15,10 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([replan/1, run_plan/1, new_zombie/0, new_wolf/2, get_nearest/3]).
+-export([replan/1, run_plan/1, get_nearest/3]).
 -export([target_visible/1, max_guard_dist/1]).
 -export([move_random_pos/1, move_to_target/1, melee_attack/1, move_guard_pos/1]).
--export([add/1, remove/1]).
+-export([get_player_id/1, add/1, remove/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -32,11 +32,9 @@ replan(PlayerId) ->
 run_plan(PlayerId) ->
     gen_server:cast({global, {npc, PlayerId}}, run_plan).
 
-new_zombie() ->
-    obj:create({18,18}, ?UNDEAD, unit, <<"npc">>, <<"Zombie">>, none).
-
-new_wolf(X, Y) ->
-    obj:create({X,Y}, ?UNDEAD, unit, <<"npc">>, <<"Wolf">>, none).
+get_player_id(NPCType) ->
+    [NPCPlayer] = db:index_read(player, NPCType, #player.name),
+    NPCPlayer#player.id.
 
 add(Id) ->
     NPC = #npc {id = Id},

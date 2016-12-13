@@ -183,11 +183,11 @@ do(Q) ->
 test_tables() ->
     [
      {connection, 98, none},     
-     {connection, 99, none},     
-     {connection, 100, none},     
+     {connection, ?UNDEAD, none},     
+     {connection, ?ANIMAL, none},     
      {player, 98, <<"natives">>, <<"123123">>, 0, false, true},
-     {player, 99, <<"zombie99">>, <<"123123">>, 0, false, true},
-     {player, 100, <<"zombie100">>, <<"123123">>, 0, false, true},
+     {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, true},
+     {player, ?ANIMAL, <<"Animals">>, <<"123123">>, 0, false, true},
      {counter, player, ?NPC_ID},
      {world, time, day},
      %{revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>], [none]},

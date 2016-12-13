@@ -36,6 +36,7 @@ send_update_items(ObjId, NewItems, PlayerPid) ->
     end.
 
 send_update_stats(PlayerId, ObjId) when PlayerId > ?NPC_ID ->
+    lager:info("PlayerId: ~p ObjId ~p", [PlayerId, ObjId]),
     Stats = obj:get_stats(ObjId),
     [Conn] = db:read(connection, PlayerId),
     message:send_to_process(Conn#connection.process, stats, Stats);

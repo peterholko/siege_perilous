@@ -36,7 +36,9 @@ get_wildness(Pos) ->
 spawn_random_npc(TileName, Pos) ->
     NPCList = npc_list(TileName),
     Random = util:rand(length(NPCList)),
-    NPCType = lists:nth(Random, NPCList),
+    NPCName = lists:nth(Random, NPCList),
+    NPCType = obj_def:value(NPCName, <<"npc_type">>),
+    NPCPlayerId = npc:get_player_id(NPCType),
     Tiles = get_valid_tiles(Pos),
 
     case Tiles of
@@ -44,14 +46,16 @@ spawn_random_npc(TileName, Pos) ->
         Neighbours ->
             RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
-            NPCId = obj:create(NPCPos, ?UNDEAD, unit, <<"npc">>, NPCType, none),
+            NPCId = obj:create(NPCPos, NPCPlayerId, unit, <<"npc">>, NPCName, none),
             
             generate_loot(NPCId),
             
             increase_num(NPCPos)
     end.
 
-spawn_npc(NPCType, Pos) ->
+spawn_npc(NPCName, Pos) ->
+    NPCType = obj_def:value(NPCName, <<"npc_type">>),
+    NPCPlayerId = npc:get_player_id(NPCType),
     Tiles = get_valid_tiles(Pos),
 
     case Tiles of
@@ -59,7 +63,7 @@ spawn_npc(NPCType, Pos) ->
         Neighbours ->
             RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
-            NPCId = obj:create(NPCPos, ?UNDEAD, unit, <<"npc">>, NPCType, none),
+            NPCId = obj:create(NPCPos, NPCPlayerId, unit, <<"npc">>, NPCName, none),
             generate_loot(NPCId)
     end.
 

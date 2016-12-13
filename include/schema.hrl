@@ -11,6 +11,9 @@
 -record(connection, {player,
                      process = none}).
 
+-record(chat, {obj_id,
+               text}).
+
 -record(game, {perception,
                explored}).
 
@@ -159,5 +162,3 @@
                  responses = [],
                  resolutions = [],
                  effects = []}).
-
-

@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/0, broadcast/3]).
+-export([recalculate/0, broadcast/2, broadcast/3]).
 -export([is_visible/2]).
 
 %% ====================================================================
@@ -27,6 +27,9 @@ start() ->
 
 recalculate() ->
     gen_server:cast({global, perception_pid}, recalculate).
+
+broadcast(SourcePos, MessageData) ->
+    gen_server:cast({global, perception_pid}, {broadcast, SourcePos, MessageData}).
 
 broadcast(SourcePos, TargetPos, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, MessageData}).
@@ -51,6 +54,13 @@ init([]) ->
 handle_cast(recalculate, Data) ->   
     do_recalculate(),
     {noreply, Data};
+
+handle_cast({broadcast, SourcePos, MessageData}, Data) ->
+    SourceObjs = map:get_nearby_objs(SourcePos, 3),
+    lager:info("SourceObjs: ~p", [SourceObjs]),
+    broadcast_to_objs(SourceObjs, MessageData),
+
+    {noreply, Data};    
 
 handle_cast({broadcast, SourcePos, TargetPos, MessageData}, Data) ->
     SourceObjs = map:get_nearby_objs(SourcePos, 2),
@@ -166,20 +176,34 @@ broadcast_to_objs(Objs, Message) ->
 get_unique_players([], Players) ->
     util:unique_list(Players);
 get_unique_players([Obj | Rest], Players) ->
-    Player = maps:get(<<"player">>, Obj),
-    NewPlayers = case valid_player(Player) of
-                     true -> 
-                         [maps:get(<<"player">>, Obj) | Players];
-                     false ->
-                         Players
-                 end,
+    Subclass = maps:get(<<"subclass">>, Obj),
+
+    NewPlayers =
+        case Subclass =:= ?HERO of
+            true -> [maps:get(<<"player">>, Obj) | Players];
+            false -> Players
+        end,
 
     get_unique_players(Rest, NewPlayers).
+
+%get_unique_players([], Players) ->
+%    util:unique_list(Players);
+%get_unique_players([Obj | Rest], Players) ->
+%    Player = maps:get(<<"player">>, Obj),
+%    NewPlayers = case valid_player(Player) of
+%                     true -> 
+%                         [maps:get(<<"player">>, Obj) | Players];
+%                     false ->
+%                         Players
+%                 end,
+%
+%    get_unique_players(Rest, NewPlayers).
 
 valid_player(PlayerId) when PlayerId < 1 -> false;
 valid_player(_PlayerId) -> true.
 
-visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =< ?NPC_ID ->
+% Undead units cannot see objects with SANCTUARY
+visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?UNDEAD ->
     F = fun(Target, Visible) ->
             Result = Target#obj.state =/= hiding andalso
                      map:distance(Pos, Target#obj.pos) =< Vision andalso
@@ -192,6 +216,22 @@ visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when P
         end,
 
     lists:foldl(F, [], AllObjs);
+
+% Animal units cannot see objects with FORTIFIED
+visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?ANIMAL ->
+    F = fun(Target, Visible) ->
+            Result = Target#obj.state =/= hiding andalso
+                     map:distance(Pos, Target#obj.pos) =< Vision andalso
+                     not effect:has_effect(Target#obj.id, ?FORTIFIED),
+            
+            case Result of
+                true -> [build_message(Target) | Visible];
+                false -> Visible
+            end
+        end,
+
+    lists:foldl(F, [], AllObjs);
+
 
 visible_objs(AllObjs, #obj {pos = Pos, vision = Vision}) ->
     F = fun(Target, Visible) ->
@@ -213,6 +253,7 @@ build_message(MapObj) ->
       <<"x">> => X,
       <<"y">> => Y,
       <<"class">> => MapObj#obj.class,
+      <<"subclass">> => MapObj#obj.subclass,
       <<"type">> => MapObj#obj.name, %TODO fix client to accept name instead of type
       <<"vision">> => MapObj#obj.vision,
       <<"state">> => MapObj#obj.state}.
