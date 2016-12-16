@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/0, broadcast/2, broadcast/3]).
+-export([recalculate/0, broadcast/3, broadcast/4]).
 -export([is_visible/2]).
 
 %% ====================================================================
@@ -28,11 +28,11 @@ start() ->
 recalculate() ->
     gen_server:cast({global, perception_pid}, recalculate).
 
-broadcast(SourcePos, MessageData) ->
-    gen_server:cast({global, perception_pid}, {broadcast, SourcePos, MessageData}).
+broadcast(SourcePos, Range, MessageData) ->
+    gen_server:cast({global, perception_pid}, {broadcast, SourcePos, Range, MessageData}).
 
-broadcast(SourcePos, TargetPos, MessageData) ->
-    gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, MessageData}).
+broadcast(SourcePos, TargetPos, Range, MessageData) ->
+    gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, Range, MessageData}).
 
 is_visible(SourceId, TargetId) ->
     [Perception] = db:read(perception, SourceId),
@@ -55,18 +55,19 @@ handle_cast(recalculate, Data) ->
     do_recalculate(),
     {noreply, Data};
 
-handle_cast({broadcast, SourcePos, MessageData}, Data) ->
-    SourceObjs = map:get_nearby_objs(SourcePos, 3),
-    lager:info("SourceObjs: ~p", [SourceObjs]),
-    broadcast_to_objs(SourceObjs, MessageData),
+handle_cast({broadcast, SourcePos, Range, MessageData}, Data) ->
+    VisionObjs = get_nearby_objs(SourcePos, Range),
+    lager:info("VisionObjs: ~p", [VisionObjs]),
+    broadcast_to_objs(VisionObjs, MessageData),
 
     {noreply, Data};    
 
-handle_cast({broadcast, SourcePos, TargetPos, MessageData}, Data) ->
-    SourceObjs = map:get_nearby_objs(SourcePos, 2),
-    TargetObjs = map:get_nearby_objs(TargetPos, 2),
+handle_cast({broadcast, SourcePos, TargetPos, Range, MessageData}, Data) ->
+    SourceObjs = get_nearby_objs(SourcePos, Range),
+    TargetObjs = get_nearby_objs(TargetPos, Range),
+    VisionObjs = SourceObjs ++ TargetObjs,
 
-    broadcast_to_objs(SourceObjs ++ TargetObjs, MessageData),
+    broadcast_to_objs(VisionObjs, MessageData),
 
     {noreply, Data};    
 
@@ -147,7 +148,7 @@ store_perception(_Result, _EntityId, _NewPerception) ->
 send_perception(true, _, _) -> nothing;
 send_perception(false, Entity, NewPerception) ->
     Process = case Entity#obj.subclass of
-                  <<"villager">> -> 
+                  ?VILLAGER -> 
                       global:whereis_name(villager);
                   _ -> 
                       [Conn] = db:read(connection, Entity#obj.player),
@@ -163,44 +164,29 @@ send_to_process(_Process, _NewPerception) ->
     none.
 
 broadcast_to_objs(Objs, Message) ->
-    Players = get_unique_players(Objs, []),
-    
-    F = fun(Player) ->
-            [Conn] = db:read(connection, Player),
-            lager:debug("Broadcasting ~p to ~p", [Message, Conn]),
-            Conn#connection.process ! {broadcast, Message}
+    F = fun(Obj) ->
+            case Obj#obj.player > ?NPC_ID of
+                true ->
+                    NewMessage = maps:put(<<"witnessid">>, util:bin_to_hex(Obj#obj.id), Message),
+
+                    case Obj#obj.subclass of
+                        ?VILLAGER -> 
+                            Process = global:whereis_name(villager),
+                            Process ! {broadcast, NewMessage};
+                        ?HERO -> 
+                            [Conn] = db:read(connection, Obj#obj.player),
+                            Conn#connection.process ! {broadcast, Obj#obj.id, NewMessage};
+                        _ -> 
+                            %No other subclasses require broadcasts
+                            nothing
+                    end;
+                false ->
+                    %NPC don't need broadcast at this time
+                    nothing
+            end
         end,
     
-    lists:foreach(F, Players).    
-
-get_unique_players([], Players) ->
-    util:unique_list(Players);
-get_unique_players([Obj | Rest], Players) ->
-    Subclass = maps:get(<<"subclass">>, Obj),
-
-    NewPlayers =
-        case Subclass =:= ?HERO of
-            true -> [maps:get(<<"player">>, Obj) | Players];
-            false -> Players
-        end,
-
-    get_unique_players(Rest, NewPlayers).
-
-%get_unique_players([], Players) ->
-%    util:unique_list(Players);
-%get_unique_players([Obj | Rest], Players) ->
-%    Player = maps:get(<<"player">>, Obj),
-%    NewPlayers = case valid_player(Player) of
-%                     true -> 
-%                         [maps:get(<<"player">>, Obj) | Players];
-%                     false ->
-%                         Players
-%                 end,
-%
-%    get_unique_players(Rest, NewPlayers).
-
-valid_player(PlayerId) when PlayerId < 1 -> false;
-valid_player(_PlayerId) -> true.
+    lists:foreach(F, Objs).    
 
 % Undead units cannot see objects with SANCTUARY
 visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?UNDEAD ->
@@ -258,3 +244,14 @@ build_message(MapObj) ->
       <<"vision">> => MapObj#obj.vision,
       <<"state">> => MapObj#obj.state}.
 
+get_nearby_objs(SourcePos, Range) ->
+    AllObj = ets:tab2list(obj),
+
+    F = fun(Obj) ->
+            case Obj#obj.vision > 0 of
+                true -> map:distance(SourcePos, Obj#obj.pos) =< Range;
+                false -> false                
+            end
+        end,
+
+    lists:filter(F, AllObj).

@@ -1,1 +1,1 @@
-{ "options" : { "create" : "skill_type" }, "indexes" : [ { "v" : 1, "key" : { "_id" : 1 }, "ns" : "sp.skill_type", "name" : "_id_" } ] }
+{"options":{},"indexes":[{"v":1,"key":{"_id":1},"ns":"sp.skill_type","name":"_id_"}]}

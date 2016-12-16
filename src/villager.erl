@@ -463,6 +463,17 @@ handle_info({perception, {VillagerId, Objs}}, Data) ->
     db:write(NewVillager),
 
     {noreply, Data};
+
+handle_info({broadcast, Message}, Data) ->
+    
+    case maps:get(<<"packet">>, Message) of
+        <<"sound">> -> 
+            WitnessId = maps:get(<<"witnessid">>, Message),
+            sound:talk(WitnessId, "Did you hear that?");
+        _ -> nothing
+    end,
+
+    {noreply, Data};
 handle_info({event_complete, {_Event, Id}}, Data) ->
     Villager = db:read(villager, Id),
     process_event_complete(Villager),

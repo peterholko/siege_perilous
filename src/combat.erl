@@ -365,5 +365,6 @@ broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) 
 
     SourcePos = SourceObj#obj.pos,
     TargetPos = TargetObj#obj.pos,
+    Range = 2,
 
-    perception:broadcast(SourcePos, TargetPos, Message).
+    perception:broadcast(SourcePos, TargetPos, Range, Message).
