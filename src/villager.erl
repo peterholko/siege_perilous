@@ -468,7 +468,7 @@ handle_info({broadcast, Message}, Data) ->
     
     case maps:get(<<"packet">>, Message) of
         <<"sound">> -> 
-            WitnessId = maps:get(<<"witnessid">>, Message),
+            WitnessId = util:hex_to_bin(maps:get(<<"witnessid">>, Message)),
             sound:talk(WitnessId, "Did you hear that?");
         _ -> nothing
     end,

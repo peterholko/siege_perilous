@@ -213,6 +213,8 @@ function init() {
     stage.snapToPixelEnabled = true;
     stage.enableMouseOver(10);
 
+    createjs.Touch.enable(stage);
+
     map = new createjs.Container();
     map.x = $("#map").width() / 2;
     map.y = $("#map").height() / 2;
@@ -680,6 +682,9 @@ function onMessage(evt) {
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
         }
+        else if(jsonData.packet == "sound") {
+            updateTextLog(jsonData.text)
+        } 	
         else if(jsonData.packet == "info_tile") {
             drawInfoTile(jsonData);
         }

@@ -47,6 +47,7 @@ spawn_random_npc(TileName, Pos) ->
             RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
             NPCId = obj:create(NPCPos, NPCPlayerId, unit, <<"npc">>, NPCName, none),
+            sound:sound(NPCPos, 2, "You hear a rustling in the nearby bushes"),	
             
             generate_loot(NPCId),
             
@@ -64,6 +65,8 @@ spawn_npc(NPCName, Pos) ->
             RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
             NPCId = obj:create(NPCPos, NPCPlayerId, unit, <<"npc">>, NPCName, none),
+            sound:sound(NPCPos, 2, "You hear a rustling in the nearby bushes"),	
+
             generate_loot(NPCId)
     end.
 

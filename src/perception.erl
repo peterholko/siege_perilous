@@ -65,8 +65,9 @@ handle_cast({broadcast, SourcePos, Range, MessageData}, Data) ->
 handle_cast({broadcast, SourcePos, TargetPos, Range, MessageData}, Data) ->
     SourceObjs = get_nearby_objs(SourcePos, Range),
     TargetObjs = get_nearby_objs(TargetPos, Range),
-    VisionObjs = SourceObjs ++ TargetObjs,
+    VisionObjs = util:unique_list(SourceObjs ++ TargetObjs),
 
+    lager:info("VisionObjs: ~p", [VisionObjs]),
     broadcast_to_objs(VisionObjs, MessageData),
 
     {noreply, Data};    
@@ -164,6 +165,7 @@ send_to_process(_Process, _NewPerception) ->
     none.
 
 broadcast_to_objs(Objs, Message) ->
+    lager:info("broadcast Message: ~p", [Message]),
     F = fun(Obj) ->
             case Obj#obj.player > ?NPC_ID of
                 true ->
@@ -175,7 +177,7 @@ broadcast_to_objs(Objs, Message) ->
                             Process ! {broadcast, NewMessage};
                         ?HERO -> 
                             [Conn] = db:read(connection, Obj#obj.player),
-                            Conn#connection.process ! {broadcast, Obj#obj.id, NewMessage};
+                            Conn#connection.process ! {broadcast, NewMessage};
                         _ -> 
                             %No other subclasses require broadcasts
                             nothing
