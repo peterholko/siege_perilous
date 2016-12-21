@@ -1867,7 +1867,6 @@ function drawInfoUnit(jsonData) {
                   + "Morale: " + jsonData.morale;
         } else {
             var stats = "--- Stats --- \n"
-                  + "Id: " + jsonData._id
                   + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
                   + "Damage: " + base_dmg + " - " + dmg_range + "\n" 
                   + "Defense: " + armor + "\n"
@@ -2026,13 +2025,13 @@ function drawInfoUnit(jsonData) {
 
             var path = imagePath;
 
-            /*Quick fix to be replaced by lookup table
+            Quick fix to be replaced by lookup table
             if(imageExists(imagePath)) {
                 path = imagePath;
             } 
             else {
                 path = altImagePath;    
-            }*/
+            }
 
             addImage({id: itemName, path: path, x: 0, y: 0, target: icon});
         }
