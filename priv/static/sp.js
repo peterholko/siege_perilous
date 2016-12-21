@@ -2025,7 +2025,7 @@ function drawInfoUnit(jsonData) {
 
             var path = imagePath;
 
-            Quick fix to be replaced by lookup table
+            //Quick fix to be replaced by lookup table
             if(imageExists(imagePath)) {
                 path = imagePath;
             } 
