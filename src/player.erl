@@ -237,39 +237,50 @@ ford(SourceId, Pos) ->
 
 survey(ObjId) ->
     lager:info("Survey: ~p", [ObjId]),
-    Player = get(player_id),
+    PlayerId = get(player_id),
     [Obj] = db:read(obj, ObjId),
 
-    ValidPlayer = is_player_owned(Obj#obj.player, Player),
-    
-    Result = case ValidPlayer of
-                 true ->
-                     resource:survey(Obj#obj.pos);
-                 false -> 
-                     <<"Invalid obj">>
-             end,
-    Result.
+    Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(Obj), "Can only survey with your hero"},
+              {not game:has_pre_events(ObjId), "Unit is busy"}],
+
+    case process_checks(Checks) of
+        true ->
+            resource:survey(Obj#obj.pos);
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
 
 harvest(ObjId, Resource) ->
-    Player = get(player_id),
+    PlayerId = get(player_id),
     NumTicks = 20,
 
     [Obj] = db:read(obj, ObjId),
 
-    ValidPlayer = is_player_owned(Obj#obj.player, Player),
-    ValidState = is_state(Obj#obj.state, none),
-    ValidResource = resource:is_valid(Obj#obj.pos),
+    Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(Obj), "Can only survey with your hero"},
+              {not game:has_pre_events(ObjId), "Unit is busy"},
+              {resource:is_valid(Obj#obj.pos), "Invalid resource"}],
 
-    Result = ValidPlayer andalso
-             ValidState andalso
-             ValidResource,
+    case process_checks(Checks) of
+        true ->
+            %Get objs on the same tile
+            Objs = db:index_read(obj, Obj#obj.pos, #obj.pos),
+            AutoHarvest = resource:is_auto(Objs, Resource),
+        
+            %Update obj state
+            obj:update_state(ObjId, harvesting),
 
-    %Get objs on the same tile
-    Objs = db:index_read(obj, Obj#obj.pos, #obj.pos),
+            %Check for encounter
+            encounter:check(Obj#obj.pos),
 
-    AutoHarvest = resource:is_auto(Objs, Resource),
+            EventData = {ObjId, Resource, Obj#obj.pos, NumTicks, AutoHarvest},
+            game:add_event(self(), harvest, EventData, ObjId, NumTicks),
 
-    add_harvest_event(Result, {ObjId, Resource, Obj#obj.pos, AutoHarvest}, NumTicks).
+            #{<<"harvest_time">> => NumTicks * ?TICKS_SEC};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
 
 loot(SourceId, ItemId) ->
     Item = item:get_rec(ItemId),
@@ -556,19 +567,6 @@ process_item_transfer(Item, TargetObj) ->
     ItemMap = item:transfer(Item#item.id, TargetObj#obj.id),
     obj:item_transfer(TargetObj, ItemMap).
 
-add_harvest_event(false, _EventData, _Ticks) ->
-    lager:info("Harvest failed"),
-    none;
-add_harvest_event(true, {ObjId, Resource, Pos, Auto}, NumTicks) ->
-    %Update obj state
-    obj:update_state(ObjId, harvesting),
-
-    %Check for encounter
-    encounter:check(Pos),
-
-    EventData = {ObjId, Resource, Pos, NumTicks, Auto},
-    game:add_event(self(), harvest, EventData, ObjId, NumTicks).
-
 add_finish_build(false, _EventData, _Ticks) ->
     lager:info("Finish Build failed"),
     none;
@@ -582,23 +580,6 @@ add_finish_build(true, {ObjId, StructureId}, NumTicks) ->
     obj:update_state(StructureId, under_construction),
 
     game:add_event(self(), finish_build, EventData, ObjId, NumTicks).
-
-add_process_resource({false, Error}, _StructureId, _UnitId, _NumTicks) ->
-    lager:info("Process_resource error: ~p", [Error]);
-add_process_resource(true, StructureId, UnitId, NumTicks) ->
-    EventData = {StructureId, UnitId, NumTicks},
-
-    obj:update_state(UnitId, processing),
-
-    game:add_event(self(), process_resource, EventData, UnitId, NumTicks).
-
-add_craft({false, Error}, _StructureId, _UnitId, _Recipe, _NumTicks) ->
-    lager:info("Craft error: ~p", [Error]);
-add_craft(true, StructureId, UnitId, Recipe, NumTicks) ->
-    EventData = {StructureId, UnitId, Recipe},
-
-    obj:update_state(UnitId, crafting),
-    game:add_event(self(), craft, EventData, UnitId, NumTicks).
 
 add_equip({false, Error}, _Data) ->
     lager:info("Equip failed error: ~p", [Error]);

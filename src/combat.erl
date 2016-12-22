@@ -96,6 +96,9 @@ process_attack(AttackType, AtkId, DefId) ->
     [AtkObj] = db:read(obj, AtkId),
     %[DefObj] = db:read(obj, DefId),
 
+    %Check for any post events that should be cancelled
+    remove_post_events(DefId),
+
     AtkItems = item:get_equiped(AtkId),
     DefItems = item:get_equiped(DefId),
 
@@ -329,6 +332,12 @@ countered(false, _) -> none.
 
 remove_defend(true, DefId, DefendType) -> effect:remove(DefId, DefendType);
 remove_defend(false, _, _) -> nothing.
+
+remove_post_events(ObjId) ->
+    case game:has_post_events(ObjId) of
+        true -> game:cancel_event(ObjId);
+        false -> none
+    end.
 
 is_range(<<"Bow">>) -> true;
 is_range(_) -> false.
