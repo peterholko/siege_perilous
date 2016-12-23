@@ -396,19 +396,29 @@ melee_attack(NPCId) ->
 
     lager:debug("Checks: ~p", [Checks]),
     NewNPC = case Checks of
-                true ->           
-                    CurrentAttacks = NPC#npc.attacks,
-                    AttackType = get_attack_type(NPC),
+                 true ->
+                     Attacks = case NPC#npc.attacks =:= NPC#npc.combo of
+                                   true -> [];
+                                   false -> NPC#npc.attacks
+                               end,
 
-                    combat:attack(AttackType, NPCId, NPC#npc.target),
+                     Combo = case Attacks of
+                                 [] -> get_combo(NPCObj);
+                                 _ -> NPC#npc.combo
+                             end,
 
-                    EventData = NPCId,
-                    game:add_event(self(), attack, EventData, NPCId, 16),
+                     NextAttack = get_next_attack(Attacks, Combo),
+                     
+                     combat:attack(NextAttack, NPCId, NPC#npc.target),
 
-                    NPC#npc {task_state = inprogress,
-                             attacks = store_attacks(AttackType, CurrentAttacks)};
-                false ->
-                    NPC#npc {task_state = completed}
+                     EventData = NPCId,
+                     game:add_event(self(), attack, EventData, NPCId, 16),
+
+                     NPC#npc {task_state = inprogress,        
+                              combo = Combo,                      
+                              attacks = Attacks ++ [NextAttack]};
+                 false ->
+                     NPC#npc {task_state = completed}
              end,
 
     db:write(NewNPC).
@@ -441,15 +451,20 @@ max_guard_dist(NPCId) ->
 
     map:distance(GuardPos, NPCPos) > 3. 
 
-get_attack_type(NPC) ->
-    case NPC#npc.attacks of
-        [] -> ?QUICK;
-        [?QUICK] -> ?QUICK;
-        [?QUICK, ?QUICK] -> ?QUICK;
-        [?QUICK, ?QUICK, ?QUICK] -> ?FIERCE
+get_combo(NPCObj) ->
+    Rand = util:rand(100),
+
+    case NPCObj#obj.name of
+        <<"Shadow">> -> shadow_combo(Rand); 
+        _ -> [?QUICK, ?QUICK, ?QUICK, ?FIERCE]
     end.
 
-store_attacks(?QUICK, Attacks) -> [?QUICK | Attacks];
-store_attacks(?FIERCE, Attacks) -> [].
+get_next_attack(Attacks, Combo) ->
+    RemainingAttacks = lists:subtract(Combo, Attacks),
+    [NextAttack | _] = RemainingAttacks,
+    NextAttack.
+
+shadow_combo(Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FIERCE, ?QUICK];
+shadow_combo(_) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE].
 
 

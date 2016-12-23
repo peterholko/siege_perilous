@@ -1,0 +1,14 @@
+{
+    "frames": {
+        "width": 72,
+        "height": 72
+    },
+    "animations": {
+        "die": [0],
+        "dead": [0],
+        "attack": [3, 8,"none", 0.2],
+        "none": [0],
+        "moving": [0, 2,"moving", 0.05]
+    },
+    "images": ["/static/art/shadow_ss.png"]
+}

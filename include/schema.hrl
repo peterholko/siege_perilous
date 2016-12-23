@@ -136,6 +136,7 @@
               task_state = none,
               task_index = 0,
               path = none,
+              combo = [],
               attacks = []}).
 
 -record(state, {id, 

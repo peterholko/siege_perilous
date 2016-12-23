@@ -288,7 +288,9 @@ check_attacks(Attacks, ObjSubclass) ->
     lists:filter(F, combos(ObjSubclass)).
 
 combos(<<"npc">>) ->
-    [{"qqqf", <<"Undead Devour">>, 3}];
+    [{"qqqf", <<"Undead Devour">>, 3},
+     {"qpfq", <<"Soul Drain">>, 5},
+     {"pfpp", <<"Corrupt Heart">>, 10}];
 combos(_) ->
     [{"qqf", <<"Shrouded Strike">>, 1.25},
      {"fff", <<"Shatter Strike">>, 1.5},
