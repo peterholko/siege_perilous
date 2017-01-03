@@ -115,9 +115,10 @@ message_handle(<<"harvest">>, Message) ->
     Resource = map_get(<<"resource">>, Message),
     BinSourceId = util:hex_to_bin(SourceId),
    
-    player:harvest(BinSourceId, Resource),
+    Return = player:harvest(BinSourceId, Resource),
 
-    <<"Harvest added">>;
+    FinalReturn = maps:put(<<"packet">>, <<"harvest">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"loot">>, Message) ->
     lager:info("message: loot"),
