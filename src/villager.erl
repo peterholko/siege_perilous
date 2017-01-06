@@ -17,7 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([has_assigned/1, assign/2, remove/1, remove_structure/1, get_by_structure/1]).
 -export([create_plan/0, run_plan/0]).
--export([enemy_visible/1, move_to_pos/1, hero_nearby/1]).
+-export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
 -export([set_order_refine/1, set_order_craft/2]).
@@ -258,6 +258,21 @@ move_to_pos(Villager) ->
     lager:info("Move Villager: ~p",[NewVillager]),
     NewVillager.
 
+move_randomly(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
+
+    NewVillager = case game:get_valid_tiles(VillagerObj#obj.pos) of
+                      [] -> 
+                          Villager;
+                      Tiles -> 
+                          Random = util:rand(length(Tiles)),
+                          TilePos = lists:nth(Random, Tiles),
+                          
+                          move_unit(VillagerObj, TilePos),
+                          Villager#villager {task_state = running}
+                  end,
+    NewVillager.                
+                          
 harvest(Villager) ->
     EventData = {Villager#villager.id, Villager#villager.structure},
     NumTicks = ?TICKS_SEC * 8,

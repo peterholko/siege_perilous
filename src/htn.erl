@@ -14,6 +14,7 @@
 load() ->
     wander(),
     guard(),
+    siege(),
     villager().
 
 wander() ->
@@ -35,6 +36,10 @@ guard() ->
     add_primitive(melee_attack, do_attack, [], [], melee_attack),
     add_select_all(do_guard, guard, [], []),
     add_primitive(move_guard_pos2, do_guard, [], [], move_guard_pos).
+
+siege() ->
+    new(siege),
+    add_select_one(attack_enemy, siege, [], []).
 
 villager() ->
     new(villager),

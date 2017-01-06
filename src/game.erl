@@ -18,7 +18,7 @@
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
 -export([send_update_items/3, send_update_stats/2, send_revent/2]).
--export([get_info_tile/1]).
+-export([get_info_tile/1, get_valid_tiles/1]).
 -export([spawn_hero/1, hero_dead/2]).
 
 
@@ -66,6 +66,15 @@ get_info_tile(Pos) ->
     Info6 = maps:put(<<"wildness">>, WildnessLevel, Info5),
 
     Info6.
+
+get_valid_tiles({X, Y}) ->
+    Neighbours = map:neighbours(X, Y),
+
+    F = fun(Pos) ->
+        map:is_passable(Pos) and obj:is_empty(Pos)
+    end,
+
+    lists:filter(F, Neighbours).
 
 spawn_hero(PlayerId) ->
     %Pos = map:random_location(),

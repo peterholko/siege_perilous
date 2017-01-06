@@ -453,18 +453,14 @@ max_guard_dist(NPCId) ->
 
 get_combo(NPCObj) ->
     Rand = util:rand(100),
-
-    case NPCObj#obj.name of
-        <<"Shadow">> -> shadow_combo(Rand); 
-        _ -> [?QUICK, ?QUICK, ?QUICK, ?FIERCE]
-    end.
+    combo(NPCObj#obj.name, Rand).
 
 get_next_attack(Attacks, Combo) ->
     RemainingAttacks = lists:subtract(Combo, Attacks),
     [NextAttack | _] = RemainingAttacks,
     NextAttack.
 
-shadow_combo(Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FIERCE, ?QUICK];
-shadow_combo(_) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE].
-
+combo(<<"Shadow">>, Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FIERCE, ?QUICK];
+combo(<<"Shadow">>, _) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE];
+combo(_, _) -> [?QUICK, ?QUICK, ?QUICK, ?FIERCE].
 

@@ -39,7 +39,7 @@ spawn_random_npc(TileName, Pos) ->
     NPCName = lists:nth(Random, NPCList),
     NPCType = obj_def:value(NPCName, <<"npc_type">>),
     NPCPlayerId = npc:get_player_id(NPCType),
-    Tiles = get_valid_tiles(Pos),
+    Tiles = game:get_valid_tiles(Pos),
 
     case Tiles of
         [] -> nothing; %No valid tiles
@@ -57,7 +57,7 @@ spawn_random_npc(TileName, Pos) ->
 spawn_npc(NPCName, Pos) ->
     NPCType = obj_def:value(NPCName, <<"npc_type">>),
     NPCPlayerId = npc:get_player_id(NPCType),
-    Tiles = get_valid_tiles(Pos),
+    Tiles = game:get_valid_tiles(Pos),
 
     case Tiles of
         [] -> nothing; %No valid tiles
@@ -114,13 +114,6 @@ get_num(Pos) ->
                 [Encounter] -> Encounter#encounter.num
             end
     end.
-
-get_valid_tiles({X, Y}) ->
-    Neighbours = map:neighbours(X, Y),
-    F = fun(Pos) -> 
-                map:is_passable(Pos) and obj:is_empty(Pos)
-        end,
-    lists:filter(F, Neighbours).
 
 increase_num(Pos) ->
     NewEncounter = case db:read(encounter, Pos) of
