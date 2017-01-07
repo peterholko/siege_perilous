@@ -16,9 +16,9 @@
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([replan/1, run_plan/1, get_nearest/3]).
--export([target_visible/1, max_guard_dist/1]).
--export([move_random_pos/1, move_to_target/1, melee_attack/1, move_guard_pos/1]).
--export([get_player_id/1, add/1, remove/1]).
+-export([target_visible/1, target_adjacent/1, max_guard_dist/1]).
+-export([move_random_pos/1, move_to_target/1, melee_attack/1, move_to_order_pos/1]).
+-export([get_player_id/1, add/1, remove/1, set_order/3, create/2]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -41,6 +41,19 @@ add(Id) ->
     db:write(NPC).
 remove(Id) ->
     db:delete(npc, Id).
+
+set_order(Id, Orders, OrdersData) ->
+    [NPC] = db:read(npc, Id),
+
+    NewNPC = NPC#npc {orders = Orders, 
+                      orders_data = OrdersData},
+    db:write(NewNPC).
+
+create(Pos, Name) ->
+    Type = obj_def:value(Name, <<"npc_type">>),
+    PlayerId = get_player_id(Type),
+    Id = obj:create(Pos, PlayerId, unit, <<"npc">>, Name, none),
+    Id.
 
 %% ====================================================================
 %% Server functions
@@ -86,20 +99,8 @@ handle_info({map_perception_disabled, _Perception}, Data) ->
 
 handle_info({perception, {NPCId, Objs}}, Data) ->
     lager:debug("Perception received."),
-    [NPCObj] = db:read(obj, NPCId),
-    [NPC] = db:read(npc, NPCId),
 
-    %Remove from same player and non targetable objs
-    FilteredTargets = filter_targets(Objs, []),
-
-    %Find target
-    Target = find_target(NPCObj, FilteredTargets),
-
-    lager:debug("Find Target: ~p", [Target]),
-
-    %Store target
-    NewNPC = NPC#npc {target = Target},
-    db:write(NewNPC),
+    perception(NPCId, Objs),
 
     lager:debug("Perception processing end."),
     {noreply, Data};
@@ -216,8 +217,8 @@ process_event_complete([NPC]) ->
             db:write(NewNPC);
         move_to_target ->
             move_to_target(NPC#npc.id);
-        move_guard_pos ->
-            move_guard_pos(NPC#npc.id);
+        move_to_order_pos ->
+            move_to_order_pos(NPC#npc.id);
         melee_attack ->
             NewNPC = NPC#npc {task_state = completed},
             db:write(NewNPC);
@@ -353,6 +354,18 @@ target_visible(NPCId) ->
     [NPC] = db:read(npc, NPCId),
     NPC#npc.target =/= none.
 
+target_adjacent(NPCId) ->
+    [NPC] = db:read(npc, NPCId), 
+    [NPCObj] = db:read(obj, NPCId),
+
+    case NPC#npc.target =/= none of
+        true -> 
+            [TargetObj] = db:read(obj, NPC#npc.target),
+            map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos);
+        false -> 
+            false
+    end.
+
 move_to_target(NPCId) ->
     [NPC] = db:read(npc, NPCId), 
     [NPCObj] = db:read(obj, NPCId),
@@ -423,15 +436,15 @@ melee_attack(NPCId) ->
 
     db:write(NewNPC).
 
-move_guard_pos(NPCId) ->
+move_to_order_pos(NPCId) ->
     [NPC] = db:read(npc, NPCId),
     [NPCObj] = db:read(obj, NPCId),
 
-    GuardPos = NPC#npc.orders_data,
+    Pos = NPC#npc.orders_data,
 
-    case NPCObj#obj.pos =:= GuardPos of
+    case NPCObj#obj.pos =:= Pos of
         false ->
-            Path = astar:astar(NPCObj#obj.pos, GuardPos, NPCObj),
+            Path = astar:astar(NPCObj#obj.pos, Pos, NPCObj),
             NewNPC = NPC#npc {task_state = inprogress,
                               path = Path},
             db:write(NewNPC),
@@ -464,3 +477,18 @@ combo(<<"Shadow">>, Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FIERCE, ?QUICK];
 combo(<<"Shadow">>, _) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE];
 combo(_, _) -> [?QUICK, ?QUICK, ?QUICK, ?FIERCE].
 
+perception(NPCId, Objs) ->
+    [NPCObj] = db:read(obj, NPCId),
+    [NPC] = db:read(npc, NPCId),
+
+    %Remove from same player and non targetable objs
+    FilteredTargets = filter_targets(Objs, []),
+
+    %Find target
+    Target = find_target(NPCObj, FilteredTargets),
+
+    lager:debug("Find Target: ~p", [Target]),
+
+    %Store target
+    NewNPC = NPC#npc {target = Target},
+    db:write(NewNPC).

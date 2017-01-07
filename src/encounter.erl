@@ -37,8 +37,6 @@ spawn_random_npc(TileName, Pos) ->
     NPCList = npc_list(TileName),
     Random = util:rand(length(NPCList)),
     NPCName = lists:nth(Random, NPCList),
-    NPCType = obj_def:value(NPCName, <<"npc_type">>),
-    NPCPlayerId = npc:get_player_id(NPCType),
     Tiles = game:get_valid_tiles(Pos),
 
     case Tiles of
@@ -46,8 +44,7 @@ spawn_random_npc(TileName, Pos) ->
         Neighbours ->
             RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
-            NPCId = obj:create(NPCPos, NPCPlayerId, unit, <<"npc">>, NPCName, none),
-            sound:sound(NPCPos, 2, "You hear a rustling in the nearby bushes"),	
+            NPCId = npc:create(NPCPos, NPCName),
             
             generate_loot(NPCId),
             
@@ -55,8 +52,6 @@ spawn_random_npc(TileName, Pos) ->
     end.
 
 spawn_npc(NPCName, Pos) ->
-    NPCType = obj_def:value(NPCName, <<"npc_type">>),
-    NPCPlayerId = npc:get_player_id(NPCType),
     Tiles = game:get_valid_tiles(Pos),
 
     case Tiles of
@@ -64,8 +59,7 @@ spawn_npc(NPCName, Pos) ->
         Neighbours ->
             RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
-            NPCId = obj:create(NPCPos, NPCPlayerId, unit, <<"npc">>, NPCName, none),
-            sound:sound(NPCPos, 2, "You hear a rustling in the nearby bushes"),	
+            NPCId = obj:create(NPCPos, NPCName),
 
             generate_loot(NPCId)
     end.

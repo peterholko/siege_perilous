@@ -14,33 +14,37 @@
 load() ->
     wander(),
     guard(),
-    siege(),
+    monolith_lust(),
     villager().
 
 wander() ->
     new(wander),
     add_select_one(attack_enemy, wander, [target_visible], []),
-    add_select_all(do_attack, attack_enemy, [], []),
-    add_primitive(move_to_target, do_attack, [], [], move_to_target),
-    add_primitive(melee_attack, do_attack, [], [], melee_attack),
+        add_select_all(do_attack, attack_enemy, [], []),
+            add_primitive(move_to_target, do_attack, [], [], move_to_target),
+            add_primitive(melee_attack, do_attack, [], [], melee_attack),
     add_select_all(do_wander, wander, [], []),
-    add_primitive(move_random_pos, do_wander, [], [], move_random_pos).
+        add_primitive(move_random_pos, do_wander, [], [], move_random_pos).
 
 guard() ->
     new(guard),
     add_select_one(attack_enemy, guard, [target_visible], []),
-    add_select_all(return_to_guard, attack_enemy, [max_guard_dist], []),
-    add_primitive(move_guard_pos1, return_to_guard, [], [], move_guard_pos),
-    add_select_all(do_attack, attack_enemy, [], []),
-    add_primitive(move_to_target, do_attack, [], [], move_to_target),
-    add_primitive(melee_attack, do_attack, [], [], melee_attack),
+        add_select_all(return_to_guard, attack_enemy, [max_guard_dist], []),
+            add_primitive(move_guard_pos1, return_to_guard, [], [], move_to_order_pos),
+        add_select_all(do_attack, attack_enemy, [], []),
+            add_primitive(move_to_target, do_attack, [], [], move_to_target),
+            add_primitive(melee_attack, do_attack, [], [], melee_attack),
     add_select_all(do_guard, guard, [], []),
-    add_primitive(move_guard_pos2, do_guard, [], [], move_guard_pos).
+        add_primitive(move_guard_pos2, do_guard, [], [], move_to_order_pos).
 
-siege() ->
-    new(siege),
-    add_select_one(attack_enemy, siege, [], []).
-
+monolith_lust() ->
+    new(monolith_lust),
+    add_select_one(attack_enemy, monolith_lust, [target_adjacent], []),
+        add_select_all(do_attack, attack_enemy, [], []),
+            add_primitive(melee_attack, do_attack, [], [], melee_attack),
+    add_select_all(do_monolith_lust, monolith_lust, [], []),
+        add_primitive(move_to_monolith, do_monolith_lust, [], [], move_to_order_pos).
+            
 villager() ->
     new(villager),
     add_select_one(nearby_enemy, villager, [enemy_visible], []),

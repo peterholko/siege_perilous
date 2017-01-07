@@ -20,6 +20,7 @@
 -export([send_update_items/3, send_update_stats/2, send_revent/2]).
 -export([get_info_tile/1, get_valid_tiles/1]).
 -export([spawn_hero/1, hero_dead/2]).
+-export([spawn_shadow/1]).
 
 
 %% Common functions
@@ -100,6 +101,15 @@ spawn_hero(PlayerId) ->
 
 hero_dead(PlayerId, HeroId) ->
     lager:info("Hero killed").
+
+spawn_shadow(MonolithPos) ->
+    ListOfPos = map:random_location_from(MonolithPos, 5),
+    RandomIndex = util:rand(length(ListOfPos)),
+    NPCPos = lists:nth(RandomIndex, ListOfPos),
+
+    NPCId = npc:create(NPCPos, <<"Shadow">>),
+
+    npc:set_order(NPCId, monolith_lust, MonolithPos).
     
 %%
 %% API Functions
