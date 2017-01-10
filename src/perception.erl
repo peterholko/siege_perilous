@@ -169,7 +169,7 @@ broadcast_to_objs(Objs, Message) ->
     F = fun(Obj) ->
             case Obj#obj.player > ?NPC_ID of
                 true ->
-                    NewMessage = maps:put(<<"witnessid">>, util:bin_to_hex(Obj#obj.id), Message),
+                    NewMessage = maps:put(<<"witnessid">>, Obj#obj.id, Message),
 
                     case Obj#obj.subclass of
                         ?VILLAGER -> 

@@ -42,7 +42,7 @@ get_player(Id) ->
 
 message(SourceId, SkillName, Value) ->
     #{<<"packet">> => <<"skill_update">>,
-      <<"sourceid">> => util:bin_to_hex(SourceId),
+      <<"sourceid">> => SourceId,
       <<"skill_name">> => SkillName,
       <<"value">> => Value}.
 

@@ -114,6 +114,4 @@ capfirst([Head | Tail]) when Head >= $a, Head =< $z ->
 capfirst(Other) ->
     Other.
 
-get_id() ->
-    Time = bson:timenow(),
-    bson:objectid(bson:unixtime_to_secs(Time), <<2:24/big, 3:16/big>>, counter:increment(id)).
+get_id() -> integer_to_binary(counter:increment(id)).

@@ -20,7 +20,7 @@ speech(ObjId, Range, Text) ->
     Range = 2,
 
     SoundPacket = #{<<"packet">> => <<"speech">>,
-                    <<"source">> => util:bin_to_hex(ObjId),
+                    <<"source">> => ObjId,
                     <<"text">> => list_to_binary(Text)},
                    
     perception:broadcast(Obj#obj.pos, Range, SoundPacket).

@@ -363,8 +363,8 @@ check_fortified(AtkId, AtkWeapons) ->
 broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) ->
     %Convert id here as message is being built
     Message = #{<<"packet">> => <<"dmg">>,
-                <<"sourceid">> => util:bin_to_hex(SourceId),
-                <<"targetid">> => util:bin_to_hex(TargetId),
+                <<"sourceid">> => SourceId,
+                <<"targetid">> => TargetId,
                 <<"attacktype">> => AttackType,
                 <<"dmg">> => Dmg,
                 <<"state">> => State,

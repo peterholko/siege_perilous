@@ -128,7 +128,7 @@ attack(AttackType, SourceId, TargetId) ->
 
             game:add_event(self(), attack, AttackType, SourceId, NumTicks),
 
-            #{<<"sourceid">> => util:bin_to_hex(SourceId),
+            #{<<"sourceid">> => SourceId,
               <<"attacktype">> => AttackType,
               <<"cooldown">> => NumTicks / ?TICKS_SEC,
               <<"stamina_cost">> => StaminaCost};
@@ -156,7 +156,7 @@ defend(DefendType, SourceId) ->
 
             game:add_event(self(), defend, EventData, SourceId, NumTicks),
 
-            #{<<"sourceid">> => util:bin_to_hex(SourceId),
+            #{<<"sourceid">> => SourceId,
               <<"defendtype">> => DefendType,
               <<"cooldown">> => NumTicks / ?TICKS_SEC,
               <<"stamina_cost">> => StaminaCost};
