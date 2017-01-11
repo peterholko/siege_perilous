@@ -18,7 +18,6 @@
 -export([get_conn/0]).
 -export([update/3, delete/2]).
 -export([find/2, find/3, find_one/2, find_one/3, dump/1]).
--export([to_map/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -97,57 +96,6 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-
-doc_foldr (Fun, Acc, Doc) -> doc_foldrN (Fun, Acc, Doc, 0, tuple_size (Doc) div 2).
-
-doc_foldrN (_, Acc, _, Low, Low) -> Acc;
-doc_foldrN (Fun, Acc, Doc, Low, High) ->
-    Acc1 = Fun (element (High * 2 - 1, Doc), element (High * 2, Doc), Acc),
-    doc_foldrN (Fun, Acc1, Doc, Low, High - 1).
-
-%  Convert bson document to a map and converts BSON id to hex id
-to_map([]) ->
-    [];
-to_map(Doc) when is_list(Doc) ->
-    [D] = Doc, 
-    to_map(D);
-to_map(Doc) -> doc_foldr (fun (Label, Value, List) -> 
-                               maps:put(atom_to_binary(Label, latin1), convert_id(Value), List)
-                          end, 
-                          maps:new(), 
-                          Doc).
-
-convert_id(Value) when is_tuple(Value) ->
-    convert_bin_id(Value);
-convert_id(ValueList) when is_list(ValueList) ->
-
-    F = fun(V, Acc) ->
-        convert_list(V, Acc)
-   end,
-
-    lists:foldl(F, [], ValueList);
-
-convert_id(Value) ->
-    Value.
-
-convert_list(V, Acc) when is_tuple(V) ->
-    FF = fun(Label, Val, List) -> 
-            maps:put(atom_to_binary(Label, latin1), convert_id(Val), List)
-    end,
-
-    [doc_foldr(FF, maps:new(), V) | Acc];
-convert_list(V, Acc) ->
-    [V | Acc].
-
-convert_bin_id({Value}) when is_binary(Value) ->
-    to_hex(Value, Value);
-convert_bin_id(Value) ->
-    Value.
-    
-to_hex(<<_:96>>, Value) ->
-    util:bin_to_hex(Value);
-to_hex(Value, Value) ->
-    Value.
 
 find_one(Collection, Key, Value) ->
     mongo:find_one(mdb:get_conn(), Collection, {Key, Value}).

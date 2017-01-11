@@ -12,6 +12,7 @@
          get_info_tile/2,
          get_info_unit/1,
          get_info_item/1,
+         get_info_item_name/1,
          move/2,
          ford/2,
          attack/3,
@@ -97,13 +98,13 @@ get_info_unit(Id) ->
             Info
     end.
 
-get_info_item(ItemId) when is_tuple(ItemId) ->
+get_info_item(ItemId) ->
     lager:info("get_info_item ~p", [ItemId]),
     case item:get_all_attr(ItemId) of
         invalid -> #{<<"errmsg">> => <<"Invalid Item">>};
         ItemMap -> ItemMap
-    end;
-get_info_item(ItemName) ->
+    end.
+get_info_item_name(ItemName) ->
     item:get_map_by_name(ItemName).
 
 attack(AttackType, SourceId, TargetId) ->

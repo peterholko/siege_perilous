@@ -281,7 +281,7 @@ message_handle(<<"info_item">>, Message) ->
 message_handle(<<"info_item_by_name">>, Message) ->
     lager:info("message: info_item_by_name"),
     ItemName = map_get(<<"name">>, Message),
-    InfoMaps = player:get_info_item(ItemName),
+    InfoMaps = player:get_info_item_name(ItemName),
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
