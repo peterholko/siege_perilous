@@ -1,0 +1,47 @@
+{
+	"_id": {
+		"$oid": "56048327a339c95c26af2c29"
+	},
+	"item": "Dagger",
+	"structure": "Blacksmith",
+	"class": "Weapon",
+	"subclass": "Dagger",
+	"slot": "Main Hand",
+	"req": [
+		{
+			"type": "Ingot",
+			"quantity": 1
+		},
+		{
+			"type": "Wood",
+			"quantity": 1
+		}
+	]
+}
+{
+	"_id": {
+		"$oid": "569588e197d56a3098db61a9"
+	},
+	"item": "Refine Ore",
+	"class": "process_res",
+	"structure": "Blacksmith"
+}
+{
+	"_id": {
+		"$oid": "575060d53c7fdc0d2ce2bcd3"
+	},
+	"item": "Chain Mail",
+	"structure": "Blacksmith",
+	"class": "Armor",
+	"subclass": "Chain Mail",
+	"req": [
+		{
+			"type": "Ingot",
+			"quantity": 1
+		},
+		{
+			"type": "Wood",
+			"quantity": 1
+		}
+	]
+}

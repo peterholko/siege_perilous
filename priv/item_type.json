@@ -1,0 +1,335 @@
+{
+	"_id": {
+		"$oid": "5565d355becfe3e72e7864f3"
+	},
+	"name": "Cragroot Popular",
+	"class": "Resource",
+	"subclass": "Wood",
+	"weight": 10,
+	"durability": 2
+}
+{
+	"_id": {
+		"$oid": "55843c5a95960a150d4be6ac"
+	},
+	"name": "Wrapwood Birch",
+	"class": "Resource",
+	"subclass": "Wood",
+	"weight": 10
+}
+{
+	"_id": {
+		"$oid": "55843c6f95960a150d4be6ad"
+	},
+	"name": "Skyshroud Oak",
+	"class": "Resource",
+	"subclass": "Wood",
+	"weight": 10
+}
+{
+	"_id": {
+		"$oid": "5584402195960a150d4be6b1"
+	},
+	"class": "Raw",
+	"name": "Crimson Corn",
+	"subclass": "Plant",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584402995960a150d4be6b2"
+	},
+	"class": "Raw",
+	"name": "Salarian Wheat",
+	"subclass": "Plant",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584403395960a150d4be6b3"
+	},
+	"class": "Raw",
+	"name": "Crimson Root",
+	"subclass": "Food",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "558440a095960a150d4be6b4"
+	},
+	"name": "Valleyrun Copper Ore",
+	"class": "Raw",
+	"subclass": "Ore",
+	"weight": 10,
+	"produces": [
+		"Valleyrun Copper Ingot",
+		"Valleyrun Copper Dust"
+	]
+}
+{
+	"_id": {
+		"$oid": "558440b095960a150d4be6b5"
+	},
+	"name": "Quickforge Iron Ore",
+	"class": "Raw",
+	"subclass": "Ore",
+	"weight": 10,
+	"produces": [
+		"Quickforge Iron Ingot",
+		"Quickforge Iron Dust"
+	]
+}
+{
+	"_id": {
+		"$oid": "558440bd95960a150d4be6b6"
+	},
+	"name": "Stronghold Mithril Ore",
+	"class": "Raw",
+	"subclass": "Ore",
+	"weight": 10,
+	"produces": [
+		"Stronghold Mithril Ingot",
+		"Stronghold Mithril Dust"
+	]
+}
+{
+	"_id": {
+		"$oid": "558440d795960a150d4be6b7"
+	},
+	"name": "Cragroot Wood",
+	"class": "Raw",
+	"subclass": "Wood",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "558440f495960a150d4be6b8"
+	},
+	"name": "Cragroot Leaf",
+	"class": "Raw",
+	"subclass": "herb",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "558440fd95960a150d4be6b9"
+	},
+	"name": "Wrapwood Wood",
+	"class": "Raw",
+	"subclass": "Wood",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584410e95960a150d4be6ba"
+	},
+	"name": "Wrapwood Grape",
+	"class": "Raw",
+	"subclass": "fruit",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "558441e795960a150d4be6bb"
+	},
+	"name": "Skyshroud Wood",
+	"class": "Raw",
+	"subclass": "Wood",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "558441f895960a150d4be6bc"
+	},
+	"name": "Skyshroud Leaf",
+	"class": "Raw",
+	"subclass": "herb",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584430195960a150d4be6bd"
+	},
+	"name": "Crimson Corn",
+	"class": "Raw",
+	"subclass": "vegetable",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584431d95960a150d4be6be"
+	},
+	"name": "Crimson Fiber",
+	"class": "Raw",
+	"subclass": "fiber",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584433195960a150d4be6bf"
+	},
+	"name": "Salarian Grain",
+	"class": "Raw",
+	"subclass": "grain",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584434795960a150d4be6c0"
+	},
+	"name": "Salarian Blossom",
+	"class": "Raw",
+	"subclass": "herb",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584435495960a150d4be6c1"
+	},
+	"name": "Chisotan Tuber",
+	"class": "Raw",
+	"subclass": "vegetable",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584436295960a150d4be6c2"
+	},
+	"name": "Chisotan Cherry",
+	"class": "Raw",
+	"subclass": "fruit",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584438195960a150d4be6c3"
+	},
+	"name": "Valleyrun Copper Ingot",
+	"class": "Refined",
+	"subclass": "Ingot",
+	"weight": 1,
+	"damage": 2,
+	"armor": 3
+}
+{
+	"_id": {
+		"$oid": "5584439c95960a150d4be6c4"
+	},
+	"name": "Valleyrun Copper Dust",
+	"class": "Refined",
+	"subclass": "dust",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "558443a795960a150d4be6c5"
+	},
+	"name": "Quickforge Iron Ingot",
+	"class": "Refined",
+	"subclass": "Ingot",
+	"weight": 1,
+	"damage": 10,
+	"armor": 12
+}
+{
+	"_id": {
+		"$oid": "558443b895960a150d4be6c6"
+	},
+	"name": "Quickforge Iron Dust",
+	"class": "Refined",
+	"subclass": "dust",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "558443eb95960a150d4be6c7"
+	},
+	"name": "Stronghold Mithril Ingot",
+	"class": "Refined",
+	"subclass": "Ingot",
+	"weight": 1,
+	"damage": 5,
+	"armor": 6
+}
+{
+	"_id": {
+		"$oid": "558443f995960a150d4be6c8"
+	},
+	"name": "Stronghold Mithril Dust",
+	"class": "Refined",
+	"subclass": "dust",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584445895960a150d4be6c9"
+	},
+	"name": "Cragroot Lumber",
+	"class": "Refined",
+	"subclass": "Lumber",
+	"weight": 1,
+	"durability": 2
+}
+{
+	"_id": {
+		"$oid": "5584445f95960a150d4be6ca"
+	},
+	"name": "Wrapwood Lumber",
+	"class": "Refined",
+	"subclass": "Lumber",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584446895960a150d4be6cb"
+	},
+	"name": "Skyshoud Lumber",
+	"class": "Refined",
+	"subclass": "Lumber",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584447695960a150d4be6cc"
+	},
+	"name": "Crimson Cloth",
+	"class": "Refined",
+	"subclass": "Cloth",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "5584449795960a150d4be6cd"
+	},
+	"name": "Spiralstone Gem",
+	"class": "Raw",
+	"subclass": "Gem",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "558444a395960a150d4be6ce"
+	},
+	"name": "Spiralstone Dust",
+	"class": "Refined",
+	"subclass": "Dust",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "56564da897d56a3098db61a8"
+	},
+	"name": "Mana",
+	"class": "Resource",
+	"subclass": "Mana",
+	"weight": 1
+}
+{
+	"_id": {
+		"$oid": "56ba4eac97d56a3098db61b2"
+	},
+	"name": "Gold Coins",
+	"class": "Resource",
+	"subclass": "Coins",
+	"weight": 1
+}
