@@ -71,6 +71,10 @@ hp_very_low(NPCId) ->
     HpNormal = (NPCHp / NPCBaseHp) < 0.20,
     HpNormal.
 
+set_flee_pos(NPCId) ->
+    [NPC] = db:read(npc, NPCId),
+    [NPCObj] = db:read(obj, NPCId).
+
 move_random_pos(NPCId) ->
     [NPC] = db:read(npc, NPCId),
     [NPCObj] = db:dirty_read(obj, NPCId),
