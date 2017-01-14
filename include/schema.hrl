@@ -129,8 +129,8 @@
 
 -record(npc, {id,
               target = none,
-              orders = wander,
-              orders_data = none,
+              order = wander,
+              order_data = none,
               plan = [],
               new_plan = false,
               task_state = none,

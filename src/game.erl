@@ -109,7 +109,7 @@ spawn_shadow(MonolithPos) ->
 
     NPCId = npc:create(NPCPos, <<"Shadow">>),
 
-    npc:set_order(NPCId, monolith_lust, MonolithPos).
+    npc:set_order(NPCId, move_to_pos, MonolithPos).
     
 %%
 %% API Functions

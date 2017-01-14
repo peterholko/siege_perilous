@@ -22,7 +22,7 @@
 -export([cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -export([movement_cost/1, is_passable/1, is_not_blocked/2, is_river/1, random_location/0, random_location_from/2]).
 -export([check_distance/4, distance/2]).
--export([range/2, filter_pos/1]).
+-export([range/2, ring/2, filter_pos/1]).
 -export([spawn_resources/0, tile_name/1, defense_bonus/1]).
 
 -record(data, {}).
@@ -311,11 +311,38 @@ add_neighbour(true, NeighbourOddQ, Neighbours) ->
 add_neighbour(false, _NeighbourOddQ, Neighbours) ->
     Neighbours.
 
+direction(N) -> lists:nth(N, conversion_table()).
+
+scale({X, Y, Z}, N) -> {X * N, Y * N, Z * N}.
+
+add({X1, Y1, Z1}, {X2, Y2, Z2}) -> {X1 + X2, Y1 + Y2, Z1 + Z2}.
+
+neighbour(Pos, DirN) -> add(Pos, direction(DirN)).
+
 range(Pos, N) ->
     {CX, CY, CZ} = odd_q_to_cube(Pos),
     S = lists:seq(-1 * N, N), 
     ListOfPos = [cube_to_odd_q({CX + X, CY + Y, CZ + Z}) || X <- S, Y <- S, Z <- S, X + Y + Z  == 0],
     filter_pos(ListOfPos).
+
+ring(Center, Radius) ->
+    CubeCenter = odd_q_to_cube(Center),
+
+    CubeDir4 = direction(4),
+    CubeDir4Scale = scale(CubeDir4, Radius),
+
+    Cube = add(CubeCenter, CubeDir4Scale),
+
+    F = fun(I, IAcc) ->
+            G = fun(_J, JAcc) ->
+                    [Last | _] = JAcc,
+                    [ neighbour(Last, I) | JAcc]
+                end,
+
+            lists:foldl(G, IAcc, lists:seq(1, Radius))
+        end,
+
+    lists:foldl(F, [Cube], lists:seq(1, 6)).
 
 filter_pos(ListOfPos) ->
     F = fun(Pos) ->

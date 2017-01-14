@@ -45,8 +45,8 @@ remove(Id) ->
 set_order(Id, Orders, OrdersData) ->
     [NPC] = db:read(npc, Id),
 
-    NewNPC = NPC#npc {orders = Orders, 
-                      orders_data = OrdersData},
+    NewNPC = NPC#npc {order = Orders, 
+                      order_data = OrdersData},
     db:write(NewNPC).
 
 create(Pos, Name) ->
@@ -54,6 +54,150 @@ create(Pos, Name) ->
     PlayerId = get_player_id(Type),
     Id = obj:create(Pos, PlayerId, unit, <<"npc">>, Name, none),
     Id.
+
+%% HTN Functions %%%
+
+hp_normal(NPCId) ->
+    NPCHp = obj_attr:value(NPCId, <<"hp">>),
+    NPCBaseHp = obj_attr:value(NPCId, <<"base_hp">>),
+    
+    HpNormal = (NPCHp / NPCBaseHp) > 0.20,
+    HpNormal.
+
+hp_very_low(NPCId) ->
+    NPCHp = obj_attr:value(NPCId, <<"hp">>),
+    NPCBaseHp = obj_attr:value(NPCId, <<"base_hp">>),
+    
+    HpNormal = (NPCHp / NPCBaseHp) < 0.20,
+    HpNormal.
+
+move_random_pos(NPCId) ->
+    [NPC] = db:read(npc, NPCId),
+    [NPCObj] = db:dirty_read(obj, NPCId),
+    {X, Y} = NPCObj#obj.pos,
+
+    Neighbours = map:neighbours(X, Y),
+    NewPos = get_wander_pos(false, none, Neighbours),
+   
+    NewNPC = NPC#npc {task_state = inprogress},
+    db:write(NewNPC),
+
+    move_unit(NPCObj, NewPos).
+
+target_visible(NPCId) ->
+    [NPC] = db:read(npc, NPCId),
+    NPC#npc.target =/= none.
+
+target_adjacent(NPCId) ->
+    [NPC] = db:read(npc, NPCId), 
+    [NPCObj] = db:read(obj, NPCId),
+
+    case NPC#npc.target =/= none of
+        true -> 
+            [TargetObj] = db:read(obj, NPC#npc.target),
+            map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos);
+        false -> 
+            false
+    end.
+
+move_to_target(NPCId) ->
+    [NPC] = db:read(npc, NPCId), 
+    [NPCObj] = db:read(obj, NPCId),
+
+    case NPC#npc.target of
+        none ->
+            %Invalid target due to either moving out of range or dying
+            NewNPC = NPC#npc {task_state = completed},
+            db:write(NewNPC);
+        _ -> 
+            [TargetObj] = db:read(obj, NPC#npc.target),
+
+            IsAdjacent = map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos),
+
+            case IsAdjacent of
+                false ->
+                    Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos, NPCObj),
+                    NewNPC = NPC#npc {task_state = inprogress,
+                                      path = Path},
+                    db:write(NewNPC),
+
+                    move_next_path(NPCObj, Path);
+                true ->
+                    NewNPC = NPC#npc {task_state = completed},
+                    db:write(NewNPC)
+            end
+    end.
+
+
+melee_attack(NPCId) ->
+    lager:debug("Melee_attack: ~p", [NPCId]),
+    [NPC] = db:read(npc, NPCId),
+    [NPCObj] = db:read(obj, NPCId),
+
+    TargetObj = combat:is_valid_target(NPC#npc.target),
+
+    Checks = TargetObj =/= false andalso
+             map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos) andalso
+             combat:is_target_alive(TargetObj) andalso
+             combat:is_targetable(TargetObj),
+
+    lager:debug("Checks: ~p", [Checks]),
+    NewNPC = case Checks of
+                 true ->
+                     Attacks = case NPC#npc.attacks =:= NPC#npc.combo of
+                                   true -> [];
+                                   false -> NPC#npc.attacks
+                               end,
+
+                     Combo = case Attacks of
+                                 [] -> get_combo(NPCObj);
+                                 _ -> NPC#npc.combo
+                             end,
+
+                     NextAttack = get_next_attack(Attacks, Combo),
+                     
+                     combat:attack(NextAttack, NPCId, NPC#npc.target),
+
+                     EventData = NPCId,
+                     game:add_event(self(), attack, EventData, NPCId, 16),
+
+                     NPC#npc {task_state = inprogress,        
+                              combo = Combo,                      
+                              attacks = Attacks ++ [NextAttack]};
+                 false ->
+                     NPC#npc {task_state = completed}
+             end,
+
+    db:write(NewNPC).
+
+move_to_order_pos(NPCId) ->
+    [NPC] = db:read(npc, NPCId),
+    [NPCObj] = db:read(obj, NPCId),
+
+    Pos = NPC#npc.order_data,
+
+    case NPCObj#obj.pos =:= Pos of
+        false ->
+            Path = astar:astar(NPCObj#obj.pos, Pos, NPCObj),
+            NewNPC = NPC#npc {task_state = inprogress,
+                              path = Path},
+            db:write(NewNPC),
+
+            move_next_path(NPCObj, Path);
+        true ->
+            NewNPC = NPC#npc {task_state = completed},
+            db:write(NewNPC)
+    end.
+
+max_guard_dist(NPCId) ->
+    [NPC] = db:read(npc, NPCId),
+    [NPCObj] = db:read(obj, NPCId),
+
+    GuardPos = NPC#npc.order_data,
+    NPCPos = NPCObj#obj.pos,
+
+    map:distance(GuardPos, NPCPos) > 3. 
+
 
 %% ====================================================================
 %% Server functions
@@ -157,7 +301,7 @@ process_replan(Id) ->
     [NPC] = db:read(npc, Id),
 
     CurrPlan = NPC#npc.plan,
-    NewPlan = htn:plan(NPC#npc.orders, Id, npc),
+    NewPlan = htn:plan(NPC#npc.order, Id, npc),
     case NewPlan =:= CurrPlan of
         false ->
             %New plan cancel current event
@@ -337,132 +481,6 @@ return_target(Target) when is_record(Target, obj) ->
 return_target(_) ->
     none.
 
-move_random_pos(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:dirty_read(obj, NPCId),
-    {X, Y} = NPCObj#obj.pos,
-
-    Neighbours = map:neighbours(X, Y),
-    NewPos = get_wander_pos(false, none, Neighbours),
-   
-    NewNPC = NPC#npc {task_state = inprogress},
-    db:write(NewNPC),
-
-    move_unit(NPCObj, NewPos).
-
-target_visible(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
-    NPC#npc.target =/= none.
-
-target_adjacent(NPCId) ->
-    [NPC] = db:read(npc, NPCId), 
-    [NPCObj] = db:read(obj, NPCId),
-
-    case NPC#npc.target =/= none of
-        true -> 
-            [TargetObj] = db:read(obj, NPC#npc.target),
-            map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos);
-        false -> 
-            false
-    end.
-
-move_to_target(NPCId) ->
-    [NPC] = db:read(npc, NPCId), 
-    [NPCObj] = db:read(obj, NPCId),
-
-    case NPC#npc.target of
-        none ->
-            %Invalid target due to either moving out of range or dying
-            NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC);
-        _ -> 
-            [TargetObj] = db:read(obj, NPC#npc.target),
-
-            IsAdjacent = map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos),
-
-            case IsAdjacent of
-                false ->
-                    Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos, NPCObj),
-                    NewNPC = NPC#npc {task_state = inprogress,
-                                      path = Path},
-                    db:write(NewNPC),
-
-                    move_next_path(NPCObj, Path);
-                true ->
-                    NewNPC = NPC#npc {task_state = completed},
-                    db:write(NewNPC)
-            end
-    end.
-
-
-melee_attack(NPCId) ->
-    lager:debug("Melee_attack: ~p", [NPCId]),
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(obj, NPCId),
-
-    TargetObj = combat:is_valid_target(NPC#npc.target),
-
-    Checks = TargetObj =/= false andalso
-             map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos) andalso
-             combat:is_target_alive(TargetObj) andalso
-             combat:is_targetable(TargetObj),
-
-    lager:debug("Checks: ~p", [Checks]),
-    NewNPC = case Checks of
-                 true ->
-                     Attacks = case NPC#npc.attacks =:= NPC#npc.combo of
-                                   true -> [];
-                                   false -> NPC#npc.attacks
-                               end,
-
-                     Combo = case Attacks of
-                                 [] -> get_combo(NPCObj);
-                                 _ -> NPC#npc.combo
-                             end,
-
-                     NextAttack = get_next_attack(Attacks, Combo),
-                     
-                     combat:attack(NextAttack, NPCId, NPC#npc.target),
-
-                     EventData = NPCId,
-                     game:add_event(self(), attack, EventData, NPCId, 16),
-
-                     NPC#npc {task_state = inprogress,        
-                              combo = Combo,                      
-                              attacks = Attacks ++ [NextAttack]};
-                 false ->
-                     NPC#npc {task_state = completed}
-             end,
-
-    db:write(NewNPC).
-
-move_to_order_pos(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(obj, NPCId),
-
-    Pos = NPC#npc.orders_data,
-
-    case NPCObj#obj.pos =:= Pos of
-        false ->
-            Path = astar:astar(NPCObj#obj.pos, Pos, NPCObj),
-            NewNPC = NPC#npc {task_state = inprogress,
-                              path = Path},
-            db:write(NewNPC),
-
-            move_next_path(NPCObj, Path);
-        true ->
-            NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC)
-    end.
-
-max_guard_dist(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(obj, NPCId),
-
-    GuardPos = NPC#npc.orders_data,
-    NPCPos = NPCObj#obj.pos,
-
-    map:distance(GuardPos, NPCPos) > 3. 
 
 get_combo(NPCObj) ->
     Rand = util:rand(100),
