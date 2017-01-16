@@ -16,8 +16,8 @@
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([replan/1, run_plan/1, get_nearest/3]).
--export([target_visible/1, target_adjacent/1, max_guard_dist/1]).
--export([move_random_pos/1, move_to_target/1, melee_attack/1, move_to_order_pos/1]).
+-export([hp_normal/1, hp_very_low/1, target_visible/1, target_adjacent/1, max_guard_dist/1]).
+-export([set_pos_flee/1, move_random_pos/1, move_to_target/1, melee_attack/1, move_to_order_pos/1]).
 -export([get_player_id/1, add/1, remove/1, set_order/3, create/2]).
 %% ====================================================================
 %% External functions
@@ -71,9 +71,15 @@ hp_very_low(NPCId) ->
     HpNormal = (NPCHp / NPCBaseHp) < 0.20,
     HpNormal.
 
-set_flee_pos(NPCId) ->
+set_pos_flee(NPCId) ->
     [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(obj, NPCId).
+    [NPCObj] = db:read(obj, NPCId),
+
+    Radius = 5,
+    RandomPos = map:random_location_from(NPCObj#obj.player, NPCObj#obj.pos, Radius),
+
+    NewNPC = NPC#npc {order_data = RandomPos},
+    db:write(NewNPC).
 
 move_random_pos(NPCId) ->
     [NPC] = db:read(npc, NPCId),

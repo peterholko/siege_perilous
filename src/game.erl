@@ -20,7 +20,7 @@
 -export([send_update_items/3, send_update_stats/2, send_revent/2]).
 -export([get_info_tile/1, get_valid_tiles/1]).
 -export([spawn_hero/1, hero_dead/2]).
--export([spawn_shadow/1]).
+-export([spawn_shadow/1, spawn_wolf/0]).
 
 
 %% Common functions
@@ -110,7 +110,13 @@ spawn_shadow(MonolithPos) ->
     NPCId = npc:create(NPCPos, <<"Shadow">>),
 
     npc:set_order(NPCId, move_to_pos, MonolithPos).
-    
+
+spawn_wolf() ->
+    NPCPos = map:random_location(),
+    NPCId = npc:create(NPCPos, <<"Wolf">>),
+
+    npc:set_order(NPCId, wander_flee, none).
+   
 %%
 %% API Functions
 %%
