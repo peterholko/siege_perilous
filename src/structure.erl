@@ -51,7 +51,7 @@ start_build(PlayerId, Pos, Name, Subclass) ->
                              structure,
                              Subclass,
                              Name, 
-                             founded),
+                             ?FOUNDED),
     obj_attr:set(StructureId, <<"hp">>, 1),
     StructureId.
 
@@ -74,7 +74,7 @@ check_recipe_req(ObjId, RecipeName) ->
     has_req(ReqList, Items).
  
 list() ->
-    Structures = find_type(level, 0),
+    Structures = obj_def:select(<<"level">>, 0),
     Structures.
 
 recipe_list(Obj) ->
@@ -346,23 +346,11 @@ consume_item(true, ItemId, Quantity) ->
     lager:info("Updating item ~p quantity ~p", [ItemId, Quantity]),
     item:update(ItemId, Quantity).
 
-find_type(Key, Value) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"obj_type">>, {Key, Value}),
-    Structures = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Structures.
-
 get_recipes(Structure) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"recipe_type">>, {structure, Structure}),
-    Recipes = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Recipes.
+    recipe_def:select(<<"structure">>, Structure).
 
 get_recipe(ItemName) ->
-    Cursor = mongo:find(mdb:get_conn(), <<"recipe_type">>, {item, ItemName}),
-    [Recipe] = mc_cursor:rest(Cursor),
-    mc_cursor:close(Cursor),
-    Recipe.
+    recipe_def:all_to_map(ItemName).
 
 process_upkeep_item(Structure, Subclass, UpkeepQuantity) ->
     lager:info("~p ~p ~p", [Structure, Subclass, UpkeepQuantity]),

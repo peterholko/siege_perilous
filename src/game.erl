@@ -103,7 +103,7 @@ hero_dead(PlayerId, HeroId) ->
     lager:info("Hero killed").
 
 spawn_shadow(MonolithPos) ->
-    ListOfPos = map:random_location_from(MonolithPos, 5),
+    ListOfPos = map:random_location_from(?UNDEAD, MonolithPos, 5),
     RandomIndex = util:rand(length(ListOfPos)),
     NPCPos = lists:nth(RandomIndex, ListOfPos),
 

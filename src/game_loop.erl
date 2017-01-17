@@ -318,8 +318,8 @@ clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
                     case Obj#obj.subclass =:= <<"hero">> of
                         false ->
                             case Obj#obj.state of
-                                dead -> obj:remove(Obj#obj.id);
-                                founded -> obj:remove(Obj#obj.id);
+                                ?DEAD -> obj:remove(Obj#obj.id);
+                                ?FOUNDED -> obj:remove(Obj#obj.id);
                                 _ -> nothing
                             end;
                         true ->

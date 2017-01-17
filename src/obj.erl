@@ -1,6 +1,6 @@
 %% Author: Peter
 %% Created: Jan 15, 2015
-%% Description: Handles access to obj mongodb data
+%% Description: Handles access to obj data
 -module(obj).
 
 -include_lib("stdlib/include/ms_transform.hrl").
@@ -13,7 +13,7 @@
 -export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
--export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1]).
+-export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
@@ -435,6 +435,12 @@ is_subclass(_, _) -> false.
 is_player(#obj{player = Player}) when Player > ?NPC_ID -> true;
 is_player(_) -> false.
 
+is_blocking(SourcePlayer, #obj{player = Player, state = State}) ->
+    case SourcePlayer =/= Player of
+       true -> is_blocking_state(State);
+       false -> false
+    end.
+
 has_space(ObjId, NewItemWeight) ->
     Capacity = get_capacity(ObjId),
     TotalWeight = item:get_total_weight(ObjId),
@@ -647,4 +653,7 @@ set_attr(Current, _Base, Change) when (Current + Change) =< 0 -> 0;
 set_attr(Current, Base, Change) when (Current + Change) > Base -> Base;
 set_attr(Current, _Base, Change) -> Current + Change.
 
-
+is_blocking_state(?DEAD) -> false;
+is_blocking_state(?FOUNDED) -> false;
+is_blocking_state(?PROGRESSING) -> false;
+is_blocking_state(_) -> true.

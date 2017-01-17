@@ -85,6 +85,15 @@
 -record(item_def, {key, % {name, attr}
                    value}).
 
+-record(recipe, {id,
+                 name}).
+
+-record(recipe_attr, {key, % {id, attr}
+                      value}).
+
+-record(recipe_def, {key, % {name, attr}
+                     value}).
+
 -record(skill, {key, % {id, name}
                 value}).
 

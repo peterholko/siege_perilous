@@ -5,10 +5,29 @@
 
 -include("schema.hrl").
 
--export([all/1, value/2]).
+-export([all/1, select/2, value/2]).
 
 all(Name) ->
     db:dirty_match_object({obj_def, {Name, '_'}, '_'}).
+
+select(Key, Val) ->
+    ListOfMatches = db:dirty_match_object({obj_def, {'_', Key}, Val}),
+    
+    F = fun(ObjDef, Acc) ->
+            {Name, _} = ObjDef#obj_def.key,
+            All = all(Name),
+            [to_map(All) | Acc]
+        end,
+
+    lists:foldl(F, [], ListOfMatches).
+
+to_map(All) ->
+    F = fun(ObjDef, AllMap) ->
+            {_Name, Attr} = ObjDef#obj_def.key,
+            Value = ObjDef#obj_def.value,
+            maps:put(Attr, Value, AllMap) 
+        end,
+    lists:foldl(F, #{}, All).
 
 value(All, Attr) when is_list(All) ->
     [H | _Rest] = All,

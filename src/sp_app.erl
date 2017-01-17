@@ -36,6 +36,7 @@ start(_Type, _Args) ->
     lager:info("Import data from database"),
     db:import(<<"obj_type">>, obj_def),
     db:import(<<"item_type">>, item_def),
+    db:import(<<"recipe_type">>, recipe_def),
 
     lager:info("Starting game process..."),
     game:start(),

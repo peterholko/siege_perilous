@@ -86,11 +86,7 @@ is_passable(TileName) when is_binary(TileName) ->
 is_not_blocked(SourcePlayer, Pos) ->
     Objs = obj:get_by_pos(Pos),
 
-    F = fun(Obj) ->
-            (Obj#obj.player =/= SourcePlayer) and
-            (Obj#obj.subclass =:= ?WALL) and
-            (Obj#obj.state =:= none) 
-        end,
+    F = fun(Obj) -> obj:is_blocking(SourcePlayer, Obj) end,
 
     lists:filter(F, Objs) =:= [].
 
@@ -99,7 +95,7 @@ defense_bonus(Pos) when is_tuple(Pos) ->
     TileType = Tile#map.tile,
     TileName = tile_name(TileType),
     def_bonus(TileName);
-defense_bonus(TileName) when is_binary(TileName) ->
+defense_bonus(TileName) when is_binary(TileName) -> 
     def_bonus(TileName).
 
 random_location() ->
@@ -112,19 +108,30 @@ random_location(false, _Pos) ->
     Y = util:rand(?MAP_HEIGHT - 1),
     Pos = {X, Y},
 
-    Result = is_passable(Pos) andalso
-             obj:is_empty(Pos),
+    Result = is_passable(Pos) andalso obj:is_empty(Pos),
 
     random_location(Result, Pos).
 
-random_location_from(Center, Radius) ->
-    ListOfPos = range(Center, Radius),
+random_location_from(Player, Center, Radius) ->
+    ListOfPos = ring(Center, Radius),
 
-    F = fun(Pos) ->
-            distance(Center, Pos) >= Radius    
+    F = fun(Pos) -> 
+            is_valid_coord(Pos) andalso 
+            is_passable(Pos) andalso 
+            is_not_blocked(Player, Pos)
         end,
 
-    lists:filter(F, ListOfPos).
+    RandomListOfPos = lists:filter(F, ListOfPos),
+
+    %If no elements in the list return the original center pos
+    case RandomListOfPos =:= [] of
+        true -> 
+            Center;
+        false -> 
+            RandomIndex = util:rand(length(ListOfPos)),
+            RandomPos = lists:nth(RandomIndex, ListOfPos),
+            RandomPos
+    end.
 
 get_random_neighbour(none) ->
     lager:info("get_random_neighbour none");
@@ -342,7 +349,10 @@ ring(Center, Radius) ->
             lists:foldl(G, IAcc, lists:seq(1, Radius))
         end,
 
-    lists:foldl(F, [Cube], lists:seq(1, 6)).
+    ListOfCube = lists:foldl(F, [Cube], lists:seq(1, 6)),
+
+    H = fun(CubePos) -> cube_to_odd_q(CubePos) end, 
+    filter_pos(lists:map(H, ListOfCube)).
 
 filter_pos(ListOfPos) ->
     F = fun(Pos) ->

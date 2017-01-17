@@ -369,7 +369,7 @@ finish_build(SourceId, StructureId) ->
 
     finish_build(PlayerId, Source, Structure).
 
-finish_build(PlayerId, Source, Structure = #obj {state = founded}) -> 
+finish_build(PlayerId, Source, Structure = #obj {state = ?FOUNDED}) -> 
     NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
     
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
@@ -382,7 +382,7 @@ finish_build(PlayerId, Source, Structure = #obj {state = founded}) ->
     [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
     {<<"build_time">>, NumTicks * 4}];
 
-finish_build(PlayerId, Source, Structure = #obj {state = under_construction}) ->
+finish_build(PlayerId, Source, Structure = #obj {state = ?PROGRESSING}) ->
     NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
 
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
@@ -578,7 +578,7 @@ add_finish_build(true, {ObjId, StructureId}, NumTicks) ->
     EventData = {ObjId, StructureId},
 
     obj:update_state(ObjId, building),
-    obj:update_state(StructureId, under_construction),
+    obj:update_state(StructureId, ?PROGRESSING),
 
     game:add_event(self(), finish_build, EventData, ObjId, NumTicks).
 

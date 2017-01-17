@@ -43,6 +43,10 @@
 
 -define(NPC_ID, 1000).
 
+-define(DEAD, dead).
+-define(FOUNDED, founded).
+-define(PROGRESSING, progressing).
+
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
 -define(ANIMAL, 100).
