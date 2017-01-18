@@ -156,13 +156,23 @@ message_handle(<<"structure_list">>, _Message) ->
 message_handle(<<"build">>, Message) ->
     lager:info("message: build"),
     
-    Id = map_get(<<"sourceid">>, Message),
+    Id = map_get(<<"sourceid">>, Message),    
+    StructureId = map_get(<<"structure">>, Message),
+
+    Result = player:build(Id, StructureId),
+
+    jsx:encode([{<<"packet">>, <<"build">>},
+                {<<"result">>, Result}]);    
+
+message_handle(<<"upgrade">>, Message) ->
+    lager:info("message: upgrade"),
     
-    Structure = map_get(<<"structure">>, Message),
+    StructureId = map_get(<<"structure">>, Message),
 
-    player:build(Id, Structure),
+    Result = player:upgrade(StructureId),
 
-    <<"Structure started">>;
+    jsx:encode([{<<"packet">>, <<"upgrade">>},
+                {<<"result">>, Result}]);
 
 message_handle(<<"finish_build">>, Message) ->
     lager:info("message: finish_build"),

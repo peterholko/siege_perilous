@@ -24,6 +24,7 @@
          item_split/2,
          structure_list/0,
          build/2,
+         upgrade/1,
          finish_build/2,
          recipe_list/1,
          process_resource/1,
@@ -333,32 +334,55 @@ item_split(ItemId, Quantity) ->
 structure_list() ->
     structure:list().
 
-build(ObjId, StructureName) ->
-    lager:info("Build ~p ~p", [ObjId, StructureName]),
+build(BuilderId, StructureName) ->
     PlayerId = get(player_id),
 
-    %Validates Obj and Structure, player process will crash if not valid
-    [Obj] = db:read(obj, ObjId),
-    lager:info("Obj: ~p", [Obj]),
+    Builder = obj:get(BuilderId),
     StructureSubclass = obj_def:value(StructureName, <<"subclass">>),
-    lager:info("StructureSubclass: ~p", [StructureSubclass]),
 
-    ValidPlayer = PlayerId =:= Obj#obj.player,
-    ValidLocation = structure:valid_location(StructureSubclass,
-                                             Obj#obj.pos),
+    Checks = [{is_player_owned(BuilderId, PlayerId), "Builder not owned by player"},              
+              {structure:valid_location(StructureSubclass, Builder#obj.pos), "Invalid structure location"},
+              {Builder#obj.state =:= ?NONE, "Builder is busy"}],
 
-    ValidBuild = ValidPlayer andalso ValidLocation,
-
-    case ValidBuild of
+    case process_checks(Checks) of
         true ->
+            lager:info("Building structure"),
+
             structure:start_build(PlayerId, 
-                                  Obj#obj.pos, 
+                                  Builder#obj.pos, 
                                   StructureName,
-                                  StructureSubclass);
-        false ->
-            lager:info("Build failed")
+                                  StructureSubclass),
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
+upgrade(StructureId) ->
+    Player = get(player_id),
+
+    Structure = obj:get(StructureId),   
+
+    Checks = [{is_player_owned(Structure, Player), "Structure not owned by player"},              
+              {Structure#obj.class =:= structure, "Object cannot be upgraded"},
+              {Structure#obj.state =:= ?NONE, "Structure is busy"}, 
+              {structure:has_upgrade_req(StructureId), "Structure missing required items to upgrade"}],
+
+    case process_checks(Checks) of
+        true ->
+            lager:info("Upgrading structure"),
+
+            obj:update_state(StructureId, ?UPGRADING),
+
+            EventData = StructureId,
+            NumTicks = obj_attr:value(StructureId, <<"upgrade_time">>),
+
+            game:add_event(self(), upgrade, EventData, StructureId, NumTicks),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+  
 finish_build(SourceId, StructureId) ->
     PlayerId = get(player_id),
 
@@ -374,7 +398,7 @@ finish_build(PlayerId, Source, Structure = #obj {state = ?FOUNDED}) ->
     
     ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
                   Structure#obj.player =:= PlayerId andalso
-                  structure:check_req(Structure#obj.id),
+                  structure:has_req(Structure#obj.id),
 
     add_finish_build(ValidFinish, {Source#obj.id, 
                                    Structure#obj.id}, NumTicks),
