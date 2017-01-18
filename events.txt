@@ -1,0 +1,13 @@
+Two class of events:
+
+1. Post-process events (can be cancelled)
+    -Harvest
+    -Build
+    -Craft
+    -Rest
+
+2. Pre-process events (cannot be cancelled)
+    -Attack 
+    -Defend
+    -Move
+    -Drink potion

@@ -1,0 +1,6 @@
+attacks:
+quick -> dodge (-100% dmg + high stamina)
+precise -> parry (-75% dmg + weapon damage)
+fierce -> brace (-50% dmg)
+
+if matching defensive action is used on last combo attack, the combat is interrupted
