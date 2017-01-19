@@ -34,7 +34,7 @@ find_match_req([], _Items, ReqMatchItems) ->
     ReqMatchItems;
 find_match_req([#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest], Items, ReqMatchItems) ->
     F = fun(Item) ->
-            match_req(Item, ReqType, ReqQuantity)
+            item:match_req(Item, ReqType, ReqQuantity)
         end,
 
     AllReqMatchItems = lists:filter(F, Items),
@@ -74,21 +74,6 @@ consume_item(true, ItemId, Quantity) ->
     lager:info("Updating item ~p quantity ~p", [ItemId, Quantity]),
     item:update(ItemId, Quantity).
 
-match_req(Item, ReqType, ReqQuantity) ->
-    ItemName = maps:get(<<"name">>, Item),
-    ItemSubClass = maps:get(<<"subclass">>, Item),
-    ItemQuantity = maps:get(<<"quantity">>, Item),
-
-    QuantityMatch = ReqQuantity =< ItemQuantity,            
-    ItemNameMatch = ReqType =:= ItemName,
-    ItemSubClassMatch = ReqType =:= ItemSubClass,
-
-    lager:info("NameMatch ~p ~p ~p", [ReqType, ItemName, ItemSubClass]),
-    lager:info("QuantityMatch ~p ~p", [ReqQuantity, ItemQuantity]),
-
-    ItemMatch = ItemNameMatch or ItemSubClassMatch,
-    lager:info("ItemMatch: ~p", [ItemMatch]),
-    ItemMatch and QuantityMatch.
 
 craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
     lager:debug("Crafting ~p", [RecipeName]),

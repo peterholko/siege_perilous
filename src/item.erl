@@ -10,6 +10,7 @@
 -export([transfer/2, transfer/3, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
 -export([get_total_weight/1, weight/2]).
+-export([match_req/3]).
 
 get_rec(Id) ->
     case db:read(item, Id) of
@@ -258,6 +259,22 @@ create(ItemMap) ->
     
     %Return item map with all attrs
     all_attr_map(NewItem).
+
+match_req(Item, ReqType, ReqQuantity) ->
+    ItemName = maps:get(<<"name">>, Item),
+    ItemSubClass = maps:get(<<"subclass">>, Item),
+    ItemQuantity = maps:get(<<"quantity">>, Item),
+
+    QuantityMatch = ReqQuantity =< ItemQuantity,            
+    ItemNameMatch = ReqType =:= ItemName,
+    ItemSubClassMatch = ReqType =:= ItemSubClass,
+
+    lager:info("NameMatch ~p ~p ~p", [ReqType, ItemName, ItemSubClass]),
+    lager:info("QuantityMatch ~p ~p", [ReqQuantity, ItemQuantity]),
+
+    ItemMatch = ItemNameMatch or ItemSubClassMatch,
+    lager:info("ItemMatch: ~p", [ItemMatch]),
+    ItemMatch and QuantityMatch.
 
 % Internal
 

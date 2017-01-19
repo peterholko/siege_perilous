@@ -13,7 +13,22 @@ Ex: Valleyrun Dagger (2ATK, 3DUR)
 Specific Recipes:
 Dagger of Night: 
 
+4x Quickforge Iron
+3x Warpwood Wood
+
+Fangtooth Dagger (5ATK, 4DUR, +Bleed Attack):
+
+5x Dire Wolf Fang
+2x Wrapwood Birch
+
 Specific Recipes can be found by Experimenting.
 
-
-    
+Weapons
+Quality Level / Low Mod / High Mod
+None                0.8       1.2
+Well-crafted        1.25
+Finely-crafted      1.75
+Superior quality    1.6
+Exceptional         1.8
+Masterful           2
+Artifact            2.5

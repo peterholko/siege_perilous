@@ -8,13 +8,12 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([start_build/4, valid_location/2]).
--export([list/0, recipe_list/1, process/1, craft/2]).
+-export([start_build/4, valid_location/2, upgrade/1]).
+-export([list/0, recipe_list/1, process/1]).
 -export([has_req/1, has_upgrade_req/1, has_process_res/1, check_recipe_req/2]).
--export([combine_stats/2, craft_item_name/2]).
 -export([process_upkeep/1, process_upkeep_item/3]).
 -export([get_harvesters/1, harvest/2]).
--export([get_craftable_recipe/1, get_recipes/1]).
+-export([get_craftable_recipe/1]).
 -export([can_craft/1, can_process/1]).
 -export([recipe_name/1]).
 
@@ -55,7 +54,7 @@ start_build(PlayerId, Pos, Name, Subclass) ->
     obj_attr:set(StructureId, <<"hp">>, 1),
     StructureId.
 
-upgrade(StructureId) ->
+upgrade(_StructureId) ->
     lager:info("Upgrade"). 
 
 has_req(StructureId) ->
@@ -68,8 +67,6 @@ has_upgrade_req(StructureId) ->
     Items = item:get_by_owner(StructureId),
     has_req(ReqList, Items).
 
-
-
 has_process_res(StructureId) ->
     Process = obj_attr:value(StructureId, <<"process">>),
     Items = item:get_by_subclass(StructureId, Process),
@@ -78,7 +75,7 @@ has_process_res(StructureId) ->
 check_recipe_req(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
 
-    Recipe = get_recipe(RecipeName),
+    Recipe = recipe:get_recipe(RecipeName),
     ReqList = maps:get(<<"req">>, Recipe),
     lager:info("ReqList: ~p Items: ~p", [ReqList, Items]),
     has_req(ReqList, Items).
@@ -88,7 +85,7 @@ list() ->
     Structures.
 
 recipe_list(Obj) ->
-    Recipes = get_recipes(Obj#obj.name),
+    Recipes = recipe:get_recipes(Obj#obj.name),
     Recipes.
 
 process(StructureId) ->
@@ -115,7 +112,8 @@ can_process(StructureId) ->
 
 can_craft(StructureId) ->
     [Structure] = db:read(obj, StructureId),
-    Recipes = filter_process_res(get_recipes(Structure#obj.name)),
+    AllRecipes = recipe:get_recipes(Structure#obj.name),
+    Recipes = filter_process_res(AllRecipes),
 
     F = fun(Recipe, Acc) ->
             RecipeName = maps:get(<<"item">>, Recipe),
@@ -126,7 +124,8 @@ can_craft(StructureId) ->
 
 get_craftable_recipe(StructureId) ->
     [Structure] = db:read(obj, StructureId),
-    Recipes = filter_process_res(get_recipes(Structure#obj.name)),
+    AllRecipes = recipe:get_recipes(Structure#obj.name),
+    Recipes = filter_process_res(AllRecipes),
 
     F = fun(Recipe) ->
             RecipeName = maps:get(<<"item">>, Recipe),
@@ -204,7 +203,7 @@ has_req(Result, [], _Items) ->
     Result;
 has_req(Result, [#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest], Items) ->
     F = fun(Item) ->
-            match_req(Item, ReqType, ReqQuantity)
+            item:match_req(Item, ReqType, ReqQuantity)
         end,
 
     ReqMatch = lists:any(F, Items),
