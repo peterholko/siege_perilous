@@ -25,10 +25,9 @@ Specific Recipes can be found by Experimenting.
 
 Weapons
 Quality Level / Low Mod / High Mod
-None                0.8       1.2
-Well-crafted        1.25
-Finely-crafted      1.75
-Superior quality    1.6
-Exceptional         1.8
-Masterful           2
-Artifact            2.5
+Poor        80 / 120
+Normal      100 / 140
+Superior    120 / 180
+Exceptional 150 / 200
+Masterful   200 / 250
+Artifact    275 / 500
