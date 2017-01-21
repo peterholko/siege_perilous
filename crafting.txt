@@ -31,3 +31,12 @@ Superior    120 / 180
 Exceptional 150 / 200
 Masterful   200 / 250
 Artifact    275 / 500
+
+Item Attributes
+Damage 
+Damage Type (Piercing, Slashing, Bludgeoning)
+Accuracy
+Range
+Speed
+Durability
+Weight 
