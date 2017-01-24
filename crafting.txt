@@ -40,3 +40,24 @@ Range
 Speed
 Durability
 Weight 
+
+Professions / Skills:
+
+--- Gathering --- 
+Miner / Mining
+Woodcutter / Wood-cutting
+Stonecutter / Stone-cutting
+Hunter / Hunting
+Farmer / Farming
+
+--- Crafting ---
+Weaponsmith / Weaponsmithing - Makes metal weapons
+Armorsmith / Armorsmithing - Makes metal armor
+Mason / Masonry - Makes stone blocks for use in construction
+Woodworker / Woodworking - Makes wood weapons and wood building supplies
+Alchemist / Alchemy - Makes potions 
+
+
+
+
+
