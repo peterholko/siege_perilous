@@ -57,6 +57,11 @@ Mason / Masonry - Makes stone blocks for use in construction
 Woodworker / Woodworking - Makes wood weapons and wood building supplies
 Alchemist / Alchemy - Makes potions 
 
+--- Weapons ---
+Axes - chance at deep wound effect, -50% speed for quick attacks, +50% damage to fierce attacks 
+
+Swords - chance at bleed effect, +25% speed to precise attacks, +25% damage to fierce 
+
 
 
 
