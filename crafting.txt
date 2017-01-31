@@ -58,11 +58,34 @@ Woodworker / Woodworking - Makes wood weapons and wood building supplies
 Alchemist / Alchemy - Makes potions 
 
 --- Weapons ---
-Axes - chance at deep wound effect, -50% speed for quick attacks, +50% damage to fierce attacks 
+Axes - chance at deep wound effect, -33% speed for quick attacks, +50% damage to fierce attacks 
 
-Swords - chance at bleed effect, +25% speed to precise attacks, +25% damage to fierce 
+Swords - chance at bleed effect, +25% speed to precise attacks, +25% damage to fierce, +20% to armor penetration
+
+Hammers - chance at concuss effect, -50% speed for quick attacks, +66% damage to fierce attacks, +50% to armor penetration
+
+Daggers - chance at combo chain effect, +50% speed for quick, +50% speed for precise, -50% damage to fierce attacks
+*Extra damage/effect for chaining combos
+
+Spears - chance at impale effect, +33% damage to precise attacks, 33% damage to fierce attack
+*No penalty from Defensive Brace, can be thrown for massive damage
 
 
+--- Armors ---
 
+Cloth Armor
+Leather Armor
+Studded Leather Armor
+Chain Mail Armor
+Scale Armor
+Plate Armor
 
+--- Attacks ---
+Quick:
+Precise:
+Fierce:
 
+--- Defensive Stances ---
+Dodge:
+Parry:  
+Brace: 
