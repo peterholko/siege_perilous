@@ -287,16 +287,6 @@ check_attacks(Attacks, ObjSubclass) ->
 
     lists:filter(F, combos(ObjSubclass)).
 
-combos(<<"npc">>) ->
-    [{"qqqf", <<"Undead Devour">>, 3},
-     {"qpfq", <<"Soul Drain">>, 5},
-     {"pfpp", <<"Corrupt Heart">>, 10}];
-combos(_) ->
-    [{"qqf", <<"Shrouded Strike">>, 1.25},
-     {"fff", <<"Shatter Strike">>, 1.5},
-     {"qpf", <<"Rupture Strike">>, 2},
-     {"qpqf", <<"Nightmare Strike">>, 3}].
-
 check_countered(?QUICK, ?DODGE, ComboDmg) when ComboDmg > 0 -> {true, 0};
 check_countered(?PRECISE, ?PARRY, ComboDmg) when ComboDmg > 0 -> {true, 0}; 
 check_countered(?FIERCE, ?BRACE, ComboDmg) when ComboDmg > 0 -> {true, 0};
@@ -378,3 +368,17 @@ broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) 
     Range = 2,
 
     perception:broadcast(SourcePos, TargetPos, Range, Message).
+
+combos(<<"npc">>) ->
+    [{"qqqf", <<"Undead Devour">>, 3},
+     {"qpfq", <<"Soul Drain">>, 5},
+     {"pfpp", <<"Corrupt Heart">>, 10}];
+combos(_) ->
+    [{"qqf", <<"Shrouded Strike">>, 1.25},
+     {"fff", <<"Shatter Strike">>, 1.5},
+     {"qpf", <<"Rupture Strike">>, 2},
+     {"qpqf", <<"Nightmare Strike">>, 3}].
+
+
+
+

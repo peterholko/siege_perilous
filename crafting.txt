@@ -72,19 +72,19 @@ Swords - chance at bleed effect, +25% speed to precise attacks, +25% damage to f
 
 Hammers - chance at concuss effect, -50% speed for quick attacks, +66% damage to fierce attacks, +50% to armor penetration
 
-Daggers - chance at combo chain effect, +50% speed for quick, +50% speed for precise, -50% damage to fierce attacks
+Daggers - chance at disarm effect, +50% speed for quick, +50% speed for precise, -50% damage to fierce attacks
 *Extra damage/effect for chaining combos
 
 Spears - chance at impale effect, +33% damage to precise attacks, 33% damage to fierce attack
 *No penalty from Defensive Brace, can be thrown for massive damage
 
 --- Armors ---
-Cloth Armor
-Leather Armor
-Studded Leather Armor
-Chain Mail Armor
-Scale Armor
-Plate Armor
+Cloth Armor             10 Def
+Leather Armor           20 Def
+Studded Leather Armor   35 Def
+Chain Mail Armor        60 Def  
+Scale Armor             90 Def
+Plate Armor             125 Def
 
 --- Attacks ---
 Quick: -50% damage, +25% speed , chance at dazed
@@ -95,3 +95,11 @@ Fierce: +50% damage, -20% speed, chance at deep wound
 Dodge: 50% chance to dodge attack, -50% attack speed if successful dodge, costs the most stamina
 Parry: 15% chance to parry/counter attack, 20% to parry attack, 10% chance to be disarmed, costs moderate stamina
 Brace: 50% damage reduction, 33% damage penalty, costs the least stamina
+
+--- Effects ---
+Deep Wound: 20% of total hp damage, -25% target attack for 10 seconds
+Bleed: 20% of total hp damage over 20 seconds
+Concuss: -50% target speed, -25% target attack, -25% target defensive for 10 seconds
+Disarm: -75% target attack for 10 seconds
+Impale: If target under 25% hp, if Impaled will kill target
+
