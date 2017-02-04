@@ -5,12 +5,15 @@
 
 -include("schema.hrl").
 
+-export([id/1]).
 -export([get_rec/1, get_map/1, get_all_attr/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1]).
 -export([transfer/2, transfer/3, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
 -export([get_total_weight/1, weight/2]).
 -export([match_req/3]).
+
+id(Item) -> maps:get(<<"id">>, Item).
 
 get_rec(Id) ->
     case db:read(item, Id) of

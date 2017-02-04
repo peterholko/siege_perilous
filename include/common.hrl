@@ -87,7 +87,12 @@
 -define(CONCUSS, <<"concuss">>).
 -define(IMPALE, <<"impale">>).
 -define(BACKSTAB, <<"backstab">>).
+-define(DAZED, <<"dazed">>).
 
+-define(DAMAGE, <<"damage">>).
+-define(FIERCE_DAMAGE, <<"fierce_damage">>).
+-define(QUICK_SPEED, <<"quick_speed">>).
+-define(DEEP_WOUND_CHANCE, <<"deep_wound_chance">>).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

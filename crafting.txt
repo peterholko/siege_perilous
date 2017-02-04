@@ -99,7 +99,22 @@ Brace: 50% damage reduction, 33% damage penalty, costs the least stamina
 --- Effects ---
 Deep Wound: 20% of total hp damage, -25% target attack for 10 seconds
 Bleed: 20% of total hp damage over 20 seconds
-Concuss: -50% target speed, -25% target attack, -25% target defensive for 10 seconds
+Concuss: -90% target speed, -90% target attack, -25% target defensive for 10 seconds
 Disarm: -75% target attack for 10 seconds
 Impale: If target under 25% hp, if Impaled will kill target
+Dazed: -50% target speed, -50% target attack, -50% target defensive for 15 seconds
+
+Example Weapons:
+
+Axe:
++5 damage               <<"dmg">> => 5
++50% fierce damage      <<"f_dmg_p">> => 0.5
+-33% quick speed        <<"q_spd_p">> => -0.33
+5% chance at Deep Wound <<"dw_p">> => 0.05
+
+Sword:
++5 damage               <<"dmg">> => 5
++25% precise speed      <<"p_spd_p">> => 0.25
+
+
 

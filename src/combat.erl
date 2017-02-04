@@ -106,9 +106,16 @@ process_attack(AttackType, AtkId, DefId) ->
 
     BaseDmg = obj_attr:value(AtkId, <<"base_dmg">>),
     DmgRange = obj_attr:value(AtkId, <<"dmg_range">>),
+
+    ItemDamage = get_items_value(<<"damage">>, AtkItems),
+  
     BaseDef = obj_attr:value(DefId, <<"base_def">>),
     DefHp = obj_attr:value(DefId, <<"hp">>),
+    ItemArmor = get_items_value(<<"armor">>, DefItems),
 
+
+
+    %Has defense stance
     HasDefend = has_defend(DefId),
 
     %Check for combos
@@ -116,9 +123,12 @@ process_attack(AttackType, AtkId, DefId) ->
 
     %Check if combo is countered
     {Countered, FinalComboDmg} = check_countered(AttackType, HasDefend, ComboDmg),
-
-    %Remove Defend effect
+    
+    %Remove defend effect
     remove_defend(Countered, DefId, HasDefend),
+
+    %Check weapon effect
+    {Effect, EffectDamage} = check_weapon_effect(AtkWeapons, DefId, ComboDmg),
 
     %Check if Attacker is Fortified
     FortifyPenalty = check_fortified(AtkId, AtkWeapons),
@@ -379,6 +389,13 @@ combos(_) ->
      {"qpf", <<"Rupture Strike">>, 2},
      {"qpqf", <<"Nightmare Strike">>, 3}].
 
+check_weapon_effect([AtkWeapon], DefId, ComboDmg) when ComboDmg > 0 ->
+    DefHp = obj_attr:value(DefId, <<"hp">>),
 
-
+    %Check deep wound
+    DeepWoundChance = item_attr:value(item:id(AtkWeapon), ?DEEP_WOUND_CHANCE, 0), 
+    case util:rand(100) =< DeepWoundChance of 
+        true -> {?DEEP_WOUND, 100};
+        false -> {none, DefHp * 0.2}
+    end.
 
