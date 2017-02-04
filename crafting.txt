@@ -88,8 +88,8 @@ Plate Armor             125 Def
 
 --- Attacks ---
 Quick: -50% damage, +25% speed , chance at dazed
-Precise: 0% damage, +50% armor penetration, chance at disarm or sunder item
-Fierce: +50% damage, -20% speed, chance at deep wound
+Precise: 0% damage, +50% armor penetration, chance at sunder item
+Fierce: +50% damage, -20% speed, chance at bloodthirst
 
 --- Defensive Stances ---
 Dodge: 50% chance to dodge attack, -50% attack speed if successful dodge, costs the most stamina
@@ -102,7 +102,8 @@ Bleed: 20% of total hp damage over 20 seconds
 Concuss: -90% target speed, -90% target attack, -25% target defensive for 10 seconds
 Disarm: -75% target attack for 10 seconds
 Impale: If target under 25% hp, if Impaled will kill target
-Dazed: -50% target speed, -50% target attack, -50% target defensive for 15 seconds
+Dazed: -5% target speed, -5% target attack, -5% target defensive for 15 seconds stackable
+Bloodthirst: chance to restore 4% of life 
 
 Example Weapons:
 
