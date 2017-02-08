@@ -87,14 +87,14 @@ Scale Armor             90 Def
 Plate Armor             125 Def
 
 --- Attacks ---
-Quick: -50% damage, +25% speed , chance at dazed
-Precise: 0% damage, +50% armor penetration, chance at sunder item
+Quick: -50% damage, +25% speed , chance at double strike
+Precise: 0% damage, +50% armor penetration, chance at expose armor
 Fierce: +50% damage, -20% speed, chance at bloodthirst
 
 --- Defensive Stances ---
 Dodge: 50% chance to dodge attack, -50% attack speed if successful dodge, costs the most stamina
 Parry: 15% chance to parry/counter attack, 20% to parry attack, 10% chance to be disarmed, costs moderate stamina
-Brace: 50% damage reduction, 33% damage penalty, costs the least stamina
+Brace: 33% damage reduction, 25% chance to block 100 damage, 33% damage penalty, costs the least stamina
 
 --- Effects ---
 Deep Wound: 20% of total hp damage, -25% target attack for 10 seconds
@@ -102,8 +102,16 @@ Bleed: 20% of total hp damage over 20 seconds
 Concuss: -90% target speed, -90% target attack, -25% target defensive for 10 seconds
 Disarm: -75% target attack for 10 seconds
 Impale: If target under 25% hp, if Impaled will kill target
-Dazed: -5% target speed, -5% target attack, -5% target defensive for 15 seconds stackable
+Dazed: -5% target speed for 20 seconds, stackable
+Demoralizing Shout: -5% target attack for 20 seconds, stackable
+
+Double Strike: Double strikes the enemy
+Expose Armor: -5% armor for 20 seconds, stackable
 Bloodthirst: chance to restore 4% of life 
+
+Dodge: Dodges next attack
+Parry: Nullifies next attack, -40% attack speed for 5 seconds
+Block: Blocks X damage from next attack
 
 Example Weapons:
 

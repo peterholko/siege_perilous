@@ -12,6 +12,7 @@
 %% --------------------------------------------------------------------
 -include("schema.hrl").
 -include("common.hrl").
+
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -113,7 +114,24 @@ process_attack(AttackType, AtkId, DefId) ->
     DefHp = obj_attr:value(DefId, <<"hp">>),
     ItemArmor = get_items_value(<<"armor">>, DefItems),
 
+process_damage(Dodged, Parry, _ParryCountered, CombatData) when Dodge ->
+    %Remove dodge effect
+    effect:remove(DefId, ?DODGE),
 
+    %Return 0 damage
+    0
+process_damage(_Dodged, Parry, _ParryCountered, CombatData) when Parry ->
+    %Remove parry effect
+    effect:remove(DefId, ?PARRY),
+
+    %Add attack speed penalty
+    effect:add(DefId, ?ATTACK_SPEED, -0.4),
+
+    %Return 0 damage
+    0
+
+    %Check if defender has dodge next attack
+    has_effect
 
     %Has defense stance
     HasDefend = has_defend(DefId),

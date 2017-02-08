@@ -90,6 +90,7 @@
 -define(DAZED, <<"dazed">>).
 
 -define(DAMAGE, <<"damage">>).
+-define(ATTACK_SPEED, <<"attack_speed">>).
 -define(FIERCE_DAMAGE, <<"fierce_damage">>).
 -define(QUICK_SPEED, <<"quick_speed">>).
 -define(DEEP_WOUND_CHANCE, <<"deep_wound_chance">>).
