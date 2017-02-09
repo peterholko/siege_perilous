@@ -114,24 +114,41 @@ process_attack(AttackType, AtkId, DefId) ->
     DefHp = obj_attr:value(DefId, <<"hp">>),
     ItemArmor = get_items_value(<<"armor">>, DefItems),
 
-process_damage(Dodged, Parry, _ParryCountered, CombatData) when Dodge ->
-    %Remove dodge effect
-    effect:remove(DefId, ?DODGE),
+    HasDodge = effect:has_effect(DefId, ?DODGE),
+    HasParry = effect:has_effect(DefId, ?PARRY),
 
-    %Return 0 damage
-    0
-process_damage(_Dodged, Parry, _ParryCountered, CombatData) when Parry ->
-    %Remove parry effect
-    effect:remove(DefId, ?PARRY),
+    Dodged = check_dodge(HasDodge),
+    Parried = check_parry(HasParry),
 
+    Damage = process_damage(Dodged, Parried, CombatData),
+
+%(Dodged, Parried, CombatData)
+process_damage(true, _Parried, _CombatData) ->
+    0; %Return 0 damage
+process_damage(_Dodged, parry, _CombatData) ->
     %Add attack speed penalty
-    effect:add(DefId, ?ATTACK_SPEED, -0.4),
+    effect:add(DefId, ?ATTACK_SPEED, {-0.4, 5}),
 
     %Return 0 damage
-    0
+    0;
+process_damage(_Dodged, parry_attack, _CombatData) ->
+    %Add attack speed penalty
+    effect:add(DefId, ?ATTACK_SPEED, {-0.4, 5}),
 
-    %Check if defender has dodge next attack
-    has_effect
+    %TODO extra attack
+
+    %Return 0 damage
+    0;
+process_damage(_Dodge, parry_disarm, _CombatData) ->
+    %Add disarm 
+    effect:add(DefId, ?DISARM, none),
+
+    %TODO Calculate full damage
+    100;
+
+process_damage(_Dodge, _Parried, CombatData) ->
+    %TODO Calculate full damage
+
 
     %Has defense stance
     HasDefend = has_defend(DefId),
@@ -283,24 +300,24 @@ to_str(?PRECISE) -> "p";
 to_str(?FIERCE) -> "f".
 
 check_combos(AttackType, ObjId, ObjSubclass) ->
-    case db:dirty_read(combat, ObjId) of
-        [Combat] ->
-            Attacks = Combat#combat.attacks ++ to_str(AttackType),
+    case db:read(attack, ObjId) of
+        [Combo] ->
+            Attacks = Attack#attack.types ++ to_str(AttackType),
 
             case check_attacks(Attacks, ObjSubclass) of
                 [{_, ComboName, ComboDmg}] ->
-                    NewCombat = Combat#combat {attacks = ""},
-                    db:dirty_write(NewCombat),
+                    NewCombo = Combo#combo {attacks = ""},
+                    db:write(NewCombo),
                     {ComboName, ComboDmg};
                 _ -> 
-                    NewCombat = Combat#combat {attacks = Attacks},
-                    db:dirty_write(NewCombat),
+                    NewCombo = Combo#combo {attacks = Attacks},
+                    db:write(NewCombo),
                     {none, 0}
             end;
         _ ->
-            Combat = #combat {id = ObjId,
+            Combo = #combo {id = ObjId,
                               attacks = to_str(AttackType)},
-            db:dirty_write(Combat),
+            db:write(Combo),
             {none, 0}
     end.
 
@@ -415,5 +432,17 @@ check_weapon_effect([AtkWeapon], DefId, ComboDmg) when ComboDmg > 0 ->
     case util:rand(100) =< DeepWoundChance of 
         true -> {?DEEP_WOUND, 100};
         false -> {none, DefHp * 0.2}
+    end.
+
+check_dodge(false) -> false;
+check_dodge(true) -> util:rand(100) =< ?DODGE_CHANCE.
+
+check_parry(false) -> false;
+check_parry(true) -> 
+    case util:rand(100) of
+        Rand when Rand =< ?PARRY_CHANCE -> parry;
+        Rand when Rand =< ?PARRY_ATTACK_CHANCE -> parry_attack;
+        Rand when Rand =< ?PARRY_DISARM_CHANCE -> parry_disarm;
+        _ -> false
     end.
 

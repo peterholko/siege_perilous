@@ -109,10 +109,6 @@ Double Strike: Double strikes the enemy
 Expose Armor: -5% armor for 20 seconds, stackable
 Bloodthirst: chance to restore 4% of life 
 
-Dodge: Dodges next attack
-Parry: Nullifies next attack, -40% attack speed for 5 seconds
-Block: Blocks X damage from next attack
-
 Example Weapons:
 
 Axe:
@@ -125,5 +121,8 @@ Sword:
 +5 damage               <<"dmg">> => 5
 +25% precise speed      <<"p_spd_p">> => 0.25
 
+--- Combos --- 
 
-
+Shrouded Slash
+Shatter Cleave
+Nightmare Strike

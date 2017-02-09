@@ -63,10 +63,11 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(npc, [{ram_copies, [node()]}, {attributes, record_info(fields, npc)}]),    
     {atomic, ok} = mnesia:create_table(state, [{ram_copies, [node()]}, {attributes, record_info(fields, state)}]),    
     {atomic, ok} = mnesia:create_table(effect, [{ram_copies, [node()]}, {attributes, record_info(fields, effect)}]),    
-    {atomic, ok} = mnesia:create_table(combat, [{ram_copies, [node()]}, {attributes, record_info(fields, combat)}]),  
     {atomic, ok} = mnesia:create_table(world, [{ram_copies, [node()]}, {attributes, record_info(fields, world)}]),  
     {atomic, ok} = mnesia:create_table(encounter, [{ram_copies, [node()]}, {attributes, record_info(fields, encounter)}]),  
     {atomic, ok} = mnesia:create_table(revent, [{ram_copies, [node()]}, {attributes, record_info(fields, revent)}]),  
+    {atomic, ok} = mnesia:create_table(combo, [{ram_copies, [node()]}, {attributes, record_info(fields, combo)}]),  
+    {atomic, ok} = mnesia:create_table(attack, [{ram_copies, [node()]}, {attributes, record_info(fields, attack)}]),  
 
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),

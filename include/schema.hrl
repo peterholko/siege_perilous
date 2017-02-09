@@ -159,8 +159,6 @@
                  data,
                  modtick}).
 
--record(combat, {id, 
-                 attacks}).
 
 -record(encounter, {pos, 
                     num,
@@ -172,3 +170,13 @@
                  responses = [],
                  resolutions = [],
                  effects = []}).
+
+-record(combo, {id, 
+                name,
+                attacks}).
+
+-record(attack, {id, 
+                 types}).
+
+
+

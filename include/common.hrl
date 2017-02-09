@@ -93,6 +93,16 @@
 -define(ATTACK_SPEED, <<"attack_speed">>).
 -define(FIERCE_DAMAGE, <<"fierce_damage">>).
 -define(QUICK_SPEED, <<"quick_speed">>).
+
+
+-define(DODGE_CHANCE, 15).
+-define(PARRY_CHANCE, 10).
+-define(PARRY_ATTACK_CHANCE, 15).
+-define(PARRY_DISARM_CHANCE, 5).
+
+
+
+
 -define(DEEP_WOUND_CHANCE, <<"deep_wound_chance">>).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
