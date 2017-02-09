@@ -121,6 +121,11 @@ Sword:
 +5 damage               <<"dmg">> => 5
 +25% precise speed      <<"p_spd_p">> => 0.25
 
+--- Def Stances vs Attacks ---
+Dodge vs Quick: +5% chance to dodge/parry/block for 20 seconds 
+Parry vs Precise: +5% chance to dodge/parry/block for 20 seconds
+Brace vs Fierce: +5% chance to dodge/parry/block for 20 seconds
+
 --- Combos --- 
 
 Shrouded Slash
