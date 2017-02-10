@@ -71,6 +71,17 @@ message_handle(<<"move_unit">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"move">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"combo">>, Message) ->
+    lager:info("message:combo"),
+
+    SourceId = map_get(<<"sourceid">>, Message),
+    ComboType = map_get(<<"combotype">>, Message),  
+
+    Return = player:combo(SourceId, ComboType),
+
+    FinalReturn = maps:put(<<"packet">>, <<"combo">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"attack">>, Message) ->
     lager:info("message: attack"),
 

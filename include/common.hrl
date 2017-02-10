@@ -88,6 +88,7 @@
 -define(IMPALE, <<"impale">>).
 -define(BACKSTAB, <<"backstab">>).
 -define(DAZED, <<"dazed">>).
+-define(DISARM, <<"disarm">>).
 
 -define(DAMAGE, <<"damage">>).
 -define(ATTACK_SPEED, <<"attack_speed">>).

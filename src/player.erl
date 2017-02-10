@@ -15,6 +15,7 @@
          get_info_item_name/1,
          move/2,
          ford/2,
+         combo/2,
          attack/3,
          defend/2,
          survey/1,
@@ -107,6 +108,22 @@ get_info_item(ItemId) ->
     end.
 get_info_item_name(ItemName) ->
     item:get_map_by_name(ItemName).
+
+combo(SourceId, ComboType) ->
+    PlayerId = get(player_id),
+    [SourceObj] = db:read(obj, SourceId),
+ 
+    Checks = [{is_player_owned(SourceObj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(SourceObj), "Can only attack with your hero"},
+              {combat:is_combo_type(ComboType), "Is not a valid combo type"}],
+  
+    case process_checks(Checks) of
+        true ->
+            combat:combo(SourceId, ComboType),
+            #{<<"result">> => <<"Success">>};
+        {false, Error} ->
+           #{<<"errmsg">> => list_to_binary(Error)}
+  end.
 
 attack(AttackType, SourceId, TargetId) ->
     PlayerId = get(player_id),

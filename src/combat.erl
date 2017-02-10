@@ -16,9 +16,9 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([attack/3, defend/2]).
+-export([combo/2, attack/3, defend/2]).
 -export([has_stamina/2, stamina_cost/1, num_ticks/1]).
--export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1]).
+-export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1, is_combo_type/1]).
 
 %-compile(export_all).
 
@@ -28,6 +28,9 @@
 
 start() ->
     gen_server:start({global, combat}, combat, [], []).
+
+combo(SourceId, ComboType) ->
+    reset_attacks(SourceId, ComboType).
 
 attack(AttackType, SourceId, TargetId) ->
     gen_server:cast({global, combat}, {attack, AttackType, SourceId, TargetId}).
@@ -149,12 +152,11 @@ process_damage(_Dodge, parry_disarm, _CombatData) ->
 process_damage(_Dodge, _Parried, CombatData) ->
     %TODO Calculate full damage
 
-
     %Has defense stance
     HasDefend = has_defend(DefId),
 
-    %Check for combos
-    {ComboName, ComboDmg} = check_combos(AttackType, AtkId, AtkObj#obj.subclass),
+    %Check if combo is finished
+    Combo = check_combo(AttackType, AtkId),
 
     %Check if combo is countered
     {Countered, FinalComboDmg} = check_countered(AttackType, HasDefend, ComboDmg),
@@ -239,6 +241,11 @@ is_targetable(#obj{id = Id}) ->
     lager:info("is_targetable: ~p", [IsTargetable]),
     IsTargetable.
 
+is_combo_type(?QUICK) -> true;
+is_combo_type(?PRECISE) -> true;
+is_combo_type(?FIERCE) -> true;
+is_combo_type(_) -> false.
+
 is_target_alive(#obj {state = State}) when State =:= dead -> 
     false;
 is_target_alive(_) -> 
@@ -299,38 +306,29 @@ to_str(?QUICK) -> "q";
 to_str(?PRECISE) -> "p";
 to_str(?FIERCE) -> "f".
 
-check_combos(AttackType, ObjId, ObjSubclass) ->
+check_combo(AttackType, ObjId) ->
     case db:read(attack, ObjId) of
-        [Combo] ->
+        [Attack] ->
             Attacks = Attack#attack.types ++ to_str(AttackType),
 
-            case check_attacks(Attacks, ObjSubclass) of
-                [{_, ComboName, ComboDmg}] ->
-                    NewCombo = Combo#combo {attacks = ""},
-                    db:write(NewCombo),
-                    {ComboName, ComboDmg};
-                _ -> 
-                    NewCombo = Combo#combo {attacks = Attacks},
-                    db:write(NewCombo),
-                    {none, 0}
-            end;
-        _ ->
-            Combo = #combo {id = ObjId,
-                              attacks = to_str(AttackType)},
-            db:write(Combo),
-            {none, 0}
+            check_attacks(Attacks, ObjId);
+        _ -> 
+            false
     end.
 
-check_attacks(Attacks, ObjSubclass) ->
-    F = fun({ComboAttacks, _ComboName, _ComboDmg}) ->
-            lager:info("Attacks: ~p ComboAttacks: ~p", [Attacks, ComboAttacks]),            
-            case string:str(Attacks, ComboAttacks) of
-                0 -> false;
-                _ -> true
-            end
-        end,
+check_attacks(Attacks, ObjId) ->
+    case db:read(combo, ObjId) of
+        ComboList ->
+            F = fun(Combo) -> Combo#combo.attacks =:= Attacks end, 
 
-    lists:filter(F, combos(ObjSubclass)).
+            case lists:filter(F, ComboList) of
+                [Combo] -> Combo;
+                _ -> false
+            end;
+
+        _ ->
+            false
+    end.
 
 check_countered(?QUICK, ?DODGE, ComboDmg) when ComboDmg > 0 -> {true, 0};
 check_countered(?PRECISE, ?PARRY, ComboDmg) when ComboDmg > 0 -> {true, 0}; 
@@ -446,3 +444,9 @@ check_parry(true) ->
         _ -> false
     end.
 
+
+reset_attacks(SourceId, ComboType) ->
+    NewAttacks = #attack {id = SourceId,
+                          combo_type = ComboType,
+                          types = []},
+    db:write(NewAttacks).

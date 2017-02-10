@@ -104,6 +104,8 @@ Disarm: -75% target attack for 10 seconds
 Impale: If target under 25% hp, if Impaled will kill target
 Dazed: -5% target speed for 20 seconds, stackable
 Demoralizing Shout: -5% target attack for 20 seconds, stackable
+Fear: Cannot attack or defend for duration
+Stun: Cannot move or attack or defend for duration
 
 Double Strike: Double strikes the enemy
 Expose Armor: -5% armor for 20 seconds, stackable
@@ -122,12 +124,26 @@ Sword:
 +25% precise speed      <<"p_spd_p">> => 0.25
 
 --- Def Stances vs Attacks ---
-Dodge vs Quick: +5% chance to dodge/parry/block for 20 seconds 
-Parry vs Precise: +5% chance to dodge/parry/block for 20 seconds
-Brace vs Fierce: +5% chance to dodge/parry/block for 20 seconds
+Dodge vs Quick: +50% chance to dodge/parry/block for 20 seconds 
+Parry vs Precise: +50% chance to dodge/parry/block for 20 seconds
+Brace vs Fierce: +50% chance to dodge/parry/block for 20 seconds
 
 --- Combos --- 
 
-Shrouded Slash
-Shatter Cleave
-Nightmare Strike
+Quick Combos => 2 attacks
+Precise Combos => 3 attacks
+Fierce Combos => 4 attacks
+
+--- Quick ---
+
+Hamstring (qq): 50% movement speed slow for 30 seconds
+Gouge (pq): Stuns for 3 seconds
+Intimidating Shout (ff): Causes Fear for 3 seconds
+
+--- Precise ---
+Shrouded Slash (pfq): 200% Quick Damage, Expose Armor x5
+Shatter Cleave (qff): 250% Fierce Damage, Bleed
+
+--- Fierce ---
+Massive Pummel (qpfp): 400% Precise Damage, Concuss
+Nightmare Strike (fpqf): 800% Fierce Damage

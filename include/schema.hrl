@@ -175,7 +175,8 @@
                 name,
                 attacks}).
 
--record(attack, {id, 
+-record(attack, {id,
+                 combo_type, 
                  types}).
 
 
