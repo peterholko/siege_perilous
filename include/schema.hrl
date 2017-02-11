@@ -171,8 +171,13 @@
                  resolutions = [],
                  effects = []}).
 
+-record(combo_def, {name, 
+                    combo_type, 
+                    attacks}).
+
 -record(combo, {id, 
                 name,
+                combo_type,
                 attacks}).
 
 -record(attack, {id,

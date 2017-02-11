@@ -15,7 +15,7 @@
 %% Exported Functions
 %%
 -export([create_schema/0, start/0, first/1, next/2,
-         write/1, read/2, delete/2, index_read/3, select/2,
+         write/1, read/2, delete/2, index_read/3, select/2, match_object/1,
          dirty_write/1, dirty_read/2, dirty_index_read/3, dirty_delete/2, dirty_match_object/1,
          dirty_delete_object/1, dump/1,
          import/2,
@@ -152,6 +152,11 @@ select(T, F_MS) ->
     {atomic, Value} = mnesia:transaction(F),
     Value.
 
+match_object(P) ->
+    F = fun() -> mnesia:dirty_match_object(P) end,
+    {atomic, Value} = mnesia:transaction(F),
+    Value.
+
 dirty_read(T, K) ->
     mnesia:dirty_read(T, K).
 
@@ -196,7 +201,14 @@ test_tables() ->
      {world, time, day},
      %{revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>], [none]},
      %{revent, 1, <<"The Baying Hounds">>, <<"Haunting howls, from what you hope are dogs, surround your camp.">>, [<<"Post a watch.">>, <<"They'll leave us alone. Do nothing.">>], [<<"Lose 10% Morale.">>, <<"Potential Danger...">>], [{attrmod, {morale, -10}}, {random, [{45, spawn, <<"Wolf">>}]} ]}
-     {revent, 1, <<"The Overgrown Tombstone">>, <<"You find an an ancient tombstone just outside your camp.  It appears to have been left undisturbed by both man and beast for a long time.">>, [<<"Leave it alone.">>, <<"Dig up the grave.">>, <<"Bless the site.">>], [<<"Nothing happens.">>, <<"Possible loot...">>, <<"Gain Morale 10%">>], [none, {random, [{75, loot}, {25, spawn, <<"Skeleton">>}]}, {attrmod, {morale, 10}}]}
+     {revent, 1, <<"The Overgrown Tombstone">>, <<"You find an an ancient tombstone just outside your camp.  It appears to have been left undisturbed by both man and beast for a long time.">>, [<<"Leave it alone.">>, <<"Dig up the grave.">>, <<"Bless the site.">>], [<<"Nothing happens.">>, <<"Possible loot...">>, <<"Gain Morale 10%">>], [none, {random, [{75, loot}, {25, spawn, <<"Skeleton">>}]}, {attrmod, {morale, 10}}]},
+     {combo_def, <<"Hamstring">>, ?QUICK, "qq"},
+     {combo_def, <<"Gouge">>, ?QUICK, "pq"},
+     {combo_def, <<"Imtimidating Shout">>, ?QUICK, "ff"},
+     {combo_def, <<"Shrounded Slash">>, ?PRECISE, "pfq"},
+     {combo_def, <<"Shatter Cleave">>, ?PRECISE, "qff"},
+     {combo_def, <<"Massive Pummel">>, ?FIERCE, "qpfp"},
+     {combo_def, <<"Nightmare Strike">>, ?FIERCE, "fpqf"}
     ].
 
 reset_tables() ->

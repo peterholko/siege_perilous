@@ -19,6 +19,7 @@
 -export([combo/2, attack/3, defend/2]).
 -export([has_stamina/2, stamina_cost/1, num_ticks/1]).
 -export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1, is_combo_type/1]).
+-export([init_combos/1]).
 
 %-compile(export_all).
 
@@ -152,6 +153,9 @@ process_damage(_Dodge, parry_disarm, _CombatData) ->
 process_damage(_Dodge, _Parried, CombatData) ->
     %TODO Calculate full damage
 
+    %Add attack type to attacks list
+    add_attack(AtkId, AttackType),
+
     %Has defense stance
     HasDefend = has_defend(DefId),
 
@@ -159,19 +163,26 @@ process_damage(_Dodge, _Parried, CombatData) ->
     Combo = check_combo(AttackType, AtkId),
 
     %Check if combo is countered
-    {Countered, FinalComboDmg} = check_countered(AttackType, HasDefend, ComboDmg),
+    Countered = check_countered(AttackType, HasDefend, Combo),
     
-    %Remove defend effect
+    %Remove defend effect if countered
     remove_defend(Countered, DefId, HasDefend),
 
+    %Determine Combo Damage 
+    ComboDamage = combo_damage(Combo, Countered),
+
     %Check weapon effect
-    {Effect, EffectDamage} = check_weapon_effect(AtkWeapons, DefId, ComboDmg),
+    %{Effect, EffectDamage} = check_weapon_effect(AtkWeapons, DefId, ComboDmg),
 
     %Check if Attacker is Fortified
-    FortifyPenalty = check_fortified(AtkId, AtkWeapons),
+    %FortifyPenalty = check_fortified(AtkId, AtkWeapons),
 
-    %Add item stats
-    TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)) * FinalComboDmg * FortifyPenalty,
+    %Calculate Total Base Damage
+    TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)), 
+
+    %Calculate Total Quick Damage
+    TotalQuickDmg = (
+
     TotalArmor = BaseDef + get_items_value(<<"armor">>, DefItems),
 
     %Random roll
@@ -306,34 +317,26 @@ to_str(?QUICK) -> "q";
 to_str(?PRECISE) -> "p";
 to_str(?FIERCE) -> "f".
 
-check_combo(AttackType, ObjId) ->
-    case db:read(attack, ObjId) of
-        [Attack] ->
-            Attacks = Attack#attack.types ++ to_str(AttackType),
-
-            check_attacks(Attacks, ObjId);
+check_combo(AtkId) ->
+    case db:read(attack, AtkId) of
+        [Attack] ->        
+            check_attacks(AtkId, Attack);
         _ -> 
             false
     end.
 
-check_attacks(Attacks, ObjId) ->
-    case db:read(combo, ObjId) of
-        ComboList ->
-            F = fun(Combo) -> Combo#combo.attacks =:= Attacks end, 
+check_attacks(AtkId, Attack) ->
+    Pattern = {AtkId, '_', Attack#attack.combo_type, Attack#attack.types},
 
-            case lists:filter(F, ComboList) of
-                [Combo] -> Combo;
-                _ -> false
-            end;
-
-        _ ->
-            false
+    case db:match_obj(combo, Pattern) of
+        [Combo] -> Combo;
+        _ -> false
     end.
 
-check_countered(?QUICK, ?DODGE, ComboDmg) when ComboDmg > 0 -> {true, 0};
-check_countered(?PRECISE, ?PARRY, ComboDmg) when ComboDmg > 0 -> {true, 0}; 
-check_countered(?FIERCE, ?BRACE, ComboDmg) when ComboDmg > 0 -> {true, 0};
-check_countered(_, _, ComboDmg) -> {false, ComboDmg}.
+check_countered(_, _, false) -> false;
+check_countered(?QUICK, ?DODGE, _Combo) -> true;
+check_countered(?PRECISE, ?PARRY, _Combo) -> true;
+check_countered(?FIERCE, ?BRACE, _Comobo) -> true.
 
 skill_gain_combo(_AtkId, none) -> nothing;
 skill_gain_combo(AtkId, ComboName) ->
@@ -412,16 +415,6 @@ broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) 
 
     perception:broadcast(SourcePos, TargetPos, Range, Message).
 
-combos(<<"npc">>) ->
-    [{"qqqf", <<"Undead Devour">>, 3},
-     {"qpfq", <<"Soul Drain">>, 5},
-     {"pfpp", <<"Corrupt Heart">>, 10}];
-combos(_) ->
-    [{"qqf", <<"Shrouded Strike">>, 1.25},
-     {"fff", <<"Shatter Strike">>, 1.5},
-     {"qpf", <<"Rupture Strike">>, 2},
-     {"qpqf", <<"Nightmare Strike">>, 3}].
-
 check_weapon_effect([AtkWeapon], DefId, ComboDmg) when ComboDmg > 0 ->
     DefHp = obj_attr:value(DefId, <<"hp">>),
 
@@ -445,8 +438,45 @@ check_parry(true) ->
     end.
 
 
+
+init_combos(ObjId) ->
+    ComboDefs = db:dump(combo_def),
+
+    F = fun(ComboDef) ->
+            Combo = #combo {id = ObjId, 
+                            name = ComboDef#combo_def.name,
+                            combo_type = ComboDef#combo_def.combo_type,
+                            attacks = ComboDef#combo_def.attacks},
+
+            db:write(Combo)
+        end,
+
+    lists:foreach(F, ComboDefs).
+
+combo_damage(_, true) -> 0;
+combo_damage(?GOUGE, false) -> 1;
+combo_damage(?HAMSTRING, false) -> 1;
+combo_damage(?IMTIMIDATING_SHOUT, false) -> 1;
+combo_damage(?SHROUDED_SLASH, false) -> {?QUICK, 2};
+combo_damage(?SHATTER_CLEAVE, false) -> {?FIERCE, 2.5};
+combo_damage(?MASSIVE_PUMMEL, false) -> {?PRECISE, 4};
+combo_damage(?NIGHTMARE_STRIKE, false) -> {?FIERCE, 8}.
+
 reset_attacks(SourceId, ComboType) ->
     NewAttacks = #attack {id = SourceId,
                           combo_type = ComboType,
                           types = []},
     db:write(NewAttacks).
+
+add_attack(AtkId, AttackType) ->
+    case db:read(attack, AtkId) of
+        [Attack] ->        
+            Types = Attack#attack.types ++ to_str(AttackType),
+            NewAttack = Attack#attack {types = Types},
+            db:write(NewAttack);
+        _ -> 
+            %Has not started a combo, hence, do not save attack
+            nothing
+    end.
+
+

@@ -101,7 +101,13 @@
 -define(PARRY_ATTACK_CHANCE, 15).
 -define(PARRY_DISARM_CHANCE, 5).
 
-
+-define(HAMSTRING, <<"Hamstring">>).
+-define(GOUGE, <<"Gouge">>).
+-define(IMTIMIDATING_SHOUT, <<"Imtimitading Shout">>).
+-define(SHROUDED_SLASH, <<"Shrouded Slash">>).
+-define(SHATTER_CLEAVE, <<"Shatter Cleave">>).
+-define(MASSIVE_PUMMEL, <<"Massive Pummel">>).
+-define(NIGHTMARE_STRIKE, <<"Nightmare Strike">>).
 
 
 -define(DEEP_WOUND_CHANCE, <<"deep_wound_chance">>).

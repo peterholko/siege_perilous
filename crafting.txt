@@ -143,7 +143,13 @@ Intimidating Shout (ff): Causes Fear for 3 seconds
 --- Precise ---
 Shrouded Slash (pfq): 200% Quick Damage, Expose Armor x5
 Shatter Cleave (qff): 250% Fierce Damage, Bleed
+Rupture Strike: 
 
 --- Fierce ---
 Massive Pummel (qpfp): 400% Precise Damage, Concuss
 Nightmare Strike (fpqf): 800% Fierce Damage
+
+--- NPC ---
+Undead Devour: 
+Soul Drain:
+Corrupt Heart:

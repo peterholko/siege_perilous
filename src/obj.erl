@@ -465,9 +465,11 @@ apply_sanctuary(true, #obj{id = Id}) ->
     effect:add(Id, ?SANCTUARY, none).
 
 process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= ?HERO ->
+    combat:init_combos(Id),
     Hero = #hero{player = Player, obj = Id},
     db:write(Hero);
 process_subclass(#obj{id = Id, subclass = Subclass}) when Subclass =:= ?NPC ->
+    combat:init_combos(Id),
     NPC = #npc{id = Id},
     db:write(NPC);
 process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= ?VILLAGER ->
