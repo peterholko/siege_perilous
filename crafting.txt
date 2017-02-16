@@ -97,7 +97,7 @@ Parry: 15% chance to parry/counter attack, 20% to parry attack, 10% chance to be
 Brace: 33% damage reduction, 25% chance to block 100 damage, 33% damage penalty, costs the least stamina
 
 --- Effects ---
-Deep Wound: 20% of total hp damage, -25% target attack for 10 seconds
+Deep Wound: -20% max hp, -25% target healing until wound healed
 Bleed: 20% of total hp damage over 20 seconds
 Concuss: -90% target speed, -90% target attack, -25% target defensive for 10 seconds
 Disarm: -75% target attack for 10 seconds

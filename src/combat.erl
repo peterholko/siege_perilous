@@ -151,7 +151,23 @@ process_damage(_Dodge, parry_disarm, _CombatData) ->
     100;
 
 process_damage(_Dodge, _Parried, CombatData) ->
-    %TODO Calculate full damage
+    %Get Base values
+    BaseDamage = obj_attr:value(AtkId, <<"base_damage">>),
+    DamageRange = obj_attr:value(AtkId, <<"damage_range">>),
+    BaseDef = obj_attr:value(DefId, <<"base_def">>),
+    DefHp = obj_attr:value(DefId, <<"hp">>),
+
+    %Get Damage from items
+    ItemDamage = get_items_value(<<"damage">>, AtkItems),
+
+    %Get Attack Type modification
+    AttackTypeDamage = attack_type_mod(AttackType),
+
+    %Get Damage Reduction from Defensive action if any
+    %DefensiveDamageReduction = defensive_type_damage_mod(
+
+    %Determine Armor from items
+    ItemArmor = get_items_value(<<"armor">>, DefItems),
 
     %Add attack type to attacks list
     add_attack(AtkId, AttackType),
@@ -172,36 +188,38 @@ process_damage(_Dodge, _Parried, CombatData) ->
     ComboDamage = combo_damage(Combo, Countered),
 
     %Check weapon effect
-    %{Effect, EffectDamage} = check_weapon_effect(AtkWeapons, DefId, ComboDmg),
+    Effect = check_weapon_effect(AtkWeapons),
 
     %Check if Attacker is Fortified
     %FortifyPenalty = check_fortified(AtkId, AtkWeapons),
 
-    %Calculate Total Base Damage
-    TotalDmg = (BaseDmg + get_items_value(<<"damage">>, AtkItems)), 
-
-    %Calculate Total Quick Damage
-    TotalQuickDmg = (
-
-    TotalArmor = BaseDef + get_items_value(<<"armor">>, DefItems),
-
     %Random roll
-    RandomDmg = util:rand(DmgRange) + TotalDmg,
-    DmgRoll = RandomDmg + TotalDmg,
+    RollDamage = util:rand(DamageRange) + BaseDamage,
+
+    %Calculate Total Base Damage
+    TotalDamage = (RollDamage + ItemDamage) * ComboDamage * AttackTypeDamage,
+
+    %Determin Total armor
+    TotalArmor = BaseDef + ItemArmor,
 
     %Apply armor and defend ection reductions
     ArmorReduction = TotalArmor / (TotalArmor + 50),
-    DmgReducedArmor = round(DmgRoll * (1 - ArmorReduction)),
 
+    %Calculate Damage Reduction
+    ArmorDamageReduction = round(RollDamage * (1 - ArmorReduction)),
+
+    %Determine defensive modification if any
     DefendTypeMod = defend_type_mod(HasDefend),
+
+    %Determine terrain mod if any
     %TerrainMod = map:defense_bonus(DefObj#obj.pos),
     TerrainMod = 1,
 
-    DmgReduced = TerrainMod * DefendTypeMod * DmgReducedArmor,
+    %Calculate damage reduction
+    DamageReduction = TerrainMod * DefendTypeMod * ArmorDamageReduction,
 
-    %Apply attack type modifier
-    Dmg = DmgReduced * attack_type_mod(AttackType),
-    NewHp = DefHp - Dmg,
+    %Calculate new HP
+    NewHp = DefHp - DamageReduction,
 
     %Check for skill increases
     skill_gain_combo(AtkId, ComboName),
@@ -281,9 +299,9 @@ attack_type_mod(?QUICK) -> 0.5;
 attack_type_mod(?PRECISE) -> 1;
 attack_type_mod(?FIERCE) -> 1.5.
 
-defend_type_mod(?DODGE) -> 0.60;
-defend_type_mod(?PARRY) -> 0.70;
-defend_type_mod(?BRACE) -> 0.80;
+defend_type_mod(?DODGE) -> 1;
+defend_type_mod(?PARRY) -> 1;
+defend_type_mod(?BRACE) -> 0.66;
 defend_type_mod(_) -> 1.
 
 stamina_cost(?QUICK) -> 5;
@@ -415,8 +433,9 @@ broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) 
 
     perception:broadcast(SourcePos, TargetPos, Range, Message).
 
-check_weapon_effect([AtkWeapon], DefId, ComboDmg) when ComboDmg > 0 ->
-    DefHp = obj_attr:value(DefId, <<"hp">>),
+check_weapon_effect([AtkWeapon], DefId) >
+
+    
 
     %Check deep wound
     DeepWoundChance = item_attr:value(item:id(AtkWeapon), ?DEEP_WOUND_CHANCE, 0), 
@@ -457,10 +476,10 @@ combo_damage(_, true) -> 0;
 combo_damage(?GOUGE, false) -> 1;
 combo_damage(?HAMSTRING, false) -> 1;
 combo_damage(?IMTIMIDATING_SHOUT, false) -> 1;
-combo_damage(?SHROUDED_SLASH, false) -> {?QUICK, 2};
-combo_damage(?SHATTER_CLEAVE, false) -> {?FIERCE, 2.5};
-combo_damage(?MASSIVE_PUMMEL, false) -> {?PRECISE, 4};
-combo_damage(?NIGHTMARE_STRIKE, false) -> {?FIERCE, 8}.
+combo_damage(?SHROUDED_SLASH, false) -> 2;
+combo_damage(?SHATTER_CLEAVE, false) -> 2.5;
+combo_damage(?MASSIVE_PUMMEL, false) -> 4;
+combo_damage(?NIGHTMARE_STRIKE, false) -> 8.
 
 reset_attacks(SourceId, ComboType) ->
     NewAttacks = #attack {id = SourceId,
