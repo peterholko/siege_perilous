@@ -98,25 +98,8 @@ process_defend(SourceId, DefendType) ->
     effect:add(SourceId, DefendType, none).
 
 process_attack(AttackType, AtkId, DefId) ->
-    [AtkObj] = db:read(obj, AtkId),
-    %[DefObj] = db:read(obj, DefId),
-
     %Check for any post events that should be cancelled
     remove_post_events(DefId),
-
-    AtkItems = item:get_equiped(AtkId),
-    DefItems = item:get_equiped(DefId),
-
-    AtkWeapons = item:get_equiped_weapon(AtkId),
-
-    BaseDmg = obj_attr:value(AtkId, <<"base_dmg">>),
-    DmgRange = obj_attr:value(AtkId, <<"dmg_range">>),
-
-    ItemDamage = get_items_value(<<"damage">>, AtkItems),
-  
-    BaseDef = obj_attr:value(DefId, <<"base_def">>),
-    DefHp = obj_attr:value(DefId, <<"hp">>),
-    ItemArmor = get_items_value(<<"armor">>, DefItems),
 
     HasDodge = effect:has_effect(DefId, ?DODGE),
     HasParry = effect:has_effect(DefId, ?PARRY),
@@ -124,18 +107,18 @@ process_attack(AttackType, AtkId, DefId) ->
     Dodged = check_dodge(HasDodge),
     Parried = check_parry(HasParry),
 
-    Damage = process_damage(Dodged, Parried, CombatData),
+    process_damage(Dodged, Parried, AttackType, AtkId, DefId).
 
 %(Dodged, Parried, CombatData)
-process_damage(true, _Parried, _CombatData) ->
+process_damage(true, _Parried, _AttackType, _AtkId, _DefId) ->
     0; %Return 0 damage
-process_damage(_Dodged, parry, _CombatData) ->
+process_damage(_Dodged, parry, _AttackType, _AtkId, DefId) ->
     %Add attack speed penalty
     effect:add(DefId, ?ATTACK_SPEED, {-0.4, 5}),
 
     %Return 0 damage
     0;
-process_damage(_Dodged, parry_attack, _CombatData) ->
+process_damage(_Dodged, parry_attack, _AttackType, _AtkId, DefId) ->
     %Add attack speed penalty
     effect:add(DefId, ?ATTACK_SPEED, {-0.4, 5}),
 
@@ -143,19 +126,32 @@ process_damage(_Dodged, parry_attack, _CombatData) ->
 
     %Return 0 damage
     0;
-process_damage(_Dodge, parry_disarm, _CombatData) ->
+process_damage(_Dodge, parry_disarm, AttackType, AtkId, DefId) ->
     %Add disarm 
-    effect:add(DefId, ?DISARM, none),
+    effect:add(AtkId, ?DISARM),
 
     %TODO Calculate full damage
-    100;
+    calculate_damage(AttackType, AtkId, DefId);
 
-process_damage(_Dodge, _Parried, CombatData) ->
+process_damage(_Dodge, _Parried, AttackType, AtkId, DefId) ->
+    calculate_damage(AttackType, AtkId, DefId).
+
+calculate_damage(AttackType, AtkId, DefId) ->
     %Get Base values
-    BaseDamage = obj_attr:value(AtkId, <<"base_damage">>),
-    DamageRange = obj_attr:value(AtkId, <<"damage_range">>),
+    BaseDamage = obj_attr:value(AtkId, <<"base_dmg">>),
+    DamageRange = obj_attr:value(AtkId, <<"dmg_range">>),
     BaseDef = obj_attr:value(DefId, <<"base_def">>),
     DefHp = obj_attr:value(DefId, <<"hp">>),
+
+    %Get Items and Weapons 
+    AtkItems = item:get_equiped(AtkId),
+    DefItems = item:get_equiped(DefId),
+
+    AtkWeapons = item:get_equiped_weapon(AtkId),
+
+    %Get effect modifications
+    AtkEffectDamage = effect_damage(AtkId),
+    DefEffectDef = effect_def(DefId),
 
     %Get Damage from items
     ItemDamage = get_items_value(<<"damage">>, AtkItems),
@@ -176,7 +172,7 @@ process_damage(_Dodge, _Parried, CombatData) ->
     HasDefend = has_defend(DefId),
 
     %Check if combo is finished
-    Combo = check_combo(AttackType, AtkId),
+    Combo = check_combo(AtkId),
 
     %Check if combo is countered
     Countered = check_countered(AttackType, HasDefend, Combo),
@@ -188,7 +184,7 @@ process_damage(_Dodge, _Parried, CombatData) ->
     ComboDamage = combo_damage(Combo, Countered),
 
     %Check weapon effect
-    Effect = check_weapon_effect(AtkWeapons),
+    _Effect = check_weapon_effect(AtkWeapons, DefId),
 
     %Check if Attacker is Fortified
     %FortifyPenalty = check_fortified(AtkId, AtkWeapons),
@@ -197,16 +193,17 @@ process_damage(_Dodge, _Parried, CombatData) ->
     RollDamage = util:rand(DamageRange) + BaseDamage,
 
     %Calculate Total Base Damage
-    TotalDamage = (RollDamage + ItemDamage) * ComboDamage * AttackTypeDamage,
+    lager:info("~p ~p ~p ~p ~p", [RollDamage, ItemDamage, ComboDamage, AttackTypeDamage, AtkEffectDamage]),
+    TotalDamage = (RollDamage + ItemDamage) * ComboDamage * AttackTypeDamage * AtkEffectDamage,
 
     %Determin Total armor
-    TotalArmor = BaseDef + ItemArmor,
+    TotalArmor = (BaseDef * DefEffectDef) + ItemArmor,
 
     %Apply armor and defend ection reductions
     ArmorReduction = TotalArmor / (TotalArmor + 50),
 
     %Calculate Damage Reduction
-    ArmorDamageReduction = round(RollDamage * (1 - ArmorReduction)),
+    DamageArmorReduced = round(TotalDamage * (1 - ArmorReduction)),
 
     %Determine defensive modification if any
     DefendTypeMod = defend_type_mod(HasDefend),
@@ -215,25 +212,25 @@ process_damage(_Dodge, _Parried, CombatData) ->
     %TerrainMod = map:defense_bonus(DefObj#obj.pos),
     TerrainMod = 1,
 
-    %Calculate damage reduction
-    DamageReduction = TerrainMod * DefendTypeMod * ArmorDamageReduction,
+    %Calculate final damage reduction
+    FinalDamage = TerrainMod * DefendTypeMod * DamageArmorReduced,
 
     %Calculate new HP
-    NewHp = DefHp - DamageReduction,
+    NewHp = DefHp - FinalDamage,
 
     %Check for skill increases
-    skill_gain_combo(AtkId, ComboName),
-    skill_gain_atk(AtkId, AtkWeapons, RandomDmg, DmgRange, Dmg),
+    %skill_gain_combo(AtkId, ComboName),
+    %skill_gain_atk(AtkId, AtkWeapons, RandomDmg, DmgRange, Dmg),
 
     %Update stamina
-    obj:update_stamina(AtkObj#obj.id, -1 * stamina_cost(AttackType)),
+    obj:update_stamina(AtkId, -1 * stamina_cost(AttackType)),
 
     %Check if unit is alive
     UnitState = is_unit_dead(NewHp),
 
     %Broadcast damage
     lager:info("Broadcasting countered: ~p ~p ~p", [Countered, HasDefend, countered(Countered, HasDefend)]),
-    broadcast_dmg(AtkId, DefId, AttackType, Dmg, UnitState, ComboName, countered(Countered, HasDefend)),
+    broadcast_dmg(AtkId, DefId, AttackType, FinalDamage, UnitState, Combo, countered(Countered, HasDefend)),
 
     %Check if unit is dead 
     case UnitState of
@@ -356,21 +353,21 @@ check_countered(?QUICK, ?DODGE, _Combo) -> true;
 check_countered(?PRECISE, ?PARRY, _Combo) -> true;
 check_countered(?FIERCE, ?BRACE, _Comobo) -> true.
 
-skill_gain_combo(_AtkId, none) -> nothing;
-skill_gain_combo(AtkId, ComboName) ->
-    skill:update(AtkId, ComboName, 1).
-
-skill_gain_atk(_AtkId, [], _RandomDmg, _DmgRange, _Dmg) -> nothing;
-skill_gain_atk(_AtkId, _Weapons, _RandomDmg, DmgRange, Dmg) when Dmg < (DmgRange * 0.1) -> nothing;
-skill_gain_atk(AtkId, Weapons, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (DmgRange - 1) -> 
-    lager:info("Skill gain weapons: ~p", [Weapons]), 
-    F = fun(Weapon) ->
-            Subclass = maps:get(<<"subclass">>, Weapon),
-            skill:update(AtkId, Subclass, 1)
-        end,
-
-    lists:foreach(F, Weapons);
-skill_gain_atk(_AtkId, _Weapons, _RandomDmg, _DmgRange, _Dmg) -> nothing.
+%skill_gain_combo(_AtkId, none) -> nothing;
+%skill_gain_combo(AtkId, ComboName) ->
+%    skill:update(AtkId, ComboName, 1).
+%
+%skill_gain_atk(_AtkId, [], _RandomDmg, _DmgRange, _Dmg) -> nothing;
+%skill_gain_atk(_AtkId, _Weapons, _RandomDmg, DmgRange, Dmg) when Dmg < (DmgRange * 0.1) -> nothing;
+%skill_gain_atk(AtkId, Weapons, RandomDmg, DmgRange, _Dmg) when RandomDmg >= (DmgRange - 1) -> 
+%    lager:info("Skill gain weapons: ~p", [Weapons]), 
+%    F = fun(Weapon) ->
+%            Subclass = maps:get(<<"subclass">>, Weapon),
+%            skill:update(AtkId, Subclass, 1)
+%        end,
+%
+%    lists:foreach(F, Weapons);
+%skill_gain_atk(_AtkId, _Weapons, _RandomDmg, _DmgRange, _Dmg) -> nothing.
 
 has_defend(DefId) ->
     DefendList = [{effect:has_effect(DefId, ?DODGE), ?DODGE},
@@ -395,24 +392,24 @@ remove_post_events(ObjId) ->
         false -> none
     end.
 
-is_range(<<"Bow">>) -> true;
-is_range(_) -> false.
+%is_range(<<"Bow">>) -> true;
+%is_range(_) -> false.
 
-check_fortified(AtkId, AtkWeapons) ->
-    F = fun(Weapon) ->
-            WeaponSubClass = maps:get(<<"subclass">>, Weapon),
-            is_range(WeaponSubClass)
-        end,
-
-    HasRange = lists:any(F, AtkWeapons),
-    HasFortified = effect:has_effect(AtkId, ?FORTIFIED),
-
-    %Penalize melee attackers with fortified by 75%
-    case {HasFortified, HasRange} of 
-        {true, true} -> 1;
-        {true, false} -> 0.25;
-        _ -> 1
-    end.
+%check_fortified(AtkId, AtkWeapons) ->
+%    F = fun(Weapon) ->
+%            WeaponSubClass = maps:get(<<"subclass">>, Weapon),
+%            is_range(WeaponSubClass)
+%        end,
+%
+%    HasRange = lists:any(F, AtkWeapons),
+%    HasFortified = effect:has_effect(AtkId, ?FORTIFIED),
+%
+%    %Penalize melee attackers with fortified by 75%
+%    case {HasFortified, HasRange} of 
+%        {true, true} -> 1;
+%        {true, false} -> 0.25;
+%        _ -> 1
+%    end.
 
 broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) ->
     Message = #{<<"packet">> => <<"dmg">>,
@@ -433,16 +430,31 @@ broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) 
 
     perception:broadcast(SourcePos, TargetPos, Range, Message).
 
-check_weapon_effect([AtkWeapon], DefId) >
+check_weapon_effect([AtkWeapon], DefId) ->
+    Subclass = item_attr:value(item:id(AtkWeapon), <<"subclass">>, none),
+    RandNum = util:rand(100),    
 
-    
+    Effect = check_weapon_subclass(Subclass, RandNum, DefId),    
+    Effect;
+check_weapon_effect(_, _) ->
+    false.
 
-    %Check deep wound
-    DeepWoundChance = item_attr:value(item:id(AtkWeapon), ?DEEP_WOUND_CHANCE, 0), 
-    case util:rand(100) =< DeepWoundChance of 
-        true -> {?DEEP_WOUND, 100};
-        false -> {none, DefHp * 0.2}
-    end.
+check_weapon_subclass(?AXE, RandNum, DefId) when RandNum =< ?DEEP_WOUND_CHANCE -> 
+    effect:add(DefId, ?DEEP_WOUND),
+    ?DEEP_WOUND;
+check_weapon_subclass(?SWORD, RandNum, DefId) when RandNum =< ?BLEED_CHANCE -> 
+    effect:add(DefId, ?BLEED),
+    ?BLEED;
+check_weapon_subclass(?HAMMER, RandNum, DefId) when RandNum =< ?CONCUSS_CHANCE -> 
+    effect:add(DefId, ?CONCUSS),
+    ?CONCUSS;
+check_weapon_subclass(?DAGGER, RandNum, DefId) when RandNum =< ?DISARM_CHANCE -> 
+    effect:add(DefId, ?DISARM),
+    ?DISARM;
+check_weapon_subclass(?IMPALE_CHANCE, RandNum, DefId) when RandNum =< ?IMPALE_CHANCE -> 
+    effect:add(DefId, ?IMPALE),
+    ?IMPALE;
+check_weapon_subclass(_, _, _) -> false.
 
 check_dodge(false) -> false;
 check_dodge(true) -> util:rand(100) =< ?DODGE_CHANCE.
@@ -479,7 +491,8 @@ combo_damage(?IMTIMIDATING_SHOUT, false) -> 1;
 combo_damage(?SHROUDED_SLASH, false) -> 2;
 combo_damage(?SHATTER_CLEAVE, false) -> 2.5;
 combo_damage(?MASSIVE_PUMMEL, false) -> 4;
-combo_damage(?NIGHTMARE_STRIKE, false) -> 8.
+combo_damage(?NIGHTMARE_STRIKE, false) -> 8;
+combo_damage(_, _) -> 1.
 
 reset_attacks(SourceId, ComboType) ->
     NewAttacks = #attack {id = SourceId,
@@ -498,4 +511,31 @@ add_attack(AtkId, AttackType) ->
             nothing
     end.
 
+effect_damage(AtkId) ->
+    Effects = effect:all(AtkId),
 
+    F = fun(Effect, Acc) ->
+            case Effect#effect.type of
+                ?CONCUSS -> (1 + ?CONCUSS_DAMAGE) * Acc;
+                ?DISARM ->  (1 + ?DISARM_DAMAGE) * Acc;
+                ?DEMORALIZING_SHOUT -> (1 + ?DEMORALIZING_SHOUT_DAMAGE) * Acc;
+                _ -> Acc
+            end
+
+        end,
+
+    lists:foldl(F, 1, Effects).
+
+effect_def(DefId) ->
+    Effects = effect:all(DefId),
+
+    F = fun(Effect, Acc) ->
+            case Effect#effect.type of
+                ?CONCUSS -> (1 + ?CONCUSS_DEF) * Acc;
+                ?EXPOSE_ARMOR -> (1 + ?EXPOSE_ARMOR_DEF) * Acc;
+                _ -> Acc
+            end
+
+        end,
+
+    lists:foldl(F, 1, Effects).

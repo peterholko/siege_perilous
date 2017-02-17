@@ -89,12 +89,13 @@
 -define(BACKSTAB, <<"backstab">>).
 -define(DAZED, <<"dazed">>).
 -define(DISARM, <<"disarm">>).
+-define(DEMORALIZING_SHOUT, <<"demoralizing shout">>).
+-define(EXPOSE_ARMOR, <<"expose armor">>).
 
 -define(DAMAGE, <<"damage">>).
 -define(ATTACK_SPEED, <<"attack_speed">>).
 -define(FIERCE_DAMAGE, <<"fierce_damage">>).
 -define(QUICK_SPEED, <<"quick_speed">>).
-
 
 -define(DODGE_CHANCE, 15).
 -define(PARRY_CHANCE, 10).
@@ -109,6 +110,27 @@
 -define(MASSIVE_PUMMEL, <<"Massive Pummel">>).
 -define(NIGHTMARE_STRIKE, <<"Nightmare Strike">>).
 
+-define(AXE, <<"Axe">>).
+-define(DAGGER, <<"Dagger">>).
+-define(SWORD, <<"Sword">>).
+-define(HAMMER, <<"Hammer">>).
+-define(SPEAR, <<"Spear">>).
+
+-define(DEEP_WOUND_CHANCE, 15).
+-define(BLEED_CHANCE, 15).
+-define(CONCUSS_CHANCE, 15).
+-define(DISARM_CHANCE, 15).
+-define(IMPALE_CHANCE, 5).
+
+-define(CONCUSS_SPEED, -0.90).
+-define(CONCUSS_DAMAGE, -0.90).
+-define(CONCUSS_DEF, -0.25).
+
+-define(DISARM_DAMAGE, -0.75).
+
+-define(DEMORALIZING_SHOUT_DAMAGE, -0.05).
+
+-define(EXPOSE_ARMOR_DEF, -0.05).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

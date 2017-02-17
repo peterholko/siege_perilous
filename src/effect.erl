@@ -6,7 +6,7 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([add/3, remove/2, has_effect/2, get_effect_data/2, get_effects/1]).
+-export([add/3, remove/2, has_effect/2, get_effect_data/2, get_effects/1, all/1]).
 
 add(Id, EffectType, EffectData) ->
     Effect = #effect {key = {Id, EffectType},
@@ -46,3 +46,4 @@ get_effects(Id) ->
 
     lists:foldl(F, [], Effects).
 
+all(Id) -> db:index_read(effect, Id, #effect.id).

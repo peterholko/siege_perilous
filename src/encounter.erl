@@ -20,6 +20,8 @@ check(Pos) ->
 
     Random = util:rand(),
 
+    lager:info("~p ~p", [Random, EffectiveSpawnRate]),
+
     case Random < EffectiveSpawnRate of
         true -> spawn_random_npc(TileName, Pos);
         false -> nothing
