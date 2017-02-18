@@ -341,17 +341,18 @@ check_combo(AtkId) ->
     end.
 
 check_attacks(AtkId, Attack) ->
-    Pattern = {AtkId, '_', Attack#attack.combo_type, Attack#attack.types},
+    Pattern = {combo, AtkId, '_', Attack#attack.combo_type, Attack#attack.types},
 
-    case db:match_obj(combo, Pattern) of
-        [Combo] -> Combo;
+    case db:match_object(Pattern) of
+        [Combo] -> Combo#combo.name;
         _ -> false
     end.
 
 check_countered(_, _, false) -> false;
 check_countered(?QUICK, ?DODGE, _Combo) -> true;
 check_countered(?PRECISE, ?PARRY, _Combo) -> true;
-check_countered(?FIERCE, ?BRACE, _Comobo) -> true.
+check_countered(?FIERCE, ?BRACE, _Combo) -> true;
+check_countered(_, _, _) -> false.
 
 %skill_gain_combo(_AtkId, none) -> nothing;
 %skill_gain_combo(AtkId, ComboName) ->
@@ -381,7 +382,7 @@ has_defend(DefId) ->
     lists:foldl(F, false, DefendList).
 
 countered(true, DefendType) -> DefendType;
-countered(false, _) -> none.
+countered(false, _) -> false.
 
 remove_defend(true, DefId, DefendType) -> effect:remove(DefId, DefendType);
 remove_defend(false, _, _) -> nothing.
@@ -431,8 +432,10 @@ broadcast_dmg(SourceId, TargetId, AttackType, Dmg, State, ComboName, Countered) 
     perception:broadcast(SourcePos, TargetPos, Range, Message).
 
 check_weapon_effect([AtkWeapon], DefId) ->
+    lager:info("Check Weapon Effect ~p", [AtkWeapon]),
     Subclass = item_attr:value(item:id(AtkWeapon), <<"subclass">>, none),
     RandNum = util:rand(100),    
+    lager:info("Subclass ~p RanNum: ~p", [Subclass, RandNum]),
 
     Effect = check_weapon_subclass(Subclass, RandNum, DefId),    
     Effect;
@@ -440,21 +443,24 @@ check_weapon_effect(_, _) ->
     false.
 
 check_weapon_subclass(?AXE, RandNum, DefId) when RandNum =< ?DEEP_WOUND_CHANCE -> 
-    effect:add(DefId, ?DEEP_WOUND),
+    lager:info("Deep Wound!"),
+    effect:add(DefId, ?DEEP_WOUND, none),
     ?DEEP_WOUND;
 check_weapon_subclass(?SWORD, RandNum, DefId) when RandNum =< ?BLEED_CHANCE -> 
-    effect:add(DefId, ?BLEED),
+    effect:add(DefId, ?BLEED, none),
     ?BLEED;
 check_weapon_subclass(?HAMMER, RandNum, DefId) when RandNum =< ?CONCUSS_CHANCE -> 
-    effect:add(DefId, ?CONCUSS),
+    effect:add(DefId, ?CONCUSS, none),
     ?CONCUSS;
 check_weapon_subclass(?DAGGER, RandNum, DefId) when RandNum =< ?DISARM_CHANCE -> 
-    effect:add(DefId, ?DISARM),
+    effect:add(DefId, ?DISARM, none),
     ?DISARM;
 check_weapon_subclass(?IMPALE_CHANCE, RandNum, DefId) when RandNum =< ?IMPALE_CHANCE -> 
-    effect:add(DefId, ?IMPALE),
+    effect:add(DefId, ?IMPALE, none),
     ?IMPALE;
-check_weapon_subclass(_, _, _) -> false.
+check_weapon_subclass(Subclass, RandNum, DefId) -> 
+    lager:info("~p ~p ~p", [Subclass, RandNum, DefId]),
+    false.
 
 check_dodge(false) -> false;
 check_dodge(true) -> util:rand(100) =< ?DODGE_CHANCE.

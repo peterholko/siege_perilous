@@ -71,7 +71,7 @@ get_equiped_weapon(OwnerId) ->
     AllItems = get_by_owner(OwnerId),
     F = fun(ItemMap) -> 
                 (maps:get(<<"equip">>, ItemMap) =:= <<"true">>) and
-                (maps:get(<<"class">>, ItemMap) =:= <<"weapon">>)
+                (maps:get(<<"class">>, ItemMap) =:= <<"Weapon">>)
         end,
     lists:filter(F, AllItems).
 

@@ -552,6 +552,12 @@ function sendRest(sourceid) {
     websocket.send(e);
 };
 
+function sendCombo(sourceId) {
+    var e = '{"cmd": "combo", "sourceid": "' + selectedPortrait + '", "combotype": "quick"}';
+    websocket.send(e);
+
+};
+
 function sendItemTransfer(targetid, item) {
     console.log("targetid: " + targetid);
     var e = '{"cmd": "item_transfer", "targetid": "' + targetid + '", "item": "' + item + '"}';
@@ -1481,7 +1487,7 @@ function drawDmg(jsonData) {
         var target = getLocalObj(jsonData.targetid);
         var txt = '';
 
-        if(jsonData.countered != "none") {
+        if(jsonData.countered != false) {
             if(jsonData.sourceid == heroId) {
                 txt = "Your " + jsonData.attacktype + " attack has been " + jsonData.countered + " for " + jsonData.dmg + " damage to " + target.type;
             }
@@ -1492,7 +1498,7 @@ function drawDmg(jsonData) {
                 txt = source.type + " " + jsonData.attacktype + " attack has been " + jsonData.countered + " by " + target.name + " for " + jsonData.dmg + " damage";
             }
         }
-        else if(jsonData.combo != "none") {
+        else if(jsonData.combo != false) {
             if(jsonData.sourceid == heroId) {
                 txt = "Your " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " for " + jsonData.dmg + " damage to " + target.type;
             }
