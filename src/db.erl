@@ -98,8 +98,8 @@ start() ->
                             event, action, resource, world], 1000).
 
 import(DefFileName) ->
-    io:fwrite("Cwd: ~p", [file:get_cwd()]),
-    {ok, Bin} = file:read_file("/home/peterh/sp/siege_perilous/priv/" ++ DefFileName ++ ".json"),
+    PrivDir = code:lib_dir(sp) ++ "/priv/",
+    {ok, Bin} = file:read_file(PrivDir ++ DefFileName ++ ".json"),
 
     DefListOfMap = jsx:decode(Bin, [return_maps]),
 

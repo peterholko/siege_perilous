@@ -12,6 +12,7 @@ all() ->
      combo_test].
 
 init_per_suite(Config) ->
+    io:fwrite("lib: ~p", [code:lib_dir(sp)]),
     setup:start(),
 
     Config.
