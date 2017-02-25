@@ -72,12 +72,12 @@ is_process_alive(Pid)
     rpc:call(node(Pid), erlang, is_process_alive, [Pid]).
 
 get_time() ->
-    {Megasec, Sec, Microsec} = erlang:now(),
+    {Megasec, Sec, Microsec} = erlang:timestamp(),
     Milliseconds = (Megasec * 1000000000) + (Sec * 1000) + (Microsec div 1000),
     Milliseconds.
 
 get_time_seconds() ->
-    {Megasec, Sec, _Microsec} = erlang:now(),
+    {Megasec, Sec, _Microsec} = erlang:timestamp(),
     Seconds = (Megasec * 1000000) + Sec,
     Seconds.
 

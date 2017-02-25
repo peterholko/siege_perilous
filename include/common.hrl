@@ -116,10 +116,10 @@
 -define(HAMMER, <<"Hammer">>).
 -define(SPEAR, <<"Spear">>).
 
--define(DEEP_WOUND_CHANCE, 15).
--define(BLEED_CHANCE, 15).
--define(CONCUSS_CHANCE, 15).
--define(DISARM_CHANCE, 15).
+-define(DEEP_WOUND_CHANCE, 90).
+-define(BLEED_CHANCE, 90).
+-define(CONCUSS_CHANCE, 90).
+-define(DISARM_CHANCE, 90).
 -define(IMPALE_CHANCE, 5).
 
 -define(CONCUSS_SPEED, -0.90).

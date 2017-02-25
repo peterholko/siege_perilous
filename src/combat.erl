@@ -21,7 +21,15 @@
 -export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1, is_combo_type/1]).
 -export([init_combos/1]).
 
-%-compile(export_all).
+-ifdef(EUNIT_TEST).
+-compile(export_all).
+-endif.
+
+%% Types
+
+
+
+
 
 %% ====================================================================
 %% External functions
@@ -226,7 +234,7 @@ calculate_damage(AttackType, AtkId, DefId) ->
     obj:update_stamina(AtkId, -1 * stamina_cost(AttackType)),
 
     %Check if unit is alive
-    UnitState = is_unit_dead(NewHp),
+    UnitState = is_dead(NewHp),
 
     %Broadcast damage
     lager:info("Broadcasting countered: ~p ~p ~p", [Countered, HasDefend, countered(Countered, HasDefend)]),
@@ -277,9 +285,9 @@ is_target_alive(#obj {state = State}) when State =:= dead ->
 is_target_alive(_) -> 
     true.
 
-is_unit_dead(Hp) when Hp =< 0 ->
+is_dead(Hp) when Hp =< 0 ->
     <<"dead">>;
-is_unit_dead(_Hp) ->
+is_dead(_Hp) ->
     <<"alive">>.
 
 process_unit_dead(DefId) ->

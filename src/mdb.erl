@@ -46,6 +46,7 @@ init([]) ->
     Database = <<"sp">>,
    
     {ok, Connection} = mongo:connect([{database, Database}]),
+    io:fwrite("mongo connected."),
     {ok, Connection}.
 
 handle_cast({update, Collection, Id, Value}, Data) ->

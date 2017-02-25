@@ -1,0 +1,96 @@
+[{
+	"name": "Dagger",
+	"item": "Dagger",
+	"structure": "Blacksmith",
+	"class": "Weapon",
+	"subclass": "Dagger",
+	"slot": "Main Hand",
+	"req": [
+		{
+			"type": "Ingot",
+			"quantity": 1
+		},
+		{
+			"type": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"name": "Refine Ore",
+	"item": "Refine Ore",
+	"class": "process_res",
+	"structure": "Blacksmith"
+},
+{
+	"name": "Chain Mail",
+	"item": "Chain Mail",
+	"structure": "Blacksmith",
+	"class": "Armor",
+	"subclass": "Chain Mail",
+	"req": [
+		{
+			"type": "Ingot",
+			"quantity": 1
+		},
+		{
+			"type": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"name": "Fangtooth Dagger",
+	"item": "Fangtooth Dagger",
+	"structure": "Blacksmith",
+	"class": "Weapon",
+	"subclass": "Dagger",
+	"slot": "Main Hand",
+	"req": [
+		{
+			"type": "Ingot",
+			"quantity": 1
+		},
+		{
+			"type": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"name": "Night Dagger",
+	"item": "Night Dagger",
+	"structure": "Blacksmith",
+	"class": "Weapon",
+	"subclass": "Dagger",
+	"slot": "Main Hand",
+	"req": [
+		{
+			"type": "Ingot",
+			"quantity": 1
+		},
+		{
+			"type": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"name": "Axe",
+	"item": "Axe",
+	"structure": "Blacksmith",
+	"class": "Weapon",
+	"subclass": "Axe",
+	"slot": "Main Hand",
+	"req": [
+		{
+			"type": "Ingot",
+			"quantity": 1
+		},
+		{
+			"type": "Wood",
+			"quantity": 1
+		}
+	]
+}]
+

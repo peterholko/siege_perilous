@@ -18,7 +18,7 @@
          write/1, read/2, delete/2, index_read/3, select/2, match_object/1,
          dirty_write/1, dirty_read/2, dirty_index_read/3, dirty_delete/2, dirty_match_object/1,
          dirty_delete_object/1, dump/1,
-         import/2,
+         import/1,
          reset_tables/0,
          do/1
         ]).
@@ -97,16 +97,19 @@ start() ->
     mnesia:wait_for_tables([counter, player, connection, map, obj, explored_map, perception,
                             event, action, resource, world], 1000).
 
-import(Collection, Table) ->
-    ObjDefTable = mdb:dump(Collection),
+import(DefFileName) ->
+    io:fwrite("Cwd: ~p", [file:get_cwd()]),
+    {ok, Bin} = file:read_file("/home/peterh/sp/siege_perilous/priv/" ++ DefFileName ++ ".json"),
 
-    F = fun(ObjDef) ->
-            ObjName = maps:get(<<"name">>, ObjDef),
-            ObjList = maps:to_list(ObjDef),
-            import_entry(Table, ObjName, ObjList)
+    DefListOfMap = jsx:decode(Bin, [return_maps]),
+
+    F = fun(DefMap) ->
+            DefName = maps:get(<<"name">>, DefMap),
+            DefList = maps:to_list(DefMap),
+            import_entry(list_to_atom(DefFileName), DefName, DefList)
         end,
 
-    lists:foreach(F, ObjDefTable).
+    lists:foreach(F, DefListOfMap).
 
 import_entry(Table, ObjName, ObjList) ->
     F = fun({<<"_id">>, _}) -> nothing;
