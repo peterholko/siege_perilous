@@ -181,9 +181,11 @@ calculate_damage(AttackType, AtkId, DefId) ->
 
     %Check if combo is finished
     Combo = check_combo(AtkId),
+    lager:info("Combo: ~p", [Combo]),
 
     %Check if combo is countered
     Countered = check_countered(AttackType, HasDefend, Combo),
+    lager:info("Countered: ~p", [Countered]),
     
     %Remove defend effect if countered
     remove_defend(Countered, DefId, HasDefend),

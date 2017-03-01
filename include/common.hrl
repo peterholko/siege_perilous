@@ -104,7 +104,7 @@
 
 -define(HAMSTRING, <<"Hamstring">>).
 -define(GOUGE, <<"Gouge">>).
--define(IMTIMIDATING_SHOUT, <<"Imtimitading Shout">>).
+-define(IMTIMIDATING_SHOUT, <<"Imtimidating Shout">>).
 -define(SHROUDED_SLASH, <<"Shrouded Slash">>).
 -define(SHATTER_CLEAVE, <<"Shatter Cleave">>).
 -define(MASSIVE_PUMMEL, <<"Massive Pummel">>).
