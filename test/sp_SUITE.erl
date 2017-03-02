@@ -5,11 +5,12 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([all/0, init_per_suite/1]).
--export([combat_test/1, combo_test/1, craft_test/1]).
+-export([combat_test/1, combo_test/1, harvest_test/1, craft_test/1]).
 
 all() ->
     [combo_test,
      combat_test,
+     harvest_test,
      craft_test].
 
 init_per_suite(Config) ->
@@ -103,12 +104,48 @@ combat_test(_Config) ->
         exit(timeout)
     end.
 
-craft_test(_Config) ->
-    player:survey(<<"5">>),
+harvest_test(_Config) ->
+    setup:login(<<"test1">>, <<"123123">>, self()),
+    timer:sleep(5000),
+    Events = db:dump(event),
+    ct:print("Events: ~p", [Events]),
+
+    Survey = player:survey(<<"5">>),
+
+    ct:print("Survey: ~p", [Survey]),
+
+    Harvest = player:harvest(<<"5">>,  <<"Valleyrun Copper Ore">>),
+    ct:print("Harvest ~p", [Harvest]),
 
     receive 
-        Message ->
-            ct:print("Receive: ~p", [Message])
+        Message1 ->
+            ct:print("Receive: ~p", [Message1])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    timer:sleep(5000),
+
+    receive 
+        Message4 ->
+            ct:print("Receive: ~p", [Message4]),
+            {new_items, [ItemMap]} = Message4,
+            Quantity = maps:get(<<"quantity">>, ItemMap),
+            ?assertEqual(Quantity, 1)
+    after 5000 ->
+        exit(timeout)
+    end.
+
+craft_test(_Config) ->
+    setup:login(<<"test1">>, <<"123123">>, self()),
+    Build = player:build(<<"5">>, <<"Mine">>),
+    ct:print("Build: ~p", [Build]),
+
+    timer:sleep(1000),
+
+    receive 
+        Message1 ->
+            ct:print("Receive: ~p", [Message1])
     after 5000 ->
         exit(timeout)
     end.

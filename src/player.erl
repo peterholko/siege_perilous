@@ -37,7 +37,8 @@
          cancel/1,
          revent_response/1,
          set_event_lock/2,
-         process_checks/1]).
+         process_checks/1,
+         is_player_owned/2]).
 
 init_perception(PlayerId) ->
     %Get objs
@@ -353,14 +354,16 @@ structure_list() ->
 
 build(BuilderId, StructureName) ->
     PlayerId = get(player_id),
+    lager:info("PlayerId: ~p", [PlayerId]),
 
     Builder = obj:get(BuilderId),
+    lager:info("Builder: ~p", [Builder]),
     StructureSubclass = obj_def:value(StructureName, <<"subclass">>),
 
-    Checks = [{is_player_owned(BuilderId, PlayerId), "Builder not owned by player"},              
+    Checks = [{is_player_owned(Builder, PlayerId), "Builder not owned by player"},              
               {structure:valid_location(StructureSubclass, Builder#obj.pos), "Invalid structure location"},
               {Builder#obj.state =:= ?NONE, "Builder is busy"}],
-
+    lager:info("Checks: ~p", [Checks]),
     case process_checks(Checks) of
         true ->
             lager:info("Building structure"),

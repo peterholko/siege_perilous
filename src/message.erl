@@ -330,6 +330,7 @@ prepare(map, Message) ->
      {<<"map">>, Message}];
 
 prepare(new_items, Message) ->
+    lager:info("Message: ~p", [Message]),
     [{<<"packet">>, <<"new_items">>},
      {<<"items">>, Message}]; 
 

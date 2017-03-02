@@ -36,7 +36,7 @@
 	"base_vision": 2,
 	"class": "unit",
 	"subclass": "hero",
-	"capacity": 200
+	"capacity": 300
 },
 {
 	"_id": {

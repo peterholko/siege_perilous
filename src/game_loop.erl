@@ -99,7 +99,7 @@ check_events([Event | Rest], PrevRecalc) ->
 
     NewRecalc = Recalc or PrevRecalc,
     
-    db:dirty_delete(event, Event#event.id),
+    db:delete(event, Event#event.id),
 
     check_events(Rest, NewRecalc).
 
@@ -152,22 +152,26 @@ do_event(harvest, EventData, PlayerPid) ->
     case resource:is_valid(Pos) of
         true ->
             lager:debug("Creating/update item.."),
+
             %Create/update item
-            NewItems = resource:harvest(ObjId, Resource, Pos),
-            
-            case Repeat of
-                true ->
-                    lager:debug("Repeating harvest event"),
-                    game:add_event(PlayerPid, harvest, EventData, ObjId, NumTicks);
-                false ->
-                    %Update obj state
-                    lager:debug("Updating obj state to none"),
-                    obj:update_state(ObjId, none)
-            end,
-         
-            lager:debug("Sending new items to player"),
-            game:send_update_items(ObjId, NewItems, PlayerPid),
-            message:send_to_process(PlayerPid, event_complete, {harvest, ObjId});
+            case resource:harvest(ObjId, Resource, Pos) of
+                {error, ErrMsg} ->
+                    message:send_to_process(PlayerPid, event_failure, ErrMsg);
+                NewItems ->
+                    case Repeat of
+                        true ->
+                            lager:debug("Repeating harvest event"),
+                            game:add_event(PlayerPid, harvest, EventData, ObjId, NumTicks);
+                        false ->
+                            %Update obj state
+                            lager:debug("Updating obj state to none"),
+                            obj:update_state(ObjId, none)
+                    end,
+                 
+                    lager:debug("Sending new items to player"),
+                    game:send_update_items(ObjId, NewItems, PlayerPid),
+                    message:send_to_process(PlayerPid, event_complete, {harvest, ObjId})
+            end;
         false ->
             message:send_to_process(PlayerPid, event_failure, {harvest, invalid_resource})
     end,
