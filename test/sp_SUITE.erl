@@ -5,11 +5,12 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([all/0, init_per_suite/1]).
--export([combat_test/1, combo_test/1]).
+-export([combat_test/1, combo_test/1, craft_test/1]).
 
 all() ->
     [combo_test,
-     combat_test].
+     combat_test,
+     craft_test].
 
 init_per_suite(Config) ->
     setup:start(),
@@ -89,6 +90,25 @@ combat_test(_Config) ->
             {broadcast, MessageMap1} = Message7,
             CounteredName = maps:get(<<"countered">>, MessageMap1),
             ?assertEqual(CounteredName, ?BRACE)
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    obj:remove(NPCId),
+
+    receive 
+        Message8 ->
+            ct:print("Receive: ~p", [Message8])
+    after 5000 ->
+        exit(timeout)
+    end.
+
+craft_test(_Config) ->
+    player:survey(<<"5">>),
+
+    receive 
+        Message ->
+            ct:print("Receive: ~p", [Message])
     after 5000 ->
         exit(timeout)
     end.
