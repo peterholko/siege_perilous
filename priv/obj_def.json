@@ -201,7 +201,7 @@
 	"class": "structure",
 	"subclass": "resource",
 	"profession": "the Miner",
-	"build_time": 10,
+	"build_time": 5,
 	"level": 0,
 	"capacity": 21,
 	"req": [

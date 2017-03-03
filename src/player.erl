@@ -405,38 +405,63 @@ upgrade(StructureId) ->
   
 finish_build(SourceId, StructureId) ->
     PlayerId = get(player_id),
-
-    [Source] = db:read(obj, SourceId),
     [Structure] = db:read(obj, StructureId),
 
     lager:info("Structure state: ~p", [Structure#obj.state]),
 
-    finish_build(PlayerId, Source, Structure).
+    finish_build(PlayerId, SourceId, Structure).
 
-finish_build(PlayerId, Source, Structure = #obj {state = ?FOUNDED}) -> 
+finish_build(PlayerId, SourceId, Structure = #obj {state = ?FOUNDED}) -> 
+    [Source] = db:read(obj, SourceId),
     NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
     
-    ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
-                  Structure#obj.player =:= PlayerId andalso
-                  structure:has_req(Structure#obj.id),
+    Checks = [{Source#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
+              {Structure#obj.player =:= PlayerId, "Structure not owned by player"},
+              {structure:has_req(Structure#obj.id), "Structure is missing required items"}],
 
-    add_finish_build(ValidFinish, {Source#obj.id, 
-                                   Structure#obj.id}, NumTicks),
+    case process_checks(Checks) of
+        true ->
+            lager:info("Finishing structure"),
+            game:cancel_event(SourceId),
 
-    [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
-    {<<"build_time">>, NumTicks * 4}];
+            EventData = {SourceId, Structure#obj.id},
 
-finish_build(PlayerId, Source, Structure = #obj {state = ?PROGRESSING}) ->
+            obj:update_state(SourceId, building),
+            obj:update_state(Structure#obj.id, ?PROGRESSING),
+
+            game:add_event(self(), finish_build, EventData, SourceId, NumTicks),
+
+            #{<<"build_time">> => NumTicks * 4};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end;
+
+finish_build(PlayerId, SourceId, Structure = #obj {state = ?PROGRESSING}) ->
+    [Source] = db:read(obj, SourceId),
     NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
+    
+    Checks = [{Source#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
+              {Structure#obj.player =:= PlayerId, "Structure not owned by player"}],
 
-    ValidFinish = Source#obj.pos =:= Structure#obj.pos andalso
-                  Structure#obj.player =:= PlayerId,
- 
-     add_finish_build(ValidFinish, {Source#obj.id, 
-                                   Structure#obj.id}, NumTicks),
+    case process_checks(Checks) of
+        true ->
+            lager:info("Finishing structure"),
+            game:cancel_event(SourceId),
 
-    [{<<"result">>, atom_to_binary(ValidFinish, latin1)},
-    {<<"build_time">>, NumTicks}].
+            EventData = {SourceId, Structure#obj.id},
+
+            obj:update_state(SourceId, building),
+            obj:update_state(Structure#obj.id, ?PROGRESSING),
+
+            game:add_event(self(), finish_build, EventData, SourceId, NumTicks),
+
+            #{<<"build_time">> => NumTicks * 4};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end;
+
+finish_build(_PlayerId, _SourceId, Structure) ->
+    lager:info("Invalid state of structure: ~p", [Structure#obj.state]).
 
 recipe_list(SourceId) ->
     Player = get(player_id),
@@ -611,20 +636,6 @@ process_item_transfer(Item, TargetObj = #obj{id = Id, class = Class, state = Sta
 process_item_transfer(Item, TargetObj) ->
     ItemMap = item:transfer(Item#item.id, TargetObj#obj.id),
     obj:item_transfer(TargetObj, ItemMap).
-
-add_finish_build(false, _EventData, _Ticks) ->
-    lager:info("Finish Build failed"),
-    none;
-
-add_finish_build(true, {ObjId, StructureId}, NumTicks) ->
-    game:cancel_event(ObjId),
-
-    EventData = {ObjId, StructureId},
-
-    obj:update_state(ObjId, building),
-    obj:update_state(StructureId, ?PROGRESSING),
-
-    game:add_event(self(), finish_build, EventData, ObjId, NumTicks).
 
 add_equip({false, Error}, _Data) ->
     lager:info("Equip failed error: ~p", [Error]);

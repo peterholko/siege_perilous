@@ -60,11 +60,13 @@ upgrade(_StructureId) ->
 has_req(StructureId) ->
     ReqList = obj_attr:value(StructureId, <<"req">>),
     Items = item:get_by_owner(StructureId),
+    lager:info("ReqList: ~p Items: ~p", [ReqList, Items]),
     has_req(ReqList, Items).
 
 has_upgrade_req(StructureId) ->
     ReqList = obj_attr:value(StructureId, <<"upgrade_req">>),
     Items = item:get_by_owner(StructureId),
+    lager:info("ReqList: ~p Items: ~p", [ReqList, Items]),
     has_req(ReqList, Items).
 
 has_process_res(StructureId) ->

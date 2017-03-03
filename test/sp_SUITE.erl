@@ -137,6 +137,7 @@ harvest_test(_Config) ->
     end.
 
 craft_test(_Config) ->
+    lager_common_test_backend:bounce(info),
     setup:login(<<"test1">>, <<"123123">>, self()),
     Build = player:build(<<"5">>, <<"Mine">>),
     ct:print("Build: ~p", [Build]),
@@ -148,7 +149,97 @@ craft_test(_Config) ->
             ct:print("Receive: ~p", [Message1])
     after 5000 ->
         exit(timeout)
+    end,
+
+    TransferResult = player:item_transfer(<<"14">>, <<"9">>),
+
+    ct:print("Transfer: ~p", [TransferResult]),
+
+    FinishResult = player:finish_build(<<"5">>, <<"14">>),
+
+    ct:print("Finish: ~p", [FinishResult]),
+
+    receive 
+        Message2 ->
+            ct:print("Receive: ~p", [Message2])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    timer:sleep(10000),
+
+    receive 
+        Message3 ->
+            ct:print("Receive: ~p", [Message3])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    AssignResult = player:assign(<<"6">>, <<"14">>),
+    ct:print("Assign: ~p", [AssignResult]),
+
+    BlackSmithPos = {18, 35},
+    Id = obj:create(BlackSmithPos, 1001, structure, ?CRAFT, <<"Blacksmith">>, none),
+    ct:print("Id: ~p", [Id]),
+
+    timer:sleep(10000),
+
+    receive 
+        Message4 ->
+            ct:print("Receive: ~p", [Message4])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    receive 
+        Message5 ->
+            ct:print("Receive: ~p", [Message5])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    timer:sleep(10000),
+
+    receive 
+        Message6 ->
+            ct:print("Receive: ~p", [Message6])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    timer:sleep(15000),
+
+    receive 
+        Message7 ->
+            ct:print("Receive: ~p", [Message7])
+    after 5000 ->
+        exit(timeout)
+    end,
+    
+    InfoResult = player:get_info_unit(<<"14">>),
+    ct:print("Info: ~p", [InfoResult]),
+
+    TransferResult2 = player:item_transfer(<<"5">>, <<"9">>),
+    TransferResult3 = player:item_transfer(<<"5">>, <<"17">>),
+
+    ct:print("Transfer: ~p ~p", [TransferResult2, TransferResult3]),
+
+    AssignResult2 = player:assign(<<"6">>, <<"16">>),
+    ct:print("Assign: ~p", [AssignResult2]),
+
+    ProcessResult = player:process_resource(<<"16">>),
+
+    ct:print("Process: ~p", [ProcessResult]),
+
+    timer:sleep(10000),
+
+    receive 
+        Message8 ->
+            ct:print("Receive: ~p", [Message8])
+    after 5000 ->
+        exit(timeout)
     end.
+
 
 combo_test(_Config) ->
     Weight = item_def:value(<<"Salarian Wheat">>, <<"weight">>),
