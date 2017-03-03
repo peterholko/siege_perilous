@@ -216,22 +216,34 @@ craft_test(_Config) ->
         exit(timeout)
     end,
     
-    InfoResult = player:get_info_unit(<<"14">>),
-    ct:print("Info: ~p", [InfoResult]),
 
     TransferResult2 = player:item_transfer(<<"5">>, <<"9">>),
     TransferResult3 = player:item_transfer(<<"5">>, <<"17">>),
 
-    ct:print("Transfer: ~p ~p", [TransferResult2, TransferResult3]),
+    timer:sleep(1000),
+    
+    InfoResult = player:get_info_unit(<<"5">>),
+    ct:print("Info: ~p", [InfoResult]),
+
+    TransferResult4 = player:item_transfer(<<"16">>, <<"13">>),
+    TransferResult5 = player:item_transfer(<<"16">>, <<"15">>),
+
+    InfoResult2 = player:get_info_unit(<<"16">>),
+    ct:print("Info: ~p", [InfoResult2]),
+
+    %ct:print("Transfer: ~p ~p", [TransferResult2, TransferResult3]),
+    %ct:print("Transfer: ~p ~p", [TransferResult4, TransferResult5]),
 
     AssignResult2 = player:assign(<<"6">>, <<"16">>),
     ct:print("Assign: ~p", [AssignResult2]),
 
     ProcessResult = player:process_resource(<<"16">>),
-
     ct:print("Process: ~p", [ProcessResult]),
 
-    timer:sleep(10000),
+    timer:sleep(30000),
+
+    InfoResult3 = player:get_info_unit(<<"16">>),
+    ct:print("Info: ~p", [InfoResult3]),
 
     receive 
         Message8 ->
