@@ -1,3 +1,31 @@
+---Resources---
+
+Ore (Hills):
+Valleyrun Copper Ore
+Quickforge Iron Ore
+Stronghold Mithril Ore
+
+Wood (Forest):
+Cragroot Popular
+Wrapwood Birch
+Skyshroud Oak
+
+Stone (Hills/Plains):
+Rivergleam Clay
+Cloudscape Marble
+Heavensong Granite
+
+Food:
+Crimson Root
+
+Gems (All):
+Smoldering Opal
+Frostbite Jade
+Lion's Eye Ruby
+Wraithstone
+
+---Examples---
+
 Valleyrun Ore -> Valleyrun Ingot 2 ATK
               -> Valleyrun Dust 
 

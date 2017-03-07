@@ -233,7 +233,7 @@ do_event(craft, EventData, PlayerPid) ->
     case structure:check_recipe_req(StructureId, Recipe) of
         true ->
             %Craft items
-            NewItems = structure:craft(StructureId, Recipe),
+            NewItems = recipe:craft(StructureId, Recipe),
             
             %Send update to player
             game:send_update_items(StructureId, NewItems, PlayerPid),

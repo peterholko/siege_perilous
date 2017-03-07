@@ -137,7 +137,7 @@ harvest_test(_Config) ->
     end.
 
 craft_test(_Config) ->
-    lager_common_test_backend:bounce(info),
+    %lager_common_test_backend:bounce(info),
     setup:login(<<"test1">>, <<"123123">>, self()),
     Build = player:build(<<"5">>, <<"Mine">>),
     ct:print("Build: ~p", [Build]),
@@ -240,7 +240,7 @@ craft_test(_Config) ->
     ProcessResult = player:process_resource(<<"16">>),
     ct:print("Process: ~p", [ProcessResult]),
 
-    timer:sleep(30000),
+    timer:sleep(60000),
 
     InfoResult3 = player:get_info_unit(<<"16">>),
     ct:print("Info: ~p", [InfoResult3]),
@@ -250,7 +250,20 @@ craft_test(_Config) ->
             ct:print("Receive: ~p", [Message8])
     after 5000 ->
         exit(timeout)
-    end.
+    end,
+
+    CraftResult = player:craft(<<"16">>, <<"Dagger">>),
+    ct:print("Craft: ~p", [CraftResult]),
+
+    timer:sleep(60000),
+
+    InfoResult4 = player:get_info_unit(<<"16">>),
+    ct:print("Info: ~p", [InfoResult4]),
+
+    Items = maps:get(<<"items">>, InfoResult4),
+    F = fun(Item) -> maps:get(<<"subclass">>, Item, false) =:= ?DAGGER end,
+    HasDagger = lists:any(F, Items),
+    ?assertEqual(HasDagger, true).
 
 
 combo_test(_Config) ->
