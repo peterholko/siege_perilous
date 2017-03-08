@@ -1,4 +1,12 @@
 ---Resources---
+Prospect (or Survey) action & skill needed to find resources
+Prospecting uncovers resources for the player only
+Each skill level increase allows the player to re-prospect a tile
+Prospecting a tile will uncover new resources or enhance the current find
+Explore "prospecting points" like "crafting points"
+Gain prospecting points by prospecting
+Spend the points on enhancing existing finds ?
+
 
 Ore (Hills):
 Valleyrun Copper Ore
