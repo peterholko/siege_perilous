@@ -19,6 +19,7 @@
          attack/3,
          defend/2,
          survey/1,
+         prospect/1,
          harvest/2,
          loot/2,
          item_transfer/2,
@@ -270,6 +271,31 @@ survey(ObjId) ->
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
+
+prospect(ObjId) ->
+    lager:info("Prospect: ~p", [ObjId]),
+    PlayerId = get(player_id),
+    [Obj] = db:read(obj, ObjId),
+
+    Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(Obj), "Can only survey with your hero"},
+              {not game:has_pre_events(ObjId), "Unit is busy"}],
+
+    case process_checks(Checks) of
+        true ->
+            obj:update_state(ObjId, prospecting),
+
+            NumTicks = 10,
+
+            EventData = {ObjId, Obj#obj.pos},
+            game:add_event(self(), prospecting, EventData, ObjId, NumTicks),
+            
+            #{<<"prospect_time">> => NumTicks * ?TICKS_SEC};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+
 
 harvest(ObjId, Resource) ->
     PlayerId = get(player_id),
