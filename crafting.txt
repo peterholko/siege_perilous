@@ -8,6 +8,10 @@ Prospecting a tile will uncover new resources or enhance the current find
 Gain prospecting points by prospecting
 Spend the points on enhancing existing finds ?
 Allow villagers to prospect to generate prospecting points ?
+Upgraded resource structure (mine level 2 allows new resources to be found)
+
+Design requirements:
+1. Player to search 
 
 ---Examples---
 Prospecting Level: Novice
