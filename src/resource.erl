@@ -9,12 +9,16 @@
 -export([harvest/3, survey/1, is_valid/1, is_auto/2, quantity/1]).
 -export([create/4]).
 
-harvest(ObjId, ResourceType, Pos) ->
-    [Resource] = db:read(resource, Pos),
-    lager:info("Harvesting resource: ~p", [Resource]),
+harvest(ObjId, ResourceName, Pos) ->
+    lager:info("Harvesting resource: ~p", [ResourceName]),
+    Resource = get_resource(ResourceName, Pos),
+    harvest(ObjId, Resource).
 
+harvest(_ObjId, false) -> 
+    {error, <<"Invalid resource">>};
+harvest(ObjId, Resource) ->
     HarvestQuantity = 1, 
-    ItemWeight = item:weight(ResourceType, HarvestQuantity),
+    ItemWeight = item:weight(name(Resource), HarvestQuantity),
 
     case obj:has_space(ObjId, ItemWeight) of
         true ->
@@ -22,7 +26,7 @@ harvest(ObjId, ResourceType, Pos) ->
             update_resource(Resource, HarvestQuantity),
 
             %Create new item
-            NewItem = item:create(ObjId, ResourceType, 1),
+            NewItem = item:create(ObjId, name(Resource), 1),
         
             %Set quantity to 1, as the returns of this function 
             %should be only the new quantity not combined quantity 
@@ -32,23 +36,6 @@ harvest(ObjId, ResourceType, Pos) ->
             {error, <<"Not enough capacity">>}
     end.
 
-update_resource(Resource, HarvestQuantity) ->
-    lager:info("Resource: ~p HarvestQuantity: ~p", [Resource, HarvestQuantity]),
-    Quantity = Resource#resource.quantity,
-    case (Quantity - HarvestQuantity) > 0 of
-        true ->          
-            NewResource = Resource#resource {quantity = Quantity - HarvestQuantity},
-            db:write(NewResource);
-        false ->
-            case Resource#resource.obj =/= none of
-                true ->
-                    obj:remove(Resource#resource.obj);
-                false ->
-                    nothing
-            end,
-
-            db:delete(resource, Resource#resource.index)
-    end.
 
 survey(Pos) ->
     lager:info("Survey ~p", [Pos]),
@@ -103,4 +90,31 @@ create(ResourceType, Quantity, Pos, WithObj) ->
 % Internal functions
 %
 
-    
+name(Resource) when is_record(Resource, resource) -> Resource#resource.name;
+name(_Resource) -> none.
+
+get_resource(ResourceName, Pos) ->
+    case db:read(resource, Pos) of
+        [] -> false;
+        Resources ->
+            lists:keyfind(ResourceName, #resource.name, Resources)
+    end.
+
+update_resource(Resource, HarvestQuantity) ->
+    lager:info("Resource: ~p HarvestQuantity: ~p", [Resource, HarvestQuantity]),
+    Quantity = Resource#resource.quantity,
+    case (Quantity - HarvestQuantity) > 0 of
+        true ->          
+            NewResource = Resource#resource {quantity = Quantity - HarvestQuantity},
+            db:write(NewResource);
+        false ->
+            case Resource#resource.obj =/= none of
+                true ->
+                    obj:remove(Resource#resource.obj);
+                false ->
+                    nothing
+            end,
+
+            db:delete(resource, Resource#resource.index)
+    end.
+

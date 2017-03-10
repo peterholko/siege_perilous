@@ -1,37 +1,39 @@
 ---Resources---
 Prospect (or Survey) action & skill needed to find resources
-
 Prospecting uncovers resources globally (vs for the player only) 
+Prospecting a tile will uncover new resources
+Max prospecting skill will uncover all tile resources
+Higher prospecting skill level required for higher level resources
+No random element in initial prospecting version
+Explore adding a random level into prospecting
 
-Prospecting a tile will uncover new resources or enhance the current find
-
-Gain prospecting points by prospecting
-Spend the points on enhancing existing finds ?
-Allow villagers to prospect to generate prospecting points ?
-Upgraded resource structure (mine level 2 allows new resources to be found)
+ XXX Allow Enhancing of current find
+ XXX Gain prospecting points by prospecting
+ XXX Spend the points on enhancing existing finds
+ XXX Allow villagers to prospect to generate prospecting points
+ XXX Upgraded resource structure (mine level 2 allows new resources to be found)
+ XXX Random chance at bonus resource B from mining resource A 
+ XXX Some resources cannot be gathered directly, only indirectly as bonus resource?
 
 Design requirements:
-1. Player to search 
+1. Player to actively go out and search for resources
+2. Do not require players to move their village
+3. Time and items required to prospect
+4. Require higher level prospecting to reveal all resources
+5. Require upgraded resource structures to access all resources
 
 ---Examples---
-Prospecting Level: Novice
 Terrain: Hills Plains
-Resources: All Ore, All Stone, All Gems
+Potential Resources: All Ore, All Stone, All Gems
 Requires: Picks + Time
+Generated Resources: 
+* Valleyrun Copper Ore / Abundant
+* Stronghold Mithril Ore / Poor
+* Smoldering Opal / Poor
 
-1st Prospect 
+1st Prospect with Novice Skill
 Resource: Valleyrun Copper Ore 
 Quanity: Poor -> (100 units)
-+10 Prospecting Points
-
-2nd Prospect
-no change
-+10 Prospecting Points
-
-
-
-
-
 
 Quantity Levels: 
 Insignifant

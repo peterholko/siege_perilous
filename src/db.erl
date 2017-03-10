@@ -55,7 +55,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(action, [{ram_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource_def, [{ram_copies, [node()]}, {attributes, record_info(fields, resource_def)}]),
     {atomic, ok} = mnesia:create_table(poi_def, [{ram_copies, [node()]}, {attributes, record_info(fields, poi_def)}]),
-    {atomic, ok} = mnesia:create_table(resource, [{ram_copies, [node()]}, {attributes, record_info(fields, resource)}]),    
+    {atomic, ok} = mnesia:create_table(resource, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, resource)}]),    
     {atomic, ok} = mnesia:create_table(test, [{ram_copies, [node()]}, {attributes, record_info(fields, test)}]),    
     {atomic, ok} = mnesia:create_table(hero, [{ram_copies, [node()]}, {attributes, record_info(fields, hero)}]),    
     {atomic, ok} = mnesia:create_table(villager, [{ram_copies, [node()]}, {attributes, record_info(fields, villager)}]),    
