@@ -144,6 +144,16 @@ do_event(ford, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {move, Id}),
     true;
 
+do_event(prospect, EventData, PlayerPid) ->
+    lager:debug("Processing prospect event: ~p", [EventData]),
+    {ObjId, Pos} = EventData,
+
+    Result = resource:propsect(ObjId, Pos),
+
+    message:sent_to_process(PlayerPid, event_complete, {prospect, ObjId, Result}),
+
+    false;
+
 do_event(harvest, EventData, PlayerPid) ->
     lager:debug("Processing harvest event: ~p", [EventData]),
     {ObjId, Resource, Pos, NumTicks, Repeat} = EventData,
