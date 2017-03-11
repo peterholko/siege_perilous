@@ -9,7 +9,7 @@
 -export([get_by_owner/1, update/3]).
 
 get_by_owner(Id) ->
-    All = db:dirty_match_object({skill, {Id, '_'}, '_'}),
+    All = db:match_object({skill, {Id, '_'}, '_'}),
 
     F = fun(Skill, AllMap) ->
             {Id, Name} = Skill#skill.key,
@@ -19,11 +19,12 @@ get_by_owner(Id) ->
 
     lists:foldl(F, #{}, All).
 
+
 update(Id, SkillName, Value) ->
     lager:info("skill:update id ~p skillname ~p value ~p", [Id, SkillName, Value]),
     Player = get_player(Id),
 
-    NewSkill = case db:dirty_read(skill, {Id, SkillName}) of
+    NewSkill = case db:read(skill, {Id, SkillName}) of
                   [] ->
                       #skill {key = {Id, SkillName},
                               value = Value};
@@ -32,7 +33,7 @@ update(Id, SkillName, Value) ->
                       Skill#skill {value = CurrValue + Value}
                end,
 
-    db:dirty_write(NewSkill),
+    db:write(NewSkill),
 
     send_to_client(Player, skill_update, message(Id, SkillName, NewSkill#skill.value)).
 
@@ -47,5 +48,5 @@ message(SourceId, SkillName, Value) ->
       <<"value">> => Value}.
 
 send_to_client(Player, MessageName, Message) ->
-    [Conn] = db:dirty_read(connection, Player),
+    [Conn] = db:read(connection, Player),
     Conn#connection.process ! {MessageName, Message}.
