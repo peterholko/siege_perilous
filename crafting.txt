@@ -35,19 +35,45 @@ Generated Resources:
 Resource: Valleyrun Copper Ore 
 Quanity: Poor -> (100 units)
 
-Quantity Levels: 
-Insignifant
-Poor
-Moderate
-Abundant
-Superior
-Rich
-Immense
-Legendary
+Quantity Levels / Skill Adj Req:
+Depleted: 0
+Insignifant: 0
+Poor: 0
+Moderate: 10
+Abundant: 20
+Rich: 30
+Immense: 40
+Legendary: 50
 
+--- Valleyrun Copper Ore ---
+Base Skill required: 0
+Depleted: 0
+Insignificant: 25
+Poor: 50
+Moderate: 100
+Rich: 200
+Immense: 500
+Legendary: 1000
 
+-- Quickforge Iron Ore ---
+Base Skill required: 25
+Depleted: 0
+Insignificant: 25
+Poor: 50
+Moderate: 75
+Rich: 150
+Immense: 250
+Legendary: 500
 
-
+-- Stronghold Mithril Ore ---
+Base Skill required: 50
+Depleted: 0
+Insignificant: 1
+Poor: 5
+Moderate: 10
+Rich: 20
+Immense: 50
+Legendary: 200
 
 Ore (Hills):
 Valleyrun Copper Ore
