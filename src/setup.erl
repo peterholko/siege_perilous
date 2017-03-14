@@ -20,6 +20,7 @@ start() ->
     db:import("obj_def"),
     db:import("item_def"),
     db:import("recipe_def"),
+    db:import("resource_def"),
 
     lager:info("Starting game process..."),
     game:start(),

@@ -48,8 +48,8 @@ Legendary: 50
 --- Valleyrun Copper Ore ---
 Base Skill required: 0
 Depleted: 0
-Insignificant: 25
-Poor: 50
+Insignificant: 10
+Poor: 25
 Moderate: 100
 Rich: 200
 Immense: 500
@@ -58,20 +58,20 @@ Legendary: 1000
 -- Quickforge Iron Ore ---
 Base Skill required: 25
 Depleted: 0
-Insignificant: 25
-Poor: 50
-Moderate: 75
-Rich: 150
-Immense: 250
+Insignificant: 5
+Poor: 10
+Moderate: 50
+Rich: 100
+Immense: 200
 Legendary: 500
 
 -- Stronghold Mithril Ore ---
 Base Skill required: 50
 Depleted: 0
 Insignificant: 1
-Poor: 5
-Moderate: 10
-Rich: 20
+Poor: 1
+Moderate: 2
+Rich: 10
 Immense: 50
 Legendary: 200
 

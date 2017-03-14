@@ -24,6 +24,7 @@
 -export([check_distance/4, distance/2]).
 -export([range/2, ring/2, filter_pos/1]).
 -export([spawn_resources/0, tile_name/1, defense_bonus/1]).
+-export([num_tiles/1]).
 
 -record(data, {}).
 %% ====================================================================
@@ -173,6 +174,19 @@ get_ford_pos(Pos, RiverPos) ->
         false ->
             none
     end.    
+
+num_tiles(TerrainType) ->
+    case TerrainType of
+        hills ->
+           Hill1 = mnesia:dirty_match_object({map, '_', 7, '_'}), 
+           Hill2 = mnesia:dirty_match_object({map, '_', 8, '_'}), 
+           Hill3 = mnesia:dirty_match_object({map, '_', 12, '_'}), 
+           Hill4 = mnesia:dirty_match_object({map, '_', 13, '_'}), 
+           Hill5 = mnesia:dirty_match_object({map, '_', 16, '_'}),
+           length(Hill1) + length(Hill2) + length(Hill3) + length(Hill4) + length(Hill5);
+        _ ->
+            0
+    end.
 
 %% ====================================================================
 %% Server functions
@@ -531,14 +545,15 @@ process_property([{<<"property">>, PropertyData, _} | Rest], Properties) ->
     NewProperties = maps:put(Name, Value, Properties),
     process_property(Rest, NewProperties).
 
-store_resource_def(TileId, Properties) ->
-    ResourceName = maps:get(<<"name">>, Properties),
-    ResourceQuantity = maps:get(<<"quantity">>, Properties),
+store_resource_def(_TileId, _Properties) ->
+    %ResourceName = maps:get(<<"name">>, Properties),
+    %ResourceQuantity = maps:get(<<"quantity">>, Properties),
     
-    ResourceDef = #resource_def {tile = TileId,
-                                 name = ResourceName,
-                                 quantity = ResourceQuantity},
-    db:write(ResourceDef).
+    %ResourceDef = #resource_def {tile = TileId,
+    %                             name = ResourceName,
+    %                             quantity = ResourceQuantity},
+    %db:write(ResourceDef),
+    none.
 
 store_poi_def(TileId, Properties) ->
     Name = maps:get(<<"name">>, Properties),
@@ -612,17 +627,18 @@ store_tile(base, Tile, Pos) ->
                                       layers = NewLayers},
             db:dirty_write(NewTile)
     end;
-store_tile(resource, Tile, Pos) ->
+store_tile(resource, Tile, _Pos) ->
     lager:debug("Tile: ~p", [Tile]),
-    [ResourceDef] = db:dirty_read(resource_def, list_to_integer(Tile)),
-    Quantity = resource:quantity(ResourceDef#resource_def.quantity),
+    %[ResourceDef] = db:dirty_read(resource_def, list_to_integer(Tile)),
+    %Quantity = resource:quantity(ResourceDef#resource_def.quantity),
 
-    Resource = #resource {index = Pos,
-                          name = ResourceDef#resource_def.name,
-                          max = Quantity,
-                          quantity = Quantity},
+    %Resource = #resource {index = Pos,
+    %                      name = ResourceDef#resource_def.name,
+    %                      max = Quantity,
+    %                      quantity = Quantity},
 
-    db:dirty_write(Resource);
+    %db:dirty_write(Resource);
+    none;
 store_tile(poi, Tile, Pos) ->
     [PoiDef] = db:dirty_read(poi_def, list_to_integer(Tile)),
     Subclass = get_poi_subclass(PoiDef#poi_def.name),
@@ -646,7 +662,7 @@ spawn_resources() ->
     Tiles = ets:tab2list(map),
 
     F = fun(Tile) ->
-            Rand = util:rand(100),
+            Rand = util:rand(100), 
             TileName = tile_name(Tile#map.tile),
             spawn_resource(TileName, Tile, Rand)
         end,
@@ -697,6 +713,21 @@ forest_resource(Low, Med, High) ->
         Num -> lager:info("Num: ~p L: ~p M: ~p H: ~p", [Num, Low, Med, High])
     end.
     
+
+%generate_resources(TileName, Pos, Resources) ->
+    
+%    F = fun(Resource) ->
+%            ResourceMap = resource_def:all_to_map(Resource),
+%            Terrain = maps:get(<<"terrain">>, ResourceMap),
+            
+%            case lists:member(TileName, Terrain) of
+%                true ->
+%                    QuantityRate = maps:get(<<"quantity_rate">>, ResourceMap),
+%                    Quantity = maps:get(<<"quantity">>, ResourceMap),
+%                    Rand = util:rand(100),
+
+
+
 hill_resource(Low, Med, High) ->
     case util:rand(100) of
         Num when Num =< Low -> {<<"Valleyrun Copper Ore">>, common};

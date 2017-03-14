@@ -19,7 +19,7 @@
 -define(RIVER, <<"River">>).
 -define(OCEAN, <<"Ocean">>).
 -define(PLAINS, <<"Plains">>).
--define(HILLS_PLAINS, <<"Hill Plains">>).
+-define(HILLS_PLAINS, <<"Hills Plains">>).
 -define(DESERT, <<"Desert">>).
 -define(OASIS, <<"Oasis">>).
 -define(HILLS_DESERT, <<"Hills Desert">>).
