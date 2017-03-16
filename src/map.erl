@@ -660,88 +660,36 @@ get_poi_subclass(_) -> <<"poi">>.
 
 spawn_resources() ->
     Tiles = ets:tab2list(map),
+    TerrainList = resource_def:terrain_list(),
 
     F = fun(Tile) ->
-            Rand = util:rand(100), 
             TileName = tile_name(Tile#map.tile),
-            spawn_resource(TileName, Tile, Rand)
+            generate_resources(TileName, Tile#map.index, TerrainList)
         end,
 
     lists:foreach(F, Tiles).
 
-spawn_resource(?GRASSLANDS, Tile, Rand) when Rand =< 25 ->
-    Quantity = util:rand(20) + 5,
-    resource:create(<<"Crimson Root">>, Quantity, Tile#map.index, false);
-spawn_resource(?PLAINS, Tile, Rand) when Rand =< 15 ->
-    Quantity = util:rand(10) + 5,
-    resource:create(<<"Crimson Root">>, Quantity, Tile#map.index, false);
-spawn_resource(?HILLS_PLAINS, Tile, Rand) when Rand =< 99 ->
-    {Resource, Rarity} = hill_resource(90, 8, 2),
-    Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 3}),
-    resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?HILLS_GRASSLANDS, Tile, Rand) when Rand =< 99 ->
-    {Resource, Rarity} = hill_resource(85, 13, 2),
-    Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 3}),
-    resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?HILLS_SNOW, Tile, Rand) when Rand =< 99 ->
-    {Resource, Rarity} = hill_resource(0, 0, 100),
-    Quantity = quantity(Rarity, {5, 10}, {10, 20}, {10, 10}),
-    resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?HILLS_DESERT, Tile, Rand) when Rand =< 99 ->
-    {Resource, Rarity} = hill_resource(0, 100, 0),
-    Quantity = quantity(Rarity, {5, 10}, {10, 20}, {10, 10}),
-    resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?DECIDUOUS_FOREST, Tile, Rand) when Rand =< 75 ->
-    {Resource, Rarity} = forest_resource(90, 8, 2),
-    Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 5}),
-    resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?PINE_FOREST, Tile, Rand) when Rand =< 20 ->
-    {Resource, Rarity} = forest_resource(75, 20, 5),
-    Quantity = quantity(Rarity, {5, 20}, {3, 10}, {0, 5}),
-    resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(?FROZEN_FOREST, Tile, Rand) when Rand =< 20 ->
-    {Resource, Rarity} = forest_resource(0, 67, 33),
-    Quantity = quantity(Rarity, {0, 0}, {5, 10}, {5, 5}),
-    resource:create(Resource, Quantity, Tile#map.index, false);
-spawn_resource(_, _, _) -> nothing.
-
-forest_resource(Low, Med, High) ->
-    case util:rand(100) of 
-        Num when Num =< Low -> {<<"Cragroot Popular">>, common};
-        Num when Num =< (Low + Med) -> {<<"Wrapwood Birch">>, uncommon};
-        Num when Num =< (Low + Med + High) -> {<<"Skyshroud Oak">>, rare};
-        Num -> lager:info("Num: ~p L: ~p M: ~p H: ~p", [Num, Low, Med, High])
-    end.
+generate_resources(TileName, Pos, TerrainResourceMap) ->
+    ResourceList = maps:get(TileName, TerrainResourceMap, []),
     
+    F = fun(Resource) ->
+            ResourceMap = resource_def:all_to_map(Resource),
+            QuantityRate = maps:get(<<"quantity_rate">>, ResourceMap),
+            QuantityList = maps:get(<<"quantity">>, ResourceMap),
 
-%generate_resources(TileName, Pos, Resources) ->
-    
-%    F = fun(Resource) ->
-%            ResourceMap = resource_def:all_to_map(Resource),
-%            Terrain = maps:get(<<"terrain">>, ResourceMap),
-            
-%            case lists:member(TileName, Terrain) of
-%                true ->
-%                    QuantityRate = maps:get(<<"quantity_rate">>, ResourceMap),
-%                    Quantity = maps:get(<<"quantity">>, ResourceMap),
-%                    Rand = util:rand(100),
+            WeightedList = lists:zip(QuantityRate, QuantityList),
 
+            Quantity = util:rand_weighted(WeightedList),
+            case Quantity > 0 of
+                true ->
+                    lager:info("Resource: ~p Quantity: ~p", [Resource, Quantity]), 
+                    resource:create(Resource, Quantity, Pos, false);
+                false ->
+                    nothing
+            end
+        end,
 
-
-hill_resource(Low, Med, High) ->
-    case util:rand(100) of
-        Num when Num =< Low -> {<<"Valleyrun Copper Ore">>, common};
-        Num when Num =< (Low + Med) -> {<<"Quickforge Iron Ore">>, uncommon};
-        Num when Num =< (Low + Med + High) -> {<<"Stronghold Mithril Ore">>, rare};
-        Num -> lager:info("Num: ~p L: ~p M: ~p H: ~p", [Num, Low, Med, High])
-    end.
-
-quantity(Rarity, {CBase, CRange}, {UBase, URange}, {RBase, RRange}) ->
-    case Rarity of
-        common -> util:rand(CRange) + CBase;
-        uncommon -> util:rand(URange) + UBase;
-        rare -> util:rand(RRange) + RBase
-    end.
+    lists:foreach(F, ResourceList).
 
 tile_name(1) -> ?GRASSLANDS;
 tile_name(2) -> ?SNOW;
