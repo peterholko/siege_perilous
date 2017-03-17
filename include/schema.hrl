@@ -24,7 +24,8 @@
                    name,
                    max,
                    quantity,
-                   obj = none}).
+                   obj = none,
+                   revealed = false}).
 
 -record(resource_def, {key,  %{name, attr}
                        value}).

@@ -15,6 +15,7 @@
 %%
 -export([rand/0, rand/1,
          rand_weighted/1,
+         index_of/2,
          round3/1,
          ceiling/1,
          floor/1,
@@ -51,7 +52,14 @@ select_weighted([{Weight, Choice} | _Rest], RandNum) when RandNum < Weight ->
 select_weighted([{Weight, _Choice} | Rest], RandNum) ->
     NewRandNum = RandNum - Weight,
     select_weighted(Rest, NewRandNum).
-    
+
+index_of(Member, List) ->
+    Zipped = lists:zip(List, lists:seq(1, length(List))),
+    case lists:keyfind(Member, 1, Zipped) of
+        false -> none;
+        {_, Index} -> Index
+    end.
+
 round3(Num) ->
     RoundedNum = round(Num * 1000),
     RoundedNum / 1000.    

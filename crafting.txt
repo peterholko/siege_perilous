@@ -38,9 +38,8 @@ Quanity: Poor -> (100 units)
 Quantity Levels / Skill Adj Req:
 Depleted: 0
 Insignifant: 0
-Poor: 0
-Moderate: 10
-Abundant: 20
+Poor: 10
+Moderate: 20
 Rich: 30
 Immense: 40
 Legendary: 50

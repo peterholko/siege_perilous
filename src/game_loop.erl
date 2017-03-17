@@ -148,7 +148,7 @@ do_event(prospect, EventData, PlayerPid) ->
     lager:debug("Processing prospect event: ~p", [EventData]),
     {ObjId, Pos} = EventData,
 
-    Result = resource:propsect(ObjId, Pos),
+    Result = resource:prospect(ObjId, Pos),
 
     message:sent_to_process(PlayerPid, event_complete, {prospect, ObjId, Result}),
 
@@ -159,7 +159,7 @@ do_event(harvest, EventData, PlayerPid) ->
     {ObjId, Resource, Pos, NumTicks, Repeat} = EventData,
 
     %Check if resource still exists
-    case resource:is_valid(Pos) of
+    case resource:is_valid(Resource, Pos) of
         true ->
             lager:debug("Creating/update item.."),
 

@@ -84,7 +84,6 @@ create_schema() ->
     mnesia:add_table_index(item, owner),
     mnesia:add_table_index(htn, parent),
     mnesia:add_table_index(effect, id),
-    mnesia:add_table_index(resource, name),
     mnesia:add_table_index(villager, player),
     mnesia:add_table_index(villager, shelter),
     mnesia:add_table_index(villager, structure),

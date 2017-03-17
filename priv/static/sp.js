@@ -555,7 +555,6 @@ function sendRest(sourceid) {
 function sendCombo(sourceId) {
     var e = '{"cmd": "combo", "sourceid": "' + selectedPortrait + '", "combotype": "quick"}';
     websocket.send(e);
-
 };
 
 function sendItemTransfer(targetid, item) {
@@ -567,6 +566,11 @@ function sendItemTransfer(targetid, item) {
 function sendItemSplit(item, quantity) {
     console.log("quantity: " + quantity);
     var e = '{"cmd": "item_split", "item": "' + item + '", "quantity": "' + quantity + '"}';
+    websocket.send(e);
+};
+
+function sendProspect(sourceid) {
+    var e = '{"cmd": "prospect", "sourceid": "' + selectedPortrait + '"}';    
     websocket.send(e);
 };
 

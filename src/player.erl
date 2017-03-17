@@ -285,10 +285,10 @@ prospect(ObjId) ->
         true ->
             obj:update_state(ObjId, prospecting),
 
-            NumTicks = 10,
+            NumTicks = 8,
 
             EventData = {ObjId, Obj#obj.pos},
-            game:add_event(self(), prospecting, EventData, ObjId, NumTicks),
+            game:add_event(self(), prospect, EventData, ObjId, NumTicks),
             
             #{<<"prospect_time">> => NumTicks * ?TICKS_SEC};
         {false, Error} ->
@@ -306,7 +306,7 @@ harvest(ObjId, Resource) ->
     Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
               {is_hero(Obj), "Can only survey with your hero"},
               {not game:has_pre_events(ObjId), "Unit is busy"},
-              {resource:is_valid(Obj#obj.pos), "Invalid resource"}],
+              {resource:is_valid(Resource, Obj#obj.pos), "Invalid resource"}],
 
     case process_checks(Checks) of
         true ->

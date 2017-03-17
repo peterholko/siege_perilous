@@ -98,7 +98,7 @@ message_handle(<<"prospect">>, Message) ->
 
     SourceId = map_get(<<"sourceid">>, Message),    
     Result = player:prospect(SourceId),
-    jsx:encode([{<<"packet">>, <<"survey">>},
+    jsx:encode([{<<"packet">>, <<"prospect">>},
                 {<<"result">>, Result}]);    
 
 message_handle(<<"harvest">>, Message) ->
