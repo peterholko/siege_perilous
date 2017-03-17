@@ -6,7 +6,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([harvest/3, survey/1, is_valid/1, is_auto/2, quantity/1]).
+-export([harvest/3, survey/1, is_valid/2, is_auto/2, quantity/1]).
 -export([create/4]).
 
 harvest(ObjId, ResourceName, Pos) ->
@@ -53,18 +53,7 @@ prospect(ObjId, Pos) ->
     lager:info("Prospect ~p ~p", [ObjId, Pos]),
 
     ProspectSkill = 0,
-    Resources = db:read(resource, Pos),
-
-    F = fun(Resource, ResourceList) ->
-            case is_visible(Resource            
-
-            ResourceMap = #{<<"name">> => Resource#resource.name,
-                            <<"quantity">> => quantity(Resource#resource.quantity)},
-            [ResourceMap | ResourceList]
-        end,
-
-    lists:foldl(F, [], Resources).
-    
+    Resources = db:read(resource, Pos).
 
 is_valid(ResourceName, Pos) ->
     [] =/= db:read(resource, Pos).
@@ -134,10 +123,4 @@ update_resource(Resource, HarvestQuantity) ->
 
             db:delete(resource, Resource#resource.index)
     end.
-
-is_visible(SkillValue, <<"Valleyrun Copper Ore">>, Quantity) -> true;
-is_visible(SkillValue, <<"Quickforge Iron Ore">>, Quantity) when SkillValue > 10 -> true;
-is_visible(SkillValue, <<"Stronghold Mithril Ore">>) when SkillValue > 20 -> true;
-is_visible(_SkillValue, _) -> false. 
-
 

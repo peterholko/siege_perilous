@@ -26,9 +26,8 @@
                    quantity,
                    obj = none}).
 
--record(resource_def, {tile,
-                       name,
-                       quantity}).
+-record(resource_def, {key,  %{name, attr}
+                       value}).
 
 -record(poi_def, {tile,
                   name}).

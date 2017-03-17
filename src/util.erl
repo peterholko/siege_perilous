@@ -14,6 +14,7 @@
 %% Exported Functions
 %%
 -export([rand/0, rand/1,
+         rand_weighted/1,
          round3/1,
          ceiling/1,
          floor/1,
@@ -40,6 +41,17 @@ rand() -> rand:uniform().
 rand(0) -> 0;
 rand(Num) -> rand:uniform(Num).
 
+rand_weighted(WeightList) ->
+    F = fun({Weight, _Choice}, Acc) -> Weight + Acc end,
+    SumOfWeight = lists:foldl(F, 0, WeightList),
+    select_weighted(WeightList, rand(SumOfWeight) - 1).
+
+select_weighted([{Weight, Choice} | _Rest], RandNum) when RandNum < Weight ->
+    Choice;
+select_weighted([{Weight, _Choice} | Rest], RandNum) ->
+    NewRandNum = RandNum - Weight,
+    select_weighted(Rest, NewRandNum).
+    
 round3(Num) ->
     RoundedNum = round(Num * 1000),
     RoundedNum / 1000.    
