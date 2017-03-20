@@ -60,7 +60,7 @@ prospect(ObjId, Pos) ->
     ProspectSkill = 50,
     Resources = db:read(resource, Pos),
 
-    F = fun(Resource) ->
+    F = fun(Resource, NewResourceList) ->
             ResourceDef = resource_def:all_to_map(Resource#resource.name),
             ResourceSkillReq = maps:get(<<"skill_req">>, ResourceDef),
             QuantityList = maps:get(<<"quantity">>, ResourceDef),
@@ -68,20 +68,24 @@ prospect(ObjId, Pos) ->
             
             case ProspectSkill >= (ResourceSkillReq + QuantitySkillReq) of
                 true ->
-                    NewResource = Resource#resource {revealed = true},
-                    db:write(NewResource);
+                    NewResource = Resource#resource {revealed = true},                  
+                    db:write(NewResource),
+
+                    [#{<<"name">> => Resource#resource.name,
+                       <<"quantity">> => quantity(Resource#resource.quantity)} | NewResourceList];
                 false ->
-                    nothing
+                    NewResourceList
             end
         end,
 
-    lists:foreach(F, Resources).
+    lists:foldl(F, [], Resources).
 
 is_valid(ResourceName, Pos) ->
     Resources = db:read(resource, Pos),
     F = fun(Resource) -> 
             (Resource#resource.name =:= ResourceName) and 
-            (Resource#resource.quantity > 0)            
+            (Resource#resource.quantity > 0) and
+            (Resource#resource.revealed =:= true)
         end,
     lists:any(F, Resources).
 

@@ -5,12 +5,11 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -export([all/0, init_per_suite/1]).
--export([resource_def_test/1, combat_test/1, combo_test/1, harvest_test/1, craft_test/1]).
+-export([combat_test/1, combo_test/1, harvest_test/1, craft_test/1]).
 
 all() ->
-    [resource_def_test,
-     combo_test,
-     combat_test,
+    [%combo_test,
+     %combat_test,
      harvest_test,
      craft_test].
 
@@ -18,9 +17,6 @@ init_per_suite(Config) ->
     setup:start(),
 
     Config.
-
-resource_def_test(_Config) ->
-    ct:print("TerrainList: ~p", [resource_def:terrain_list()]).
 
 combat_test(_Config) ->
     %lager_common_test_backend:bounce(info),
@@ -109,17 +105,38 @@ combat_test(_Config) ->
     end.
 
 harvest_test(_Config) ->
+    lager_common_test_backend:bounce(info),
     setup:login(<<"test1">>, <<"123123">>, self()),
     timer:sleep(5000),
-    Events = db:dump(event),
-    ct:print("Events: ~p", [Events]),
+
+    resource:create(<<"Valleyrun Copper Ore">>, 100, {18, 35}, false),
+
+    Prospect = player:prospect(<<"5">>),
+    ct:print("Prospect: ~p", [Prospect]),
+
+    receive 
+        Message0 ->
+            ct:print("Receive: ~p", [Message0])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    timer:sleep(5000),
+
+    receive 
+        Message00 ->
+            ct:print("Receive: ~p", [Message00])
+    after 5000 ->
+        exit(timeout)
+    end,
 
     Survey = player:survey(<<"5">>),
-
     ct:print("Survey: ~p", [Survey]),
 
     Harvest = player:harvest(<<"5">>,  <<"Valleyrun Copper Ore">>),
     ct:print("Harvest ~p", [Harvest]),
+
+    timer:sleep(1000),
 
     receive 
         Message1 ->
