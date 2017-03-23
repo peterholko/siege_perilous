@@ -353,6 +353,9 @@ prepare(revent, Message) ->
 prepare(world, Message) ->
     maps:put(<<"packet">>, <<"world">>, Message);
 
+prepare(survey, Message) ->
+    maps:put(<<"packet">>, <<"survey">>, Message);
+
 prepare(event_complete, {Event, Id}) ->
     player:set_event_lock(Id, false),
     #{<<"packet">> => <<"event_complete">>,

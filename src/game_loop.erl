@@ -149,11 +149,11 @@ do_event(prospect, EventData, PlayerPid) ->
     {ObjId, Pos} = EventData,
 
     Result = resource:prospect(ObjId, Pos),
-    CompleteData = {ObjId, Result},
 
     obj:update_state(ObjId, none),
 
-    message:send_to_process(PlayerPid, event_complete, {prospect, CompleteData}),
+    message:send_to_process(PlayerPid, survey, Result),
+    message:send_to_process(PlayerPid, event_complete, {prospect, ObjId}),
 
     false;
 

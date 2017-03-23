@@ -148,6 +148,33 @@ harvest_test(_Config) ->
     timer:sleep(5000),
 
     receive 
+        Message11 ->
+            ct:print("Receive: ~p", [Message11])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    timer:sleep(500),
+
+    receive 
+        Message12 ->
+            ct:print("Receive: ~p", [Message12])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    timer:sleep(500),
+
+    receive 
+        Message13 ->
+            ct:print("Receive: ~p", [Message13])
+    after 5000 ->
+        exit(timeout)
+    end,
+
+    timer:sleep(500),
+
+    receive 
         Message4 ->
             ct:print("Receive: ~p", [Message4]),
             {new_items, [ItemMap]} = Message4,
