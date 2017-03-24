@@ -535,7 +535,7 @@ stats(Id) ->
 
     Effects = effect:get_effects(Id),
 
-    Stats0 = maps:put(<<"_id">>, Id, Stats),
+    Stats0 = maps:put(<<"id">>, Id, Stats),
     Stats1 = maps:put(<<"hp">>, Hp, Stats0),
     Stats2 = maps:put(<<"base_hp">>, BaseHp, Stats1),
     Stats3 = maps:put(<<"stamina">>, Stamina, Stats2),
@@ -556,7 +556,7 @@ info(Id) ->
     Attrs = obj_attr:all_to_map(Id),
 
     %State, items, skills, effects stats
-    Info0 = maps:put(<<"_id">>, Id, Attrs),
+    Info0 = maps:put(<<"id">>, Id, Attrs),
     Info1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info0), 
     Info2 = maps:put(<<"items">>, Items, Info1),
     Info3 = maps:put(<<"skills">>, Skills, Info2),
@@ -572,7 +572,7 @@ info_other(Id) ->
     Items = item:get_by_owner(Id),    
     Effects = effect:get_effects(Id),
 
-    Info0 = maps:put(<<"_id">>, Id, #{}),
+    Info0 = maps:put(<<"id">>, Id, #{}),
     Info1 = maps:put(<<"class">>, atom_to_binary(Obj#obj.class, latin1), Info0),
     Info2 = maps:put(<<"subclass">>, Obj#obj.subclass, Info1),
     Info3 = maps:put(<<"name">>, Obj#obj.name, Info2),

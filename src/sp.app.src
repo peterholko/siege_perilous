@@ -16,7 +16,6 @@
 		cowboy,
         jsx,
         bson,
-        mongodb,
         parsexml,
         pqueue
 	]},

@@ -89,9 +89,9 @@ message_handle(<<"survey">>, Message) ->
     lager:info("message: survey"),
 
     SourceId = map_get(<<"sourceid">>, Message),    
-    Result = player:survey(SourceId),
-    jsx:encode([{<<"packet">>, <<"survey">>},
-                {<<"result">>, Result}]);    
+    Data = player:survey(SourceId),
+    jsx:encode(#{<<"packet">> => <<"survey">>,
+                 <<"data">> => Data});    
 
 message_handle(<<"prospect">>, Message) ->
     lager:info("message: prospect"),
@@ -263,7 +263,7 @@ message_handle(<<"get_stats">>, Message) ->
     Stats = player:get_stats(Id),
     
     jsx:encode([{<<"packet">>, <<"stats">>},
-                {<<"stats">>, Stats}]);
+                {<<"data">>, Stats}]);
 
 message_handle(<<"info_tile">>, Message) ->
     lager:info("message: info_tile"),

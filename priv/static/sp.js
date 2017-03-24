@@ -655,7 +655,7 @@ function onMessage(evt) {
             updateObj(jsonData.objs);
         }
         else if(jsonData.packet == "map") {
-            drawMap(jsonData.map);
+            drawMap(jsonData.data);
         }
         else if(jsonData.packet == "loot_perception") {
             drawLootDialog(jsonData);
@@ -665,16 +665,17 @@ function onMessage(evt) {
                 for(var i = infoPanels.length - 1; i >= 0; i--) {
                     if(infoPanels[i].hasOwnProperty("unitName")) {
                         infoPanels[i].visible = false;
-                        sendInfoUnit(infoPanels[i]._id);
+                        sendInfoUnit(infoPanels[i].id);
                     }
                 }
             }
         }
         else if(jsonData.packet == "new_items") {
-            drawNewItemsDialog(jsonData);
+            items = jsonData.data 
+            drawNewItemsDialog(items);
 
-            for(var i = 0; i < jsonData.items.length; i++) {
-                updateTextLog("You acquired item [" + jsonData.items[i].name + "]x" + jsonData.items[i].quantity);
+            for(var i = 0; i < items.length; i++) {
+                updateTextLog("You acquired item [" + items[i].name + "]x" + items[i].quantity);
             }
         }
         else if(jsonData.packet == "revent") {
@@ -684,10 +685,7 @@ function onMessage(evt) {
             drawReventPanel(jsonData, "resolution");
         }
         else if(jsonData.packet == "stats") {
-            var id = jsonData.stats._id;
-            stats[id] = jsonData;
-
-            drawStats(jsonData.stats);
+            drawStats(jsonData.data);
         }
         else if(jsonData.packet == "dmg") {
             drawDmg(jsonData);
@@ -710,7 +708,7 @@ function onMessage(evt) {
             drawInfoItem(jsonData);
         }
         else if(jsonData.packet == "survey") {
-            drawSurveyDialog(jsonData);
+            drawSurveyDialog(jsonData.data);
         }
         else if(jsonData.packet == "structure_list") {
             drawStructureListDialog(jsonData);
@@ -1614,7 +1612,7 @@ function drawLootDialog(jsonData) {
 
 };
 
-function drawSurveyDialog(jsonData) {
+function drawSurveyDialog(resources) {
     showSmallDialogPanel();
 
     var title = new createjs.Text("Resources", h1Font, textColor);
@@ -1624,8 +1622,8 @@ function drawSurveyDialog(jsonData) {
 
     addChildSmallDialogPanel(title);
 
-    for(var i = 0; i < jsonData.result.length; i++) {
-        var resource = jsonData.result[i];
+    for(var i = 0; i < resources.length; i++) {
+        var resource = resources[i];
         var resourceImage = resource.name.toLowerCase().replace(/ /g, '');
         var imagePath = "/static/art/" + resourceImage + ".png";
 
@@ -1762,7 +1760,7 @@ function drawCraftListDialog(jsonData) {
     }
 };
 
-function drawNewItemsDialog(jsonData) {
+function drawNewItemsDialog(items) {
     showSmallDialogPanel();
 
     var title = new createjs.Text("Rewards", h1Font, textColor);
@@ -1772,17 +1770,17 @@ function drawNewItemsDialog(jsonData) {
 
     addChildSmallDialogPanel(title);
 
-    for(var i = 0; i < jsonData.items.length; i++) {
-        var itemName = jsonData.items[i].name;            
+    for(var i = 0; i < items.length; i++) {
+        var itemName = items[i].name;            
         itemName = itemName.toLowerCase().replace(/ /g,'');
 
         var imagePath = "/static/art/" + itemName + ".png";
         var icon = new createjs.Container();
        
-        icon.itemId = jsonData.items[i].id;
-        icon.itemName = jsonData.items[i].name;
+        icon.itemId = items[i].id;
+        icon.itemName = items[i].name;
 
-        if(jsonData.items[i].hasOwnProperty("id")) {
+        if(items[i].hasOwnProperty("id")) {
             icon.by_name = false;
         } 
         else {
@@ -1839,8 +1837,8 @@ function drawInfoUnit(jsonData) {
 
     var unitName = jsonData.name
     activeInfoPanel.unitName = unitName;   
-    activeInfoPanel._id = jsonData._id;
-    console.log('activeInfoPanel: ' + activeInfoPanel._id); 
+    activeInfoPanel.id = jsonData.id;
+    console.log('activeInfoPanel: ' + activeInfoPanel.id); 
 
     var nameText = new createjs.Text(unitName, h1Font, textColor);
 
@@ -2014,11 +2012,11 @@ function drawInfoUnit(jsonData) {
                 for(var i = 0; i < infoPanels.length; i++) {
                     var pt = infoPanels[i].globalToLocal(evt.stageX, evt.stageY);
                     if(infoPanels[i].hitTest(pt.x, pt.y)) {
-                        if(infoPanels[i]._id != this.owner) {
-                            if(infoPanels[i]._id != undefined) {
-                                console.log("Transfering item: " + infoPanels[i]._id, this.itemId);
+                        if(infoPanels[i].id != this.owner) {
+                            if(infoPanels[i].id != undefined) {
+                                console.log("Transfering item: " + infoPanels[i].id, this.itemId);
                                 transfer = true;
-                                sendItemTransfer(infoPanels[i]._id, this.itemId);        
+                                sendItemTransfer(infoPanels[i].id, this.itemId);        
                             }
                         }
                     }
@@ -2057,7 +2055,7 @@ function drawInfoUnit(jsonData) {
             console.log("Adding mousedown event handler");   
             btnBuild.on("mousedown", function(evt) {
                 console.log("drawInfoUnit btnBuild mousedown");
-                sendFinishBuild(evt.target.parent.parent._id);
+                sendFinishBuild(evt.target.parent.parent.id);
             });
         }
         else if(jsonData.state == "none") {
@@ -2070,13 +2068,13 @@ function drawInfoUnit(jsonData) {
                 btnAssign.visible = true;
 
                 btnAssign.on("mousedown", function(evt) {
-                    selectedUnit = jsonData._id;
-                    sendAssign(selectedPortrait, jsonData._id);
+                    selectedUnit = jsonData.id;
+                    sendAssign(selectedPortrait, jsonData.id);
                 });
        
                 btnCraft.on("mousedown", function(evt) {
-                    selectedUnit = jsonData._id;
-                    sendRecipeList(jsonData._id);                    
+                    selectedUnit = jsonData.id;
+                    sendRecipeList(jsonData.id);                    
                 }); 
             }
         }
@@ -2108,7 +2106,7 @@ function drawInfoItem(jsonData) {
     var stats = "";
 
     for(attr in jsonData) {
-        if(attr != "_id" && attr != "owner" && attr != "packet") {
+        if(attr != "id" && attr != "owner" && attr != "packet") {
             var stat = attr + ": " + jsonData[attr] + "\n";
             stats += stat;
         }
@@ -2131,7 +2129,7 @@ function drawInfoItem(jsonData) {
         btnEquip.y = 125 + statsHeight; 
 
         btnEquip.on("mousedown", function(evt) {
-            sendEquip(jsonData._id);
+            sendEquip(jsonData.id);
         });
     }
 };
