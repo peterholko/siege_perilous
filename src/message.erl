@@ -334,17 +334,20 @@ prepare(loot_perception, {ObjId, Items}) ->
      {<<"items">>, Items}]; 
 
 prepare(map, Message) ->
-    [{<<"packet">>, <<"map">>},
-     {<<"map">>, Message}];
+    #{<<"packet">> => <<"map">>,
+      <<"data">> => Message};
 
 prepare(new_items, Message) ->
-    lager:info("Message: ~p", [Message]),
-    [{<<"packet">>, <<"new_items">>},
-     {<<"items">>, Message}]; 
+    #{<<"packet">> => <<"new_items">>,
+      <<"data">> => Message}; 
 
 prepare(stats, Message) ->
-    [{<<"packet">>, <<"stats">>},
-     {<<"stats">>, Message}];
+    #{<<"packet">> => <<"stats">>,
+      <<"data">> => Message};
+
+prepare(survey, Message) ->
+    #{<<"packet">> => <<"survey">>,
+      <<"data">> => Message};
 
 prepare(revent, Message) ->
     lager:info("Sending revent: ~p", [Message]),
@@ -352,9 +355,6 @@ prepare(revent, Message) ->
 
 prepare(world, Message) ->
     maps:put(<<"packet">>, <<"world">>, Message);
-
-prepare(survey, Message) ->
-    maps:put(<<"packet">>, <<"survey">>, Message);
 
 prepare(event_complete, {Event, Id}) ->
     player:set_event_lock(Id, false),
