@@ -345,6 +345,8 @@ item_transfer(TargetId, ItemId) ->
     OwnerObj = obj:get(Owner),   
     TargetObj = obj:get(TargetId), 
 
+    lager:info("OwnerObj: ~p TargetObj: ~p", [OwnerObj, TargetObj]),
+
     Checks = [{TargetObj =/= false, "Invalid transfer target"},
               {is_player_owned(OwnerObj, Player), "Item not owned by player"},              
               {is_same_pos(OwnerObj, TargetObj) or
@@ -699,7 +701,7 @@ is_player_owned(ObjPlayer, Player) ->
 
 is_hero(Obj) -> Obj#obj.subclass =:= <<"hero">>.
 
-is_same_pos(SourceObj, TargetObj) when (SourceObj =:= false) or (TargetObj =:= false) ->
+is_same_pos(SourceObj, TargetObj) when (SourceObj =:= invalid) or (TargetObj =:= invalid) ->
     false;
 is_same_pos(SourceObj, TargetObj) ->
     SourceObj#obj.pos =:= TargetObj#obj.pos.

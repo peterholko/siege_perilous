@@ -182,7 +182,8 @@ message_handle(<<"finish_build">>, Message) ->
 
     Result = player:finish_build(SourceId, StructureId),
     lager:info("Result: ~p", [Result]),
-    jsx:encode([{<<"packet">>, <<"finish_build">>} | Result]);    
+    jsx:encode([{<<"packet">>, <<"finish_build">>},
+		{<<"result">>, Result}]);    
 
 message_handle(<<"recipe_list">>, Message) ->
     lager:info("message: recipe_list"),

@@ -1792,7 +1792,7 @@ function drawNewItemsDialog(items) {
                 sendInfoItemByName(this.itemName);
             }
             else {
-                sendInfoItem(this.id);
+                sendInfoItem(this.itemId);
             }
         });
 
