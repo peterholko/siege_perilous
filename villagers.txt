@@ -1,0 +1,10 @@
+Villagers Design
+----------------
+
+** Current **:
+Player must assign villagers to building - Cannot assign if hero doesn't have LOS of building and villager
+
+** Needs **:
+Displaying current tasks
+Displaying needs
+
