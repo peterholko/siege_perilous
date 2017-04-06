@@ -4,7 +4,18 @@ Villagers Design
 ** Current **:
 Player must assign villagers to building - Cannot assign if hero doesn't have LOS of building and villager
 
-** Needs **:
+** Required Improvements **:
 Displaying current tasks
 Displaying needs
 
+
+Villagers/Heros Have:
+Thrist
+Hunger
+Fatigue
+
+
+Villagers Only Have:
+Goals/Motives
+Traits/Personality
+Morale
