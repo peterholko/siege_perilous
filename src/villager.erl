@@ -100,7 +100,10 @@ morale(Id, Value) ->
 
 has_order_follow(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.order =:= follow.
+    case Villager#villager.order of
+        {follow, _TargetId} -> true;
+        _ -> false
+    end.
 
 has_order_refine(Id) ->
     [Villager] = db:read(villager, Id),
@@ -378,6 +381,13 @@ craft(Villager) ->
 
     Villager#villager {task_state = running}.
 
+follow(Villager) ->
+    lager:info("Villager following"),
+    {follow, TargetId} = Villager#villager.order,
+
+    
+
+
 %%% End of HTN functions %%%
 has_assigned(StructureId) ->
     db:index_read(villager, StructureId, #villager.structure) =/= [].
@@ -398,6 +408,9 @@ set_order_craft(SourceId, RecipeName) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {order = {craft, RecipeName}}). 
 
+set_order_follow(SourceId, TargetId) ->
+    [Villager] = db:read(villager, SourceId),
+    db:write(Villager#villager {order = {follow, TargetId}}).
 
 remove(ObjId) ->
     db:delete(villager, ObjId).

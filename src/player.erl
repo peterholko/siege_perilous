@@ -35,6 +35,7 @@
          unequip/1,
          rest/1,
          assign/2,
+         follow/2,
          cancel/1,
          revent_response/1,
          set_event_lock/2,
@@ -619,6 +620,26 @@ assign(SourceId, TargetId) ->
         true ->
             lager:info("Assigning villager"),
             villager:assign(SourceId, TargetId),
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+follow(SourceId, TargetId) ->
+    Player = get(player_id),
+    SourceObj = obj:get(SourceId),
+    TargetObj = obj:get(TargetId),
+
+    Checks = [{is_player_owned(SourceObj, Player), "Source is not owned by player"},
+              {is_hero(TargetObj), "Not a hero"},
+              {obj:is_hero_nearby(TargetObj, Player), "Unit is not near Hero"},
+              {obj:is_subclass(?VILLAGER, SourceObj), "Not a villager"}],
+
+    case process_checks(Checks) of
+        true ->
+            lager:info("Villager following"),
+            villager:follow(SourceId, TargetId),
+
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}

@@ -249,6 +249,16 @@ message_handle(<<"assign">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"assign">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"follow">>, Message) ->
+    lager:info("message: follow"),
+    
+    SourceId = map_get(<<"sourceid">>, Message),
+    TargetId = map_get(<<"targetid">>, Message),
+
+    Return = player:follow(SourceId, TargetId),
+    FinalReturn = maps:put(<<"packet">>, <<"follow">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"cancel">>, Message) ->
     lager:info("message: cancel"),
     SrcId = map_get(<<"sourceid">>, Message),
