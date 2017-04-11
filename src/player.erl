@@ -35,7 +35,8 @@
          unequip/1,
          rest/1,
          assign/2,
-         follow/2,
+         follow/1,
+	 clear/1,
          cancel/1,
          revent_response/1,
          set_event_lock/2,
@@ -625,26 +626,30 @@ assign(SourceId, TargetId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
-follow(SourceId, TargetId) ->
+follow(VillagerId) ->
     Player = get(player_id),
-    SourceObj = obj:get(SourceId),
-    TargetObj = obj:get(TargetId),
+    VillagerObj = obj:get(VillagerId),
 
-    Checks = [{is_player_owned(SourceObj, Player), "Source is not owned by player"},
-              {is_hero(TargetObj), "Not a hero"},
-              {obj:is_hero_nearby(TargetObj, Player), "Unit is not near Hero"},
-              {obj:is_subclass(?VILLAGER, SourceObj), "Not a villager"}],
+    Checks = [{is_player_owned(VillagerObj, Player), "Villager is not owned by player"},
+              {obj:is_hero_nearby(VillagerObj, Player), "Villager is not near Hero"},
+              {obj:is_subclass(?VILLAGER, VillagerObj), "Not a villager"}],
 
     case process_checks(Checks) of
         true ->
             lager:info("Villager following"),
-            villager:follow(SourceId, TargetId),
+            villager:set_order_follow(VillagerId),
 
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
+clear(VillagerId) ->
+    PlayerId = get(player_id),
+    Villager = db:read(villager, VillagerId),
+    NewVillager = Villager#villager {order = none},
+    db:write(NewVillager).
+    
 cancel(SourceId) ->
     PlayerId = get(player_id),
     [Obj] = db:read(obj, SourceId),

@@ -253,10 +253,17 @@ message_handle(<<"follow">>, Message) ->
     lager:info("message: follow"),
     
     SourceId = map_get(<<"sourceid">>, Message),
-    TargetId = map_get(<<"targetid">>, Message),
 
-    Return = player:follow(SourceId, TargetId),
+    Return = player:follow(SourceId),
     FinalReturn = maps:put(<<"packet">>, <<"follow">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"clear">>, Message) ->
+    lager:info("message: clear"),
+    SourceId = map_get(<<"sourceid">>, Message),
+
+    Return = player:clear_order(SourceId),
+    FinalReturn = maps:put(<<"packet">>, <<"clear">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(<<"cancel">>, Message) ->

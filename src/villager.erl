@@ -20,7 +20,7 @@
 -export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
--export([set_order_refine/1, set_order_craft/2]).
+-export([set_order_refine/1, set_order_craft/2, set_order_follow/1]).
 -export([has_order_follow/1, has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
 -export([has_shelter/1, assigned_harvester/1, assigned_craft/1, has_storage/1]).
@@ -100,10 +100,7 @@ morale(Id, Value) ->
 
 has_order_follow(Id) ->
     [Villager] = db:read(villager, Id),
-    case Villager#villager.order of
-        {follow, _TargetId} -> true;
-        _ -> false
-    end.
+    Villager#villager.order =:= follow.
 
 has_order_refine(Id) ->
     [Villager] = db:read(villager, Id),
@@ -381,12 +378,6 @@ craft(Villager) ->
 
     Villager#villager {task_state = running}.
 
-follow(Villager) ->
-    lager:info("Villager following"),
-    {follow, TargetId} = Villager#villager.order,
-
-    
-
 
 %%% End of HTN functions %%%
 has_assigned(StructureId) ->
@@ -408,9 +399,9 @@ set_order_craft(SourceId, RecipeName) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {order = {craft, RecipeName}}). 
 
-set_order_follow(SourceId, TargetId) ->
+set_order_follow(SourceId) ->
     [Villager] = db:read(villager, SourceId),
-    db:write(Villager#villager {order = {follow, TargetId}}).
+    db:write(Villager#villager {order = follow}).
 
 remove(ObjId) ->
     db:delete(villager, ObjId).
