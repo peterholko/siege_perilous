@@ -23,16 +23,21 @@ Traits/Personality
 Morale
 
 Tasks:
-Mining
-Woodcutting
-Stone-cutting 
-Crafting
-Experimenting
-Refining
-Repairing
-Defending
-Following
-Eating
-Sleeping
-Idling
-
+Mining - Order
+Woodcutting - Order
+Stone-cutting - Order
+Crafting - Order
+Experimenting - Order
+Refining - Order
+Repairing - Order
+Defending - Order
+Following - Order
+Eating - Behavior
+Sleeping - Behavior
+Idling - Behavior
+Find Dwelling - Behavior
+Flee To Shelter - Behavior
+Flee To Hero - Behavior
+Flee Randomly - Behavior
+Forage - Behavior 
+Abandon - Behavior
