@@ -537,6 +537,11 @@ function sendFollow(sourceid) {
     websocket.send(e);
 };
 
+function sendGather(sourceid) {
+    var e = '{"cmd": "gather", "sourceid": "' + selectedPortrait + '"}';
+    websocket.send(e);
+};
+
 function sendCraft(sourceid, recipe) {
     var e = '{"cmd": "craft", "sourceid": "' + sourceid + '", "recipe": "' + recipe + '"}';
     websocket.send(e);

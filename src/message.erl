@@ -258,6 +258,15 @@ message_handle(<<"follow">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"follow">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"gather">>, Message) ->
+    lager:info("message: gather"),
+    
+    SourceId = map_get(<<"sourceid">>, Message),
+
+    Return = player:gather(SourceId),
+    FinalReturn = maps:put(<<"packet">>, <<"gather">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"clear">>, Message) ->
     lager:info("message: clear"),
     SourceId = map_get(<<"sourceid">>, Message),

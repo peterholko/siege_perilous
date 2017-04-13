@@ -12,7 +12,7 @@
 -export([create/6, remove/1, move/2, teleport/2]).
 -export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
--export([get_by_pos/1, get_unit_by_pos/1, get_hero/1]).
+-export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
@@ -390,10 +390,22 @@ get_hero(HeroPlayer) ->
 
 get_wall(QueryPos) ->
     MS = ets:fun2ms(fun(N = #obj{pos = Pos,
-                                 subclass = SubClass}) when Pos =:= QueryPos,
-                                                            SubClass =:= ?WALL -> N end),
+                                 subclass = Subclass}) when Pos =:= QueryPos,
+                                                            Subclass =:= ?WALL -> N end),
     [Wall] = db:select(obj, MS),
     Wall.
+
+get_assignable(QueryPos) ->
+    MS = ets:fun2ms(fun(N = #obj{pos = Pos,
+                                 subclass = Subclass}) when Pos =:= QueryPos,
+                                                      Subclass =:= ?CRAFT;
+                                                      Pos =:= QueryPos, 
+                                                      Subclass =:= ?HARVESTER -> N end),
+
+    case db:select(obj, MS) of
+        [] -> [];
+        [Structure] -> Structure
+    end.
 
 get_capacity(ObjId) ->
     obj_attr:value(ObjId, <<"capacity">>, 0).

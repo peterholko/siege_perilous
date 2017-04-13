@@ -36,7 +36,8 @@
          rest/1,
          assign/2,
          follow/1,
-	 clear/1,
+         gather/1,
+         clear/1,
          cancel/1,
          revent_response/1,
          set_event_lock/2,
@@ -643,6 +644,30 @@ follow(VillagerId) ->
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
+
+gather(VillagerId) ->
+    Player = get(player_id),
+    VillagerObj = obj:get(VillagerId),
+    
+    StructureObj = case VillagerObj of
+                       invalid -> nothing;
+                       _ -> obj:get_assignable(VillagerObj#obj.pos)
+                   end,
+
+    Checks = [{is_player_owned(VillagerObj, Player), "Villager is not owned by player"},
+              {is_player_owned(StructureObj, Player), "Invalid structure"},
+              {obj:is_hero_nearby(VillagerObj, Player), "Villager is not near Hero"},
+              {obj:is_subclass(?VILLAGER, VillagerObj), "Not a villager"}],
+
+    case process_checks(Checks) of
+        true ->
+            lager:info("Villager gather"),
+            villager:set_order_gather(VillagerId),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end. 
 
 clear(VillagerId) ->
     PlayerId = get(player_id),
