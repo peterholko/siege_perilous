@@ -20,7 +20,7 @@
 -export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
--export([set_order_refine/1, set_order_craft/2, set_order_follow/1]).
+-export([set_order_refine/1, set_order_craft/2, set_order_follow/1, set_order_gather/1]).
 -export([has_order_follow/1, has_order_gather/1, has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
 -export([has_shelter/1, assigned_harvester/1, assigned_craft/1, has_storage/1]).
@@ -406,6 +406,10 @@ set_order_craft(SourceId, RecipeName) ->
 set_order_follow(SourceId) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {order = follow}).
+
+set_order_gather(SourceId) ->
+    [Villager] = db:read(villager, SourceId),
+    db:write(Villager#villager {order = gather}).
 
 remove(ObjId) ->
     db:delete(villager, ObjId).

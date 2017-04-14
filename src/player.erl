@@ -662,6 +662,7 @@ gather(VillagerId) ->
     case process_checks(Checks) of
         true ->
             lager:info("Villager gather"),
+            villager:assign(VillagerId, StructureObj#obj.id),
             villager:set_order_gather(VillagerId),
 
             #{<<"result">> => <<"success">>};
