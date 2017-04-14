@@ -1,5 +1,9 @@
 *** Skills ***
 Mining
+-> Weaponsmithing, Armorsmithing
 Woodcutting
+-> Woodmaking 
 Stonecutting
+Herb-gathering
+-> alchemy
 
