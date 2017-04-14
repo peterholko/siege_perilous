@@ -31,6 +31,8 @@ Generated Resources:
 * Stronghold Mithril Ore / Poor
 * Smoldering Opal / Poor
 
+Mining will grant chance to return all ore types at the same time on the tile.
+
 1st Prospect with Novice Skill
 Resource: Valleyrun Copper Ore 
 Quanity: Poor -> (100 units)
