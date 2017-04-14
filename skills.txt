@@ -4,6 +4,11 @@ Mining
 Woodcutting
 -> Woodmaking 
 Stonecutting
+-> Masonry
 Herb-gathering
--> alchemy
+-> Alchemy
+
+Woodmaking: Bows, Arrows, Siege Weapons
+Masonry: Stone Blocks, Siege Ammo
+Alchemy: Potions 
 
