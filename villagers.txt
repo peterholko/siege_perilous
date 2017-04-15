@@ -22,6 +22,13 @@ Goals/Motives
 Traits/Personality
 Morale
 
+Villagers Stats:
+Strength 
+Agility
+Endurance
+Toughness
+
+
 Tasks:
 Mining - Order
 Woodcutting - Order
@@ -41,3 +48,4 @@ Flee To Hero - Behavior
 Flee Randomly - Behavior
 Forage - Behavior 
 Abandon - Behavior
+
