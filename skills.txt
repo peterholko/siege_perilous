@@ -12,3 +12,17 @@ Woodmaking: Bows, Arrows, Siege Weapons
 Masonry: Stone Blocks, Siege Ammo
 Alchemy: Potions 
 
+
+Gathering:
+Mining - Strength/Endurance
+Stonecutting - Strength/Endurance
+Woodcutting - Strength/Toughness
+Farming - Endurance/Focus
+Hunting - Agility/Focus
+Herb-gathering -
+
+Crafting:
+Weaponsmithing - 
+
+
+
