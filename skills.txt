@@ -17,11 +17,13 @@ Strength: Physical Damage, Carry Weight
 Toughness: HP, Brace 
 Endurance: Stamina, Thirst, Hunger
 Dexterity: Dodge, Hiding 
-Intelligence: 
-Creativity:
-Focus:
+Intellect: Magic
+Creativity: Crafting only?
+Focus: Parry, Critical Strike
 Spirit?
-
+Willpower?
+Perception?
+Agility?
 
 Gathering:
 Mining - Strength/Endurance
@@ -39,6 +41,19 @@ Leathermaking -
 Tailoring - 
 Masonry - Endurance / Focus
 Alchemy - Int / Creativity
+
+Combat:
+Swords
+Axes
+Maces
+
+Plate mail
+Chain mail
+Leather armor
+
+Quick
+Dodge
+Parry
 
 
 
