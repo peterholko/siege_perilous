@@ -16,7 +16,7 @@ Attributes:
 Strength
 Toughness
 Endurance
-Agility
+Dexterity
 Intelligence
 Creativity
 Focus
@@ -28,17 +28,17 @@ Mining - Strength/Endurance
 Stonecutting - Strength/Endurance
 Woodcutting - Strength/Toughness
 Farming - Endurance/Focus
-Hunting - Agility/Focus
-Herb-gathering - Intelligence/Endurance
+Hunting - Dexterity/Focus
+Herb-gathering - Intelligence/Dexterity
 
 Crafting:
-Weaponsmithing - 
-Armorsmithing - 
-Woodmaking
-Leathermaking
-Tailoring
-Masonry
-Alchemy
+Weaponsmithing - Int / Focus
+Armorsmithing - Int / Dexterity
+Woodmaking - Int / Dexterity
+Leathermaking - 
+Tailoring - 
+Masonry - Endurance / Focus
+Alchemy - Int / Creativity
 
 
 
