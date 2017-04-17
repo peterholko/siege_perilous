@@ -13,20 +13,20 @@ Masonry: Stone Blocks, Siege Ammo
 Alchemy: Potions 
 
 Attributes:
-Strength
-Toughness
-Endurance
-Dexterity
-Intelligence
-Creativity
-Focus
-
+Strength: Physical Damage, Carry Weight
+Toughness: HP, Brace 
+Endurance: Stamina, Thirst, Hunger
+Dexterity: Dodge, Hiding 
+Intelligence: 
+Creativity:
+Focus:
+Spirit?
 
 
 Gathering:
 Mining - Strength/Endurance
 Stonecutting - Strength/Endurance
-Woodcutting - Strength/Toughness
+Woodcutting - Strength/Endurance
 Farming - Endurance/Focus
 Hunting - Dexterity/Focus
 Herb-gathering - Intelligence/Dexterity
