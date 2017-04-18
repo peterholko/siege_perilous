@@ -24,9 +24,18 @@ Morale
 
 Villagers Stats:
 Strength 
-Agility
+Dexterity
 Endurance
 Toughness
+Intellect
+Creativity
+Focus
+Morale
+
+Loyal
+Ambitious
+Rule Of Law
+Risk Taker
 
 
 Tasks:
@@ -48,4 +57,7 @@ Flee To Hero - Behavior
 Flee Randomly - Behavior
 Forage - Behavior 
 Abandon - Behavior
+
+
+
 
