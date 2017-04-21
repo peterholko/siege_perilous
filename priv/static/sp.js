@@ -51,8 +51,8 @@ var pressmove = false;
 var mapWidth = 4;
 var mapHeight = 4;
 var hexSize = 72;
-var stageWidth = 1280;
-var stageHeight = 800;
+var stageWidth = 1000;
+var stageHeight = 480;
 
 var hover;
 var clicked;
@@ -2346,17 +2346,10 @@ function initUI() {
 
     selectHex = new createjs.Bitmap(selectHexImage);
 
-    localMapCont.width = 1280;
-    localMapCont.height = 800;
+    localMapCont.width = stageWidth;
+    localMapCont.height = stageHeight;
 
-    bg.graphics.beginFill("#000000").drawRect(0,0,1280,800);
-
-    close.x = 1250;
-    close.y = 10;
-    close.on("mousedown", function(evt) {
-        console.log('Close mousedown')
-        this.parent.visible = false;
-    });
+    bg.graphics.beginFill("#000000").drawRect(0,0,stageWidth, stageHeight);
 
     localMapCont.name = "localMap";
     baseCont.name = "base";
@@ -2372,7 +2365,6 @@ function initUI() {
     selectHex.visible = false;
 
     localPanel.addChild(bg);
-    localPanel.addChild(close);
     localPanel.addChild(localMapCont);
     
     localMapCont.addChild(baseCont);
@@ -2643,6 +2635,8 @@ function initUI() {
 
         close.x = 300;
         close.y = 10;
+        close.scaleX = 3;
+        close.scaleY = 3;
 
         btnBuild.visible = false;
         btnBuild.x = 500 / 2 - 133 / 2;
@@ -2690,6 +2684,8 @@ function initUI() {
         btnAssign.addChild(btnAssignRest);
 
         btnEquip.addChild(btnEquipRest);
+
+
 
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
