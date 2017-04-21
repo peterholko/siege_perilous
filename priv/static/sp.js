@@ -207,6 +207,8 @@ function init() {
     });
 
     canvas = document.getElementById("map");
+    alert("width: " + window.innerWidth)
+    alert("height: " + window.innerHeight)
 
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
