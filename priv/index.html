@@ -1,6 +1,9 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <meta name="viewport" content="width=1334, initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">    
     <title>Perilous</title>
     <script src="/static/jquery.min.js"></script>
     <script src="/static/easeljs-0.8.0.min.js"></script>
@@ -8,12 +11,16 @@
     <script src="/static/preloadjs-0.6.2.min.js"></script>
     <script src="/static/creatine-1.0.0.min.js"></script>
     <script src="/static/sp.js"></script>
+    <style>
+        input[type='text'] { font-size: 36px; }
+        input[type='password'] { font-size: 36px; }
+    </style>
   </head>
 
-  <body>
-    <div style="position: relative;">
-        <canvas id="map" width="1280" height="800" 
-            style="position: relative; left: 0; top: 0; z-index: 0; border:1px solid #c3c3c3;"></canvas>
+  <body style="display: inline; border: 0;">
+    <div style="position: relative; border: 0;">
+        <canvas id="map" width="1334" height="750" 
+            style="position: relative; left: 0; top: 0; z-index: 0; border: 0;"></canvas>
     </div>
 
     <div id="actions">
@@ -22,8 +29,8 @@
     	<input type='text' id="server" value=""></input>
       </p>
 
-      <div id="login">
-        Username: <input type='text' id="username" value=""></input><br>
+      <div id="login" >
+        Username: <input type='text' id="username" value="" ></input><br>
         Password: <input type='password' id="password" value=""></input><br>
         <button type="button" onclick="sendLogin();">Login</button>
       </div>
@@ -38,10 +45,6 @@
       </div>
 
       <div id="connected">				
-	<p>
-	  <input type='text' id="send_txt" value=></input>
-	  <button type="button" onclick="sendTxt();">send</button>
-	</p>
       </div>
 
       <div id="content">						

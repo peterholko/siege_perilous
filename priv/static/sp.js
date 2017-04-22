@@ -51,8 +51,8 @@ var pressmove = false;
 var mapWidth = 4;
 var mapHeight = 4;
 var hexSize = 72;
-var stageWidth = 1000;
-var stageHeight = 480;
+var stageWidth = 1334;
+var stageHeight = 750;
 
 var hover;
 var clicked;
