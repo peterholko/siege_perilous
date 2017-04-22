@@ -2385,6 +2385,7 @@ function initUI() {
     var detailsButton = new createjs.Container();
     var gatherButton = new createjs.Container();
     var buildButton = new createjs.Container();
+    var moveButton = new createjs.Container();
 
     actionBar.x = stageWidth / 2 - 492 / 2;
     actionBar.y = stageHeight - 231;
@@ -2403,6 +2404,11 @@ function initUI() {
     buildButton.y = 96;
     buildButton.mouseChildren = false;
     buildButton.addChild(new createjs.Bitmap(buildRest));
+
+    moveButton.x = 48;
+    moveButton.y = 150;
+    moveButton.mouseChildren = false;
+    moveButton.addChild(new createjs.Bitmap(moveRest));
 
     quickCooldown = new createjs.Shape();
     preciseCooldown = new createjs.Shape();
@@ -2499,6 +2505,10 @@ function initUI() {
         sendStructureList();
     });
 
+    moveButton.on("mousedown", function(evt) {
+        sendMove(selectHex.tileX, selectHex.tileY);
+    });
+
     quickButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {
             sendAttack("quick");
@@ -2569,6 +2579,7 @@ function initUI() {
     actionBar.addChild(detailsButton);
     actionBar.addChild(gatherButton);
     actionBar.addChild(buildButton);
+    actionBar.addChild(moveButton);
     actionBar.addChild(quickButton);
     actionBar.addChild(preciseButton);
     actionBar.addChild(fierceButton);
