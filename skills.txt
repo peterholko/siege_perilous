@@ -46,6 +46,10 @@ Combat:
 Swords
 Axes
 Maces
+Spears
+Shield
+Dual-Wield
+
 
 Plate mail
 Chain mail
