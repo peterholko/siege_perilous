@@ -45,11 +45,12 @@ Alchemy - Int / Creativity
 Combat:
 Swords
 Axes
-Maces
+Hammers
 Spears
 Shield
 Dual-Wield
-
+Bows
+Crossbows
 
 Plate mail
 Chain mail
@@ -58,6 +59,22 @@ Leather armor
 Quick
 Dodge
 Parry
+
+*** OR ***
+
+One-handed + shield
+Two-handed 
+Dual Wield
+Archery
+
+Heavy Armor
+Medium Armor
+Light Armor 
+
+
+
+
+
 
 
 
