@@ -12,6 +12,15 @@ Woodmaking: Bows, Arrows, Siege Weapons
 Masonry: Stone Blocks, Siege Ammo
 Alchemy: Potions 
 
+Skill Table:
+Obj,
+Skill Name,
+Experience,
+Level
+
+Skill Def Table
+Skill Attr Table
+
 Attributes:
 Strength: Physical Damage, Carry Weight
 Toughness: HP, Brace 
