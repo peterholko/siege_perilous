@@ -4,3 +4,16 @@ precise -> parry (-75% dmg + weapon damage)
 fierce -> brace (-50% dmg)
 
 if matching defensive action is used on last combo attack, the combat is interrupted
+
+*** Attributes ***
+Strength: Physical Damage, Carry Weight
+Toughness: HP, Brace 
+Endurance: Stamina, Thirst, Hunger
+Dexterity: Dodge, Hiding 
+Intellect: Magic
+Creativity: Crafting only?
+Focus: Parry, Critical Strike
+Spirit?
+Willpower?
+Perception?
+Agility?
