@@ -71,6 +71,12 @@ Heavy Armor
 Medium Armor
 Light Armor 
 
+Fire Magic
+Ice Magic
+Earth Magic
+Water Magic
+
+Reagent Conservation
 
 
 
