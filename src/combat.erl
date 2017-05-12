@@ -18,7 +18,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([combo/2, attack/3, defend/2]).
 -export([has_stamina/2, stamina_cost/1, num_ticks/1]).
--export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1, is_combo_type/1]).
+-export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1, is_combo_type/1, in_range/2]).
 -export([init_combos/1]).
 
 -ifdef(EUNIT_TEST).
@@ -281,6 +281,17 @@ is_combo_type(?QUICK) -> true;
 is_combo_type(?PRECISE) -> true;
 is_combo_type(?FIERCE) -> true;
 is_combo_type(_) -> false.
+
+in_range(SourceObj, TargetObj) ->
+    WeaponRange = item:get_weapon_range(SourceObj),
+
+    case WeaponRange =:= 1 of
+        true ->
+            is_adjacent(SourceObj, TargetObj);
+        false ->
+            Distance = map:distance(obj:pos(SourceObj), obj:pos(TargetObj)),
+            Distance =< WeaponRange
+    end.
 
 is_target_alive(#obj {state = State}) when State =:= dead -> 
     false;

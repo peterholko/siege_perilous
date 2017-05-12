@@ -17,7 +17,7 @@
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
--export([class/1, subclass/1, state/1]).
+-export([class/1, subclass/1, state/1, pos/1]).
 
 init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
@@ -358,6 +358,7 @@ process_attrlist(Obj, AttrList) ->
 class(Obj = #obj{}) -> Obj#obj.class.
 subclass(Obj = #obj{}) -> Obj#obj.subclass.
 state(Obj = #obj{}) -> Obj#obj.state.
+pos(Obj = #obj{}) -> Obj#obj.pos.
 
 %Get vital stats
 get_stats(Id) ->

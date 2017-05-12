@@ -1,7 +1,7 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-    <meta name="viewport" content="width=1334, initial-scale=1">
+    <meta name="viewport" content="width=width-device-width, initial-scale=0.5, minimum-scale=0.5, maximum-scale=0.5, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">    
     <title>Perilous</title>
@@ -12,8 +12,8 @@
     <script src="/static/creatine-1.0.0.min.js"></script>
     <script src="/static/sp.js"></script>
     <style>
-        input[type='text'] { font-size: 36px; }
-        input[type='password'] { font-size: 36px; }
+        input[type='text'] { font-size: 36px; padding: 5px;}
+        input[type='password'] { font-size: 36px; padding: 5px;}
     </style>
   </head>
 
@@ -29,7 +29,10 @@
     	<input type='text' id="server" value=""></input>
       </p>
 
-      <div id="login" >
+      <div id="logo">
+        <img src="/static/art/perilous_logo.png" style="display: block; margin: auto; width: 50%: padding: 10px;">          
+      </div>
+      <div id="login" style="margin: auto; width: 50%; padding: 5px">
         Username: <input type='text' id="username" value="" ></input><br>
         Password: <input type='password' id="password" value=""></input><br>
         <button type="button" onclick="sendLogin();">Login</button>

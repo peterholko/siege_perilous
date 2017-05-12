@@ -85,6 +85,10 @@ var buildActive = new Image();
 var buildRest = new Image();
 var buildRoll = new Image();
 
+var moveActive = new Image();
+var moveRest = new Image();
+var moveRoll = new Image();
+
 var detailsActive = new Image();
 var detailsRest = new Image();
 var detailsRoll = new Image();
@@ -173,6 +177,10 @@ detailsActive.src = "/static/art/ab_details_active.png";
 detailsRest.src = "/static/art/ab_details_rest.png";
 detailsRoll.src = "/static/art/ab_details_roll.png";
 
+moveActive.src = "/static/art/ab_move_active.png";
+moveRest.src = "/static/art/ab_move_rest.png";
+moveRoll.src = "/static/art/ab_move_roll.png";
+
 reventBg.src = "/static/art/revent_bg.png";
 quick.src = "/static/art/quick_rest.png"; 
 precise.src = "/static/art/precise_rest.png"; 
@@ -207,8 +215,6 @@ function init() {
     });
 
     canvas = document.getElementById("map");
-    alert("width: " + window.innerWidth)
-    alert("height: " + window.innerHeight)
 
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
@@ -2644,10 +2650,11 @@ function initUI() {
 
         panel.visible = false;
 
-        close.x = 300;
-        close.y = 10;
-        close.scaleX = 3;
-        close.scaleY = 3;
+        close.x = 290;
+        close.y = 20;
+
+        close.scaleX = 2;
+        close.scaleY = 2;
 
         btnBuild.visible = false;
         btnBuild.x = 500 / 2 - 133 / 2;
@@ -2745,8 +2752,11 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
 
-    close.x = 383;
-    close.y = 10;
+    close.scaleX = 2;
+    close.scaleY = 2;
+
+    close.x = 373;
+    close.y = 20;
     close.on("mousedown", function(evt) {
         this.parent.visible = false;
     });
@@ -2769,8 +2779,11 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
 
-    close.x = 382;
-    close.y = 10;
+    close.scaleX = 2;
+    close.scaleY = 2;
+
+    close.x = 372;
+    close.y = 20;
     close.on("mousedown", function(evt) {
         this.parent.visible = false;
     });
