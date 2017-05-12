@@ -185,6 +185,10 @@ moveActive.src = "/static/art/ab_move_active.png";
 moveRest.src = "/static/art/ab_move_rest.png";
 moveRoll.src = "/static/art/ab_move_roll.png";
 
+hideActive.src = "/static/art/ab_move_active.png";
+hideRest.src = "/static/art/ab_move_rest.png";
+hideRoll.src = "/static/art/ab_move_roll.png";
+
 reventBg.src = "/static/art/revent_bg.png";
 quick.src = "/static/art/quick_rest.png"; 
 precise.src = "/static/art/precise_rest.png"; 
@@ -2429,7 +2433,7 @@ function initUI() {
     hideButton.x = 101;
     hideButton.y = 150;
     hideButton.mouseChildren = false;
-    hideButton.addChild(new createjs.Bitmap(moveRest));
+    hideButton.addChild(new createjs.Bitmap(hideRest));
 
     quickCooldown = new createjs.Shape();
     preciseCooldown = new createjs.Shape();
