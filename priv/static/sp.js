@@ -93,6 +93,10 @@ var detailsActive = new Image();
 var detailsRest = new Image();
 var detailsRoll = new Image();
 
+var moveActive = new Image();
+var moveRest = new Image();
+var moveRoll = new Image();
+
 var quick = new Image();
 var precise = new Image();
 var fierce = new Image();
@@ -567,6 +571,11 @@ function sendEquip(item) {
 
 function sendRest(sourceid) {
     var e = '{"cmd": "rest", "sourceid": "' + selectedPortrait + '"}';
+    websocket.send(e);
+};
+
+function sendHide(sourceid) {
+    var e = '{"cmd": "hide", "sourceid": "' + selectedPortrait + '"}';
     websocket.send(e);
 };
 
@@ -2392,6 +2401,7 @@ function initUI() {
     var gatherButton = new createjs.Container();
     var buildButton = new createjs.Container();
     var moveButton = new createjs.Container();
+    var hideButton = new createjs.Container();
 
     actionBar.x = stageWidth / 2 - 492 / 2;
     actionBar.y = stageHeight - 231;
@@ -2415,6 +2425,11 @@ function initUI() {
     moveButton.y = 150;
     moveButton.mouseChildren = false;
     moveButton.addChild(new createjs.Bitmap(moveRest));
+
+    hideButton.x = 101;
+    hideButton.y = 150;
+    hideButton.mouseChildren = false;
+    hideButton.addChild(new createjs.Bitmap(moveRest));
 
     quickCooldown = new createjs.Shape();
     preciseCooldown = new createjs.Shape();
@@ -2515,6 +2530,10 @@ function initUI() {
         sendMove(selectHex.tileX, selectHex.tileY);
     });
 
+    hideButton.on("mousedown", function(evt) {
+        sendHide(selectedPortrait);
+    });
+
     quickButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {
             sendAttack("quick");
@@ -2586,6 +2605,7 @@ function initUI() {
     actionBar.addChild(gatherButton);
     actionBar.addChild(buildButton);
     actionBar.addChild(moveButton);
+    actionBar.addChild(hideButton);
     actionBar.addChild(quickButton);
     actionBar.addChild(preciseButton);
     actionBar.addChild(fierceButton);
