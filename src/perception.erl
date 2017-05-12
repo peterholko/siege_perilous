@@ -221,8 +221,10 @@ visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when P
     lists:foldl(F, [], AllObjs);
 
 
-visible_objs(AllObjs, #obj {pos = Pos, vision = Vision}) ->
-    F = fun(Target, Visible) ->
+visible_objs(AllObjs, #obj {id = Id, pos = Pos, vision = Vision}) ->
+    F = fun(Target, Visible) when Target#obj.id =:= Id ->
+                [build_message(Target) | Visible];  %Include self
+           (Target, Visible) ->
             Result = Target#obj.state =/= hiding andalso
                      map:distance(Pos, Target#obj.pos) =< Vision,
 

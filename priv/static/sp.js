@@ -93,9 +93,9 @@ var detailsActive = new Image();
 var detailsRest = new Image();
 var detailsRoll = new Image();
 
-var moveActive = new Image();
-var moveRest = new Image();
-var moveRoll = new Image();
+var hideActive = new Image();
+var hideRest = new Image();
+var hideRoll = new Image();
 
 var quick = new Image();
 var precise = new Image();
