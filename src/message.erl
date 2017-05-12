@@ -239,6 +239,15 @@ message_handle(<<"rest">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"rest">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"hide">>, Message) ->
+    lager:info("message: hide"),
+
+    SourceId = map_get(<<"sourceid">>, Message),
+
+    Return = player:hide(SourceId),
+    FinalReturn = maps:put(<<"packet">>, <<"hide">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"assign">>, Message) ->
     lager:info("message: assign"),
     

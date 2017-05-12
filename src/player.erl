@@ -34,6 +34,7 @@
          equip/1,
          unequip/1,
          rest/1,
+         hide/1,
          assign/2,
          follow/1,
          gather/1,
@@ -588,11 +589,11 @@ unequip(ItemId) ->
     Reply.
 
 rest(ObjId) ->
-    Player = get(player_id),
+    PlayerId = get(player_id),
 
     [Obj] = db:read(obj, ObjId),
 
-    Checks = [{is_player_owned(Player, Obj#obj.player), "Unit not owned by player"},
+    Checks = [{is_player_owned(PlayerId, Obj#obj.player), "Unit not owned by player"},
               {is_state(Obj#obj.state, none), "Unit is busy"}],
 
     case process_checks(Checks) of
@@ -604,6 +605,27 @@ rest(ObjId) ->
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
+
+hide(ObjId) ->
+    PlayerId = get(player_id),
+    [Obj] = db:read(obj, ObjId),
+
+    Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
+              {is_hero(Obj), "Can only ford with your hero"},
+              {not game:has_pre_events(ObjId), "Unit is busy"},
+              {Obj#obj.class =:= unit, "Obj cannot move"},
+              {Obj#obj.state =/= dead, "Unit is dead"}],
+ 
+    case process_checks(Checks) of
+        true ->
+            lager:info("Hiding"),
+            obj:update_state(Obj, hiding),
+            
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+      
 
 assign(SourceId, TargetId) ->
     Player = get(player_id),
