@@ -7,7 +7,8 @@
 
 -export([id/1]).
 -export([get_rec/1, get_map/1, get_all_attr/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
-         get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1]).
+         get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1,
+         get_weapon_range/1]).
 -export([transfer/2, transfer/3, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
 -export([get_total_weight/1, weight/2]).
@@ -74,6 +75,14 @@ get_equiped_weapon(OwnerId) ->
                 (maps:get(<<"class">>, ItemMap) =:= <<"Weapon">>)
         end,
     lists:filter(F, AllItems).
+
+get_weapon_range(OwnerId) ->
+    Weapons = get_equiped_weapon(OwnerId),
+
+    %TODO fix for dual wield
+    [Weapon | _] = Weapons,
+
+    maps:get(<<"range">>, Weapon).
 
 get_total_weight(ObjId) ->
     AllItems = db:dirty_index_read(item, ObjId, #item.owner),

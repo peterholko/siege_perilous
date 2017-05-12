@@ -51,8 +51,8 @@ var pressmove = false;
 var mapWidth = 4;
 var mapHeight = 4;
 var hexSize = 72;
-var stageWidth = 1280;
-var stageHeight = 800;
+var stageWidth = 1334;
+var stageHeight = 750;
 
 var hover;
 var clicked;
@@ -84,6 +84,10 @@ var gatherRoll = new Image();
 var buildActive = new Image();
 var buildRest = new Image();
 var buildRoll = new Image();
+
+var moveActive = new Image();
+var moveRest = new Image();
+var moveRoll = new Image();
 
 var detailsActive = new Image();
 var detailsRest = new Image();
@@ -173,6 +177,10 @@ detailsActive.src = "/static/art/ab_details_active.png";
 detailsRest.src = "/static/art/ab_details_rest.png";
 detailsRoll.src = "/static/art/ab_details_roll.png";
 
+moveActive.src = "/static/art/ab_move_active.png";
+moveRest.src = "/static/art/ab_move_rest.png";
+moveRoll.src = "/static/art/ab_move_roll.png";
+
 reventBg.src = "/static/art/revent_bg.png";
 quick.src = "/static/art/quick_rest.png"; 
 precise.src = "/static/art/precise_rest.png"; 
@@ -207,8 +215,6 @@ function init() {
     });
 
     canvas = document.getElementById("map");
-    alert("width: " + window.innerWidth)
-    alert("height: " + window.innerHeight)
 
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
@@ -2346,17 +2352,10 @@ function initUI() {
 
     selectHex = new createjs.Bitmap(selectHexImage);
 
-    localMapCont.width = 1280;
-    localMapCont.height = 800;
+    localMapCont.width = stageWidth;
+    localMapCont.height = stageHeight;
 
-    bg.graphics.beginFill("#000000").drawRect(0,0,1280,800);
-
-    close.x = 1250;
-    close.y = 10;
-    close.on("mousedown", function(evt) {
-        console.log('Close mousedown')
-        this.parent.visible = false;
-    });
+    bg.graphics.beginFill("#000000").drawRect(0,0,stageWidth, stageHeight);
 
     localMapCont.name = "localMap";
     baseCont.name = "base";
@@ -2372,7 +2371,6 @@ function initUI() {
     selectHex.visible = false;
 
     localPanel.addChild(bg);
-    localPanel.addChild(close);
     localPanel.addChild(localMapCont);
     
     localMapCont.addChild(baseCont);
@@ -2393,6 +2391,7 @@ function initUI() {
     var detailsButton = new createjs.Container();
     var gatherButton = new createjs.Container();
     var buildButton = new createjs.Container();
+    var moveButton = new createjs.Container();
 
     actionBar.x = stageWidth / 2 - 492 / 2;
     actionBar.y = stageHeight - 231;
@@ -2411,6 +2410,11 @@ function initUI() {
     buildButton.y = 96;
     buildButton.mouseChildren = false;
     buildButton.addChild(new createjs.Bitmap(buildRest));
+
+    moveButton.x = 48;
+    moveButton.y = 150;
+    moveButton.mouseChildren = false;
+    moveButton.addChild(new createjs.Bitmap(moveRest));
 
     quickCooldown = new createjs.Shape();
     preciseCooldown = new createjs.Shape();
@@ -2507,6 +2511,10 @@ function initUI() {
         sendStructureList();
     });
 
+    moveButton.on("mousedown", function(evt) {
+        sendMove(selectHex.tileX, selectHex.tileY);
+    });
+
     quickButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {
             sendAttack("quick");
@@ -2577,6 +2585,7 @@ function initUI() {
     actionBar.addChild(detailsButton);
     actionBar.addChild(gatherButton);
     actionBar.addChild(buildButton);
+    actionBar.addChild(moveButton);
     actionBar.addChild(quickButton);
     actionBar.addChild(preciseButton);
     actionBar.addChild(fierceButton);
@@ -2641,8 +2650,11 @@ function initUI() {
 
         panel.visible = false;
 
-        close.x = 300;
-        close.y = 10;
+        close.x = 290;
+        close.y = 20;
+
+        close.scaleX = 2;
+        close.scaleY = 2;
 
         btnBuild.visible = false;
         btnBuild.x = 500 / 2 - 133 / 2;
@@ -2691,6 +2703,8 @@ function initUI() {
 
         btnEquip.addChild(btnEquipRest);
 
+
+
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
             this.parent.visible = false;
@@ -2738,8 +2752,11 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
 
-    close.x = 383;
-    close.y = 10;
+    close.scaleX = 2;
+    close.scaleY = 2;
+
+    close.x = 373;
+    close.y = 20;
     close.on("mousedown", function(evt) {
         this.parent.visible = false;
     });
@@ -2762,8 +2779,11 @@ function initUI() {
     var close = new createjs.Bitmap(close_rest);
     var content = new createjs.Container();
 
-    close.x = 382;
-    close.y = 10;
+    close.scaleX = 2;
+    close.scaleY = 2;
+
+    close.x = 372;
+    close.y = 20;
     close.on("mousedown", function(evt) {
         this.parent.visible = false;
     });
