@@ -1684,7 +1684,9 @@ function drawSurveyDialog(resources) {
 
     btnProspect.visible = true;
     btnProspect.x = Math.floor(smallDialogPanelBg.width / 2) - (btnProspect.width / 2);
-    btnProspect.y = smallDialogPanelBg.height - btnProspect.height - 5; 
+    btnProspect.y = smallDialogPanelBg.height - btnProspect.height - 5;
+
+    addChildSmallDialogPanel(btnProspect); 
 
     btnProspect.on("mousedown", function(evt) {
         sendProspect(0);
