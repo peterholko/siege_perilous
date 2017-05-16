@@ -494,8 +494,8 @@ bloodmoon() ->
     case NumZombies < ?MAX_ZOMBIES of
         true ->
             Num = counter:increment(bloodmoon),	
-            Rand = util:rand(5 + Num),
-            npc_mgr:spawn_zombies(Rand);
+            Rand = util:rand(5 + Num);
+            %npc_mgr:spawn_zombies(Rand);
         false ->
             nothing
     end.

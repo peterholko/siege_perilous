@@ -2503,10 +2503,10 @@ function initUI() {
     braceButton.addChild(new createjs.Bitmap(brace));
     braceButton.addChild(braceCooldown);
 
-    detailsButton.on("mouseover", function(evt) {
+    /*detailsButton.on("mouseover", function(evt) {
         this.removeAllChildren();
         this.addChild(new createjs.Bitmap(detailsRoll));
-    });
+    });*/
 
     detailsButton.on("mousedown", function(evt) {
         if(selectedUnit != false) {
@@ -2516,8 +2516,9 @@ function initUI() {
             sendInfoTile(selectedTile['x'], selectedTile['y']);
         }
     
-        this.removeAllChildren();
-        this.addChild(new createjs.Bitmap(detailsActive));
+        //this.removeAllChildren();
+        //this.addChild(new createjs.Bitmap(detailsActive));
+        updateTextLog("detailsButton");
     });
 
     gatherButton.on("mousedown", function(evt) {
@@ -2732,6 +2733,8 @@ function initUI() {
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
             this.parent.visible = false;
+
+            updateTextLog("closeButton");
         });
 
         btnBuild.on("mousedown", function(evt) {

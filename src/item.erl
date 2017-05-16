@@ -77,12 +77,13 @@ get_equiped_weapon(OwnerId) ->
     lists:filter(F, AllItems).
 
 get_weapon_range(OwnerId) ->
-    Weapons = get_equiped_weapon(OwnerId),
+    1.
+    %Weapons = get_equiped_weapon(OwnerId),
 
     %TODO fix for dual wield
-    [Weapon | _] = Weapons,
+    %[Weapon | _] = Weapons,
 
-    maps:get(<<"range">>, Weapon).
+    %maps:get(<<"range">>, Weapon).
 
 get_total_weight(ObjId) ->
     AllItems = db:dirty_index_read(item, ObjId, #item.owner),
