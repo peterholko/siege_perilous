@@ -1625,13 +1625,7 @@ function drawLootDialog(jsonData) {
         
         icon.itemId = jsonData.items[i].id;
         icon.on("mousedown", function(evt) {
-            if(evt.nativeEvent.button == 2) {
-                console.log("Sending loot");
-                sendLoot(selectedPortrait, this.itemId);
-            }
-            else {
-                sendInfoItem(this.itemId);
-            }
+            sendLoot(selectedPortrait, this.itemId);
         });
 
         icon.x = smallDialogPanelBg.width / 2 - (numItems * 24) + (i * 50);
@@ -1684,6 +1678,17 @@ function drawSurveyDialog(resources) {
         addChildSmallDialogPanel(name);
         addChildSmallDialogPanel(quantity);
     }
+    
+    var btnProspect = new createjs.Container();
+    var btnProspectRest = new createjs.Bitmap(btnEquipRestImg);
+
+    btnProspect.visible = true;
+    btnProspect.x = Math.floor(smallDialogPanelBg.width / 2) - (btnProspect.width / 2);
+    btnProspect.y = smallDialogPanelBg.height - btnProspect.height - 5; 
+
+    btnProspect.on("mousedown", function(evt) {
+        sendProspect(0);
+    });
 };
 
 function drawStructureListDialog(jsonData) {
