@@ -20,8 +20,8 @@
 -export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
--export([set_order_refine/1, set_order_craft/2, set_order_follow/1, set_order_gather/1]).
--export([has_order_follow/1, has_order_gather/1, has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
+-export([set_order_refine/1, set_order_craft/2, set_order_follow/1, set_order_gather/1, set_order_guard/1]).
+-export([has_order_follow/1, has_order_guard/1, has_order_gather/1, has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
 -export([has_shelter/1, assigned_harvester/1, assigned_craft/1, has_storage/1]).
 -export([free_structure/1, free_harvester/1, free_craft/1, free_shelter/1, free_storage/1]).
@@ -87,6 +87,8 @@ hero_nearby(Id) ->
     Hero = obj:get_hero(VillagerObj#obj.player),
     map:distance(VillagerObj#obj.pos, Hero#obj.pos) =< 3.
 
+hero
+
 morale_normal(Id) ->
     morale(Id, 50).
 morale_low(Id) ->
@@ -101,6 +103,10 @@ morale(Id, Value) ->
 has_order_follow(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.order =:= follow.
+
+has_order_guard(Id) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.order =:= guard.
 
 has_order_gather(Id) ->
     [Villager] = db:read(villager, Id),
@@ -406,6 +412,10 @@ set_order_craft(SourceId, RecipeName) ->
 set_order_follow(SourceId) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {order = follow}).
+
+set_order_guard(SourceId) ->
+    [Villager] = db:read(villager, SourceId),
+    db:write(Villager#villager {order = guard}).
 
 set_order_gather(SourceId) ->
     [Villager] = db:read(villager, SourceId),

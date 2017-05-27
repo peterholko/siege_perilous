@@ -28,6 +28,7 @@ Dexterity
 Endurance
 Toughness
 Intellect
+Spirit
 Creativity
 Focus
 Morale
@@ -58,6 +59,9 @@ Flee Randomly - Behavior
 Forage - Behavior 
 Abandon - Behavior
 
-
+Combat Orders:
+Defend: Will defends location
+Attack: Will attack target
+Guard: Will protect target
 
 
