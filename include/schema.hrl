@@ -109,6 +109,7 @@
 
 -record(villager, {id,
                    player,
+                   target = none,
                    order = none,
                    activity = none,
                    structure = none,

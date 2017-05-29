@@ -38,6 +38,7 @@
          assign/2,
          follow/1,
          gather/1,
+         order_attack/2,
          clear/1,
          cancel/1,
          revent_response/1,
@@ -691,6 +692,30 @@ gather(VillagerId) ->
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end. 
+
+order_attack(VillagerId, TargetId) ->
+    Player = get(player_id),
+    VillagerObj = obj:get(VillagerId),
+    [TargetObj] = db:read(obj, TargetId),
+
+    %TODO check if villager can see target, should not be able to order attack when not nearby
+    Checks = [{is_player_owned(VillagerObj, Player), "Villager is not owned by player"},
+              {obj:is_hero_nearby(VillagerObj, Player), "Villager is not near Hero"},
+              {obj:is_subclass(?VILLAGER, VillagerObj), "Not a villager"},
+              {combat:is_target_alive(TargetObj), "Target is dead"},
+              {combat:is_targetable(TargetObj), "Cannot attack target"}],
+
+    case process_checks(Checks) of
+        true ->
+            lager:info("Villager attack"),
+            villager:set_order_attack(VillagerId),
+            villager:set_target(VillagerId, TargetId),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+    
 
 clear(VillagerId) ->
     PlayerId = get(player_id),

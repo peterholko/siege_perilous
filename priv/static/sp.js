@@ -579,7 +579,7 @@ function sendRest(sourceid) {
 };
 
 function sendHide(sourceid) {
-    var e = '{"cmd": "hide", "sourceid": "' + selectedPortrait + '"}';
+    var e = '{"cmd": "order_attack", "sourceid": "' + selectedPortrait + '", "targetid": "' + selectedUnit + '"}';
     websocket.send(e);
 };
 

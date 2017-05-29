@@ -276,6 +276,16 @@ message_handle(<<"gather">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"gather">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"order_attack">>, Message) ->
+    lager:info("message: order_attack"),
+    
+    SourceId = map_get(<<"sourceid">>, Message),
+    TargetId = map_get(<<"targetid">>, Message),
+
+    Return = player:order_attack(SourceId, TargetId),
+    FinalReturn = maps:put(<<"packet">>, <<"order_attack">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"clear">>, Message) ->
     lager:info("message: clear"),
     SourceId = map_get(<<"sourceid">>, Message),

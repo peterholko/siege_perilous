@@ -20,8 +20,7 @@
 -export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
--export([set_order_refine/1, set_order_craft/2, set_order_follow/1, set_order_gather/1, set_order_guard/1]).
--export([has_order_follow/1, has_order_guard/1, has_order_gather/1, has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
+-export([set_order_refine/1, set_order_craft/2, set_order_follow/1, set_order_gather/1, set_order_guard/1, set_order_attack/1, set_target/2]).
 -export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
 -export([has_shelter/1, assigned_harvester/1, assigned_craft/1, has_storage/1]).
 -export([free_structure/1, free_harvester/1, free_craft/1, free_shelter/1, free_storage/1]).
@@ -30,6 +29,9 @@
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
 -export([has_resources/1]).
 -export([idle/1, refine/1, craft/1]).
+-export([melee_attack/1]).
+-export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_gather/1, 
+         has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 
 %% ====================================================================
 %% External functions
@@ -87,8 +89,6 @@ hero_nearby(Id) ->
     Hero = obj:get_hero(VillagerObj#obj.player),
     map:distance(VillagerObj#obj.pos, Hero#obj.pos) =< 3.
 
-hero
-
 morale_normal(Id) ->
     morale(Id, 50).
 morale_low(Id) ->
@@ -107,6 +107,10 @@ has_order_follow(Id) ->
 has_order_guard(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.order =:= guard.
+
+has_order_attack(Id) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.order =:= attack.
 
 has_order_gather(Id) ->
     [Villager] = db:read(villager, Id),
@@ -281,8 +285,35 @@ move_randomly(Villager) ->
                           move_unit(VillagerObj, TilePos),
                           Villager#villager {task_state = running}
                   end,
-    NewVillager.                
-                          
+    NewVillager.
+
+melee_attack(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
+
+    TargetObj = combat:is_valid_target(Villager#villager.target),
+
+    Checks = TargetObj =/= false andalso
+             map:is_adjacent(VillagerObj#obj.pos, TargetObj#obj.pos) andalso
+             combat:is_target_alive(TargetObj) andalso
+             combat:is_targetable(TargetObj),
+
+    lager:info("Villager melee_attack Checks: ~p", [Checks]),
+
+    case Checks of 
+        true ->
+            combat:attack(?QUICK, Villager#villager.id, Villager#villager.target),
+
+            game:add_event(self(), 
+                           attack, 
+                           Villager#villager.id, 
+                           Villager#villager.id, 
+                           16),
+
+            Villager#villager {task_state = running};
+        false ->
+            Villager#villager {task_state = completed}
+    end.
+
 harvest(Villager) ->
     EventData = {Villager#villager.id, Villager#villager.structure},
     NumTicks = ?TICKS_SEC * 8,
@@ -417,9 +448,17 @@ set_order_guard(SourceId) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {order = guard}).
 
+set_order_attack(SourceId) ->
+    [Villager] = db:read(villager, SourceId),
+    db:write(Villager#villager {order = attack}).
+
 set_order_gather(SourceId) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {order = gather}).
+
+set_target(SourceId, TargetId) ->
+    [Villager] = db:read(villager, SourceId),
+    db:write(Villager#villager {target = TargetId}).
 
 remove(ObjId) ->
     db:delete(villager, ObjId).
