@@ -658,6 +658,7 @@ process_event_complete([Villager]) ->
         harvest -> complete_task(Villager);
         refine -> complete_task(Villager);
         craft -> process_craft_complete(Villager);
+        melee_attack -> complete_task(Villager);
         _ -> nothing
     end;
 process_event_complete([]) -> nothing.
