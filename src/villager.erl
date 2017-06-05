@@ -29,9 +29,10 @@
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
 -export([has_resources/1]).
 -export([idle/1, refine/1, craft/1]).
--export([melee_attack/1]).
+-export([move_to_target/1, melee_attack/1]).
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_gather/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
+-export([has_order/2, has_effect/2, has_not_effect/2]).
 
 %% ====================================================================
 %% External functions
@@ -99,6 +100,18 @@ morale_very_low(Id) ->
 morale(Id, Value) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.morale >= Value.
+
+has_order(Id, OrderType) ->
+    [Villager] = db:read(villager, Id),
+    Villager#villager.order =:= OrderType.
+
+has_effect(Id, EffectType) ->
+    [VillagerObj] = db:read(obj, Id),
+    effect:has_effect(VillagerObj#obj.id, EffectType).
+
+has_not_effect(Id, EffectType) ->
+    [VillagerObj] = db:read(obj, Id),
+    not effect:has_effect(VillagerObj#obj.id, EffectType).
 
 has_order_follow(Id) ->
     [Villager] = db:read(villager, Id),
@@ -286,6 +299,33 @@ move_randomly(Villager) ->
                           Villager#villager {task_state = running}
                   end,
     NewVillager.
+
+move_to_target(Villager) ->
+    [VillagerObj] = db:read(obj, Villager#villager.id),
+
+    NewVillager = case Villager#npc.target of
+                      none ->
+                          %Invalid target due to either moving out of range or dying
+                          Villager#villager {task_state = completed};
+                      _ -> 
+                          [TargetObj] = db:read(obj, Villager#villager.target),
+                            
+                          IsAdjacent = map:is_adjacent(VillagerObj#obj.pos, TargetObj#obj.pos),
+
+                          case IsAdjacent of
+                              false ->
+                                  Path = astar:astar(VillagerObj#obj.pos, TargetObj#obj.pos, VillagerObj),
+
+                                  move_next_path(VillagerObj, Path),
+                                  Villager#villager {path = Path,
+                                                     task_state = completed};
+                              true ->
+                                  Villager#villager {task_state = completed}
+                          end
+                  end,
+
+    NewVillager.
+
 
 melee_attack(Villager) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
@@ -534,7 +574,7 @@ handle_info({perception, {VillagerId, Objs}}, Data) ->
     [Villager] = db:read(villager, VillagerId),
     [VillagerObj] = db:read(obj, VillagerId),
 
-    Enemies = find_enemies(VillagerObj, Objs),
+    Enemies = find_enemies(VillagerObj, Objs, []),
     NewVillager = Villager#villager{enemies = Enemies},
     db:write(NewVillager),
 
@@ -682,20 +722,10 @@ complete_task(Villager) ->
     NewVillager = Villager#villager {task_state = completed},
     db:write(NewVillager).
 
-find_enemies(Villager, Objs) ->
-    % If Villager has Sanctuary ignore enemies
-    case effect:has_effect(Villager#obj.id, ?SANCTUARY) of
-        true ->
-            [];
-        false ->
-            find_enemies(Villager, Objs, [])
-    end.
-
 find_enemies(_Villager, [], Enemies) ->
     Enemies;
 find_enemies(Villager, [PerceptionObj | Rest], Enemies) ->
     NewEnemies = filter_objs(Villager#obj.player, PerceptionObj, Enemies),
-
     find_enemies(Villager, Rest, NewEnemies).
 
 filter_objs(_Player, #{<<"state">> := State}, Enemies) when State =:= dead -> Enemies;
@@ -788,6 +818,9 @@ move_unit(#obj {id = Id, player = Player}, NewPos) ->
     lager:info("Villager: adding game move event"),
     game:add_event(self(), move, EventData, Id, NumTicks).
 
+move_next_path(_VillagerObj, []) -> nothing;
+move_next_path(VillagerObj, Path) -> move_unit(VillagerObj, lists:nth(2, Path)).
+
 get_claimed_structures(Player) ->
     Villagers = db:index_read(villager, Player, #villager.player),
 
@@ -805,3 +838,4 @@ get_claimed_shelters(Player) ->
         end,
 
     lists:foldl(F, [], Villagers).
+

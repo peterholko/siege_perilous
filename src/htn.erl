@@ -10,6 +10,7 @@
 -export([load/0, plan/3]).
 
 -include("schema.hrl").
+-include("common.hrl").
 
 load() ->
     wander(),
@@ -60,11 +61,11 @@ wander_flee() ->
 
 villager() ->
     new(villager),
-     add_select_one(process_attack, villager, [morale_normal, has_order_attack], []),
+     add_select_one(process_attack, villager, [morale_normal, {has_order, ?ATTACK}], []),
         add_select_all(do_attack, process_attack, [], []),
-      %      add_primitive(move_to_target, do_attack, [], [], move_to_target),
+            add_primitive(move_to_target, do_attack, [], [], move_to_target),
             add_primitive(melee_attack, do_attack, [], [], melee_attack),
-    add_select_one(nearby_enemy, villager, [enemy_visible], []),
+    add_select_one(nearby_enemy, villager, [enemy_visible, {has_not_effect, ?SANCTUARY}], []),
         add_select_all(flee_to_shelter, nearby_enemy, [has_shelter], []),
             add_primitive(set_pos_shelter, flee_to_shelter, [], [], set_pos_shelter),
             add_primitive(move_to_shelter, flee_to_shelter, [], [], move_to_pos),
@@ -179,11 +180,14 @@ eval(_Conditions, false, _NPC) ->
     false;
 eval([], Result, _NPC) ->
     Result;
-eval([Condition | Rest], Result, NPC) ->
-    lager:debug("Condition: ~p", [Condition]),
+eval([{ConditionFunc, ConditionParam} | Rest], Result, Id) ->
     Module = get(plan_module),
-    NewResult = erlang:apply(Module, Condition, [NPC]),
-    eval(Rest, Result and NewResult, NPC).
+    NewResult = erlang:apply(Module, ConditionFunc, [Id, ConditionParam]),
+    eval(Rest, Result and NewResult, Id);
+eval([Condition | Rest], Result, Id) ->
+    Module = get(plan_module),
+    NewResult = erlang:apply(Module, Condition, [Id]),
+    eval(Rest, Result and NewResult, Id).
 
 add_to_plan(Children) when is_list(Children) ->
     F = fun(Child) ->
