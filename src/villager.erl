@@ -47,6 +47,18 @@ create_plan() ->
 run_plan() ->
     gen_server:cast({global, villager}, run_plan).
 
+generate(Level) ->
+    Id = obj:create({-9999, -9999}, -9999, unit, ?VILLAGER, <<"Human Villager">>, none),
+
+    obj:set(Id, ?STRENGTH, util:rand(10 + Level)),
+    obj:set(Id, <<"">>, util:rand(10 + Level)),
+    obj:set(Id, <<"strength">>, util:rand(10 + Level)),
+    obj:set(Id, <<"strength">>, util:rand(10 + Level)),
+    obj:set(Id, <<"strength">>, util:rand(10 + Level)),
+    obj:set(Id, <<"strength">>, util:rand(10 + Level)),
+
+
+
 %%%
 %%% HTN Conditions %%%
 %%%

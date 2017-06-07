@@ -26,30 +26,32 @@ Strength: Physical Damage, Carry Weight
 Toughness: HP, Brace 
 Endurance: Stamina, Thirst, Hunger
 Dexterity: Dodge, Hiding 
-Intellect: Magic
+Intellect: Magic, Crafting
 Creativity: Crafting only?
 Focus: Parry, Critical Strike
-Spirit?
+Spirit: Magic / Prayers
+Creativity
+
 Willpower?
 Perception?
 Agility?
 
 Gathering:
-Mining - Strength/Endurance
-Stonecutting - Strength/Endurance
-Woodcutting - Strength/Endurance
+Mining - Strength/Toughness
+Stonecutting - Endurance/Strength
+Woodcutting - Toughness/Endurance
 Farming - Endurance/Focus
 Hunting - Dexterity/Focus
-Herb-gathering - Intelligence/Dexterity
+Herb-gathering - Intelligence/Focus
 
 Crafting:
-Weaponsmithing - Int / Focus
-Armorsmithing - Int / Dexterity
-Woodmaking - Int / Dexterity
-Leathermaking - 
-Tailoring - 
+Weaponsmithing - Intelligence / Strength
+Armorsmithing - Intelligence / Toughness
+Woodmaking - Intelligence / Dexterity
+Leathermaking - Intelligence / Dexterity
+Tailoring - Intelligence / Dexterity
 Masonry - Endurance / Focus
-Alchemy - Int / Creativity
+Alchemy - Creativity / Intelligence
 
 Combat:
 Swords
