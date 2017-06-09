@@ -1,7 +1,61 @@
 [{
   "name": "Prospect",
+  "class": "Gathering",
  },
  {
   "name": "Harvest",
+  "class": "Gathering",
+ },
+ {
+  "name": "Mining",
+  "class": "Gathering",
+ },
+ {
+  "name": "Stonecutting",
+  "class": "Gathering",
+ },
+ {
+  "name": "Woodcutting",
+  "class": "Gathering",
+ },
+ {
+  "name": "Farming",
+  "class": "Gathering",
+ },
+ {
+  "name": "Hunting",
+  "class": "Gathering",
+ },
+ {
+  "name": "Herb-gathering",
+  "class": "Gathering",
+ },
+ {
+  "name": "Weaponsmithing",
+  "class": "Crafting",
+ },
+ {
+  "name": "Armorsmithing",
+  "class": "Crafting",
+ },
+ {
+  "name": "Woodmaking",
+  "class": "Crafting",
+ },
+ {
+  "name": "Leathermaking",
+  "class": "Crafting",
+ },
+ {
+  "name": "Tailoring",
+  "class": "Crafting",
+ },
+ {
+  "name": "Masonry",
+  "class": "Crafting",
+ },
+ {
+  "name": "Alchemy",
+  "class": "Crafting",
  }
 ]

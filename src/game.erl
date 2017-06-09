@@ -85,6 +85,11 @@ spawn_hero(PlayerId) ->
     AdjPos2 = {18,35},
  
     HeroId = obj:create(Pos, PlayerId, unit, ?HERO, <<"Hero Mage">>, none),
+    
+    Player = db:read(player, PlayerId),
+    NewPlayer = Player#player {hero = HeroId},
+    db:write(NewPlayer),
+
     VillagerId = obj:create(AdjPos, PlayerId, unit, ?VILLAGER, <<"Human Villager">>, none),
     MonolithId = obj:create(AdjPos2, PlayerId, poi, ?MONOLITH, <<"Monolith">>, none),
 

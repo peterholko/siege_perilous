@@ -61,7 +61,7 @@ wander_flee() ->
 
 villager() ->
     new(villager),
-     add_select_one(process_attack, villager, [morale_normal, {has_order, ?ATTACK}], []),
+     add_select_one(process_attack, villager, [morale_normal, {has_order, ?ORDER_ATTACK}], []),
         add_select_all(do_attack, process_attack, [], []),
             add_primitive(move_to_target, do_attack, [], [], move_to_target),
             add_primitive(melee_attack, do_attack, [], [], melee_attack),

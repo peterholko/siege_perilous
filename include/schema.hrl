@@ -6,6 +6,7 @@
                  password,
                  login_errors = 0,
                  disabled = false,
+                 hero = false,
                  npc = false}).
 
 -record(connection, {player,
@@ -96,6 +97,12 @@
 
 -record(skill, {key, % {id, name}
                 value}).
+
+-record(skill_attr, {key, % {id, attr}
+                     value}).
+
+-record(skill_def, {key, % {name, attr}
+                    value}).
 
 -record(charge_time, {unit_id,
                       charge_time}).

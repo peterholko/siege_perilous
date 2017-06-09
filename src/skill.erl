@@ -22,7 +22,7 @@ get_by_owner(Id) ->
 
 update(Id, SkillName, Value) ->
     lager:info("skill:update id ~p skillname ~p value ~p", [Id, SkillName, Value]),
-    Player = get_player(Id),
+    [Obj] = db:read(obj, Id),    
 
     NewSkill = case db:read(skill, {Id, SkillName}) of
                   [] ->
@@ -33,13 +33,16 @@ update(Id, SkillName, Value) ->
                       Skill#skill {value = CurrValue + Value}
                end,
 
-    db:write(NewSkill),
+    db:write(NewSkill).
 
-    send_to_client(Player, skill_update, message(Id, SkillName, NewSkill#skill.value)).
 
-get_player(Id) ->
-    [Obj] = db:read(obj, Id),
-    Obj#obj.player.
+    %TODO FIX
+    %case obj:is_hero_nearby(Obj, Obj#obj.player) of
+    %    true ->
+    %        send_to_client(Obj#obj.player, skill_update, message(Id, SkillName, NewSkill#skill.value));
+    %    false ->
+    %        nothing
+    %end.
 
 message(SourceId, SkillName, Value) ->
     #{<<"packet">> => <<"skill_update">>,

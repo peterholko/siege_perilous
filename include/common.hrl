@@ -132,11 +132,17 @@
 
 -define(EXPOSE_ARMOR_DEF, -0.05).
 
--define(ATTACK, <<"Attack">>).
+-define(ORDER_ATTACK, <<"Attack">>).
 
+%STATS
 -define(STRENGTH, <<"Strength">>).
--define(STRENGTH, <<"Strength">>).
-
+-define(TOUGHNESS, <<"Toughness">>).
+-define(ENDURANCE, <<"Endurance">>).
+-define(DEXTERITY, <<"Dexterity">>).
+-define(INTELLECT, <<"Intellect">>).
+-define(FOCUS, <<"Focus">>).
+-define(SPIRIT, <<"Spirit">>).
+-define(CREATIVITY, <<"Creativity">>).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

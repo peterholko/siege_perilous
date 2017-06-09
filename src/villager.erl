@@ -33,6 +33,7 @@
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_gather/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([has_order/2, has_effect/2, has_not_effect/2]).
+-export([generate/1]).
 
 %% ====================================================================
 %% External functions
@@ -50,14 +51,27 @@ run_plan() ->
 generate(Level) ->
     Id = obj:create({-9999, -9999}, -9999, unit, ?VILLAGER, <<"Human Villager">>, none),
 
-    obj:set(Id, ?STRENGTH, util:rand(10 + Level)),
-    obj:set(Id, <<"">>, util:rand(10 + Level)),
-    obj:set(Id, <<"strength">>, util:rand(10 + Level)),
-    obj:set(Id, <<"strength">>, util:rand(10 + Level)),
-    obj:set(Id, <<"strength">>, util:rand(10 + Level)),
-    obj:set(Id, <<"strength">>, util:rand(10 + Level)),
+    obj_attr:set(Id, <<"name">>, <<"Roderich Denholm">>),
 
+    obj_attr:set(Id, ?STRENGTH, util:rand(10 + Level)),
+    obj_attr:set(Id, ?TOUGHNESS, util:rand(10 + Level)),
+    obj_attr:set(Id, ?ENDURANCE, util:rand(10 + Level)),
+    obj_attr:set(Id, ?DEXTERITY, util:rand(10 + Level)),
+    obj_attr:set(Id, ?INTELLECT, util:rand(10 + Level)),
+    obj_attr:set(Id, ?FOCUS, util:rand(10 + Level)),
+    obj_attr:set(Id, ?SPIRIT, util:rand(10 + Level)),
+    obj_attr:set(Id, ?CREATIVITY, util:rand(10 + Level)),
 
+    GSkills = skill_def:select(<<"class">>, <<"Gathering">>),
+    CSkills = skill_def:select(<<"class">>, <<"Crafting">>),
+
+    F = fun(SkillDef) ->
+            SkillName = maps:get(<<"name">>, SkillDef),
+            skill:update(Id, SkillName, util:rand(26) - 1)
+        end,
+
+    lists:foreach(F, GSkills),
+    lists:foreach(F, CSkills).
 
 %%%
 %%% HTN Conditions %%%
@@ -99,8 +113,13 @@ has_storage(Id) ->
 
 hero_nearby(Id) ->
     [VillagerObj] = db:read(obj, Id),
-    Hero = obj:get_hero(VillagerObj#obj.player),
-    map:distance(VillagerObj#obj.pos, Hero#obj.pos) =< 3.
+    %TODO check if villager has a hero
+    case obj:get_hero(VillagerObj#obj.player) of
+        false -> 
+            false;
+        [Hero] ->
+            map:distance(VillagerObj#obj.pos, Hero#obj.pos) =< 3
+    end.
 
 morale_normal(Id) ->
     morale(Id, 50).
@@ -315,7 +334,7 @@ move_randomly(Villager) ->
 move_to_target(Villager) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
 
-    NewVillager = case Villager#npc.target of
+    NewVillager = case Villager#villager.target of
                       none ->
                           %Invalid target due to either moving out of range or dying
                           Villager#villager {task_state = completed};
