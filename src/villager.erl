@@ -64,14 +64,19 @@ generate(Level) ->
 
     GSkills = skill_def:select(<<"class">>, <<"Gathering">>),
     CSkills = skill_def:select(<<"class">>, <<"Crafting">>),
+    AllSkills = GSkills ++ CSkills,
 
-    F = fun(SkillDef) ->
-            SkillName = maps:get(<<"name">>, SkillDef),
-            skill:update(Id, SkillName, util:rand(26) - 1)
-        end,
+    Skill1 = lists:nth(util:rand(length(AllSkills)), AllSkills),
+    RemainingSkills1 = lists:delete(Skill1, AllSkills),
 
-    lists:foreach(F, GSkills),
-    lists:foreach(F, CSkills).
+    Skill2 = lists:nth(util:rand(length(RemainingSkills1)), RemainingSkills1),
+    RemainingSkills2 = lists:delete(Skill2, RemainingSkills1),
+
+    Skill3 = lists:nth(util:rand(length(RemainingSkills2)), RemainingSkills2),
+
+    skill:update(Id, maps:get(<<"name">>, Skill1), util:rand(26) - 1),
+    skill:update(Id, maps:get(<<"name">>, Skill2), util:rand(26) - 1),
+    skill:update(Id, maps:get(<<"name">>, Skill3), util:rand(26) - 1).
 
 %%%
 %%% HTN Conditions %%%

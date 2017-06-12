@@ -86,7 +86,7 @@ spawn_hero(PlayerId) ->
  
     HeroId = obj:create(Pos, PlayerId, unit, ?HERO, <<"Hero Mage">>, none),
     
-    Player = db:read(player, PlayerId),
+    [Player] = db:read(player, PlayerId),
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 

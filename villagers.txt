@@ -64,4 +64,5 @@ Defend: Will defends location
 Attack: Will attack target
 Guard: Will protect target
 
-
+Recruting/Hiring:
+-Neutral? Harbor displays multiple potential villager to recruit
