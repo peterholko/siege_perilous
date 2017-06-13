@@ -19,3 +19,7 @@ Cursed land causes the dead crew to rise from the dead as zombies.
 
 Game starts surrounded by zombies with 1 villager.
 
+Villager will notice glowing Monolith nearby.  Player will have to fight through zombies.  If path is open, villager move right away to the Monolith.
+
+Zombies will stop attacking anyone adjacent to the monolitg.
+
