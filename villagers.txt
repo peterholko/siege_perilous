@@ -65,4 +65,5 @@ Attack: Will attack target
 Guard: Will protect target
 
 Recruting/Hiring:
--Neutral? Harbor displays multiple potential villager to recruit
+-Neutral? Harbor displays multiple potential villager 
+-Recruits will also travel to player markets 
