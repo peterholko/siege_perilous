@@ -23,6 +23,10 @@ Villager will notice glowing Monolith nearby.  Player will have to fight through
 
 Zombies will stop attacking anyone adjacent to the Monolith.
 
+Zombies are spawning from nearby crypt.  Crypt will have to be destroyed before area becomes safer.
+
+Wild Animals are not affected by the Monolith.
+
 Resources will be available on ship wreck to start a settlement.
 
 If starter villager dies:
@@ -44,5 +48,21 @@ Royal tax collector:
         if player does not have enough gold:
         -TBD    
             
+Early Game:
+1.  Player builds Stockades near the Monolith.
+
+2.  Villager suggests building tent shelter (provides improved rest and protection from the element).
+
+3.  Food will have to be secured, either farming, hunting, foraging.  
+
+4.  Fresh water source?  (Not implemented yet)
+
+5.  Villager suggests prospecting for resources, wood, ore and stone? 
+
+
+Gold acquired by looting zombies, skeletons, and treasures.
+
+
+
 
     
