@@ -167,16 +167,17 @@ send_to_process(_Process, _NewPerception) ->
 broadcast_to_objs(Objs, Message) ->
     lager:info("broadcast Message: ~p", [Message]),
     F = fun(Obj) ->
+            lager:info("Obj: ~p", [Obj]),
             case Obj#obj.player > ?NPC_ID of
                 true ->
                     NewMessage = maps:put(<<"witnessid">>, Obj#obj.id, Message),
-
                     case Obj#obj.subclass of
                         ?VILLAGER -> 
                             Process = global:whereis_name(villager),
                             Process ! {broadcast, NewMessage};
                         ?HERO -> 
                             [Conn] = db:read(connection, Obj#obj.player),
+                            lager:info("Conn: ~p", [Conn]),
                             Conn#connection.process ! {broadcast, NewMessage};
                         _ -> 
                             %No other subclasses require broadcasts

@@ -67,3 +67,13 @@ Guard: Will protect target
 Recruting/Hiring:
 -Neutral? Harbor displays multiple potential villager 
 -Recruits will also travel to player markets 
+
+
+-Villager will take wages from storage? 
+-Player moves gold into Villager inventory for wages? 
+
+
+
+
+
+

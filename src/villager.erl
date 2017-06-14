@@ -117,14 +117,15 @@ has_storage(Id) ->
     Villager#villager.storage =/= none.
 
 hero_nearby(Id) ->
-    [VillagerObj] = db:read(obj, Id),
+    true.
+    %[VillagerObj] = db:read(obj, Id),
     %TODO check if villager has a hero
-    case obj:get_hero(VillagerObj#obj.player) of
-        false -> 
-            false;
-        [Hero] ->
-            map:distance(VillagerObj#obj.pos, Hero#obj.pos) =< 3
-    end.
+    %case obj:get_hero(VillagerObj#obj.player) of
+    %    false -> 
+    %        false;
+    %    [Hero] ->
+    %        map:distance(VillagerObj#obj.pos, Hero#obj.pos) =< 3
+    %end.
 
 morale_normal(Id) ->
     morale(Id, 50).

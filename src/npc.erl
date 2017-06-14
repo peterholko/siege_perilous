@@ -169,7 +169,7 @@ melee_attack(NPCId) ->
                      combat:attack(NextAttack, NPCId, NPC#npc.target),
 
                      EventData = NPCId,
-                     game:add_event(self(), attack, EventData, NPCId, 16),
+                     game:add_event(self(), attack, EventData, NPCId, util:rand(16) + 6),
 
                      NPC#npc {task_state = inprogress,        
                               combo = Combo,                      

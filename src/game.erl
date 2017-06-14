@@ -80,29 +80,40 @@ get_valid_tiles({X, Y}) ->
 spawn_hero(PlayerId) ->
     %Pos = map:random_location(),
     %AdjPos = map:get_random_neighbour(Pos),
-    Pos = {17,35},
-    AdjPos = {16,35},
-    AdjPos2 = {18,35},
+    HeroPos = {16,36},
+    VillagerPos = {16,37},
+    MonolithPos = {18,35},
+    ShipwreckPos = {15,36},
  
-    HeroId = obj:create(Pos, PlayerId, unit, ?HERO, <<"Hero Mage">>, none),
+    HeroId = obj:create(HeroPos, PlayerId, unit, ?HERO, <<"Hero Mage">>, none),
     
     [Player] = db:read(player, PlayerId),
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 
-    VillagerId = obj:create(AdjPos, PlayerId, unit, ?VILLAGER, <<"Human Villager">>, none),
-    MonolithId = obj:create(AdjPos2, PlayerId, poi, ?MONOLITH, <<"Monolith">>, none),
+    VillagerId = obj:create(VillagerPos, PlayerId, unit, ?VILLAGER, <<"Human Villager">>, none),
+    MonolithId = obj:create(MonolithPos, PlayerId, poi, ?MONOLITH, <<"Monolith">>, none),
+    ShipwreckId = obj:create(ShipwreckPos, PlayerId, poi, ?POI, <<"Shipwreck">>, none),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
-    item:create(HeroId, <<"Cragroot Popular">>, 10),
     item:create(MonolithId, <<"Mana">>, 2500),
+    item:create(ShipwreckId, <<"Cragroot Popular">>, 100),
    
     % Equip food so it isn't dumped
     ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
     ItemId = maps:get(<<"id">>, ItemMap),
     item:equip(ItemId),
 
-    map:add_explored(PlayerId, Pos, 2).
+    map:add_explored(PlayerId, HeroPos, 2),
+
+    F = fun() ->
+            lager:info("Spawning 3 zombies..."),
+            obj:create({15,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none),
+            obj:create({16,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none),
+            obj:create({17,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none)
+        end,
+
+    game:add_event(none, event, F, none, 40).
 
 hero_dead(PlayerId, HeroId) ->
     lager:info("Hero killed").

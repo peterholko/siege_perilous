@@ -261,6 +261,10 @@ do_event(craft, EventData, PlayerPid) ->
 
     false;
 
+do_event(event, EventData, _Pid) ->
+    EventData(),
+    false; 
+
 do_event(_Unknown, _Data, _Pid) ->
     lager:debug("Unknown event"),
     false.

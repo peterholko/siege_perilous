@@ -52,6 +52,7 @@
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
 -define(ANIMAL, 100).
+-define(EMPIRE, 101).
 -define(MAX_ZOMBIES, 100).
 
 -define(FOOD, <<"Food">>).
@@ -67,6 +68,7 @@
 -define(NPC, <<"npc">>).
 -define(VILLAGER, <<"villager">>).
 -define(HERO, <<"hero">>).
+-define(POI, <<"poi">>).
 
 -define(WALL, <<"Wall">>).
 -define(HARVESTER, <<"resource">>).
