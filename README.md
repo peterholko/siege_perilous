@@ -63,6 +63,14 @@ Early Game:
 Gold acquired by looting zombies, skeletons, and treasures.
 
 
+Maintenance/Sinks:
+
+Tax on buildings - collected by Tax collector
+Villager wages 
+Durability on weapons/armor
+Food requirement
+Repair maintenance of buildings
+
 
 
     
