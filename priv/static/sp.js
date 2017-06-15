@@ -724,6 +724,9 @@ function onMessage(evt) {
         else if(jsonData.packet == "sound") {
             updateTextLog(jsonData.text)
         } 	
+        else if(jsonData.packet == "speech") {
+            updateTextLog(jsonData.text)
+        } 	
         else if(jsonData.packet == "info_tile") {
             drawInfoTile(jsonData);
         }
