@@ -106,14 +106,21 @@ spawn_hero(PlayerId) ->
 
     map:add_explored(PlayerId, HeroPos, 2),
 
-    F = fun() ->
-            lager:info("Spawning 3 zombies..."),
-            obj:create({15,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none),
-            obj:create({16,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none),
-            obj:create({17,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none)
-        end,
+    F1 = fun() ->
+            obj:create({15,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none)
+         end,
 
-    game:add_event(none, event, F, none, 40).
+    F2 = fun() ->
+            obj:create({16,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none)
+         end,
+
+    F3 = fun() ->
+            obj:create({17,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none)
+         end,
+
+    game:add_event(none, event, F1, none, 40),
+    game:add_event(none, event, F2, none, 48),
+    game:add_event(none, event, F3, none, 52).
 
 hero_dead(PlayerId, HeroId) ->
     lager:info("Hero killed").
