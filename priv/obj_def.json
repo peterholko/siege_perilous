@@ -3,7 +3,7 @@
 		"$oid": "54b43dcb03c27178c3ebd976"
 	},
 	"name": "Zombie",
-	"base_hp": 83,
+	"base_hp": 20,
 	"base_stamina": 10000,
 	"base_dmg": 2,
 	"dmg_range": 6,

@@ -97,6 +97,10 @@ var hideActive = new Image();
 var hideRest = new Image();
 var hideRoll = new Image();
 
+var followActive = new Image();
+var followRest = new Image();
+var followRoll = new Image();
+
 var quick = new Image();
 var precise = new Image();
 var fierce = new Image();
@@ -188,6 +192,10 @@ moveRoll.src = "/static/art/ab_move_roll.png";
 hideActive.src = "/static/art/ab_move_active.png";
 hideRest.src = "/static/art/ab_move_rest.png";
 hideRoll.src = "/static/art/ab_move_roll.png";
+
+followActive.src = "/static/art/ab_follow_active.png";
+followRest.src = "/static/art/ab_follow_active.png";
+followRoll.src = "/static/art/ab_follow_active.png";
 
 reventBg.src = "/static/art/revent_bg.png";
 quick.src = "/static/art/quick_rest.png"; 
@@ -2416,6 +2424,7 @@ function initUI() {
     var buildButton = new createjs.Container();
     var moveButton = new createjs.Container();
     var hideButton = new createjs.Container();
+    var followButton = new createjs.Container();
 
     actionBar.x = stageWidth / 2 - 492 / 2;
     actionBar.y = stageHeight - 231;
@@ -2444,6 +2453,11 @@ function initUI() {
     hideButton.y = 150;
     hideButton.mouseChildren = false;
     hideButton.addChild(new createjs.Bitmap(hideRest));
+
+    followButton.x = 101;
+    followButton.y = 150;
+    followButton.mouseChildren = false;
+    followButton.addChild(new createjs.Bitmap(followRest));
 
     quickCooldown = new createjs.Shape();
     preciseCooldown = new createjs.Shape();
@@ -2549,6 +2563,10 @@ function initUI() {
         sendHide(selectedPortrait);
     });
 
+    followButton.on("mousedown", function(evt) {
+        sendFollow();
+    });
+
     quickButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {
             sendAttack("quick");
@@ -2620,7 +2638,8 @@ function initUI() {
     actionBar.addChild(gatherButton);
     actionBar.addChild(buildButton);
     actionBar.addChild(moveButton);
-    actionBar.addChild(hideButton);
+    //actionBar.addChild(hideButton);
+    actionBar.addChild(followButton);
     actionBar.addChild(quickButton);
     actionBar.addChild(preciseButton);
     actionBar.addChild(fierceButton);
