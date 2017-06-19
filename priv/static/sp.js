@@ -130,6 +130,10 @@ var dodgeButton = new createjs.Container();
 var parryButton = new createjs.Container();
 var braceButton = new createjs.Container();
 
+var twoComboButton = new createjs.Container();
+var threeComboButton = new createjs.Container();
+var fourComboButton = new createjs.Container();
+
 var quickCooldown;
 var preciseCooldown;
 var fierceCooldown;
@@ -591,8 +595,8 @@ function sendHide(sourceid) {
     websocket.send(e);
 };
 
-function sendCombo(sourceId) {
-    var e = '{"cmd": "combo", "sourceid": "' + selectedPortrait + '", "combotype": "quick"}';
+function sendCombo(comboType) {
+    var e = '{"cmd": "combo", "sourceid": "' + selectedPortrait + '", "combotype": "' + comboType + '"}';
     websocket.send(e);
 };
 
@@ -2527,6 +2531,21 @@ function initUI() {
     braceButton.addChild(new createjs.Bitmap(brace));
     braceButton.addChild(braceCooldown);
 
+    twoComboButton.x = 284;
+    twoComboButton.y = 40;
+    twoComboButton.mouseChildren = false;
+    twoComboButton.addChild(new createjs.Bitmap(quick));
+
+    threeComboButton.x = 340;
+    threeComboButton.y = 40;
+    threeComboButton.mouseChildren = false;
+    threeComboButton.addChild(new createjs.Bitmap(precise));
+
+    fourComboButton.x = 396;
+    fourComboButton.y = 40;
+    fourComboButton.mouseChildren = false;
+    fourComboButton.addChild(new createjs.Bitmap(fierce));
+
     /*detailsButton.on("mouseover", function(evt) {
         this.removeAllChildren();
         this.addChild(new createjs.Bitmap(detailsRoll));
@@ -2633,6 +2652,38 @@ function initUI() {
         }
     });
 
+    twoComboButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {           
+            sendCombo("quick");
+        }
+    });
+
+    threeComboButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {           
+            sendCombo("precise");
+        }
+    });
+
+    fourComboButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {           
+            sendCombo("fierce");
+        }
+    });
+
+    selectPanel = new createjs.Container();
+    var bgPanel = new createjs.Bitmap(selectPanelBg);
+    var content = new createjs.Container();
+
+    content.name = "content";
+
+    selectPanel.addChild(bgPanel);
+    selectPanel.addChild(content);
+    
+    selectPanel.x = 0;
+    selectPanel.y = 0;
+    
+    actionBar.addChild(selectPanel);
+
     actionBar.addChild(actionBarBg);
     actionBar.addChild(detailsButton);
     actionBar.addChild(gatherButton);
@@ -2646,22 +2697,11 @@ function initUI() {
     actionBar.addChild(dodgeButton);
     actionBar.addChild(parryButton);
     actionBar.addChild(braceButton);
+    actionBar.addChild(twoComboButton);
+    actionBar.addChild(threeComboButton);
+    actionBar.addChild(fourComboButton);
 
     stage.addChild(actionBar);
-
-    selectPanel = new createjs.Container();
-    var bgPanel = new createjs.Bitmap(selectPanelBg);
-    var content = new createjs.Container();
-
-    content.name = "content";
-
-    selectPanel.addChild(bgPanel);
-    selectPanel.addChild(content);
-    
-    selectPanel.x = 0;
-    selectPanel.y = 0;
-
-    actionBar.addChild(selectPanel);
 
     portraitPanel = new createjs.Container();
     var bgPanel = new createjs.Bitmap(portraitBg);
