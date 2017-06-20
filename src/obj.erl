@@ -414,7 +414,7 @@ get_capacity(ObjId) ->
 is_hero_nearby(_Target = #obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
     true;
 is_hero_nearby(Target, HeroPlayerId) when is_record(Target, obj) ->
-    Player = db:read(player, HeroPlayerId),
+    [Player] = db:read(player, HeroPlayerId),
     [Hero] = db:read(obj, Player#player.hero),
     Distance = map:distance(Hero#obj.pos, Target#obj.pos),
     Distance =< Hero#obj.vision;

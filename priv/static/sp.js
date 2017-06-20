@@ -1650,7 +1650,7 @@ function drawLootDialog(jsonData) {
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
-};
+};/
 
 function drawSurveyDialog(resources) {
     showSmallDialogPanel();
@@ -1698,8 +1698,12 @@ function drawSurveyDialog(resources) {
     var btnProspectRest = new createjs.Bitmap(btnEquipRestImg);
 
     btnProspect.visible = true;
-    btnProspect.x = Math.floor(smallDialogPanelBg.width / 2) - (btnProspect.width / 2);
-    btnProspect.y = smallDialogPanelBg.height - btnProspect.height - 5;
+    btnProspect.addChild(btnProspectRest);
+    
+    var btnProspectBounds = btnProspect.getBounds();
+
+    btnProspect.x = Math.floor(smallDialogPanelBg.width / 2) - (btnProspectBounds.width / 2);
+    btnProspect.y = smallDialogPanelBg.height - btnProspectBounds.height - 5;
 
     addChildSmallDialogPanel(btnProspect); 
 
