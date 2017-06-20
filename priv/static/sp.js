@@ -1650,7 +1650,7 @@ function drawLootDialog(jsonData) {
         addImage({id: itemName, path: imagePath, x: 0, y: 0, target: icon});
     }
 
-};/
+}
 
 function drawSurveyDialog(resources) {
     showSmallDialogPanel();
@@ -2882,7 +2882,7 @@ function initUI() {
     close.scaleX = 2;
     close.scaleY = 2;
 
-    close.x = 372;
+    close.x = 365;
     close.y = 20;
     close.on("mousedown", function(evt) {
         this.parent.visible = false;

@@ -145,10 +145,11 @@ do_event(ford, EventData, PlayerPid) ->
     true;
 
 do_event(prospect, EventData, PlayerPid) ->
-    lager:debug("Processing prospect event: ~p", [EventData]),
+    lager:info("Processing prospect event: ~p", [EventData]),
     {ObjId, Pos} = EventData,
 
     Result = resource:prospect(ObjId, Pos),
+    lager:info("Prospect Result: ~p", [Result]),
 
     obj:update_state(ObjId, none),
 
