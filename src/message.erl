@@ -159,10 +159,10 @@ message_handle(<<"build">>, Message) ->
     Id = map_get(<<"sourceid">>, Message),    
     StructureId = map_get(<<"structure">>, Message),
 
-    Result = player:build(Id, StructureId),
+    Return = player:build(Id, StructureId),
 
-    jsx:encode([{<<"packet">>, <<"build">>},
-                {<<"result">>, Result}]);    
+    FinalReturn = maps:put(<<"packet">>, <<"build">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"upgrade">>, Message) ->
     lager:info("message: upgrade"),
@@ -180,10 +180,10 @@ message_handle(<<"finish_build">>, Message) ->
     SourceId = map_get(<<"sourceid">>, Message),
     StructureId = map_get(<<"structureid">>, Message),
 
-    Result = player:finish_build(SourceId, StructureId),
-    lager:info("Result: ~p", [Result]),
-    jsx:encode([{<<"packet">>, <<"finish_build">>},
-		{<<"result">>, Result}]);    
+    Return = player:finish_build(SourceId, StructureId),
+
+    FinalReturn = maps:put(<<"packet">>, <<"finish_build">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"recipe_list">>, Message) ->
     lager:info("message: recipe_list"),
