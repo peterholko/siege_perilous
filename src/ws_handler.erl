@@ -9,7 +9,6 @@ init(Req, Opts) ->
 
 websocket_handle({text, Msg}, Req, State) ->
     Result = message:decode(Msg),
-    lager:info("~p", [Result]),
 	{reply, {text, Result}, Req, State};
 
 websocket_handle(_Data, Req, State) ->
@@ -29,7 +28,6 @@ websocket_info({item_perception, Message}, Req, State) ->
 	{reply, {text, Encoded}, Req, State};
 websocket_info({Type, Message}, Req, State) ->
     PrepMessage = message:prepare(Type, Message),
-    lager:info("~p", [Message]),
     Encoded = jsx:encode(PrepMessage),
 	{reply, {text, Encoded}, Req, State};
 websocket_info(_Info, Req, State) ->
