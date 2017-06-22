@@ -71,6 +71,24 @@ Durability on weapons/armor
 Food requirement
 Repair maintenance of buildings
 
+Ideas: 
+
+Survey/Exploring grants permanent unique tile bonuses, (Plentiful Valley +25% Food production, Porous Rock +25% Mining production, 
+
+
+Major Issues:
+
+1. Villager UI for:
+    * Assigning to Structure
+    * Attacking Target (Idea "Attack My Target" button)
+    * Other orders follow, craft, hide etc...
+
+
+
+
+
+
+
 
 
     
