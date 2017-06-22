@@ -37,7 +37,7 @@
          hide/1,
          assign/2,
          follow/1,
-         gather/1,
+         order_harvest/1,
          order_attack/2,
          clear/1,
          cancel/1,
@@ -646,6 +646,7 @@ assign(SourceId, TargetId) ->
         true ->
             lager:info("Assigning villager"),
             villager:assign(SourceId, TargetId),
+            villager:set_order_harvest(SourceId),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
@@ -669,7 +670,7 @@ follow(VillagerId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
-gather(VillagerId) ->
+order_harvest(VillagerId) ->
     Player = get(player_id),
     VillagerObj = obj:get(VillagerId),
     
@@ -685,9 +686,9 @@ gather(VillagerId) ->
 
     case process_checks(Checks) of
         true ->
-            lager:info("Villager gather"),
+            lager:info("Villager harvest"),
             villager:assign(VillagerId, StructureObj#obj.id),
-            villager:set_order_gather(VillagerId),
+            villager:set_order_harvest(VillagerId),
 
             #{<<"result">> => <<"success">>};
         {false, Error} ->

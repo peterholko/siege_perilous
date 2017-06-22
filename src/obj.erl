@@ -602,7 +602,7 @@ info_subclass(<<"villager">>, Obj, Info) ->
     TotalWeight = item:get_total_weight(Obj#obj.id),
     Capacity = obj:get_capacity(Obj#obj.id),
     Morale = Villager#villager.morale,
-    Order = atom_to_binary(Villager#villager.order, latin1),
+    Order = Villager#villager.order,
     DwellingId = Villager#villager.shelter,
     StructureId = Villager#villager.structure,
 

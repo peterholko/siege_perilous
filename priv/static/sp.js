@@ -565,8 +565,8 @@ function sendFollow(sourceid) {
     websocket.send(e);
 };
 
-function sendGather(sourceid) {
-    var e = '{"cmd": "gather", "sourceid": "' + selectedPortrait + '"}';
+function sendOrderHarvest(sourceid) {
+    var e = '{"cmd": "order_harvest", "sourceid": "' + selectedPortrait + '"}';
     websocket.send(e);
 };
 

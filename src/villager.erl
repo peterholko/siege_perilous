@@ -20,7 +20,7 @@
 -export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
--export([set_order_refine/1, set_order_craft/2, set_order_follow/1, set_order_gather/1, set_order_guard/1, set_order_attack/1, set_target/2]).
+-export([set_order_refine/1, set_order_craft/2, set_order_follow/1, set_order_harvest/1, set_order_guard/1, set_order_attack/1, set_target/2]).
 -export([structure_needed/1, shelter_needed/1, storage_needed/1, harvest/1]).
 -export([has_shelter/1, assigned_harvester/1, assigned_craft/1, has_storage/1]).
 -export([free_structure/1, free_harvester/1, free_craft/1, free_shelter/1, free_storage/1]).
@@ -30,7 +30,7 @@
 -export([has_resources/1]).
 -export([idle/1, refine/1, craft/1]).
 -export([move_to_target/1, melee_attack/1]).
--export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_gather/1, 
+-export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([has_order/2, has_effect/2, has_not_effect/2]).
 -export([generate/1]).
@@ -152,19 +152,19 @@ has_not_effect(Id, EffectType) ->
 
 has_order_follow(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.order =:= follow.
+    Villager#villager.order =:= ?ORDER_FOLLOW.
 
 has_order_guard(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.order =:= guard.
+    Villager#villager.order =:= ?ORDER_GUARD.
 
 has_order_attack(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.order =:= attack.
+    Villager#villager.order =:= ?ORDER_ATTACK.
 
-has_order_gather(Id) ->
+has_order_harvest(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.order =:= gather.
+    Villager#villager.order =:= ?ORDER_HARVEST.
 
 has_order_refine(Id) ->
     [Villager] = db:read(villager, Id),
@@ -529,9 +529,9 @@ set_order_attack(SourceId) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {order = attack}).
 
-set_order_gather(SourceId) ->
+set_order_harvest(SourceId) ->
     [Villager] = db:read(villager, SourceId),
-    db:write(Villager#villager {order = gather}).
+    db:write(Villager#villager {order = ?ORDER_HARVEST}).
 
 set_target(SourceId, TargetId) ->
     [Villager] = db:read(villager, SourceId),

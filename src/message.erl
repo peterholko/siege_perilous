@@ -268,13 +268,13 @@ message_handle(<<"follow">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"follow">>, Return),
     jsx:encode(FinalReturn);
 
-message_handle(<<"gather">>, Message) ->
-    lager:info("message: gather"),
+message_handle(<<"order_harvest">>, Message) ->
+    lager:info("message: order_harvest"),
     
     SourceId = map_get(<<"sourceid">>, Message),
 
-    Return = player:gather(SourceId),
-    FinalReturn = maps:put(<<"packet">>, <<"gather">>, Return),
+    Return = player:order_harvest(SourceId),
+    FinalReturn = maps:put(<<"packet">>, <<"order_harvest">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(<<"order_attack">>, Message) ->

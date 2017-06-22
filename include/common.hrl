@@ -135,6 +135,9 @@
 -define(EXPOSE_ARMOR_DEF, -0.05).
 
 -define(ORDER_ATTACK, <<"Attack">>).
+-define(ORDER_GUARD, <<"Guard">>).
+-define(ORDER_FOLLOW, <<"Follow">>).
+-define(ORDER_HARVEST, <<"Harvest">>).
 
 %STATS
 -define(STRENGTH, <<"Strength">>).

@@ -86,7 +86,7 @@ villager() ->
         add_select_all(do_guard, process_guard, [], []),
             add_primitive(set_pos_hero, do_guard, [], [], set_pos_hero),
             add_primitive(move_to_hero, do_guard, [], [], move_to_pos),
-    add_select_one(process_harvester, villager, [morale_normal, has_order_gather], []),
+    add_select_one(process_harvester, villager, [morale_normal, {has_order, ?ORDER_HARVEST}], []),
         add_select_all(process_harvest, process_harvester, [not_hauling, structure_not_full], []),
             add_primitive(set_pos_structure, process_harvest, [], [], set_pos_structure),
             add_primitive(move_to_structure, process_harvest, [], [], move_to_pos),
