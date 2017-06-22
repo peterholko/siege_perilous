@@ -181,8 +181,9 @@ message_handle(<<"finish_build">>, Message) ->
     StructureId = map_get(<<"structureid">>, Message),
 
     Return = player:finish_build(SourceId, StructureId),
-
+    lager:info("Finish build return: ~p", [Return]),
     FinalReturn = maps:put(<<"packet">>, <<"finish_build">>, Return),
+    lager:info("FinalReturn: ~p", [FinalReturn]),
     jsx:encode(FinalReturn);
 
 message_handle(<<"recipe_list">>, Message) ->
@@ -407,11 +408,17 @@ prepare(event_complete, {Event, Id}) ->
     #{<<"packet">> => <<"event_complete">>,
       <<"event">> => atom_to_binary(Event, latin1)};
 
+prepare(event_cancel, {Event, Id}) ->
+    player:set_event_lock(Id, false),
+    #{<<"packet">> => <<"event_cancel">>,
+      <<"event">> => atom_to_binary(Event, latin1)};
+
 prepare(event_failure, {Event, Error}) ->
     [{<<"packet">>, atom_to_binary(Event, latin1)},
      {<<"error">>, atom_to_binary(Error, latin1)}];
 
-prepare(_MessageType, Message) ->
+prepare(MessageType, Message) ->
+    lager:info("Message Type: ~p ~p", [MessageType, Message]),
     Message.
 
 json_decode(Data) ->

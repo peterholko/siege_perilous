@@ -264,7 +264,7 @@ handle_info({event_complete, {_EventId, Id}}, Data) ->
 
     process_event_complete(NPC),
     {noreply, Data};
-handle_info({event_cancelled, {EventId, Id}}, Data) ->
+handle_info({event_cancel, {EventId, Id}}, Data) ->
     lager:info("NPC Event cancelled ~p ~p", [EventId, Id]),
     {noreply, Data};
 handle_info(_Info, Data) ->

@@ -292,6 +292,7 @@ prospect(ObjId) ->
 
             NumTicks = 8,
 
+            lager:info("Adding Prospect event"),
             EventData = {ObjId, Obj#obj.pos},
             game:add_event(self(), prospect, EventData, ObjId, NumTicks),
             

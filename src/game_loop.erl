@@ -209,7 +209,7 @@ do_event(sharvest, EventData, _Pid) ->
     false;
 
 do_event(finish_build, EventData, _PlayerPid) ->
-    lager:debug("Processing build event: ~p", [EventData]),
+    lager:info("Processing build event: ~p", [EventData]),
     {ObjId, StructureId} = EventData,
 
     %Set unit builder state to none

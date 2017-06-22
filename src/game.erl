@@ -191,7 +191,7 @@ cancel_event(EventSource) ->
             lager:debug("Cancel_event - Deleting event: ~p", [Event]),
             db:delete(event, Event#event.id),
 
-            message:send_to_process(Event#event.pid, event_cancelled, {Event#event.type, Event#event.data});
+            message:send_to_process(Event#event.pid, event_cancel, {Event#event.type, Event#event.data});
         _ ->
             lager:debug("Cancel_event - none found from ~p", [EventSource]),
             nothing
