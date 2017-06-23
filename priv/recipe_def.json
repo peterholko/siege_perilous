@@ -20,7 +20,8 @@
 	"name": "Refine Ore",
 	"item": "Refine Ore",
 	"class": "process_res",
-	"structure": "Blacksmith"
+	"structure": "Blacksmith",
+    "req": []
 },
 {
 	"name": "Chain Mail",

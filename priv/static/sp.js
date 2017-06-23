@@ -1307,6 +1307,22 @@ function drawSelectPanel(tileX, tileY) {
 
     var content = selectPanel.getChildByName("content");
     content.removeAllChildren();
+
+    var hero = [];
+    var units = [];
+    var others = [];
+
+    for(var i = 0; i < localObjs.length; i++) {
+        if(localObjs[i].subclass == 'hero') {
+            hero.push(localObjs[i]);
+        } else if(localObjs[i].player == playerId) {
+            units.push(localObjs[i]);
+        } else {
+            others.push(localObjs[i]);
+        }
+    }
+
+    localObjs = hero.concat(units).concat(others);
  
     for(var i = 0; i < localObjs.length; i++) {
         var unitName = localObjs[i].type;
@@ -1337,10 +1353,6 @@ function drawSelectPanel(tileX, tileY) {
      
         icon.addChild(selectIcon);
 
-        if(localObjs[i].player == playerId && localObjs[i].class == "unit") {
-            selectedUnit = localObjs[i].id;
-            drawSelectedPortrait();
-        }
 
         icon.on("mousedown", function(evt) {
             for(var i = 0; i < icons.length; i++) {
@@ -1352,7 +1364,7 @@ function drawSelectPanel(tileX, tileY) {
 
             var selectIcon = this.getChildByName("selectIcon");
             selectIcon.visible = true;
-
+        
             selectedUnit = this.id;
             drawSelectedPortrait();
         });
@@ -1370,7 +1382,9 @@ function drawSelectPanel(tileX, tileY) {
     selectIcon.y = 7;
     selectIcon.name = "selectIcon";
     selectIcon.visible = false; 
- 
+
+
+    //Terrain icon
     icon.x = 15 + localObjs.length * 77; 
     icon.y = 5;
     icon.mouseChildren = false;
@@ -1404,6 +1418,11 @@ function drawSelectPanel(tileX, tileY) {
     addImage({id: tileImageId, path: imagePath, x: offsetX, y: offsetY, target: icon, index: 0, scale: 0.5});
 
     icons.push(icon);
+
+    //Select first icon by default
+    selectedUnit = icons[0].id;
+    drawSelectedPortrait();
+
 };
 
 function drawSelectedPortrait() {

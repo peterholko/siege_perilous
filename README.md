@@ -80,7 +80,7 @@ Major Issues:
 
 1. Villager UI for:
     * Assigning to Structure
-    * Attacking Target (Idea "Attack My Target" button)
+    * XXX Attacking Target (Idea "Attack My Target" button) 
     * Other orders follow, craft, hide etc...
 
 
