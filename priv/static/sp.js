@@ -18,7 +18,6 @@ var selectPanel;
 var selectHex;
 var portraitPanel;
 var reventPanel;
-var buttonActivated = "none";
 
 var textLog;
 var textLogLines = [];
@@ -893,13 +892,7 @@ function drawMap(tiles) {
                 selectHex.tileY = this.tileY;
                 selectHex.visible = true;
 
-                if(buttonActivated == "none") {
-                    drawSelectPanel(this.tileX, this.tileY, this.tileImages);
-                } else if(buttonActivated == "move") {
-                    sendMove(this.tileX, this.tileY);
-                    buttonActivated == "none";
-                }
-
+                drawSelectPanel(this.tileX, this.tileY, this.tileImages);
             }
         });
 
@@ -2478,20 +2471,10 @@ function initUI() {
     buildButton.mouseChildren = false;
     buildButton.addChild(new createjs.Bitmap(buildRest));
 
-    var moveRestCont = new createjs.Bitmap(moveRest);
-    var moveActiveCont = new createjs.Bitmap(moveActive);
-
-    moveRestCont.name = "rest";
-    moveActiveCont.name = "active";
-
-    moveRestCont.visible = true;
-    moveActiveCont.visible = false;
-
     moveButton.x = 48;
     moveButton.y = 150;
     moveButton.mouseChildren = false;
-    moveButton.addChild(moveRestCont);
-    moveButton.addChild(moveActiveCont);
+    moveButton.addChild(new createjs.Bitmap(moveRest));
 
     hideButton.x = 101;
     hideButton.y = 150;
@@ -2615,26 +2598,7 @@ function initUI() {
     });
 
     moveButton.on("mousedown", function(evt) {
-        //sendMove(selectHex.tileX, selectHex.tileY);
-
-        if(buttonActivated == "none") {
-            var rest = this.getChildByName("rest");
-            var active = this.getChildByName("active");
-
-            rest.visible = false;
-            active.visible = true;
-
-            buttonActivated = "move";
-        } else {
-            var rest = this.getChildByName("rest");
-            var active = this.getChildByName("active");
-
-            rest.visible = true;
-            active.visible = false;
-
-            buttonActivated = "none";
-        }
-
+        sendMove(selectHex.tileX, selectHex.tileY);
     });
 
     hideButton.on("mousedown", function(evt) {
