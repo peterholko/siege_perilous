@@ -35,9 +35,9 @@ var heroId;
 var heroPos;
 
 var lastSelectedPos;
-var selectedPortrait = false;
-var selectedUnit = false;
-var selectedTile = false;
+var selectedPortrait = -1;
+var selectedUnit = -1;
+var selectedTile = -1;
 
 var hpBar;
 var staminaBar;
@@ -1311,6 +1311,9 @@ function drawSelectPanel(tileX, tileY) {
     var hero = [];
     var units = [];
     var others = [];
+    
+    selectedUnit = -1;
+    selectedTile = -1;
 
     for(var i = 0; i < localObjs.length; i++) {
         if(localObjs[i].subclass == 'hero') {
@@ -1343,7 +1346,7 @@ function drawSelectPanel(tileX, tileY) {
         selectIcon.y = 7;
         selectIcon.name = "selectIcon";
 
-        if(i == 0) {
+        /*if(i == 0) {
             selectIcon.visible = true
             selectedUnit = localObjs[i].id;    
         }
@@ -1351,15 +1354,17 @@ function drawSelectPanel(tileX, tileY) {
             selectIcon.visible = false; 
         }
      
+        icon.addChild(selectIcon);*/
+        selectIcon.visible = false; 
         icon.addChild(selectIcon);
-
 
         icon.on("mousedown", function(evt) {
             for(var i = 0; i < icons.length; i++) {
                 var selectIcon = icons[i].getChildByName("selectIcon");
                 selectIcon.visible = false;
-                selectedUnit = false;
-                selectedTile = false;
+
+                selectedUnit = -1;
+                selectedTile = -1;
             }
 
             var selectIcon = this.getChildByName("selectIcon");
@@ -1396,8 +1401,9 @@ function drawSelectPanel(tileX, tileY) {
         for(var i = 0; i < icons.length; i++) {
             var selectIcon = icons[i].getChildByName("selectIcon");
             selectIcon.visible = false;
-            selectedUnit = false;
-            selectedTile = false;
+
+            selectedUnit = -1;
+            selectedTile = -1;
         }
 
         selectedTile = {"x": this.tileX, "y": this.tileY};
@@ -1420,13 +1426,13 @@ function drawSelectPanel(tileX, tileY) {
     icons.push(icon);
 
     //Select first icon by default
-    selectedUnit = icons[0].id;
-    drawSelectedPortrait();
+    //selectedUnit = icons[0].id;
+    //drawSelectedPortrait();
 
 };
 
 function drawSelectedPortrait() {
-    if(selectedUnit) {    
+    if(selectedUnit != -1) {    
         var obj = localObjs[selectedUnit];
 
         if(obj.player == playerId && obj.class == "unit") {
@@ -2575,10 +2581,10 @@ function initUI() {
     });*/
 
     detailsButton.on("mousedown", function(evt) {
-        if(selectedUnit != false) {
+        if(selectedUnit != -1) {
             sendInfoUnit(selectedUnit);
         } 
-        else if(selectedTile != false) {
+        else if(selectedTile != -1) {
             sendInfoTile(selectedTile['x'], selectedTile['y']);
         }
     

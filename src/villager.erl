@@ -478,7 +478,19 @@ idle(Villager) ->
     Villager#villager {task_state = completed}.
 
 refine(Villager) ->
-    structure:process(Villager#villager.structure),
+    %TODO add event here 
+     lager:info("Villager crafting"),
+
+    {craft, RecipeName} = Villager#villager.order,
+    
+    EventData = {Villager#villager.structure, 
+                 Villager#villager.id, 
+                 RecipeName},
+
+    lager:info("Craft event_data: ~p", [EventData]),
+    obj:update_state(Villager#villager.id, refining),
+    game:add_event(self(), craft, EventData, Villager#villager.id, ?TICKS_SEC * 10),
+
     Villager#villager {task_state = running}.
 
 craft(Villager) ->

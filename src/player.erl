@@ -132,6 +132,8 @@ combo(SourceId, ComboType) ->
            #{<<"errmsg">> => list_to_binary(Error)}
   end.
 
+attack(_AttackType, _, -1) ->
+    #{<<"errmsg">> => <<"Invalid target">>};
 attack(AttackType, SourceId, TargetId) ->
     PlayerId = get(player_id),
     [SourceObj] = db:read(obj, SourceId),

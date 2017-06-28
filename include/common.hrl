@@ -138,6 +138,7 @@
 -define(ORDER_GUARD, <<"Guard">>).
 -define(ORDER_FOLLOW, <<"Follow">>).
 -define(ORDER_HARVEST, <<"Harvest">>).
+-define(ORDER_REFINE, <<"Refine">>).
 
 %STATS
 -define(STRENGTH, <<"Strength">>).
