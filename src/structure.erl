@@ -9,12 +9,12 @@
 -include("schema.hrl").
 
 -export([start_build/4, valid_location/2, upgrade/1]).
--export([list/0, recipe_list/1, process/1]).
--export([has_req/1, has_upgrade_req/1, has_process_res/1, check_recipe_req/2]).
+-export([list/0, recipe_list/1, refine/1]).
+-export([has_req/1, has_upgrade_req/1, has_refine_resources/1, check_recipe_req/2]).
 -export([process_upkeep/1, process_upkeep_item/3]).
 -export([get_harvesters/1, harvest/2]).
 -export([get_craftable_recipe/1]).
--export([can_craft/1, can_process/1]).
+-export([can_craft/1, can_refine/1]).
 -export([recipe_name/1]).
 
 recipe_name(Recipe) -> maps:get(<<"item">>, Recipe).
@@ -69,7 +69,7 @@ has_upgrade_req(StructureId) ->
     lager:info("ReqList: ~p Items: ~p", [ReqList, Items]),
     has_req(ReqList, Items).
 
-has_process_res(StructureId) ->
+has_refine_resources(StructureId) ->
     Process = obj_attr:value(StructureId, <<"process">>),
     Items = item:get_by_subclass(StructureId, Process),
     Items =/= [].
@@ -90,10 +90,10 @@ recipe_list(Obj) ->
     Recipes = recipe:get_recipes(Obj#obj.name),
     Recipes.
 
-process(StructureId) ->
-    Process = obj_attr:value(StructureId, <<"process">>),
+refine(StructureId) ->
+    RefineSubclass = obj_attr:value(StructureId, <<"refine">>),
     
-    [Item | _Rest] = item:get_by_subclass(StructureId, Process),
+    [Item | _Rest] = item:get_by_subclass(StructureId, RefineSubclass),
     Id = maps:get(<<"id">>, Item),
     Quantity = maps:get(<<"quantity">>, Item),
     Produces = maps:get(<<"produces">>, Item),
@@ -108,14 +108,14 @@ process(StructureId) ->
     NewItems = lists:foldl(F, [], Produces),
     NewItems.
 
-can_process(StructureId) ->
-    Process = obj_attr:value(StructureId, <<"process">>),
-    item:get_by_subclass(StructureId, Process) =/= [].
+can_refine(StructureId) ->
+    RefineSubclass = obj_attr:value(StructureId, <<"refine">>),
+    item:get_by_subclass(StructureId, RefineSubclass) =/= [].
 
 can_craft(StructureId) ->
     [Structure] = db:read(obj, StructureId),
     AllRecipes = recipe:get_recipes(Structure#obj.name),
-    Recipes = filter_process_res(AllRecipes),
+    Recipes = filter_refine(AllRecipes),
 
     F = fun(Recipe, Acc) ->
             RecipeName = maps:get(<<"item">>, Recipe),
@@ -127,7 +127,7 @@ can_craft(StructureId) ->
 get_craftable_recipe(StructureId) ->
     [Structure] = db:read(obj, StructureId),
     AllRecipes = recipe:get_recipes(Structure#obj.name),
-    Recipes = filter_process_res(AllRecipes),
+    Recipes = filter_refine(AllRecipes),
 
     F = fun(Recipe) ->
             RecipeName = maps:get(<<"item">>, Recipe),
@@ -140,9 +140,9 @@ get_craftable_recipe(StructureId) ->
     Random = util:rand(length(Craftable)),    
     lists:nth(Random, Craftable).
 
-filter_process_res(Recipes) ->
+filter_refine(Recipes) ->
     F = fun(Recipe) ->
-            maps:get(<<"class">>, Recipe) =/= <<"process_res">>
+            maps:get(<<"class">>, Recipe) =/= <<"refine">>
         end,
 
     lists:filter(F, Recipes).

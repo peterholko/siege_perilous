@@ -224,15 +224,15 @@ do_event(finish_build, EventData, _PlayerPid) ->
 
     true;
 
-do_event(process_resource, EventData, PlayerPid) ->
-    lager:debug("Processing process_resource event: ~p", [EventData]),
+do_event(refine, EventData, PlayerPid) ->
+    lager:debug("Processing refine event: ~p", [EventData]),
     {StructureId, UnitId, NumTicks} = EventData,
 
-    case structure:has_process_res(StructureId) of
+    case structure:has_refine_resources(StructureId) of
         true ->
-            NewItems = structure:process(StructureId),    
+            NewItems = structure:refine(StructureId),    
             game:send_update_items(StructureId, NewItems, PlayerPid),
-            game:add_event(PlayerPid, process_resource, EventData, UnitId, NumTicks);
+            game:add_event(PlayerPid, refine, EventData, UnitId, NumTicks);
         false ->
             obj:update_state(UnitId, none)
     end,

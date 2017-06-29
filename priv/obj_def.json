@@ -75,7 +75,7 @@
 	"level": 1,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 2
 		}
 	],
@@ -116,7 +116,7 @@
 	"level": 0,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -138,7 +138,7 @@
 	"level": 1,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -158,7 +158,7 @@
 	"profession": "the Forester",
 	"build_time": 100,
 	"level": 0,
-	"process": "Wood",
+	"refine": "Wood",
 	"req": [
 		{
 			"type": "Wood",
@@ -183,7 +183,7 @@
 	"level": 1,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -228,7 +228,7 @@
 	"level": 1,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 80
 		}
 	]
@@ -250,7 +250,7 @@
 	"level": 1,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -270,10 +270,10 @@
 	"profession": "the Mason",
 	"build_time": 500,
 	"level": 1,
-	"process": "stone",
+	"refine": "Stone",
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -293,7 +293,7 @@
 	"profession": "the Blacksmith",
 	"build_time": 5,
 	"level": 0,
-	"process": "Ore",
+	"refine": "Ore",
 	"capacity": 50,
 	"req": [
 		{
@@ -325,7 +325,7 @@
 	"level": 2,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 80
 		}
 	]
@@ -347,7 +347,7 @@
 	"level": 3,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 120
 		}
 	]
@@ -369,7 +369,7 @@
 	"level": 3,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 80
 		}
 	]
@@ -414,7 +414,7 @@
 	"level": 1,
 	"req": [
 		{
-			"type": "wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]

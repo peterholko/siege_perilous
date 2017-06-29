@@ -116,7 +116,7 @@ has_storage(Id) ->
     [Villager] = db:read(villager, Id),
     Villager#villager.storage =/= none.
 
-hero_nearby(Id) ->
+hero_nearby(_Id) ->
     true.
     %[VillagerObj] = db:read(obj, Id),
     %TODO check if villager has a hero
@@ -168,7 +168,7 @@ has_order_harvest(Id) ->
 
 has_order_refine(Id) ->
     [Villager] = db:read(villager, Id),
-    Villager#villager.order =:= refine.
+    Villager#villager.order =:= ?ORDER_REFINE.
 
 has_order_craft(Id) ->
     [Villager] = db:read(villager, Id),
@@ -478,18 +478,14 @@ idle(Villager) ->
     Villager#villager {task_state = completed}.
 
 refine(Villager) ->
-    %TODO add event here 
-     lager:info("Villager crafting"),
-
-    {craft, RecipeName} = Villager#villager.order,
+    lager:info("Villager refine"),
     
     EventData = {Villager#villager.structure, 
                  Villager#villager.id, 
-                 RecipeName},
+                 ?TICKS_SEC * 10},
 
-    lager:info("Craft event_data: ~p", [EventData]),
     obj:update_state(Villager#villager.id, refining),
-    game:add_event(self(), craft, EventData, Villager#villager.id, ?TICKS_SEC * 10),
+    game:add_event(self(), refine, EventData, Villager#villager.id, ?TICKS_SEC * 10),
 
     Villager#villager {task_state = running}.
 
