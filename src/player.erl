@@ -541,7 +541,8 @@ craft(StructureId, Recipe) ->
     Checks = [{not is_event_locked(StructureId), "Event in process"},
               {Player =:= Structure#obj.player, "Structure not owned by player"},
               {villager:has_assigned(StructureId), "Missing assigned villager to structure"},
-              {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"}],
+              {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"},
+               recipe:is_refine(Recipe), "Cannot craft refine recipe"],
 
     case process_checks(Checks) of
         true ->

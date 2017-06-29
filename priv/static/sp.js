@@ -1812,7 +1812,7 @@ function drawCraftListDialog(jsonData) {
         icon.on("mousedown", function(evt) {
             console.log("Class: " + this.class);
 
-            if(this.class == "process_res") {
+            if(this.class == "refine") {
                 sendProcess(selectedUnit);
             }
             else {

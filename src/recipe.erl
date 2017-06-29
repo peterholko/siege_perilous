@@ -5,7 +5,10 @@
 
 -include("schema.hrl").
 
--export([craft/2, get_recipes/1, get_recipe/1]).
+-export([craft/2, get_recipes/1, get_recipe/1, is_refine/1]).
+
+is_refine(RecipeName) ->
+    recipe_def:value(RecipeName, <<"class">>) =:= <<"refine">>.
 
 craft(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
