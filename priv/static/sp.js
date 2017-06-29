@@ -518,8 +518,10 @@ function sendStructureList() {
 };
 
 function sendAttack(attackType) {
-    var attack = '{"cmd": "attack", "attacktype": "' + attackType + '", "sourceid": "' + selectedPortrait + '", "targetid": "' + selectedUnit + '"}';    
-    websocket.send(attack);
+    if(selectedUnit != -1) {
+        var attack = '{"cmd": "attack", "attacktype": "' + attackType + '", "sourceid": "' + selectedPortrait + '", "targetid": "' + selectedUnit + '"}';    
+        websocket.send(attack);
+    }
 };
 
 function sendDefend(defendType) {
