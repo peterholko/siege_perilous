@@ -29,7 +29,7 @@
          upgrade/1,
          finish_build/2,
          recipe_list/1,
-         process_resource/1,
+         refine/1,
          craft/2,
          equip/1,
          unequip/1,
@@ -514,7 +514,7 @@ recipe_list(SourceId) ->
              end,
     Result.
 
-process_resource(StructureId) ->
+refine(StructureId) ->
     Player = get(player_id),
     [Structure] = db:read(obj, StructureId),
 
@@ -522,7 +522,7 @@ process_resource(StructureId) ->
     Checks = [{not is_event_locked(StructureId), "Event in progress"},
               {Player =:= Structure#obj.player, "Structure not owned by player"},
               {villager:has_assigned(StructureId), "Missing assigned villager to structure"},
-              {structure:has_process_res(StructureId), "No resources in structure"}],
+              {structure:has_refine_resources(StructureId), "No resources in structure"}],
 
     case process_checks(Checks) of
         true ->

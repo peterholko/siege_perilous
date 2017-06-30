@@ -70,7 +70,7 @@ has_upgrade_req(StructureId) ->
     has_req(ReqList, Items).
 
 has_refine_resources(StructureId) ->
-    Process = obj_attr:value(StructureId, <<"process">>),
+    Process = obj_attr:value(StructureId, <<"refine">>),
     Items = item:get_by_subclass(StructureId, Process),
     Items =/= [].
 
