@@ -196,13 +196,13 @@ message_handle(<<"recipe_list">>, Message) ->
     jsx:encode([{<<"packet">>, <<"recipe_list">>},
                 {<<"result">>, RecipeList}]);
 
-message_handle(<<"process_resource">>, Message) ->
-    lager:info("message: process_resource"),
+message_handle(<<"refine">>, Message) ->
+    lager:info("message: refine"),
     StructureId = map_get(<<"structureid">>, Message),
 
-    Reply = player:process_resource(StructureId),
+    Reply = player:refine(StructureId),
 
-    jsx:encode([{<<"packet">>, <<"process_resource">>},
+    jsx:encode([{<<"packet">>, <<"refine">>},
                 {<<"reply">>, Reply}]);
 
 message_handle(<<"craft">>, Message) ->

@@ -540,9 +540,9 @@ function sendFinishBuild(structureid) {
     websocket.send(e);
 };
 
-function sendProcess(structureid) {
-    console.log("sendProcess");
-    var e = '{"cmd": "process_resource", "structureid": "' + structureid + '"}';
+function sendRefine(structureid) {
+    console.log("sendRefine");
+    var e = '{"cmd": "refine", "structureid": "' + structureid + '"}';
     websocket.send(e);
 };
 
@@ -1813,7 +1813,7 @@ function drawCraftListDialog(jsonData) {
             console.log("Class: " + this.class);
 
             if(this.class == "refine") {
-                sendProcess(selectedUnit);
+                sendRefine(selectedUnit);
             }
             else {
                 sendCraft(selectedUnit, this.name);
