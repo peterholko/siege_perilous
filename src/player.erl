@@ -514,25 +514,28 @@ recipe_list(SourceId) ->
              end,
     Result.
 
-refine(StructureId) ->
+refine(StructureId) when is_binary(StructureId) ->
+    Structure = obj:get(StructureId),
+    refine(Structure); 
+refine(Structure) when is_record(Structure, obj) ->
     Player = get(player_id),
-    [Structure] = db:read(obj, StructureId),
-
-
-    Checks = [{not is_event_locked(StructureId), "Event in progress"},
+    Checks = [{not is_event_locked(Structure#obj.id), "Event in progress"},
+              {is_player_owned(Structure, Player), "Structure not owned by player"},
               {Player =:= Structure#obj.player, "Structure not owned by player"},
-              {villager:has_assigned(StructureId), "Missing assigned villager to structure"},
-              {structure:has_refine_resources(StructureId), "No resources in structure"}],
+              {villager:has_assigned(Structure#obj.id), "Missing assigned villager to structure"},
+              {structure:has_refine_resources(Structure#obj.id), "No resources in structure"}],
 
     case process_checks(Checks) of
         true ->
             lager:info("Process resource process_checks success"),
-            VillagerId = villager:get_by_structure(StructureId),
+            VillagerId = villager:get_by_structure(Structure#obj.id),
             villager:set_order_refine(VillagerId),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
-    end.
+    end;
+refine(_StructureId) ->
+    #{<<"errmsg">> => list_to_binary("Invalid structure")}.
 
 craft(StructureId, Recipe) ->
     Player = get(player_id),
@@ -838,8 +841,10 @@ is_structure_req(_Item, _Obj) -> true.
 process_checks([]) ->
     true;
 process_checks([{false, Error} | _Rest]) ->
+
     {false, Error};
 process_checks([_Check | Rest]) ->
+
     process_checks(Rest).
 
 to_reply(true) ->

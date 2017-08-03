@@ -1358,6 +1358,12 @@ function drawSelectPanel(tileX, tileY) {
      
         icon.addChild(selectIcon);*/
         selectIcon.visible = false; 
+
+
+        var hitArea  = new createjs.Shape();
+        hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
+        icon.hitArea = hitArea;
+
         icon.addChild(selectIcon);
 
         icon.on("mousedown", function(evt) {
@@ -1398,7 +1404,12 @@ function drawSelectPanel(tileX, tileY) {
     icon.type = "tile";
     icon.tileX = tileX;
     icon.tileY = tileY;
-   
+  
+
+     var hitArea  = new createjs.Shape();
+     hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
+     icon.hitArea = hitArea;
+
     icon.on("mousedown", function(evt) {
         for(var i = 0; i < icons.length; i++) {
             var selectIcon = icons[i].getChildByName("selectIcon");
@@ -2412,6 +2423,9 @@ function initUI() {
     var voidCont = new createjs.Container();
     var textLayer = new createjs.Container();
 
+    var closeHitArea  = new createjs.Shape();
+    closeHitArea.graphics.beginFill("#000").drawRect(-17,-17,34,34);
+
     transCont.mouseEnabled = false;
     extraCont.mouseEnabled = false;
     voidCont.mouseEnabled = false;
@@ -2828,7 +2842,7 @@ function initUI() {
 
         btnEquip.addChild(btnEquipRest);
 
-
+        close.hitArea = closeHitArea;
 
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
@@ -2884,6 +2898,9 @@ function initUI() {
 
     close.x = 373;
     close.y = 20;
+
+    close.hitArea = closeHitArea;
+
     close.on("mousedown", function(evt) {
         this.parent.visible = false;
     });
@@ -2911,6 +2928,9 @@ function initUI() {
 
     close.x = 365;
     close.y = 20;
+
+    close.hitArea = closeHitArea;
+
     close.on("mousedown", function(evt) {
         this.parent.visible = false;
     });

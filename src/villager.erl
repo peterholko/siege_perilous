@@ -519,7 +519,7 @@ assign(SourceId, TargetId) ->
 
 set_order_refine(SourceId) ->
     [Villager] = db:read(villager, SourceId),
-    db:write(Villager#villager {order = refine}). 
+    db:write(Villager#villager {order = ?ORDER_REFINE}). 
 
 set_order_craft(SourceId, RecipeName) ->
     [Villager] = db:read(villager, SourceId),
