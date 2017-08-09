@@ -49,6 +49,7 @@ Royal tax collector:
         -TBD    
             
 Early Game:
+-----------
 1.  Player builds Stockades near the Monolith.
 
 2.  Villager suggests building tent shelter (provides improved rest and protection from the element).
@@ -60,7 +61,16 @@ Early Game:
 5.  Villager suggests prospecting for resources, wood, ore and stone? 
 
 
-Gold acquired by looting zombies, skeletons, and treasures.
+6. Gold acquired by looting zombies, skeletons, and treasures.
+
+Midgame
+-------
+
+Nearby lich king becomes interested  player once they reach a certain power level as a potential undead minion.
+
+Nearby Goblins become interested in the player once they reach a certain wealth threshold.  Plan to raid the player's holdings.
+
+
 
 
 Maintenance/Sinks:
