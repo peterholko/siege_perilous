@@ -11,6 +11,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Undead",
+    "subtype": "Zombie",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -19,8 +21,7 @@
 		"guard",
 		"10",
 		"10"
-	],
-	"npc_type": "Undead"
+	]
 },
 {
 	"_id": {
@@ -36,6 +37,8 @@
 	"base_vision": 2,
 	"class": "unit",
 	"subclass": "hero",
+    "type": "Human",
+    "subtype": "Hero Mage",
 	"capacity": 300
 },
 {

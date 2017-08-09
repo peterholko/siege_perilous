@@ -58,6 +58,8 @@
               player,
               class,
               subclass = none,
+              type = none,
+              subtype = none,
               name,
               state,
               effect = [],

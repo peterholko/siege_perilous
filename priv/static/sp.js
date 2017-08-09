@@ -1359,7 +1359,6 @@ function drawSelectPanel(tileX, tileY) {
         icon.addChild(selectIcon);*/
         selectIcon.visible = false; 
 
-
         var hitArea  = new createjs.Shape();
         hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
         icon.hitArea = hitArea;
@@ -1660,7 +1659,7 @@ function drawDmg(jsonData) {
 function drawLootDialog(jsonData) {
     showSmallDialogPanel();
 
-    var title = new createjs.Text("Loot", h1Font, textColor);
+    var title = new createjs.Text("Corpse of " + jsonData.name, h1Font, textColor);
     title.x = Math.floor(smallDialogPanelBg.width / 2);
     title.y = 5;
     title.textAlign = "center";
@@ -1677,6 +1676,12 @@ function drawLootDialog(jsonData) {
         var icon = new createjs.Container();
         
         icon.itemId = jsonData.items[i].id;
+
+
+        var hitArea  = new createjs.Shape();
+        hitArea.graphics.beginFill("#000").drawRect(0,0,48,48);
+        icon.hitArea = hitArea;
+
         icon.on("mousedown", function(evt) {
             sendLoot(selectedPortrait, this.itemId);
         });
@@ -2742,9 +2747,9 @@ function initUI() {
     actionBar.addChild(dodgeButton);
     actionBar.addChild(parryButton);
     actionBar.addChild(braceButton);
-    actionBar.addChild(twoComboButton);
-    actionBar.addChild(threeComboButton);
-    actionBar.addChild(fourComboButton);
+    //actionBar.addChild(twoComboButton);
+    //actionBar.addChild(threeComboButton);
+    //actionBar.addChild(fourComboButton);
 
     stage.addChild(actionBar);
 
