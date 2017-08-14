@@ -94,6 +94,10 @@ Major Issues:
     * Other orders follow, craft, hide etc...
 
 
+Player start location diversity:
+
+1. Seed unique resources 
+
 
 
 
