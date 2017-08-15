@@ -183,12 +183,67 @@ Spears - chance at impale effect, +33% damage to precise attacks, 33% damage to 
 *No penalty from Defensive Brace, can be thrown for massive damage
 
 --- Armors ---
+Flax
+Cotton
+Spidersilk
+Ebonthread
+Silverweave
+Crimsonsilk
+
+Rawhide
+Leather
+Studded Leather
+Fell Hide
+Shadowhide
+
+Ebony
+Voidstone
+
+Ideas ???
+Cloth -> -33% precise, +25% fierce, +25% quick & precise
+Leather -> 
+
+Plate -> -50% fierce, +25% precise
+
+
 Cloth Armor             10 Def
 Leather Armor           20 Def
 Studded Leather Armor   35 Def
 Chain Mail Armor        60 Def  
 Scale Armor             90 Def
 Plate Armor             125 Def
+
+Regional Diversity
+------------------
+Regional Resources give + to fierce/quick/precise
+
+
+Magic from Nature
+-----------------
+Swamp -> Black Magic
+Forest -> Green Magic
+Hills / Mountains -> Red Magic
+Ocean / Water -> Blue Magic
+Grasslands / Plains -> White Magic
+Desert / Badlands -> Yellow Magic
+
+Environment List
+----------------
+Snow  (Winter / Tundra) -> Freezing temperatures cause hardy traits
+Desert (Badlands) -> Scorching temperatures cause hardy traits
+Forest (Jungle) -> Forested areas cause 
+Plains (Grasslands)
+Hills
+Mountains
+
+Environment Gained Traits
+-------------------------
+1. Villagers are generated with environment specific traits, ex. +10% dodge in forest, +10% attack in snow, +10% morale in hills
+  a) players will retain villagers for their specific environment
+  b) dismiss villagers that are ill suited (similar to natural selection, traits can be learnt potentially...?)
+
+2. Villagers will gain traits when performing activities in the environments, ex. -10% food consumption in snow, +10% food gathering in snow
+
 
 --- Attacks ---
 Quick: -50% damage, +25% speed , chance at double strike

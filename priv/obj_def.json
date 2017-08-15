@@ -53,6 +53,7 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "shelter",
+    "type": "Tent",
 	"build_time": 25,
 	"level": 0,
 	"req": [
@@ -100,6 +101,8 @@
 	"base_vision": 1,
 	"class": "unit",
 	"subclass": "villager",
+    "type": "Human",
+    "subtype": "Human Villager",
 	"capacity": 121
 },
 {
