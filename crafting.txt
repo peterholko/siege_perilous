@@ -92,7 +92,15 @@ Cloudscape Marble
 Heavensong Granite
 
 Food:
-Crimson Root
+Crimson Root (Farming)
+
+Cragroot Berries (Plant Gathering)
+
+Wrapwood Bison Meat (Hunting)
+
+
+Wrapwood Bison Fur (Hunting)
+
 
 Gems (All):
 Smoldering Opal
