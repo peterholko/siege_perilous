@@ -190,9 +190,9 @@ Daggers - chance at disarm effect, +50% speed for quick, +50% speed for precise,
 Spears - chance at impale effect, +33% damage to precise attacks, 33% damage to fierce attack
 *No penalty from Defensive Brace, can be thrown for massive damage
 
-Bow -
+Bow - chance at disorient, +33% fierce, +33% range, -25% all speed
 
-Crossbow
+Crossbow - chance at multi-shot, +33% quick damage, %33 precise speed
 
 --- Armors ---
 Flax
