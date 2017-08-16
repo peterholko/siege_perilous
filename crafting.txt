@@ -190,6 +190,10 @@ Daggers - chance at disarm effect, +50% speed for quick, +50% speed for precise,
 Spears - chance at impale effect, +33% damage to precise attacks, 33% damage to fierce attack
 *No penalty from Defensive Brace, can be thrown for massive damage
 
+Bow -
+
+Crossbow
+
 --- Armors ---
 Flax
 Cotton
@@ -309,11 +313,33 @@ Undead Devour:
 Soul Drain:
 Corrupt Heart:
 
+List of resource effects
+------------------------
+Ore:
+
+Axe Damage/Speed
+Sword Damage/Speed
+Hammer Damage/Speed
+Dagger Damage/Speed
+Spear Damage/Speed
+
+Defense
+Durability
+Weight
+
+Wood:
+
+Accuracy
+Range
+Speed
+
+
 Example Weapons:
 
 Valleyrun Copper:
 +50% axe damage   ->  <<"axe_dmg_p">> => 0.5
 -50% hammer damage -> <<"hammer_dmg_p">> => -0.5
+
 
 Axe:
 +5 damage               <<"dmg">> => 5
