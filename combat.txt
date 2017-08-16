@@ -1,9 +1,20 @@
+Warrior:
+Melee attacks
+
+Ranger:
+Good at hiding
+Can move slowly while hiding
+Can sneak up on random spawn
+
+
+
 attacks:
 quick -> dodge (-100% dmg + high stamina)
 precise -> parry (-75% dmg + weapon damage)
 fierce -> brace (-50% dmg)
 
 if matching defensive action is used on last combo attack, the combat is interrupted
+
 
 *** Attributes ***
 Strength: Physical Damage, Carry Weight
