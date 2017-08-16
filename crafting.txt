@@ -270,18 +270,6 @@ Double Strike: Double strikes the enemy
 Expose Armor: -5% armor for 20 seconds, stackable
 Bloodthirst: chance to restore 4% of life 
 
-Example Weapons:
-
-Axe:
-+5 damage               <<"dmg">> => 5
-+50% fierce damage      <<"f_dmg_p">> => 0.5
--33% quick speed        <<"q_spd_p">> => -0.33
-5% chance at Deep Wound <<"dw_p">> => 0.05
-
-Sword:
-+5 damage               <<"dmg">> => 5
-+25% precise speed      <<"p_spd_p">> => 0.25
-
 --- Def Stances vs Attacks ---
 Dodge vs Quick: +50% chance to dodge/parry/block for 20 seconds 
 Parry vs Precise: +50% chance to dodge/parry/block for 20 seconds
@@ -312,3 +300,21 @@ Nightmare Strike (fpqf): 800% Fierce Damage
 Undead Devour: 
 Soul Drain:
 Corrupt Heart:
+
+Example Weapons:
+
+Valleyrun Copper:
++50% axe damage   ->  <<"axe_dmg_p">> => 0.5
+-50% hammer damage -> <<"hammer_dmg_p">> => -0.5
+
+Axe:
++5 damage               <<"dmg">> => 5
++50% fierce damage      <<"fierce_dmg_p">> => 0.5
+-33% quick speed        <<"quick_spd_p">> => -0.33
+5% chance at Deep Wound <<"deep_wound_p">> => 0.05
+
+Sword:
++5 damage               <<"dmg">> => 5
++25% precise speed      <<"precise_spd_p">> => 0.25
+
+

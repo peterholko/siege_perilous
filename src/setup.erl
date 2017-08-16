@@ -35,6 +35,9 @@ start() ->
     lager:info("Spawning resources..."),
     map:spawn_resources(),
 
+    lager:info("Generating resource bonuses..."),
+    resource:generate_bonuses(),
+
     lager:info("Starting perception"),
     perception:start(),
 

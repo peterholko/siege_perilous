@@ -150,6 +150,10 @@
 -define(SPIRIT, <<"Spirit">>).
 -define(CREATIVITY, <<"Creativity">>).
 
+%RESOURCE TRAITS
+-define(AXE_DMG_P, <<"Axe Damage %">>).
+-define(HAMMER_DMG_P, <<"Hammer Damage %">>).
+
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).
 -define(INFO2(MSG, DATA), io:fwrite("~s ~s~n", [MSG, DATA])).

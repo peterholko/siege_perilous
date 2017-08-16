@@ -7,7 +7,7 @@
 -include("schema.hrl").
 
 -export([harvest/3, prospect/2, survey/1, is_valid/2, is_auto/2, quantity/1]).
--export([create/4]).
+-export([create/4, generate_bonuses/0]).
 
 harvest(ObjId, ResourceName, Pos) ->
     lager:info("Harvesting resource: ~p", [ResourceName]),
@@ -122,6 +122,23 @@ create(ResourceType, Quantity, Pos, WithObj) ->
                           obj = ObjId},
 
     db:write(Resource).
+
+generate_bonuses() ->
+    ResourceDefList = resource_def:list(),
+
+    F = fun(ResourceName) ->
+            ResourceDef = resource_def:all_to_map(ResourceName),
+            ResourceType = maps:get(<<"type">>, ResourceDef),
+
+            case ResourceType of
+                <<"Ore">> ->
+                    item_def:add(ResourceName, ?AXE_DMG_P, 0.5);
+                _ -> 
+                    none
+            end
+        end, 
+
+    lists:foreach(F, ResourceDefList).
 
 %
 % Internal functions
