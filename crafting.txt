@@ -78,6 +78,8 @@ Legendary: 200
 
 Ore (Hills):
 Valleyrun Copper Ore
+Flowstate Copper Ore
+Piercehill Copper Ore
 Quickforge Iron Ore
 Stronghold Mithril Ore
 
@@ -192,7 +194,7 @@ Spears - chance at impale effect, +33% damage to precise attacks, 33% damage to 
 
 Bow - chance at disorient, +33% fierce, +33% range, -25% all speed
 
-Crossbow - chance at multi-shot, +33% quick damage, %33 precise speed
+Crossbow - chance at bullseye, +33% quick damage, +33% speed for precise
 
 --- Armors ---
 Flax
@@ -281,6 +283,9 @@ Stun: Cannot move or attack or defend for duration
 Double Strike: Double strikes the enemy
 Expose Armor: -5% armor for 20 seconds, stackable
 Bloodthirst: chance to restore 4% of life 
+
+Disorient: Reduces Perception to 1, -25% armor for 10 seconds
+Bullseye: Ignores all armor 
 
 --- Def Stances vs Attacks ---
 Dodge vs Quick: +50% chance to dodge/parry/block for 20 seconds 
