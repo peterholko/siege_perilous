@@ -101,6 +101,53 @@ Player start location diversity:
 
 
 
+Sanctuary
+
+Hides player's units from Undead
+Provided by Monolith (Monolith: 1 distance hex neighbours, Greater Monolith: 2 distance hex neighbours)
+Requires Mana for upkeep, when mana is exhausted, it becomes disabled
+Cannot be destroyed
+Fortified
+
+Hides player's units from Animals/Monsters
+Provided by Walls
+Requires Wood for upkeep
+Can be destroyed
+Melee Attack
+
+Attacks adjacent units
+50% penalty when Fortified
+Range Attack
+
+Attacks adjacent units
+No penalty when Fortified
+Warrior Class
+
+Melee weapon focus
+Brute force
+Ranger Class
+
+Range weapon focus
+Can attack from hidden position
+Mage Class
+
+Summon creatures/elements
+Range/Magic focus
+Hero Death Mechanics
+
+Random Minor/Major Effect acquired on revival
+Drop of some/all items
+Villager Death Mechanics
+
+Perma-death
+Wish List
+
+Enemies have other senses other than vision such as Smell for Animals/Zombies, Soul Hunting Ghosts/Shadows/Horrors
+
+Weather/Seasons, i.e. Gets cold and snow forms over a period. Fuel needed to stay warm. Winter Clothing required to survive.
+
+
+
 
 
 
