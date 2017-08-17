@@ -334,9 +334,28 @@ Weight
 
 Wood:
 
-Accuracy
-Range
-Speed
+Axe Durability
+Hammer Durability
+Spear Durability
+
+Axe Weight/Speed
+Hammer Weight/Speed
+Spear Weight/Speed
+
+Bow Accuracy
+Bow Range
+Bow Speed
+
+CrossBow Accuracy
+CrossBow Range
+CrossBow Speed
+
+Leather:
+
+Spear Durability
+Crossbow Durability
+Bow Durability 
+
 
 
 Example Weapons:
