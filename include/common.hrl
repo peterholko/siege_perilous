@@ -152,7 +152,17 @@
 
 %RESOURCE TRAITS
 -define(AXE_DMG_P, <<"Axe Damage %">>).
+-define(SWORD_DMG_P, <<"Sword Damage %">>).
 -define(HAMMER_DMG_P, <<"Hammer Damage %">>).
+-define(DAGGER_DMG_P, <<"Dagger Damage %">>).
+-define(SPEAR_DMG_P, <<"Spear Damage %">>).
+
+-define(AXE_SPD_P, <<"Axe Speed %">>).
+-define(SWORD_SPD_P, <<"Sword Speed %">>).
+-define(HAMMER_SPD_P, <<"Hammer Speed %">>).
+-define(DAGGER_SPD_P, <<"Dagger Speed %">>).
+-define(SPEAR_SPD_P, <<"Spear Speed %">>).
+
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

@@ -2206,7 +2206,18 @@ function drawInfoItem(jsonData) {
     var stats = "";
 
     for(attr in jsonData) {
-        if(attr != "id" && attr != "owner" && attr != "packet") {
+        if(attr == "effects") {
+            var effects = jsonData[attr];
+
+            for(var i = 0; i < effects.length; i++) {
+                var effect = effects[i];
+                var effectType = effect["type"];
+                var effectValue = effect["value"] * 100;
+
+                var stat = effectType + ": " + effectValue + "\n";
+                stats += stat;
+            }
+        } else if(attr != "id" && attr != "owner" && attr != "packet") {
             var stat = attr + ": " + jsonData[attr] + "\n";
             stats += stat;
         }

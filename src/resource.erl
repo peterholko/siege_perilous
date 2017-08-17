@@ -7,7 +7,7 @@
 -include("schema.hrl").
 
 -export([harvest/3, prospect/2, survey/1, is_valid/2, is_auto/2, quantity/1]).
--export([create/4, generate_bonuses/0]).
+-export([create/4, generate_effects/0]).
 
 harvest(ObjId, ResourceName, Pos) ->
     lager:info("Harvesting resource: ~p", [ResourceName]),
@@ -123,22 +123,57 @@ create(ResourceType, Quantity, Pos, WithObj) ->
 
     db:write(Resource).
 
-generate_bonuses() ->
+generate_effects() ->
     ResourceDefList = resource_def:list(),
 
     F = fun(ResourceName) ->
             ResourceDef = resource_def:all_to_map(ResourceName),
-            ResourceType = maps:get(<<"type">>, ResourceDef),
+            ResourceType = maps:get(<<"type">>, ResourceDef, none),
 
             case ResourceType of
                 <<"Ore">> ->
-                    item_def:add(ResourceName, ?AXE_DMG_P, 0.5);
+                    Effects = randomize_effects(ResourceType),
+                    item_def:add(ResourceName, <<"effects">>, Effects);
                 _ -> 
                     none
             end
         end, 
 
     lists:foreach(F, ResourceDefList).
+
+randomize_effects(ResourceType) ->
+    case ResourceType of
+        <<"Ore">> ->
+            OreEffects = ore_effects(),
+
+            PosEffect = lists:nth(util:rand(length(OreEffects)), OreEffects),
+
+            NewOreEffects = lists:delete(PosEffect, OreEffects),
+
+            NegEffect = lists:nth(util:rand(length(NewOreEffects)), NewOreEffects),
+
+            PosEffectMap = #{<<"type">> => PosEffect,
+                             <<"value">> => (util:rand(40) + 10) / 100},
+
+            NegEffectMap = #{<<"type">> => NegEffect,
+                             <<"value">> => -1 * (util:rand(40) + 10) / 100},
+
+            [PosEffectMap, NegEffectMap];
+        _ ->
+            []
+    end.
+
+ore_effects() ->
+    [?AXE_DMG_P,
+     ?SWORD_DMG_P,
+     ?HAMMER_DMG_P,
+     ?DAGGER_DMG_P,
+     ?SPEAR_DMG_P,
+     ?AXE_SPD_P,
+     ?SWORD_SPD_P,
+     ?HAMMER_SPD_P,
+     ?DAGGER_SPD_P,
+     ?SPEAR_SPD_P].
 
 %
 % Internal functions
