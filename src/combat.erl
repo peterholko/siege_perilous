@@ -370,7 +370,7 @@ get_items_effect_damage(Items) ->
             Total + lists:foldl(G, 0, Effects)
         end,
 
-    lists:foldl(F, 0, Items).
+    lists:foldl(F, 1, Items).
 
 to_str(?QUICK) -> "q";
 to_str(?PRECISE) -> "p";

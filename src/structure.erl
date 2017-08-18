@@ -100,7 +100,7 @@ refine(StructureId) ->
     Id = maps:get(<<"id">>, Item),
     Quantity = maps:get(<<"quantity">>, Item),
     Produces = maps:get(<<"produces">>, Item),
-    Effects = maps:get(<<"effects">>, Item),
+    Effects = maps:get(<<"effects">>, Item, []),
     
     item:update(Id, Quantity - 1),
 
@@ -109,6 +109,8 @@ refine(StructureId) ->
 
             %Assign effects from resources to refined resource, 
             %might need to filter effects for specific type of resource
+            item_attr:set(maps:get(<<"id">>, NewItem), <<"effects">>, Effects),
+             
             MergedNewItem = maps:put(<<"effects">>, Effects, NewItem),
 
             [MergedNewItem | AllNewItems]
