@@ -89,7 +89,16 @@ craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
             combine_stats(Stats, ItemStats)
         end,
 
-    AllItemStats = lists:foldl(F, #{}, MatchReqList),
+    ItemStats = lists:foldl(F, #{}, MatchReqList),
+
+    G = fun(MatchReq, AllEffects) ->
+            Effects = maps:get(<<"effects">>, MatchReq, []),
+            lists:merge(Effects, AllEffects)
+        end,
+
+    ItemEffects =  lists:foldl(G, [], MatchReqList),
+
+    AllItemStats = maps:put(<<"effects">>, ItemEffects, ItemStats),
     
     ItemName = craft_item_name(RecipeName, MatchReqList),
 

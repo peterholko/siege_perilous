@@ -164,6 +164,9 @@ calculate_damage(AttackType, AtkId, DefId) ->
     %Get Damage from items
     ItemDamage = get_items_value(<<"damage">>, AtkItems),
 
+    %Get Damage Effects from items
+    AtkItemDamageEffect = get_items_effect_damage(AtkItems),
+
     %Get Attack Type modification
     AttackTypeDamage = attack_type_mod(AttackType),
 
@@ -203,8 +206,8 @@ calculate_damage(AttackType, AtkId, DefId) ->
     RollDamage = util:rand(DamageRange) + BaseDamage,
 
     %Calculate Total Base Damage
-    lager:info("~p ~p ~p ~p ~p", [RollDamage, ItemDamage, ComboDamage, AttackTypeDamage, AtkEffectDamage]),
-    TotalDamage = (RollDamage + ItemDamage) * ComboDamage * AttackTypeDamage * AtkEffectDamage,
+    lager:info("Roll: ~p Base: ~p Combo: ~p Type: ~p Effect: ~p ItemEffect: ~p", [RollDamage, ItemDamage, ComboDamage, AttackTypeDamage, AtkEffectDamage, AtkItemDamageEffect]),
+    TotalDamage = (RollDamage + ItemDamage) * ComboDamage * AttackTypeDamage * AtkEffectDamage * AtkItemDamageEffect,
 
     %Determin Total armor
     TotalArmor = (BaseDef * DefEffectDef) + ItemArmor,
@@ -345,6 +348,26 @@ get_items_value(_, []) ->
 get_items_value(Attr, Items) ->
     F = fun(Item, Total) ->
             maps:get(Attr, Item, 0) + Total
+        end,
+
+    lists:foldl(F, 0, Items).
+
+get_items_effect_damage(Items) ->
+    F = fun(Item, Total) ->
+            ItemSubclass = maps:get(<<"subclass">>, Item),
+            Effects = maps:get(<<"effects">>, Item),
+
+            G = fun(Effect, EffectTotal) ->
+                    EffectType = maps:get(<<"type">>, Effect),
+                    EffectValue = maps:get(<<"value">>, Effect),
+
+                    case check_effect_item_damage(EffectType, ItemSubclass) of
+                        true -> EffectTotal + EffectValue;
+                        false -> EffectTotal
+                    end
+                end,
+
+            Total + lists:foldl(G, 0, Effects)
         end,
 
     lists:foldl(F, 0, Items).
@@ -566,3 +589,10 @@ effect_def(DefId) ->
         end,
 
     lists:foldl(F, 1, Effects).
+
+check_effect_item_damage(<<"Axe">>, ?AXE_DMG_P) -> true;
+check_effect_item_damage(<<"Sword">>, ?SWORD_DMG_P) -> true;
+check_effect_item_damage(<<"Hammer">>, ?HAMMER_DMG_P) -> true;
+check_effect_item_damage(<<"Dagger">>, ?DAGGER_DMG_P) -> true;
+check_effect_item_damage(<<"Spear">>, ?SPEAR_DMG_P) -> true;
+check_effect_item_damage(_, _) -> false.
