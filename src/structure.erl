@@ -70,9 +70,12 @@ has_upgrade_req(StructureId) ->
     has_req(ReqList, Items).
 
 has_refine_resources(StructureId) ->
-    Process = obj_attr:value(StructureId, <<"refine">>),
-    Items = item:get_by_subclass(StructureId, Process),
-    Items =/= [].
+    case obj_attr:value(StructureId, <<"refine">>, none) of
+        none -> false;
+        Process -> 
+            Items = item:get_by_subclass(StructureId, Process),
+            Items =/= []
+    end.
 
 check_recipe_req(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
