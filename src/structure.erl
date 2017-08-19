@@ -100,12 +100,18 @@ refine(StructureId) ->
     Id = maps:get(<<"id">>, Item),
     Quantity = maps:get(<<"quantity">>, Item),
     Produces = maps:get(<<"produces">>, Item),
+    Effects = maps:get(<<"effects">>, Item),
     
     item:update(Id, Quantity - 1),
 
     F = fun(NewItemName, AllNewItems) ->
             NewItem = item:create(StructureId, NewItemName, 1),
-            [NewItem | AllNewItems]
+
+            %Assign effects from resources to refined resource, 
+            %might need to filter effects for specific type of resource
+            MergedNewItem = maps:put(<<"effects">>, Effects, NewItem),
+
+            [MergedNewItem | AllNewItems]
         end,
 
     NewItems = lists:foldl(F, [], Produces),
