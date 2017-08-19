@@ -1825,6 +1825,10 @@ function drawCraftListDialog(jsonData) {
         icon.x = 25 + i * 75;
         icon.y = 50;
 
+        var hitArea  = new createjs.Shape();
+        hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
+        icon.hitArea = hitArea;
+
         icon.on("mousedown", function(evt) {
             console.log("Class: " + this.class);
 
@@ -1835,7 +1839,7 @@ function drawCraftListDialog(jsonData) {
                 sendCraft(selectedUnit, this.name);
             }
             
-            dialogPanel.visible = false;
+            smallDialogPanel.visible = false;
         });
 
         addChildSmallDialogPanel(icon);
