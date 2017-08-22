@@ -11,8 +11,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Undead",
-    "subtype": "Zombie",
+    "type": "Zombie",
+    "family": "Undead",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -54,6 +54,7 @@
 	"class": "structure",
 	"subclass": "shelter",
     "type": "Tent",
+    "subtype": "",
 	"build_time": 25,
 	"level": 0,
 	"req": [
@@ -75,6 +76,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
+    "type": "Smelter",
+    "subtype": "",
 	"build_time": 125,
 	"level": 1,
 	"req": [
@@ -102,7 +105,7 @@
 	"class": "unit",
 	"subclass": "villager",
     "type": "Human",
-    "subtype": "Human Villager",
+    "subtype": "Villager",
 	"capacity": 121
 },
 {
@@ -117,6 +120,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "resource",
+    "type": "Farm",
+    "subtype": "",
 	"profession": "the Farmer",
 	"build_time": 500,
 	"level": 0,
@@ -139,6 +144,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "resource",
+    "type": "Trapper",
+    "subtype": "",
 	"profession": "the Hunter",
 	"build_time": 500,
 	"level": 1,
@@ -161,6 +168,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "resource",
+    "type": "Lumbermill",
+    "subtype": "",
 	"profession": "the Forester",
 	"build_time": 100,
 	"level": 0,
@@ -206,6 +215,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "resource",
+    "type": "Mine",
+    "subtype": "",
 	"profession": "the Miner",
 	"build_time": 5,
 	"level": 0,
@@ -251,6 +262,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
+    "type": "Carpenter",
+    "subtype": "",
 	"profession": "the Carpenter",
 	"build_time": 500,
 	"level": 1,
@@ -273,6 +286,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
+    "type": "Mason",
+    "subtype": "",
 	"profession": "the Mason",
 	"build_time": 500,
 	"level": 1,
@@ -296,6 +311,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
+    "type": "Blacksmith",
+    "subtype": "",
 	"profession": "the Blacksmith",
 	"build_time": 5,
 	"level": 0,
@@ -326,6 +343,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
+    "type": "Tailor",
+    "subtype": "",
 	"profession": "the Tailor",
 	"build_time": 1000,
 	"level": 2,
@@ -348,6 +367,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
+    "type": "Alchemist",
+    "subtype": "",
 	"profession": "the Alchemist",
 	"build_time": 2000,
 	"level": 3,
@@ -370,6 +391,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
+    "type": "Herbalist",
+    "subtype": "",
 	"profession": "the Herbalist",
 	"build_time": 2000,
 	"level": 3,
@@ -392,6 +415,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "storage",
+    "type": "Burrow",
+    "subtype": "",
 	"profession": "",
 	"build_time": 10,
 	"level": 0,
@@ -415,6 +440,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "storage",
+    "type": "Warehouse",
+    "subtype": "",
 	"profession": "",
 	"build_time": 500,
 	"level": 1,
@@ -437,6 +464,8 @@
 	"base_speed": 5,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Animal",
+    "subtype": "Wolf",
 	"int": "animal",
 	"aggression": "high",
 	"base_vision": 3,
@@ -449,12 +478,14 @@
 	"_id": {
 		"$oid": "55c5980d5c1c1e641b6d2025"
 	},
-	"name": "Burned house",
+	"name": "Burned House",
 	"base_hp": 0,
 	"base_dmg": 0,
 	"base_def": 0,
 	"class": "poi",
-	"subclass": "poi"
+	"subclass": "poi",
+    "type": "Burned House",
+    "subtype": ""
 },
 {
 	"_id": {
@@ -465,7 +496,9 @@
 	"base_dmg": 0,
 	"base_def": 0,
 	"class": "poi",
-	"subclass": "poi"
+	"subclass": "poi",
+    "type": "Haunted Mine",
+    "subtype": ""
 },
 {
 	"_id": {
@@ -476,7 +509,9 @@
 	"base_dmg": 0,
 	"base_def": 0,
 	"class": "poi",
-	"subclass": "poi"
+	"subclass": "poi",
+    "type": "Graveyard",
+    "subtype": ""
 },
 {
 	"_id": {
@@ -487,7 +522,9 @@
 	"base_dmg": 0,
 	"base_def": 0,
 	"class": "poi",
-	"subclass": "poi"
+	"subclass": "poi",
+    "type": "Sealed Cavern",
+    "subtype": ""
 },
 {
 	"_id": {
@@ -498,7 +535,9 @@
 	"base_dmg": 0,
 	"base_def": 0,
 	"class": "poi",
-	"subclass": "poi"
+	"subclass": "poi",
+    "type": "Mausoleum",
+    "subtype": ""
 },
 {
 	"_id": {
@@ -514,6 +553,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Dragon",
+    "subtype": "Fire Dragon",
 	"int": "high",
 	"aggression": "high",
 	"npc_type": "Dragons"
@@ -526,6 +567,8 @@
 	"mana": 10,
 	"class": "structure",
 	"subclass": "monolith",
+    "type": "Monolith",
+    "subtype": "",
 	"base_hp": "1000000"
 },
 {
@@ -534,7 +577,9 @@
 	},
 	"name": "Mana",
 	"class": "resource",
-	"subclass": "resource"
+	"subclass": "resource",
+    "type": "Mana",
+    "subtype": ""
 },
 {
 	"_id": {
@@ -549,6 +594,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Animal",
+    "subtype": "Rat",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -573,6 +620,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Animal",
+    "subtype": "Scorpion",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -597,6 +646,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Undead",
+    "subtype": "Skeleton",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -621,6 +672,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Animal",
+    "subtype": "Spider",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -645,6 +698,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Magical Creature",
+    "subtype": "Wose",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -669,6 +724,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Magical Creature",
+    "subtype": "Yeti",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -692,6 +749,8 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "Wall",
+    "type": "Stockade",
+    "subtype": "",
 	"build_time": 25,
 	"level": 0,
 	"req": [
@@ -721,6 +780,8 @@
 	"base_speed": 4,
 	"class": "unit",
 	"subclass": "npc",
+    "type": "Undead",
+    "subtype": "Shadow",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -736,6 +797,8 @@
 	"name": "Shipwreck",
 	"class": "poi",
 	"subclass": "poi",
+    "type": "Shipwreck",
+    "subtype": "",
 	"base_hp": "0"
 },
    

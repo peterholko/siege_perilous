@@ -9,7 +9,7 @@
 -include("common.hrl").
 
 -export([init_perception/1]).
--export([create/6, remove/1, move/2, teleport/2]).
+-export([create/5, remove/1, move/2, teleport/2]).
 -export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
@@ -17,7 +17,7 @@
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
--export([class/1, subclass/1, state/1, pos/1]).
+-export([class/1, subclass/1, type/1, state/1, pos/1]).
 
 init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
@@ -29,15 +29,18 @@ init_perception(PlayerId) ->
     lager:info("ObjData: ~p", [ObjData]), 
     {ExploredMap, ObjData}.
 
-create(Pos, PlayerId, Class, Subclass, Name, State) ->
+create(Pos, PlayerId, Name, Type, State) ->
     Id = util:get_id(),
     
     %Create obj attr entries from obj def entries
-    create_obj_attr(Id, Name),
+    create_obj_attr(Id, Type),
 
     %Get base attributes
     BaseHp = obj_attr:value(Id, <<"base_hp">>, 0),
     BaseStamina = obj_attr:value(Id, <<"base_stamina">>, 0),
+
+    Class = obj_attr:value(Id, <<"class">>),
+    Subclass = obj_attr:value(Id, <<"subclass">>),
     Vision = obj_attr:value(Id, <<"base_vision">>, 0),
 
     %Add attributes from base
@@ -48,12 +51,14 @@ create(Pos, PlayerId, Class, Subclass, Name, State) ->
     Obj = #obj {id = Id,
                 pos = Pos,
                 player = PlayerId,
+                name = Name,
+                type = Type,
                 class = Class,
                 subclass = Subclass,
-                name = Name,
                 state = State,
                 vision = Vision,
-                modtick = counter:value(tick)}, 
+                modtick = counter:value(tick)},
+
     db:write(Obj),
 
     StateRec = #state {id = Id,
@@ -359,6 +364,7 @@ class(Obj = #obj{}) -> Obj#obj.class.
 subclass(Obj = #obj{}) -> Obj#obj.subclass.
 state(Obj = #obj{}) -> Obj#obj.state.
 pos(Obj = #obj{}) -> Obj#obj.pos.
+type(Obj = #obj{}) -> {Obj#obj.type, Obj#obj.subtype}.
 
 %Get vital stats
 get_stats(Id) ->
@@ -433,7 +439,7 @@ is_monolith_nearby(QueryPos) ->
     Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->            
-            Radius = get_monolith_radius(Monolith#obj.name),
+            Radius = get_monolith_radius(Monolith#obj.type),
             Distance = map:distance(Monolith#obj.pos, QueryPos),
             (Distance =< Radius) and (Monolith#obj.state =/= disabled)
         end,

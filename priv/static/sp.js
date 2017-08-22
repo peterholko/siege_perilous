@@ -708,7 +708,7 @@ function onMessage(evt) {
         else if(jsonData.packet == "item_transfer") {
             if(jsonData.result == "success") {
                 for(var i = infoPanels.length - 1; i >= 0; i--) {
-                    if(infoPanels[i].hasOwnProperty("unitName")) {
+                    if(infoPanels[i].hasOwnProperty("unitType")) {
                         infoPanels[i].visible = false;
                         sendInfoUnit(infoPanels[i].id);
                     }
@@ -808,7 +808,7 @@ function onMessage(evt) {
 
 function setPlayer() {
     for(var i = 0; i < objs.length; i++) {
-        if(objs[i].player == playerId && is_hero(objs[i].type)) {
+        if(objs[i].player == playerId && is_hero(objs[i].subclass)) {
             heroId = objs[i].id;
             selectedUnit = heroId;
             drawSelectedPortrait();
@@ -1130,9 +1130,9 @@ function drawObj() {
 
         if(!localObj.hasOwnProperty('icon')) {
             var pixel = hex_to_pixel(localObj.x, localObj.y);
-            var unitName = localObj.type;
-            unitName = unitName.toLowerCase().replace(/ /g, '');
-            var imagePath =  "/static/art/" + unitName + ".json";
+            var unitType = localObj.type + localObj.subtype;
+            unitType = unitType.toLowerCase().replace(/ /g, '');
+            var imagePath =  "/static/art/" + unitType + ".json";
             var icon = new createjs.Container();
             
             icon.x = pixel.x;
@@ -1143,7 +1143,7 @@ function drawObj() {
             if(localObj.class == "structure") {             
                 if(localObj.state == "founded") {
                     var imagePath = "/static/art/foundation.json";
-                    unitName = "foundation";
+                    unitType = "foundation";
                 }
 
                 addChildLocalMap(icon, "localObjs1");
@@ -1153,7 +1153,7 @@ function drawObj() {
             }
 
             if(localObj.player == playerId) {
-                if(is_hero(localObj.type)) {
+                if(is_hero(localObj.subclass)) {
                     visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
@@ -1168,7 +1168,7 @@ function drawObj() {
                 }
             }
 
-            addSprite({id: unitName + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: localObj.state}); 
+            addSprite({id: unitType + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: localObj.state}); 
 
             localObj.icon = icon;
         } 
@@ -1189,18 +1189,18 @@ function drawObj() {
                 localObj.icon.y = pixel.y
 
                 if(localObj.player == playerId) {
-                    if(is_hero(localObj.type)) {
+                    if(is_hero(localObj.subclass)) {
                         visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                     }
                 }
             } else if(localObj.class == "structure") {
                 if(localObj.state == "none") {
-                    var unitName = localObj.type;
-                    unitName = unitName.toLowerCase().replace(/ /g, '');
-                    var imagePath =  "/static/art/" + unitName + ".json";
+                    var unitType = localObj.type + localObj.subclass;
+                    unitType = unitType.toLowerCase().replace(/ /g, '');
+                    var imagePath =  "/static/art/" + unitType + ".json";
 
                     localObj.icon.removeAllChildren();        
-                    addSprite({id: unitName + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
+                    addSprite({id: unitType + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
                 }
             } 
             else {
@@ -1224,7 +1224,7 @@ function drawObj() {
                     localObj.icon.x = pixel.x;
                     localObj.icon.y = pixel.y;
 
-                    if(is_hero(localObj.type)) {
+                    if(is_hero(localObj.subclass)) {
                         visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                         c_x = 640 - 36 - pixel.x;
                         c_y = 400 - 36 - pixel.y;             
@@ -1330,9 +1330,9 @@ function drawSelectPanel(tileX, tileY) {
     localObjs = hero.concat(units).concat(others);
  
     for(var i = 0; i < localObjs.length; i++) {
-        var unitName = localObjs[i].type;
-        unitName = unitName.toLowerCase().replace(/ /g, '');
-        var imagePath =  "/static/art/" + unitName + ".png";
+        var unitType = localObjs[i].type + localObjs[i].subtype;
+        unitType = unitType.toLowerCase().replace(/ /g, '');
+        var imagePath =  "/static/art/" + unitType + ".png";
 
         var icon = new createjs.Container();
 
@@ -1382,7 +1382,7 @@ function drawSelectPanel(tileX, tileY) {
         });
         
         content.addChild(icon);
-        addImage({id: unitName, path: imagePath, x: 0, y: 0, target: icon});
+        addImage({id: unitType, path: imagePath, x: 0, y: 0, target: icon});
         
         icons.push(icon); 
     }
@@ -1939,12 +1939,12 @@ function drawInfoTile(jsonData) {
 function drawInfoUnit(jsonData) {
     showInfoPanel();
 
-    var unitName = jsonData.name
-    activeInfoPanel.unitName = unitName;   
+    var unitType = jsonData.type + jsonData.subtype
+    activeInfoPanel.unitType = unitType;   
     activeInfoPanel.id = jsonData.id;
     console.log('activeInfoPanel: ' + activeInfoPanel.id); 
 
-    var nameText = new createjs.Text(unitName, h1Font, textColor);
+    var nameText = new createjs.Text(unitType, h1Font, textColor);
 
     var nameBounds = nameText.getBounds();
     nameText.x =  Math.floor(infoPanelBg.width / 2) - nameBounds.width / 2;
@@ -1952,13 +1952,13 @@ function drawInfoUnit(jsonData) {
 
     addChildInfoPanel(nameText);
 
-    unitName = unitName.toLowerCase().replace(/ /g, '');
-    var imagePath =  "/static/art/" + unitName + ".png";
+    unitType = unitType.toLowerCase().replace(/ /g, '');
+    var imagePath =  "/static/art/" + unitType + ".png";
 
-    imagesQueue.push({id: unitName, 
+    imagesQueue.push({id: unitType, 
                       x: Math.floor(infoPanelBg.width / 2) - 45, 
                       y: 50, target: getInfoPanelContent()});
-    loaderQueue.loadFile({id: unitName, src: imagePath});
+    loaderQueue.loadFile({id: unitType, src: imagePath});
 
     if(jsonData.class == "unit") {
         var itemDamage = getItemDamage(jsonData.items);
@@ -3290,8 +3290,8 @@ function is_visible(x, y, visibleTiles) {
     return false;
 };
 
-function is_hero(type) {
-    if(type.toLowerCase().indexOf("hero") > -1) {
+function is_hero(subclass) {
+    if(subclass == "hero") {
         return true;
     } 
 

@@ -242,9 +242,11 @@ build_message(MapObj) ->
       <<"player">> => MapObj#obj.player, 
       <<"x">> => X,
       <<"y">> => Y,
+      <<"name">> => MapObj#obj.name,
       <<"class">> => MapObj#obj.class,
       <<"subclass">> => MapObj#obj.subclass,
-      <<"type">> => MapObj#obj.name, %TODO fix client to accept name instead of type
+      <<"type">> => MapObj#obj.type, 
+      <<"subtype">> => MapObj#obj.subtype, 
       <<"vision">> => MapObj#obj.vision,
       <<"state">> => MapObj#obj.state}.
 

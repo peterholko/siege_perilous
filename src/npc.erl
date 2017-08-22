@@ -496,15 +496,15 @@ return_target(_) ->
 
 get_combo(NPCObj) ->
     Rand = util:rand(100),
-    combo(NPCObj#obj.name, Rand).
+    combo(obj:type(NPCObj), Rand).
 
 get_next_attack(Attacks, Combo) ->
     RemainingAttacks = lists:subtract(Combo, Attacks),
     [NextAttack | _] = RemainingAttacks,
     NextAttack.
 
-combo(<<"Shadow">>, Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FIERCE, ?QUICK];
-combo(<<"Shadow">>, _) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE];
+combo({<<"Undead">>, <<"Shadow">>}, Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FIERCE, ?QUICK];
+combo({<<"Undead">>, <<"Shadow">>}, _) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE];
 combo(_, _) -> [?QUICK, ?QUICK, ?QUICK, ?FIERCE].
 
 perception(NPCId, Objs) ->
