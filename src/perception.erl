@@ -243,10 +243,9 @@ build_message(MapObj) ->
       <<"x">> => X,
       <<"y">> => Y,
       <<"name">> => MapObj#obj.name,
+      <<"template">> => MapObj#obj.template, 
       <<"class">> => MapObj#obj.class,
       <<"subclass">> => MapObj#obj.subclass,
-      <<"type">> => MapObj#obj.type, 
-      <<"subtype">> => MapObj#obj.subtype, 
       <<"vision">> => MapObj#obj.vision,
       <<"state">> => MapObj#obj.state}.
 

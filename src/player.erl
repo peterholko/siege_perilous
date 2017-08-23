@@ -394,7 +394,7 @@ build(BuilderId, StructureName) ->
 
     Builder = obj:get(BuilderId),
     lager:info("Builder: ~p", [Builder]),
-    StructureSubclass = obj_def:value(StructureName, <<"subclass">>),
+    StructureSubclass = obj_template:value(StructureName, <<"subclass">>),
 
     Checks = [{is_player_owned(Builder, PlayerId), "Builder not owned by player"},              
               {structure:valid_location(StructureSubclass, Builder#obj.pos), "Invalid structure location"},

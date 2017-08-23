@@ -57,7 +57,7 @@
               pos,
               player,
               name,
-              type,
+              template,
               class,
               subclass,
               state,
@@ -68,8 +68,8 @@
 -record(obj_attr, {key, % {id, attr}
                    value}).
 
--record(obj_def, {key,  % {name, attr}
-                  value}).
+-record(obj_template, {key,  % {name, attr}
+                       value}).
 
 -record(item, {id,
                name,

@@ -86,7 +86,7 @@ check_recipe_req(ObjId, RecipeName) ->
     has_req(ReqList, Items).
  
 list() ->
-    Structures = obj_def:select(<<"level">>, 0),
+    Structures = obj_template:select(<<"level">>, 0),
     Structures.
 
 recipe_list(Obj) ->

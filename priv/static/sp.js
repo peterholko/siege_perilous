@@ -1130,9 +1130,9 @@ function drawObj() {
 
         if(!localObj.hasOwnProperty('icon')) {
             var pixel = hex_to_pixel(localObj.x, localObj.y);
-            var unitType = localObj.type + localObj.subtype;
-            unitType = unitType.toLowerCase().replace(/ /g, '');
-            var imagePath =  "/static/art/" + unitType + ".json";
+            var unitTemplate = localObj.template;
+            unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
+            var imagePath =  "/static/art/" + unitTemplate + ".json";
             var icon = new createjs.Container();
             
             icon.x = pixel.x;

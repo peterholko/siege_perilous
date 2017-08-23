@@ -11,7 +11,7 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Zombie",
+    "template": "Zombie",
     "family": "Undead",
 	"int": "mindless",
 	"base_vision": 2,
@@ -37,8 +37,7 @@
 	"base_vision": 2,
 	"class": "unit",
 	"subclass": "hero",
-    "type": "Human",
-    "subtype": "Hero Mage",
+    "template": "Hero Mage",
 	"capacity": 300
 },
 {
@@ -53,13 +52,12 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "shelter",
-    "type": "Tent",
-    "subtype": "",
+    "template": "Tent",
 	"build_time": 25,
 	"level": 0,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 1
 		}
 	]
@@ -76,13 +74,12 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
-    "type": "Smelter",
-    "subtype": "",
+    "template": "Smelter",
 	"build_time": 125,
 	"level": 1,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 2
 		}
 	],
@@ -104,8 +101,7 @@
 	"base_vision": 1,
 	"class": "unit",
 	"subclass": "villager",
-    "type": "Human",
-    "subtype": "Villager",
+    "template": "Human Villager",
 	"capacity": 121
 },
 {
@@ -120,14 +116,13 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "resource",
-    "type": "Farm",
-    "subtype": "",
+    "template": "Farm",
 	"profession": "the Farmer",
 	"build_time": 500,
 	"level": 0,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 40
 		}
 	]
@@ -144,14 +139,13 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "resource",
-    "type": "Trapper",
-    "subtype": "",
+    "template": "Trapper",
 	"profession": "the Hunter",
 	"build_time": 500,
 	"level": 1,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 40
 		}
 	]
@@ -168,15 +162,14 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "resource",
-    "type": "Lumbermill",
-    "subtype": "",
+    "template": "Lumbermill",
 	"profession": "the Forester",
 	"build_time": 100,
 	"level": 0,
 	"refine": "Wood",
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 1
 		}
 	]
@@ -198,7 +191,7 @@
 	"level": 1,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 40
 		}
 	]
@@ -215,15 +208,14 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "resource",
-    "type": "Mine",
-    "subtype": "",
+    "template": "Mine",
 	"profession": "the Miner",
 	"build_time": 5,
 	"level": 0,
 	"capacity": 21,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 1
 		}
 	]
@@ -245,7 +237,7 @@
 	"level": 1,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 80
 		}
 	]
@@ -262,14 +254,13 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
-    "type": "Carpenter",
-    "subtype": "",
+    "template": "Carpenter",
 	"profession": "the Carpenter",
 	"build_time": 500,
 	"level": 1,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 40
 		}
 	]
@@ -286,15 +277,15 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
-    "type": "Mason",
-    "subtype": "",
+    "template": "Mason",
+    "subtemplate": "",
 	"profession": "the Mason",
 	"build_time": 500,
 	"level": 1,
 	"refine": "Stone",
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 40
 		}
 	]
@@ -311,8 +302,7 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
-    "type": "Blacksmith",
-    "subtype": "",
+    "template": "Blacksmith",
 	"profession": "the Blacksmith",
 	"build_time": 5,
 	"level": 0,
@@ -320,13 +310,13 @@
 	"capacity": 50,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 1
 		}
 	],
 	"upgrade_req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 1
 		}
 	]
@@ -343,14 +333,13 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
-    "type": "Tailor",
-    "subtype": "",
+    "template": "Tailor",
 	"profession": "the Tailor",
 	"build_time": 1000,
 	"level": 2,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 80
 		}
 	]
@@ -367,14 +356,13 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
-    "type": "Alchemist",
-    "subtype": "",
+    "template": "Alchemist",
 	"profession": "the Alchemist",
 	"build_time": 2000,
 	"level": 3,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 120
 		}
 	]
@@ -391,14 +379,13 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "craft",
-    "type": "Herbalist",
-    "subtype": "",
+    "template": "Herbalist",
 	"profession": "the Herbalist",
 	"build_time": 2000,
 	"level": 3,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 80
 		}
 	]
@@ -415,15 +402,15 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "storage",
-    "type": "Burrow",
-    "subtype": "",
+    "template": "Burrow",
+    "subtemplate": "",
 	"profession": "",
 	"build_time": 10,
 	"level": 0,
 	"capacity": 101,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 1
 		}
 	]
@@ -440,14 +427,13 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "storage",
-    "type": "Warehouse",
-    "subtype": "",
+    "template": "Warehouse",
 	"profession": "",
 	"build_time": 500,
 	"level": 1,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 40
 		}
 	]
@@ -464,15 +450,13 @@
 	"base_speed": 5,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Animal",
-    "subtype": "Wolf",
+    "template": "Wolf",
 	"int": "animal",
 	"aggression": "high",
 	"base_vision": 3,
 	"base_stamina": 10000,
 	"kill_xp": 5,
 	"orders": [],
-	"npc_type": "Animals"
 },
 {
 	"_id": {
@@ -484,8 +468,8 @@
 	"base_def": 0,
 	"class": "poi",
 	"subclass": "poi",
-    "type": "Burned House",
-    "subtype": ""
+    "template": "Burned House",
+    "subtemplate": ""
 },
 {
 	"_id": {
@@ -497,8 +481,8 @@
 	"base_def": 0,
 	"class": "poi",
 	"subclass": "poi",
-    "type": "Haunted Mine",
-    "subtype": ""
+    "template": "Haunted Mine",
+    "subtemplate": ""
 },
 {
 	"_id": {
@@ -510,8 +494,7 @@
 	"base_def": 0,
 	"class": "poi",
 	"subclass": "poi",
-    "type": "Graveyard",
-    "subtype": ""
+    "template": "Graveyard",
 },
 {
 	"_id": {
@@ -523,8 +506,7 @@
 	"base_def": 0,
 	"class": "poi",
 	"subclass": "poi",
-    "type": "Sealed Cavern",
-    "subtype": ""
+    "template": "Sealed Cavern",
 },
 {
 	"_id": {
@@ -536,8 +518,7 @@
 	"base_def": 0,
 	"class": "poi",
 	"subclass": "poi",
-    "type": "Mausoleum",
-    "subtype": ""
+    "template": "Mausoleum",
 },
 {
 	"_id": {
@@ -553,11 +534,10 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Dragon",
-    "subtype": "Fire Dragon",
+    "template": "Fire Dragon",
 	"int": "high",
 	"aggression": "high",
-	"npc_type": "Dragons"
+	"npc_template": "Dragons"
 },
 {
 	"_id": {
@@ -567,8 +547,7 @@
 	"mana": 10,
 	"class": "structure",
 	"subclass": "monolith",
-    "type": "Monolith",
-    "subtype": "",
+    "template": "Monolith",
 	"base_hp": "1000000"
 },
 {
@@ -578,8 +557,7 @@
 	"name": "Mana",
 	"class": "resource",
 	"subclass": "resource",
-    "type": "Mana",
-    "subtype": ""
+    "template": "Mana",
 },
 {
 	"_id": {
@@ -594,8 +572,7 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Animal",
-    "subtype": "Rat",
+    "template": "Rat",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -605,7 +582,7 @@
 		"10",
 		"10"
 	],
-	"npc_type": "Animals"
+	"npc_template": "Animals"
 },
 {
 	"_id": {
@@ -620,8 +597,7 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Animal",
-    "subtype": "Scorpion",
+    "template": "Scorpion",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -631,7 +607,7 @@
 		"10",
 		"10"
 	],
-	"npc_type": "Animals"
+	"npc_template": "Animals"
 },
 {
 	"_id": {
@@ -646,8 +622,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Undead",
-    "subtype": "Skeleton",
+    "template": "Undead",
+    "subtemplate": "Skeleton",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -657,7 +633,7 @@
 		"10",
 		"10"
 	],
-	"npc_type": "Undead"
+	"npc_template": "Undead"
 },
 {
 	"_id": {
@@ -672,8 +648,7 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Animal",
-    "subtype": "Spider",
+    "template": "Spider",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -683,7 +658,7 @@
 		"10",
 		"10"
 	],
-	"npc_type": "Animals"
+	"npc_template": "Animals"
 },
 {
 	"_id": {
@@ -698,8 +673,7 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Magical Creature",
-    "subtype": "Wose",
+    "template": "Wose",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -709,7 +683,7 @@
 		"10",
 		"10"
 	],
-	"npc_type": "Animals"
+	"npc_template": "Animals"
 },
 {
 	"_id": {
@@ -724,8 +698,7 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Magical Creature",
-    "subtype": "Yeti",
+    "template": "Yeti",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -735,7 +708,7 @@
 		"10",
 		"10"
 	],
-	"npc_type": "Animals"
+	"npc_template": "Animals"
 },
 {
 	"_id": {
@@ -749,19 +722,18 @@
 	"base_speed": 0,
 	"class": "structure",
 	"subclass": "Wall",
-    "type": "Stockade",
-    "subtype": "",
+    "template": "Stockade",
 	"build_time": 25,
 	"level": 0,
 	"req": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 1
 		}
 	],
 	"upkeep": [
 		{
-			"type": "Wood",
+			"template": "Wood",
 			"quantity": 1
 		}
 	],
@@ -780,8 +752,7 @@
 	"base_speed": 4,
 	"class": "unit",
 	"subclass": "npc",
-    "type": "Undead",
-    "subtype": "Shadow",
+    "template": "Shadow",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -791,14 +762,13 @@
 		"10",
 		"10"
 	],
-	"npc_type": "Undead"
+	"npc_template": "Undead"
 },
 {
 	"name": "Shipwreck",
 	"class": "poi",
 	"subclass": "poi",
-    "type": "Shipwreck",
-    "subtype": "",
+    "template": "Shipwreck",
 	"base_hp": "0"
 },
    

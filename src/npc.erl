@@ -50,9 +50,9 @@ set_order(Id, Orders, OrdersData) ->
     db:write(NewNPC).
 
 create(Pos, Name) ->
-    Type = obj_def:value(Name, <<"npc_type">>),
-    PlayerId = get_player_id(Type),
-    Id = obj:create(Pos, PlayerId, unit, <<"npc">>, Name, none),
+    Template = obj_template:value(Name, <<"template">>),
+    PlayerId = get_player_id(Template),
+    Id = obj:create(Pos, PlayerId, unit, <<"npc">>, Template, none),
     Id.
 
 %% HTN Functions %%%

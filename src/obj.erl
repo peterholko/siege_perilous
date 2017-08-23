@@ -17,7 +17,7 @@
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
--export([class/1, subclass/1, type/1, state/1, pos/1]).
+-export([class/1, subclass/1, template/1, state/1, pos/1]).
 
 init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
@@ -29,11 +29,11 @@ init_perception(PlayerId) ->
     lager:info("ObjData: ~p", [ObjData]), 
     {ExploredMap, ObjData}.
 
-create(Pos, PlayerId, Name, Type, State) ->
+create(Pos, PlayerId, Name, Template, State) ->
     Id = util:get_id(),
     
     %Create obj attr entries from obj def entries
-    create_obj_attr(Id, Type),
+    create_obj_attr(Id, Template),
 
     %Get base attributes
     BaseHp = obj_attr:value(Id, <<"base_hp">>, 0),
@@ -52,7 +52,7 @@ create(Pos, PlayerId, Name, Type, State) ->
                 pos = Pos,
                 player = PlayerId,
                 name = Name,
-                type = Type,
+                template = Template,
                 class = Class,
                 subclass = Subclass,
                 state = State,
@@ -360,11 +360,11 @@ process_attrlist(Obj, AttrList) ->
 
     lists:foldl(F, true, AttrList).
 
+template(Obj = #obj{}) -> Obj#obj.template.
 class(Obj = #obj{}) -> Obj#obj.class.
 subclass(Obj = #obj{}) -> Obj#obj.subclass.
 state(Obj = #obj{}) -> Obj#obj.state.
 pos(Obj = #obj{}) -> Obj#obj.pos.
-type(Obj = #obj{}) -> {Obj#obj.type, Obj#obj.subtype}.
 
 %Get vital stats
 get_stats(Id) ->
@@ -439,7 +439,7 @@ is_monolith_nearby(QueryPos) ->
     Monoliths = db:index_read(obj, ?MONOLITH, #obj.subclass),
 
     F = fun(Monolith) ->            
-            Radius = get_monolith_radius(Monolith#obj.type),
+            Radius = get_monolith_radius(Monolith#obj.template),
             Distance = map:distance(Monolith#obj.pos, QueryPos),
             (Distance =< Radius) and (Monolith#obj.state =/= disabled)
         end,
@@ -653,20 +653,20 @@ info_subclass(<<"storage">>, Obj, Info) ->
 info_subclass(_, _Obj, Info) -> Info.
 
 create_obj_attr(Id, Name) ->
-    AllObjDef = obj_def:all(Name),
+    AllObjTemplate = obj_template:all(Name),
     
-    F = fun(ObjDef) -> 
-            {Name, Attr} = ObjDef#obj_def.key,
-            case ObjDef#obj_def.key of
+    F = fun(ObjTemplate) -> 
+            {Name, Attr} = ObjTemplate#obj_template.key,
+            case ObjTemplate#obj_template.key of
                 {Name, Attr} ->
                     AttrKey = {Id, Attr},
                     ObjAttr = #obj_attr {key = AttrKey, 
-                                         value = ObjDef#obj_def.value},
+                                         value = ObjTemplate#obj_template.value},
                     db:dirty_write(ObjAttr)
             end
         end,
 
-    lists:foreach(F, AllObjDef).
+    lists:foreach(F, AllObjTemplate).
 
 set_attr(Current, _Base, Change) when (Current + Change) =< 0 -> 0;
 set_attr(Current, Base, Change) when (Current + Change) > Base -> Base;

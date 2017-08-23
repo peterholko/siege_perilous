@@ -17,7 +17,7 @@ start() ->
     db:reset_tables(),
 
     lager:info("Import data"),
-    db:import("obj_def"),
+    db:import("obj_template"),
     db:import("item_def"),
     db:import("recipe_def"),
     db:import("resource_def"),

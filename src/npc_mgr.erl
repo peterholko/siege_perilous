@@ -30,8 +30,8 @@ start_all_npc() ->
 spawn_zombies(0) -> done;
 spawn_zombies(Num) -> 
     Pos = map:random_location(),
-    NPCType = obj_def:value(<<"Zombie">>, <<"npc_type">>),
-    PlayerId = npc:get_player_id(NPCType),
+    Family = obj_template:value(<<"Zombie">>, <<"family">>),
+    PlayerId = npc:get_player_id(Family),
 
     obj:create(Pos, PlayerId, unit, <<"npc">>, <<"Zombie">>, none),
 

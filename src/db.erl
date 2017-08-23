@@ -44,7 +44,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(map, [{ram_copies, [node()]}, {attributes, record_info(fields, map)}]),    
     {atomic, ok} = mnesia:create_table(obj, [{ram_copies, [node()]}, {attributes, record_info(fields, obj)}]),    
     {atomic, ok} = mnesia:create_table(obj_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_attr)}]),    
-    {atomic, ok} = mnesia:create_table(obj_def, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_def)}]),    
+    {atomic, ok} = mnesia:create_table(obj_template, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_template)}]),    
     {atomic, ok} = mnesia:create_table(item, [{ram_copies, [node()]}, {attributes, record_info(fields, item)}]),    
     {atomic, ok} = mnesia:create_table(item_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, item_attr)}]),    
     {atomic, ok} = mnesia:create_table(item_def, [{ram_copies, [node()]}, {attributes, record_info(fields, item_def)}]), 
