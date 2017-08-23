@@ -29,7 +29,7 @@ init_perception(PlayerId) ->
     lager:info("ObjData: ~p", [ObjData]), 
     {ExploredMap, ObjData}.
 
-create(Pos, PlayerId, Name, Template, State) ->
+create(Pos, PlayerId, UniqueName, Template, State) ->
     Id = util:get_id(),
     
     %Create obj attr entries from obj def entries
@@ -42,6 +42,12 @@ create(Pos, PlayerId, Name, Template, State) ->
     Class = obj_attr:value(Id, <<"class">>),
     Subclass = obj_attr:value(Id, <<"subclass">>),
     Vision = obj_attr:value(Id, <<"base_vision">>, 0),
+
+    %Set Unique Name or use unit template
+    Name = case UniqueName of
+               none -> obj_attr:value(Id, <<"name">>);
+               _ -> UniqueName
+           end,
 
     %Add attributes from base
     obj_attr:set(Id, <<"hp">>, BaseHp),

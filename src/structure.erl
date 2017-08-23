@@ -90,7 +90,7 @@ list() ->
     Structures.
 
 recipe_list(Obj) ->
-    Recipes = recipe:get_recipes(Obj#obj.name),
+    Recipes = recipe:get_recipes(Obj#obj.template),
     Recipes.
 
 refine(StructureId) ->
@@ -125,7 +125,7 @@ can_refine(StructureId) ->
 
 can_craft(StructureId) ->
     [Structure] = db:read(obj, StructureId),
-    AllRecipes = recipe:get_recipes(Structure#obj.name),
+    AllRecipes = recipe:get_recipes(Structure#obj.template),
     Recipes = filter_refine(AllRecipes),
 
     F = fun(Recipe, Acc) ->
@@ -137,7 +137,7 @@ can_craft(StructureId) ->
 
 get_craftable_recipe(StructureId) ->
     [Structure] = db:read(obj, StructureId),
-    AllRecipes = recipe:get_recipes(Structure#obj.name),
+    AllRecipes = recipe:get_recipes(Structure#obj.template),
     Recipes = filter_refine(AllRecipes),
 
     F = fun(Recipe) ->

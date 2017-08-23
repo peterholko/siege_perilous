@@ -708,7 +708,7 @@ function onMessage(evt) {
         else if(jsonData.packet == "item_transfer") {
             if(jsonData.result == "success") {
                 for(var i = infoPanels.length - 1; i >= 0; i--) {
-                    if(infoPanels[i].hasOwnProperty("unitType")) {
+                    if(infoPanels[i].hasOwnProperty("unitTemplate")) {
                         infoPanels[i].visible = false;
                         sendInfoUnit(infoPanels[i].id);
                     }
@@ -1143,7 +1143,7 @@ function drawObj() {
             if(localObj.class == "structure") {             
                 if(localObj.state == "founded") {
                     var imagePath = "/static/art/foundation.json";
-                    unitType = "foundation";
+                    unitTemplate = "foundation";
                 }
 
                 addChildLocalMap(icon, "localObjs1");
@@ -1168,7 +1168,7 @@ function drawObj() {
                 }
             }
 
-            addSprite({id: unitType + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: localObj.state}); 
+            addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: localObj.state}); 
 
             localObj.icon = icon;
         } 
@@ -1195,12 +1195,12 @@ function drawObj() {
                 }
             } else if(localObj.class == "structure") {
                 if(localObj.state == "none") {
-                    var unitType = localObj.type + localObj.subclass;
-                    unitType = unitType.toLowerCase().replace(/ /g, '');
-                    var imagePath =  "/static/art/" + unitType + ".json";
+                    var unitTemplate = localObj.template;
+                    unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
+                    var imagePath =  "/static/art/" + unitTemplate + ".json";
 
                     localObj.icon.removeAllChildren();        
-                    addSprite({id: unitType + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
+                    addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
                 }
             } 
             else {
@@ -1255,7 +1255,7 @@ function drawObj() {
     for(var id in localObjs) {
         var obj = localObjs[id];
 
-        if(obj.type == "Stockade" && obj.state == "none") {
+        if(obj.template == "Stockade" && obj.state == "none") {
             stockades.push(obj);
         }
     }
@@ -1330,9 +1330,9 @@ function drawSelectPanel(tileX, tileY) {
     localObjs = hero.concat(units).concat(others);
  
     for(var i = 0; i < localObjs.length; i++) {
-        var unitType = localObjs[i].type + localObjs[i].subtype;
-        unitType = unitType.toLowerCase().replace(/ /g, '');
-        var imagePath =  "/static/art/" + unitType + ".png";
+        var unitTemplate = localObjs[i].template;
+        unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
+        var imagePath =  "/static/art/" + unitTemplate + ".png";
 
         var icon = new createjs.Container();
 
@@ -1382,7 +1382,7 @@ function drawSelectPanel(tileX, tileY) {
         });
         
         content.addChild(icon);
-        addImage({id: unitType, path: imagePath, x: 0, y: 0, target: icon});
+        addImage({id: unitTemplate, path: imagePath, x: 0, y: 0, target: icon});
         
         icons.push(icon); 
     }
@@ -1453,10 +1453,10 @@ function drawSelectedPortrait() {
 
             selectedPortrait = selectedUnit;
 
-            var objName = obj.type.toLowerCase().replace(/ /g, '');
+            var objName = obj.template.toLowerCase().replace(/ /g, '');
             var imagePath =  "/static/art/" + objName + ".png";
 
-            var text = new createjs.Text(obj.type, h1Font, textColor);
+            var text = new createjs.Text(obj.name, h1Font, textColor);
 
             text.x = 160;
             text.y = 9;
@@ -1574,35 +1574,35 @@ function drawDmg(jsonData) {
 
         if(jsonData.countered != false) {
             if(jsonData.sourceid == heroId) {
-                txt = "Your " + jsonData.attacktype + " attack has been " + jsonData.countered + " for " + jsonData.dmg + " damage to " + target.type;
+                txt = "Your " + jsonData.attacktype + " attack has been " + jsonData.countered + " for " + jsonData.dmg + " damage to " + target.name;
             }
             else if(jsonData.targetid == heroId) {
-                txt = source.type + " " + jsonData.attacktype + " attack has been " + jsonData.countered + " by you for " + jsonData.dmg + " damage";               
+                txt = source.name + " " + jsonData.attacktype + " attack has been " + jsonData.countered + " by you for " + jsonData.dmg + " damage";               
             }
             else {
-                txt = source.type + " " + jsonData.attacktype + " attack has been " + jsonData.countered + " by " + target.name + " for " + jsonData.dmg + " damage";
+                txt = source.name + " " + jsonData.attacktype + " attack has been " + jsonData.countered + " by " + target.name + " for " + jsonData.dmg + " damage";
             }
         }
         else if(jsonData.combo != false) {
             if(jsonData.sourceid == heroId) {
-                txt = "Your " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " for " + jsonData.dmg + " damage to " + target.type;
+                txt = "Your " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " for " + jsonData.dmg + " damage to " + target.name;
             }
             else if(jsonData.targetid == heroId) {
-                txt = source.type + " " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " on you for " + jsonData.dmg + " damage";               
+                txt = source.name + " " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " on you for " + jsonData.dmg + " damage";               
             }
             else {
-                txt = source.type + " " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " on " + target.name + " for " + jsonData.dmg + " damage";
+                txt = source.name + " " + jsonData.attacktype + " attack unleashes a " + jsonData.combo + " on " + target.name + " for " + jsonData.dmg + " damage";
             }
         }
         else {
             if(jsonData.sourceid == heroId) {
-                txt = "Your "  + jsonData.attacktype + " attack deals " + jsonData.dmg + " damage to " + target.type;            
+                txt = "Your "  + jsonData.attacktype + " attack deals " + jsonData.dmg + " damage to " + target.name;            
             }
             else if(jsonData.targetid == heroId) {
-                txt = source.type + " " + jsonData.attacktype + " attacks you for " + jsonData.dmg + " damage";
+                txt = source.name + " " + jsonData.attacktype + " attacks you for " + jsonData.dmg + " damage";
             }
             else {
-                txt = source.type + " " + jsonData.attacktype + " damages " + target.name + " for " + jsonData.dmg + " damage";
+                txt = source.name + " " + jsonData.attacktype + " damages " + target.name + " for " + jsonData.dmg + " damage";
             }
         }
         
@@ -1641,13 +1641,13 @@ function drawDmg(jsonData) {
                 if(jsonData.targetid == heroId) {
                     var sprite = target.icon.getChildByName("sprite");
                     sprite.gotoAndPlay("die");
-                    txt = "You have been killed by " + source.type;
+                    txt = "You have been killed by " + source.name;
                 } 
                 else if(jsonData.sourceid == heroId) {
-                    txt = "You have killed a " + target.type;
+                    txt = "You have killed a " + target.name;
                 }                
                 else {
-                    txt = target.type + " has been killed by " + source.type;
+                    txt = target.name + " has been killed by " + source.name;
                 }
 
                 updateTextLog(txt);
@@ -1939,12 +1939,12 @@ function drawInfoTile(jsonData) {
 function drawInfoUnit(jsonData) {
     showInfoPanel();
 
-    var unitType = jsonData.type + jsonData.subtype
-    activeInfoPanel.unitType = unitType;   
+    var unitTemplate = jsonData.template;
+    activeInfoPanel.unitTemplate = unitTemplate;   
     activeInfoPanel.id = jsonData.id;
     console.log('activeInfoPanel: ' + activeInfoPanel.id); 
 
-    var nameText = new createjs.Text(unitType, h1Font, textColor);
+    var nameText = new createjs.Text(unitTemplate, h1Font, textColor);
 
     var nameBounds = nameText.getBounds();
     nameText.x =  Math.floor(infoPanelBg.width / 2) - nameBounds.width / 2;
@@ -1952,13 +1952,13 @@ function drawInfoUnit(jsonData) {
 
     addChildInfoPanel(nameText);
 
-    unitType = unitType.toLowerCase().replace(/ /g, '');
-    var imagePath =  "/static/art/" + unitType + ".png";
+    unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
+    var imagePath =  "/static/art/" + unitTemplate + ".png";
 
-    imagesQueue.push({id: unitType, 
+    imagesQueue.push({id: unitTemplate, 
                       x: Math.floor(infoPanelBg.width / 2) - 45, 
                       y: 50, target: getInfoPanelContent()});
-    loaderQueue.loadFile({id: unitType, src: imagePath});
+    loaderQueue.loadFile({id: unitTemplate, src: imagePath});
 
     if(jsonData.class == "unit") {
         var itemDamage = getItemDamage(jsonData.items);

@@ -49,9 +49,13 @@ run_plan() ->
     gen_server:cast({global, villager}, run_plan).
 
 generate(Level) ->
-    Id = obj:create({-9999, -9999}, -9999, unit, ?VILLAGER, <<"Human Villager">>, none),
+    OffMapPos = {-9999, 9999},
+    PlayerId = -9999, 
+    Name = generate_name(),
+    Template = <<"Human Villager">>,
+    State = none,
 
-    obj_attr:set(Id, <<"name">>, <<"Roderich Denholm">>),
+    Id = obj:create(OffMapPos, PlayerId, Name, Template, State),
 
     obj_attr:set(Id, ?STRENGTH, util:rand(10 + Level)),
     obj_attr:set(Id, ?TOUGHNESS, util:rand(10 + Level)),
@@ -77,6 +81,14 @@ generate(Level) ->
     skill:update(Id, maps:get(<<"name">>, Skill1), util:rand(26) - 1),
     skill:update(Id, maps:get(<<"name">>, Skill2), util:rand(26) - 1),
     skill:update(Id, maps:get(<<"name">>, Skill3), util:rand(26) - 1).
+
+generate_name() ->
+    Names = [<<"Geoffry Holte">>,
+             <<"Roderich Denholm">>,
+             <<"Warder Folcey">>,
+             <<"Andes Bardaye">>],
+
+    lists:nth(util:rand(length(Names)), Names).
 
 %%%
 %%% HTN Conditions %%%

@@ -92,7 +92,7 @@ is_valid(ResourceName, Pos) ->
 is_auto(Objs, _Resource) ->
     
     F = fun(Obj) ->
-            Obj#obj.name =:= <<"Lumbermill">>
+            Obj#obj.template =:= <<"Lumbermill">>
         end,
 
     lists:any(F, Objs).

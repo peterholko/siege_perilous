@@ -496,7 +496,7 @@ return_target(_) ->
 
 get_combo(NPCObj) ->
     Rand = util:rand(100),
-    combo(obj:type(NPCObj), Rand).
+    combo(obj:template(NPCObj), Rand).
 
 get_next_attack(Attacks, Combo) ->
     RemainingAttacks = lists:subtract(Combo, Attacks),
