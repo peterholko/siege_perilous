@@ -202,7 +202,7 @@ test_tables() ->
      {connection, ?EMPIRE, none},     
      {player, 98, <<"natives">>, <<"123123">>, 0, false, false, true},
      {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, true},
-     {player, ?ANIMAL, <<"Animals">>, <<"123123">>, 0, false, false, true},
+     {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, true},
      {player, ?EMPIRE, <<"Empire">>, <<"123123">>, 0, false, false, true},     
      {counter, player, ?NPC_ID},
      {world, time, day},

@@ -57,7 +57,7 @@
 	"level": 0,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 1
 		}
 	]
@@ -122,7 +122,7 @@
 	"level": 0,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -145,7 +145,7 @@
 	"level": 1,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -169,7 +169,7 @@
 	"refine": "Wood",
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 1
 		}
 	]
@@ -215,7 +215,7 @@
 	"capacity": 21,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 1
 		}
 	]
@@ -237,7 +237,7 @@
 	"level": 1,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 80
 		}
 	]
@@ -260,7 +260,7 @@
 	"level": 1,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -285,7 +285,7 @@
 	"refine": "Stone",
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -310,13 +310,13 @@
 	"capacity": 50,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 1
 		}
 	],
 	"upgrade_req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 1
 		}
 	]
@@ -339,7 +339,7 @@
 	"level": 2,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 80
 		}
 	]
@@ -362,7 +362,7 @@
 	"level": 3,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 120
 		}
 	]
@@ -385,7 +385,7 @@
 	"level": 3,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 80
 		}
 	]
@@ -410,7 +410,7 @@
 	"capacity": 101,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 1
 		}
 	]
@@ -433,7 +433,7 @@
 	"level": 1,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 40
 		}
 	]
@@ -732,13 +732,13 @@
 	"level": 0,
 	"req": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 1
 		}
 	],
 	"upkeep": [
 		{
-			"template": "Wood",
+			"type": "Wood",
 			"quantity": 1
 		}
 	],
