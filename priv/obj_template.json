@@ -451,6 +451,7 @@
 	"class": "unit",
 	"subclass": "npc",
     "template": "Wolf",
+    "family": "Animal",
 	"int": "animal",
 	"aggression": "high",
 	"base_vision": 3,
@@ -535,6 +536,7 @@
 	"class": "unit",
 	"subclass": "npc",
     "template": "Fire Dragon",
+    "family": "Empire",
 	"int": "high",
 	"aggression": "high",
 	"npc_template": "Dragons"
@@ -573,6 +575,7 @@
 	"class": "unit",
 	"subclass": "npc",
     "template": "Rat",
+    "family": "Animal",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -598,6 +601,7 @@
 	"class": "unit",
 	"subclass": "npc",
     "template": "Scorpion",
+    "family": "Animal",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -622,8 +626,8 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "template": "Undead",
-    "subtemplate": "Skeleton",
+    "template": "Skeleton",
+    "family": "Undead",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -674,6 +678,7 @@
 	"class": "unit",
 	"subclass": "npc",
     "template": "Wose",
+    "family": "Animal",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -753,6 +758,7 @@
 	"class": "unit",
 	"subclass": "npc",
     "template": "Shadow",
+    "family": "Undead",
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -761,8 +767,7 @@
 		"guard",
 		"10",
 		"10"
-	],
-	"npc_template": "Undead"
+	]
 },
 {
 	"name": "Shipwreck",
