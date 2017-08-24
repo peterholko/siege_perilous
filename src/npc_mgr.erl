@@ -33,14 +33,14 @@ spawn_zombies(Num) ->
     Family = obj_template:value(<<"Zombie">>, <<"family">>),
     PlayerId = npc:get_player_id(Family),
 
-    obj:create(Pos, PlayerId, unit, <<"npc">>, <<"Zombie">>, none),
+    obj:create(Pos, PlayerId, <<"Zombie">>),
 
     spawn_zombies(Num - 1).
 
 spawn_wolves(0) -> done;
 spawn_wolves(Num) -> 
     Pos = map:random_location(),
-    obj:create(Pos, ?UNDEAD, unit, <<"npc">>, <<"Wolf">>, none),
+    obj:create(Pos, ?UNDEAD, <<"Wolf">>),
 
     spawn_wolves(Num - 1).
 

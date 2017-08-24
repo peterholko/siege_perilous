@@ -110,7 +110,7 @@ create(ResourceType, Quantity, Pos, WithObj) ->
     lager:debug("Creating resource: (~p / ~p / ~p)", [ResourceType, Quantity, Pos]), 
     ObjId = case WithObj of
                 true ->    
-                    obj:create(Pos, -1, resource, ResourceType, ResourceType, none);
+                    obj:create(Pos, ResourceType, ResourceType);
                 false ->
                     none
             end,
@@ -190,7 +190,6 @@ get_resource(ResourceName, Pos) ->
     end.
 
 update_resource(Resource, HarvestQuantity) ->
-    lager:info("Resource: ~p HarvestQuantity: ~p", [Resource, HarvestQuantity]),
     Quantity = Resource#resource.quantity,
     case (Quantity - HarvestQuantity) > 0 of
         true ->          

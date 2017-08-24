@@ -9,7 +9,7 @@
 -include("common.hrl").
 
 -export([init_perception/1]).
--export([create/5, remove/1, move/2, teleport/2]).
+-export([create/3, create/4, create/5, remove/1, move/2, teleport/2]).
 -export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
@@ -29,9 +29,17 @@ init_perception(PlayerId) ->
     lager:info("ObjData: ~p", [ObjData]), 
     {ExploredMap, ObjData}.
 
+create(Pos, PlayerId, Template) ->
+    create(Pos, PlayerId, none, Template, none).
+
+create(Pos, PlayerId, Template, State) ->
+    create(Pos, PlayerId, none, Template, State).
+
 create(Pos, PlayerId, UniqueName, Template, State) ->
+    lager:info("Creating object ~p", [Template]),
     Id = util:get_id(),
-    
+
+    lager:debug("Copying obj attrs from template ~p", [Template]),    
     %Create obj attr entries from obj def entries
     create_obj_attr(Id, Template),
 
@@ -39,8 +47,8 @@ create(Pos, PlayerId, UniqueName, Template, State) ->
     BaseHp = obj_attr:value(Id, <<"base_hp">>, 0),
     BaseStamina = obj_attr:value(Id, <<"base_stamina">>, 0),
 
-    Class = obj_attr:value(Id, <<"class">>),
-    Subclass = obj_attr:value(Id, <<"subclass">>),
+    Class = obj_attr:value(Id, <<"class">>, none),
+    Subclass = obj_attr:value(Id, <<"subclass">>, none),
     Vision = obj_attr:value(Id, <<"base_vision">>, 0),
 
     %Set Unique Name or use unit template

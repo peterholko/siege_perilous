@@ -406,8 +406,7 @@ build(BuilderId, StructureName) ->
 
             structure:start_build(PlayerId, 
                                   Builder#obj.pos, 
-                                  StructureName,
-                                  StructureSubclass),
+                                  StructureName),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}

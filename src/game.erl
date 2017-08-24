@@ -85,15 +85,15 @@ spawn_hero(PlayerId) ->
     MonolithPos = {18,35},
     ShipwreckPos = {15,36},
  
-    HeroId = obj:create(HeroPos, PlayerId, unit, ?HERO, <<"Hero Mage">>, none),
+    HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),
     
     [Player] = db:read(player, PlayerId),
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 
-    VillagerId = obj:create(VillagerPos, PlayerId, unit, ?VILLAGER, <<"Human Villager">>, none),
-    MonolithId = obj:create(MonolithPos, PlayerId, poi, ?MONOLITH, <<"Monolith">>, none),
-    ShipwreckId = obj:create(ShipwreckPos, PlayerId, poi, ?POI, <<"Shipwreck">>, none),
+    VillagerId = obj:create(VillagerPos, PlayerId, <<"Human Villager">>),
+    MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
+    ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(MonolithId, <<"Mana">>, 2500),
@@ -107,15 +107,15 @@ spawn_hero(PlayerId) ->
     map:add_explored(PlayerId, HeroPos, 2),
 
     F1 = fun() ->
-            obj:create({15,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none)
+            obj:create({15,35}, ?UNDEAD, <<"Zombie">>)
          end,
 
     F2 = fun() ->
-            obj:create({16,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none)
+            obj:create({16,35}, ?UNDEAD, <<"Zombie">>)
          end,
 
     F3 = fun() ->
-            obj:create({17,35}, ?UNDEAD, unit, ?NPC, <<"Zombie">>, none)
+            obj:create({17,35}, ?UNDEAD, <<"Zombie">>)
          end,
 
     F4 = fun() ->

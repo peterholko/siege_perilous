@@ -8,7 +8,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([start_build/4, valid_location/2, upgrade/1]).
+-export([start_build/3, valid_location/2, upgrade/1]).
 -export([list/0, recipe_list/1, refine/1]).
 -export([has_req/1, has_upgrade_req/1, has_refine_resources/1, check_recipe_req/2]).
 -export([process_upkeep/1, process_upkeep_item/3]).
@@ -44,11 +44,9 @@ harvest([_Villager], [Structure]) ->
 harvest(_, _) -> 
     {error, <<"Invalid villager or structure">>}.
 
-start_build(PlayerId, Pos, Name, Subclass) ->
+start_build(PlayerId, Pos, Name) ->
     StructureId = obj:create(Pos, 
                              PlayerId,
-                             structure,
-                             Subclass,
                              Name, 
                              ?FOUNDED),
     obj_attr:set(StructureId, <<"hp">>, 1),

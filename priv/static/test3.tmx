@@ -131,7 +131,7 @@
  <tileset firstgid="40" name="POI" tilewidth="72" tileheight="72" tilecount="4">
   <tile id="0">
    <properties>
-    <property name="name" value="Burned house"/>
+    <property name="name" value="Burned House"/>
    </properties>
    <image width="72" height="72" source="burnedhouse.png"/>
   </tile>

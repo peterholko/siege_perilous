@@ -52,7 +52,7 @@ set_order(Id, Orders, OrdersData) ->
 create(Pos, Name) ->
     Template = obj_template:value(Name, <<"template">>),
     PlayerId = get_player_id(Template),
-    Id = obj:create(Pos, PlayerId, unit, <<"npc">>, Template, none),
+    Id = obj:create(Pos, PlayerId, Template),
     Id.
 
 %% HTN Functions %%%

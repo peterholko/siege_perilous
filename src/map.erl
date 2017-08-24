@@ -642,8 +642,7 @@ store_tile(resource, Tile, _Pos) ->
     none;
 store_tile(poi, Tile, Pos) ->
     [PoiDef] = db:dirty_read(poi_def, list_to_integer(Tile)),
-    Subclass = get_poi_subclass(PoiDef#poi_def.name),
-    obj:create(Pos, -1, poi, Subclass, PoiDef#poi_def.name, none);
+    obj:create(Pos, -1, PoiDef#poi_def.name);
 store_tile(none, Tile, Pos) ->
     case db:dirty_read(map, Pos) of
         [] ->
@@ -655,9 +654,6 @@ store_tile(none, Tile, Pos) ->
             NewTile = LocalTile#map { layers = NewLayers},
             db:dirty_write(NewTile)
     end.
-
-get_poi_subclass(<<"Monolith">>) -> ?MONOLITH;
-get_poi_subclass(_) -> <<"poi">>.
 
 spawn_resources() ->
     Tiles = ets:tab2list(map),
@@ -683,7 +679,6 @@ generate_resources(TileName, Pos, TerrainResourceMap) ->
             Quantity = util:rand_weighted(WeightedList),
             case Quantity > 0 of
                 true ->
-                    lager:info("Resource: ~p Quantity: ~p", [Resource, Quantity]), 
                     resource:create(Resource, Quantity, Pos, false);
                 false ->
                     nothing
