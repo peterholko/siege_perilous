@@ -1,0 +1,785 @@
+[{
+	"_id": {
+		"$oid": "54b43dcb03c27178c3ebd976"
+	},
+	"name": "Zombie",
+	"base_hp": 50,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Zombie",
+    "family": "Undead",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	]
+},
+{
+	"_id": {
+		"$oid": "54dbe40d0f4c2ae71f72630c"
+	},
+	"name": "Hero Mage",
+	"base_hp": 500,
+	"base_stamina": 10000,
+	"base_dmg": 3,
+	"dmg_range": 8,
+	"base_def": 1,
+	"base_speed": 5,
+	"base_vision": 2,
+	"class": "unit",
+	"subclass": "hero",
+    "template": "Hero Mage",
+	"capacity": 300
+},
+{
+	"_id": {
+		"$oid": "555f986bbecfe3e72e7864f1"
+	},
+	"name": "Tent",
+	"base_hp": 50,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "shelter",
+    "template": "Tent",
+	"build_time": 25,
+	"level": 0,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "5565ccb8becfe3e72e7864f2"
+	},
+	"name": "Smelter",
+	"base_hp": 50,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "craft",
+    "template": "Smelter",
+	"build_time": 125,
+	"level": 1,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 2
+		}
+	],
+	"craft": [
+		"Valleyrun Copper Ingot"
+	]
+},
+{
+	"_id": {
+		"$oid": "55671d8dbecfe3e72e7864f4"
+	},
+	"name": "Human Villager",
+	"base_hp": 500,
+	"base_stamina": 10000,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"base_vision": 1,
+	"class": "unit",
+	"subclass": "villager",
+    "template": "Human Villager",
+	"capacity": 121
+},
+{
+	"_id": {
+		"$oid": "5584517c95960a150d4be6cf"
+	},
+	"name": "Farm",
+	"base_hp": 250,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "resource",
+    "template": "Farm",
+	"profession": "the Farmer",
+	"build_time": 500,
+	"level": 0,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 40
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "558451d895960a150d4be6d1"
+	},
+	"name": "Trapper",
+	"base_hp": 250,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "resource",
+    "template": "Trapper",
+	"profession": "the Hunter",
+	"build_time": 500,
+	"level": 1,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 40
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "558451e895960a150d4be6d2"
+	},
+	"name": "Lumbermill",
+	"base_hp": 250,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "resource",
+    "template": "Lumbermill",
+	"profession": "the Forester",
+	"build_time": 100,
+	"level": 0,
+	"refine": "Wood",
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "558451f795960a150d4be6d3"
+	},
+	"name": "Quarry",
+	"base_hp": 250,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "resource",
+	"profession": "the Stonecutter",
+	"build_time": 500,
+	"level": 1,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 40
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "5584520295960a150d4be6d4"
+	},
+	"name": "Mine",
+	"base_hp": 250,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "resource",
+    "template": "Mine",
+	"profession": "the Miner",
+	"build_time": 5,
+	"level": 0,
+	"capacity": 21,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "5584524295960a150d4be6d5"
+	},
+	"name": "Tavern",
+	"base_hp": 500,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "craft",
+	"profession": "the Innkeeper",
+	"build_time": 750,
+	"level": 1,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 80
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "5584527b95960a150d4be6d6"
+	},
+	"name": "Carpenter",
+	"base_hp": 250,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "craft",
+    "template": "Carpenter",
+	"profession": "the Carpenter",
+	"build_time": 500,
+	"level": 1,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 40
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "5584529095960a150d4be6d7"
+	},
+	"name": "Mason",
+	"base_hp": 250,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "craft",
+    "template": "Mason",
+    "subtemplate": "",
+	"profession": "the Mason",
+	"build_time": 500,
+	"level": 1,
+	"refine": "Stone",
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 40
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "558452aa95960a150d4be6d8"
+	},
+	"name": "Blacksmith",
+	"base_hp": 500,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "craft",
+    "template": "Blacksmith",
+	"profession": "the Blacksmith",
+	"build_time": 5,
+	"level": 0,
+	"refine": "Ore",
+	"capacity": 50,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 1
+		}
+	],
+	"upgrade_req": [
+		{
+			"template": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "558452c295960a150d4be6d9"
+	},
+	"name": "Tailor",
+	"base_hp": 500,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "craft",
+    "template": "Tailor",
+	"profession": "the Tailor",
+	"build_time": 1000,
+	"level": 2,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 80
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "558452f795960a150d4be6da"
+	},
+	"name": "Alchemist",
+	"base_hp": 750,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "craft",
+    "template": "Alchemist",
+	"profession": "the Alchemist",
+	"build_time": 2000,
+	"level": 3,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 120
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "5584531395960a150d4be6db"
+	},
+	"name": "Herbalist",
+	"base_hp": 750,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "craft",
+    "template": "Herbalist",
+	"profession": "the Herbalist",
+	"build_time": 2000,
+	"level": 3,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 80
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "5584537495960a150d4be6dc"
+	},
+	"name": "Burrow",
+	"base_hp": 50,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "storage",
+    "template": "Burrow",
+    "subtemplate": "",
+	"profession": "",
+	"build_time": 10,
+	"level": 0,
+	"capacity": 101,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 1
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "5584539795960a150d4be6dd"
+	},
+	"name": "Warehouse",
+	"base_hp": 250,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "storage",
+    "template": "Warehouse",
+	"profession": "",
+	"build_time": 500,
+	"level": 1,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 40
+		}
+	]
+},
+{
+	"_id": {
+		"$oid": "55858b14408f73ff06e4a0c5"
+	},
+	"name": "Wolf",
+	"base_hp": 10,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 5,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Wolf",
+	"int": "animal",
+	"aggression": "high",
+	"base_vision": 3,
+	"base_stamina": 10000,
+	"kill_xp": 5,
+	"orders": [],
+},
+{
+	"_id": {
+		"$oid": "55c5980d5c1c1e641b6d2025"
+	},
+	"name": "Burned House",
+	"base_hp": 0,
+	"base_dmg": 0,
+	"base_def": 0,
+	"class": "poi",
+	"subclass": "poi",
+    "template": "Burned House",
+    "subtemplate": ""
+},
+{
+	"_id": {
+		"$oid": "55c598375c1c1e641b6d2026"
+	},
+	"name": "Haunted Mine",
+	"base_hp": 0,
+	"base_dmg": 0,
+	"base_def": 0,
+	"class": "poi",
+	"subclass": "poi",
+    "template": "Haunted Mine",
+    "subtemplate": ""
+},
+{
+	"_id": {
+		"$oid": "55c5985b5c1c1e641b6d2027"
+	},
+	"name": "Graveyard",
+	"base_hp": 0,
+	"base_dmg": 0,
+	"base_def": 0,
+	"class": "poi",
+	"subclass": "poi",
+    "template": "Graveyard",
+},
+{
+	"_id": {
+		"$oid": "55c598695c1c1e641b6d2028"
+	},
+	"name": "Sealed Cavern",
+	"base_hp": 0,
+	"base_dmg": 0,
+	"base_def": 0,
+	"class": "poi",
+	"subclass": "poi",
+    "template": "Sealed Cavern",
+},
+{
+	"_id": {
+		"$oid": "55c598775c1c1e641b6d2029"
+	},
+	"name": "Mausoleum",
+	"base_hp": 0,
+	"base_dmg": 0,
+	"base_def": 0,
+	"class": "poi",
+	"subclass": "poi",
+    "template": "Mausoleum",
+},
+{
+	"_id": {
+		"$oid": "55e62680a339c95c26af2c28"
+	},
+	"name": "Fire Dragon",
+	"base_hp": 500,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"base_vision": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Fire Dragon",
+	"int": "high",
+	"aggression": "high",
+	"npc_template": "Dragons"
+},
+{
+	"_id": {
+		"$oid": "5654bdc797d56a3098db61a6"
+	},
+	"name": "Monolith",
+	"mana": 10,
+	"class": "structure",
+	"subclass": "monolith",
+    "template": "Monolith",
+	"base_hp": "1000000"
+},
+{
+	"_id": {
+		"$oid": "56564ae397d56a3098db61a7"
+	},
+	"name": "Mana",
+	"class": "resource",
+	"subclass": "resource",
+    "template": "Mana",
+},
+{
+	"_id": {
+		"$oid": "56aab18b97d56a3098db61ab"
+	},
+	"name": "Giant Rat",
+	"base_hp": 10,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Rat",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	],
+	"npc_template": "Animals"
+},
+{
+	"_id": {
+		"$oid": "56aab19c97d56a3098db61ac"
+	},
+	"name": "Scorpion",
+	"base_hp": 10,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Scorpion",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	],
+	"npc_template": "Animals"
+},
+{
+	"_id": {
+		"$oid": "56aab1a997d56a3098db61ad"
+	},
+	"name": "Skeleton",
+	"base_hp": 10,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Undead",
+    "subtemplate": "Skeleton",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	],
+	"npc_template": "Undead"
+},
+{
+	"_id": {
+		"$oid": "56aab1b297d56a3098db61ae"
+	},
+	"name": "Spider",
+	"base_hp": 10,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Spider",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	],
+	"npc_template": "Animals"
+},
+{
+	"_id": {
+		"$oid": "56aab1b997d56a3098db61af"
+	},
+	"name": "Wose",
+	"base_hp": 10,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Wose",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	],
+	"npc_template": "Animals"
+},
+{
+	"_id": {
+		"$oid": "56aab1c397d56a3098db61b0"
+	},
+	"name": "Yeti",
+	"base_hp": 10,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Yeti",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	],
+	"npc_template": "Animals"
+},
+{
+	"_id": {
+		"$oid": "56b4dd9f97d56a3098db61b1"
+	},
+	"name": "Stockade",
+	"base_hp": 50,
+	"base_dmg": 0,
+	"dmg_range": 0,
+	"base_def": 0,
+	"base_speed": 0,
+	"class": "structure",
+	"subclass": "Wall",
+    "template": "Stockade",
+	"build_time": 25,
+	"level": 0,
+	"req": [
+		{
+			"template": "Wood",
+			"quantity": 1
+		}
+	],
+	"upkeep": [
+		{
+			"template": "Wood",
+			"quantity": 1
+		}
+	],
+	"tax": 1
+},
+{
+	"_id": {
+		"$oid": "585d5ec89648dc64bece3b20"
+	},
+	"name": "Shadow",
+	"base_hp": 500,
+	"base_stamina": 10000,
+	"base_dmg": 4,
+	"dmg_range": 10,
+	"base_def": 10,
+	"base_speed": 4,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Shadow",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	],
+	"npc_template": "Undead"
+},
+{
+	"name": "Shipwreck",
+	"class": "poi",
+	"subclass": "poi",
+    "template": "Shipwreck",
+	"base_hp": "0"
+},
+   
+    
+    
+    
+    
+    
+    
+    
+    
+    
+]
+
