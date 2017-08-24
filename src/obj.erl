@@ -47,8 +47,9 @@ create(Pos, PlayerId, UniqueName, Template, State) ->
     BaseHp = obj_attr:value(Id, <<"base_hp">>, 0),
     BaseStamina = obj_attr:value(Id, <<"base_stamina">>, 0),
 
+    %TODO reconsider if class should not be binary
     Class = binary_to_atom(obj_attr:value(Id, <<"class">>, none), latin1),
-    Subclass = binary_to_atom(obj_attr:value(Id, <<"subclass">>, none), latin1),
+    Subclass = obj_attr:value(Id, <<"subclass">>, none),
     Vision = obj_attr:value(Id, <<"base_vision">>, 0),
 
     %Set Unique Name or use unit template
