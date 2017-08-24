@@ -49,9 +49,9 @@ set_order(Id, Orders, OrdersData) ->
                       order_data = OrdersData},
     db:write(NewNPC).
 
-create(Pos, Name) ->
-    Template = obj_template:value(Name, <<"template">>),
-    PlayerId = get_player_id(Template),
+create(Pos, Template) ->
+    Family = obj_template:value(Template, <<"family">>),
+    PlayerId = get_player_id(Family),
     Id = obj:create(Pos, PlayerId, Template),
     Id.
 
