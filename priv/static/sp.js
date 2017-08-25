@@ -1976,7 +1976,9 @@ function drawInfoUnit(jsonData) {
                   + "State: " + jsonData.state + "\n"
                   + "Capacity: " + jsonData.total_weight + "/" + jsonData.capacity + "\n"
                   + "Dwelling: " + jsonData.dwelling + "\n"
-                  + "Morale: " + jsonData.morale;
+                  + "Morale: " + jsonData.morale + "\n"
+                  + "Order: " + jsonData.order + "\n"
+                  + "Action: " + jsonData.action + "\n";
         } else {
             var stats = "--- Stats --- \n"
                   + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
@@ -2025,7 +2027,7 @@ function drawInfoUnit(jsonData) {
         var skillsText = new createjs.Text(skills, h1Font, textColor);
         skillsText.lineHeight = 20;
         skillsText.x = 200;
-        skillsText.y = 125;
+        skillsText.y = 150;
 
         //addChildInfoPanel(skillsText);
     }
@@ -2062,7 +2064,7 @@ function drawInfoUnit(jsonData) {
 
     var itemText = new createjs.Text("--- Items --- ", h1Font, textColor);
     itemText.x = 10;
-    itemText.y = 300;
+    itemText.y = 350;
     
     addChildInfoPanel(itemText);
 
@@ -2080,7 +2082,7 @@ function drawInfoUnit(jsonData) {
             var icon = new createjs.Container();
 
             icon.x = 10 + i * 50;
-            icon.y = 325;
+            icon.y = 375;
             icon.itemId = jsonData.items[i].id;
             icon.owner = jsonData.items[i].owner;
             icon.itemName = jsonData.items[i].name;

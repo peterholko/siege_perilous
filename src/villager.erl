@@ -786,6 +786,7 @@ find_enemies(Villager, [PerceptionObj | Rest], Enemies) ->
     find_enemies(Villager, Rest, NewEnemies).
 
 filter_objs(_Player, #{<<"state">> := State}, Enemies) when State =:= dead -> Enemies;
+filter_objs(_Player, #{<<"class">> := Class}, Enemies) when Class =:= corpse -> Enemies;
 filter_objs(Player, #{<<"player">> := ObjPlayer}, Enemies) when Player =:= ObjPlayer -> Enemies;
 filter_objs(_Player, Obj, Enemies) -> [Obj | Enemies].
 

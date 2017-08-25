@@ -283,7 +283,8 @@ prospect(ObjId) ->
     lager:info("Prospect: ~p", [ObjId]),
     PlayerId = get(player_id),
     [Obj] = db:read(obj, ObjId),
-
+    
+    lager:info("Prospecting validating..."),
     Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
               {is_hero(Obj), "Can only survey with your hero"},
               {not game:has_pre_events(ObjId), "Unit is busy"}],
@@ -300,6 +301,7 @@ prospect(ObjId) ->
             
             #{<<"prospect_time">> => NumTicks * ?TICKS_SEC};
         {false, Error} ->
+            lager:info("Prospecting error: ~p", [Error]),
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
