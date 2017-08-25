@@ -627,6 +627,9 @@ info_subclass(<<"villager">>, Obj, Info) ->
     DwellingId = Villager#villager.shelter,
     StructureId = Villager#villager.structure,
 
+    F = fun(Step, Acc) -> [atom_to_binary(Step, latin) | Acc] end,
+    Plan = lists:foldl(F, [], Villager#villager.plan),
+
     DwellingName = case db:read(obj, DwellingId) of
                        [Dwelling] -> Dwelling#obj.name;
                        [] -> <<"none">>
@@ -640,10 +643,11 @@ info_subclass(<<"villager">>, Obj, Info) ->
     Info0 = maps:put(<<"total_weight">>, TotalWeight, Info),
     Info1 = maps:put(<<"capacity">>, Capacity, Info0),
     Info2 = maps:put(<<"morale">>, Morale, Info1),
-    Info3 = maps:put(<<"order">>, Order, Info2),
-    Info4 = maps:put(<<"shelter">>, DwellingName, Info3),
-    Info5 = maps:put(<<"structure">>, StructureName, Info4),
-    Info5;
+    Info3 = maps:put(<<"shelter">>, DwellingName, Info2),
+    Info4 = maps:put(<<"structure">>, StructureName, Info3),
+    Info5 = maps:put(<<"order">>, Order, Info4),
+    Info6 = maps:put(<<"plan">>, Plan, Info5),
+    Info6;
 info_subclass(<<"hero">>, Obj, Info) -> 
     TotalWeight = item:get_total_weight(Obj#obj.id),
     Capacity = obj:get_capacity(Obj#obj.id),

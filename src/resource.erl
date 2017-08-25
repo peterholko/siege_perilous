@@ -201,9 +201,10 @@ update_resource(Resource, HarvestQuantity) ->
                     obj:remove(Resource#resource.obj);
                 false ->
                     nothing
-            end,
+            end
 
-            db:delete(resource, Resource#resource.index)
+            %Leave resource at quantity zero
+            %db:delete(resource, Resource#resource.index)
     end.
 
 quantity_skill_req(Max, QuantityRate) ->
