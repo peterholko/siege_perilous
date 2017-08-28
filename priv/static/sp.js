@@ -1379,6 +1379,8 @@ function drawSelectPanel(tileX, tileY) {
         
             selectedUnit = this.id;
             drawSelectedPortrait();
+
+            drawActionBar(selectedUnit);
         });
         
         content.addChild(icon);
@@ -2088,6 +2090,10 @@ function drawInfoUnit(jsonData) {
             icon.itemName = jsonData.items[i].name;
             icon.quantity = jsonData.items[i].quantity;
 
+            var hitArea  = new createjs.Shape();
+            hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
+            icon.hitArea = hitArea;
+
             icon.on("click", function(evt) {
                 if(!pressmove) {
                     if(evt.nativeEvent.button == 2) {
@@ -2390,6 +2396,28 @@ function drawReventPanel(jsonData, reventState) {
 
 };
 
+function drawActionBar(objId) {
+    var obj = getObj(objId);
+
+    detailsButton.visible = true;
+
+    gatherButton.visible = false;
+    buildButton.visible = false;
+    moveButton.visible = false;
+    hideButton.visible = false;
+    followButton.visible = false;
+
+    if(obj.subclass == "hero") {
+        gatherButton.visible = true;
+        buildButton.visible = true;
+        moveButton.visible = true;
+        hideButton.visible = true;
+
+    } else if(obj.subclass == "villager") {
+        followButton.visible = true;
+    }
+};
+
 function updateTextLog(newText) {    
     console.log(newText);
     var metrics = textLog.getMetrics();
@@ -2618,40 +2646,6 @@ function initUI() {
         this.addChild(new createjs.Bitmap(detailsRoll));
     });*/
 
-    detailsButton.on("mousedown", function(evt) {
-        if(selectedUnit != -1) {
-            sendInfoUnit(selectedUnit);
-        } 
-        else if(selectedTile != -1) {
-            sendInfoTile(selectedTile['x'], selectedTile['y']);
-        }
-    
-        //this.removeAllChildren();
-        //this.addChild(new createjs.Bitmap(detailsActive));
-        updateTextLog("detailsButton");
-    });
-
-    gatherButton.on("mousedown", function(evt) {
-        if(selectedPortrait != false) {
-            sendSurvey(selectedPortrait);
-        }
-    });
-
-    buildButton.on("mousedown", function(evt) {
-        sendStructureList();
-    });
-
-    moveButton.on("mousedown", function(evt) {
-        sendMove(selectHex.tileX, selectHex.tileY);
-    });
-
-    hideButton.on("mousedown", function(evt) {
-        sendHide(selectedPortrait);
-    });
-
-    followButton.on("mousedown", function(evt) {
-        sendFollow();
-    });
 
     quickButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {

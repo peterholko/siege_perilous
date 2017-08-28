@@ -100,7 +100,9 @@ get_info_unit(Id) ->
     [Unit] = db:read(obj, Id),
     case Unit#obj.player =:= get(player_id) of
         true -> 
-            obj:get_info(Id);
+            Info = obj:get_info(Id),           
+            lager:info("Info Unit: ~p", [Info]),
+            Info;
         false ->
             Info = obj:get_info_other(Id),
             lager:info("Info Unit: ~p", [Info]),
