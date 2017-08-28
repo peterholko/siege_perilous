@@ -123,6 +123,13 @@ var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
 var btnEquipRestImg = new Image();
 
+var detailsButton = new createjs.Container();
+var gatherButton = new createjs.Container();
+var buildButton = new createjs.Container();
+var moveButton = new createjs.Container();
+var hideButton = new createjs.Container();
+var followButton = new createjs.Container();
+
 var quickButton = new createjs.Container();
 var preciseButton = new createjs.Container();
 var fierceButton = new createjs.Container();
@@ -2518,12 +2525,6 @@ function initUI() {
     //Initialize actionBar
     var actionBar = new createjs.Container();
     var actionBarBg = new createjs.Bitmap(actionBarBgImage);
-    var detailsButton = new createjs.Container();
-    var gatherButton = new createjs.Container();
-    var buildButton = new createjs.Container();
-    var moveButton = new createjs.Container();
-    var hideButton = new createjs.Container();
-    var followButton = new createjs.Container();
 
     actionBar.x = stageWidth / 2 - 492 / 2;
     actionBar.y = stageHeight - 231;
