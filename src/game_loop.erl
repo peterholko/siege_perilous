@@ -32,6 +32,9 @@ loop(NumTick, LastTime, GamePID) ->
     %Process rest
     process_rest(NumTick),
 
+    %Process effects
+    process_effects(),
+
     %Process events
     EventsRecalc = process_events(CurrentTick),
 
@@ -310,6 +313,11 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 10)) =:= 0) and (NumTick 
     process_rest_state(NumTick);
 process_rest(_) -> nothing.
 
+process_effects(NumTick) when (NumTick rem ?TICKS_SEC * 1) =:= 0 ->
+    lager:info("Processing effects"),
+    effects();
+process_effects(NumTick) -> nothing.
+
 npc_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
     npc:replan(?UNDEAD);
 npc_create_plan(_) ->
@@ -558,3 +566,13 @@ spawn_mana(N, NearbyList) ->
     NewNearbyList = lists:delete(RandomPos, NearbyList),
     spawn_mana(N + 1, NewNearbyList).
 
+effects(NumTick) ->
+    Effects = ets:tab2list(effects),
+
+    F = fun(Effect) ->
+            effect(Effect, NumTick)
+        end,    
+
+    lists:foreach(F, Effects).
+
+effect(#effect{type = ?BLEED, modtick = Tick}, NumTick) -> 

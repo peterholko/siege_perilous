@@ -17,6 +17,21 @@
 	]
 },
 {
+	"name": "Sword",
+	"item": "Sword",
+	"structure": "Blacksmith",
+	"class": "Weapon",
+	"subclass": "Sword",
+	"slot": "Main Hand",
+	"req": [
+		{
+			"type": "Wood",
+			"quantity": 1
+		}
+	]
+},
+   
+{
 	"name": "Refine Ore",
 	"item": "Refine Ore",
 	"class": "refine",
