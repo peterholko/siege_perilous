@@ -539,15 +539,15 @@ set_order_craft(SourceId, RecipeName) ->
 
 set_order_follow(SourceId) ->
     [Villager] = db:read(villager, SourceId),
-    db:write(Villager#villager {order = follow}).
+    db:write(Villager#villager {order = ?ORDER_FOLLOW}).
 
 set_order_guard(SourceId) ->
     [Villager] = db:read(villager, SourceId),
-    db:write(Villager#villager {order = guard}).
+    db:write(Villager#villager {order = ?ORDER_GUARD}).
 
 set_order_attack(SourceId) ->
     [Villager] = db:read(villager, SourceId),
-    db:write(Villager#villager {order = attack}).
+    db:write(Villager#villager {order = ?ORDER_ATTACK}).
 
 set_order_harvest(SourceId) ->
     [Villager] = db:read(villager, SourceId),
