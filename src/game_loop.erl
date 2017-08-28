@@ -320,12 +320,12 @@ npc_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 2)) =:= 0
 npc_run_plan(_) ->
     nothing.
 
-villager_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 5)) =:= 0 ->
+villager_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
     villager:create_plan();
 villager_create_plan(_) ->
     nothing.
 
-villager_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 5)) =:= 0 ->
+villager_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 2)) =:= 0 ->
     villager:run_plan();
 villager_run_plan(_) ->
     nothing.
