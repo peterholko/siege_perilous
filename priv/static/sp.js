@@ -2648,6 +2648,41 @@ function initUI() {
     });*/
 
 
+    detailsButton.on("mousedown", function(evt) {
+        if(selectedUnit != -1) {
+            sendInfoUnit(selectedUnit);
+        } 
+        else if(selectedTile != -1) {
+            sendInfoTile(selectedTile['x'], selectedTile['y']);
+        }
+    
+        //this.removeAllChildren();
+        //this.addChild(new createjs.Bitmap(detailsActive));
+        updateTextLog("detailsButton");
+    });
+
+    gatherButton.on("mousedown", function(evt) {
+        if(selectedPortrait != false) {
+            sendSurvey(selectedPortrait);
+        }
+    });
+
+    buildButton.on("mousedown", function(evt) {
+        sendStructureList();
+    });
+
+    moveButton.on("mousedown", function(evt) {
+        sendMove(selectHex.tileX, selectHex.tileY);
+    });
+
+    hideButton.on("mousedown", function(evt) {
+        sendHide(selectedPortrait);
+    });
+
+    followButton.on("mousedown", function(evt) {
+        sendFollow();
+    });
+
     quickButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {
             sendAttack("quick");
