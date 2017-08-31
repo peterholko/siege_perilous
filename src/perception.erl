@@ -148,15 +148,16 @@ store_perception(_Result, _EntityId, _NewPerception) ->
 
 send_perception(true, _, _) -> nothing;
 send_perception(false, Entity, NewPerception) ->
-    Process = case Entity#obj.subclass of
-                  ?VILLAGER -> 
-                      global:whereis_name(villager);
-                  _ -> 
-                      [Conn] = db:read(connection, Entity#obj.player),
-                      Conn#connection.process
-              end,
+    case Entity#obj.subclass of
+        ?VILLAGER -> 
+            Process = global:whereis_name(villager),
+            send_to_process(Process, {Entity#obj.id, NewPerception});
+        _ -> 
+            nothing
+    end,
 
-    send_to_process(Process, {Entity#obj.id, NewPerception}).
+    [Conn] = db:read(connection, Entity#obj.player),
+    send_to_process(Conn#connection.process, {Entity#obj.id, NewPerception}).
 
 send_to_process(Process, NewPerception) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [NewPerception, Process]),

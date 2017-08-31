@@ -26,6 +26,7 @@ var explored = {};
 var objs = {};
 var localObjs = {};
 var localTiles = {};
+var perception = {};
 var units = {};
 var stats = {};
 
@@ -698,13 +699,13 @@ function onMessage(evt) {
             explored = jsonData.explored;
             objs = jsonData.objs;
 
-            updateObj(jsonData.objs);
+            updateObj(jsonData);
 
             setPlayer();
             drawMap(jsonData.map);
         }
         else if(jsonData.packet == "perception") {
-            updateObj(jsonData.objs);
+            updateObj(jsonData);
         }
         else if(jsonData.packet == "map") {
             drawMap(jsonData.data);
@@ -1080,16 +1081,21 @@ function drawMap(tiles) {
 
 };
 
-function updateObj(objs) {
+function updateObj(jsonData) {
     console.log("updateObj");
     render = true;
+
+    var entity = jsonData.entity;
+    var objs = jsonData.objs;
+
+    perception[entity] = objs;
 
     for(var id in localObjs) {
         localObjs[id].op = 'remove';
     }
 
-    for(var i = 0; i < objs.length; i++) {        
-        var obj = objs[i];
+    for(var i = 0; i < perception.length; i++) {        
+        var obj = perception[i];
 
         if(obj.id in localObjs) {
             var prev_state = localObjs[obj.id].state;
