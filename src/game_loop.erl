@@ -33,7 +33,7 @@ loop(NumTick, LastTime, GamePID) ->
     process_rest(NumTick),
 
     %Process effects
-    process_effects(),
+    process_effects(NumTick),
 
     %Process events
     EventsRecalc = process_events(CurrentTick),
@@ -314,8 +314,8 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 10)) =:= 0) and (NumTick 
 process_rest(_) -> nothing.
 
 process_effects(NumTick) when (NumTick rem ?TICKS_SEC * 1) =:= 0 ->
-    lager:info("Processing effects"),
-    effects();
+    lager:debug("Processing effects"),
+    effects(NumTick);
 process_effects(NumTick) -> nothing.
 
 npc_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
@@ -567,12 +567,13 @@ spawn_mana(N, NearbyList) ->
     spawn_mana(N + 1, NewNearbyList).
 
 effects(NumTick) ->
-    Effects = ets:tab2list(effects),
+    nothing.
+%    Effects = ets:tab2list(effects),
+%
+%    F = fun(Effect) ->
+%            effect(Effect, NumTick)
+%        end,    
+%
+%    lists:foreach(F, Effects).
 
-    F = fun(Effect) ->
-            effect(Effect, NumTick)
-        end,    
-
-    lists:foreach(F, Effects).
-
-effect(#effect{type = ?BLEED, modtick = Tick}, NumTick) -> 
+%effect(#effect{type = ?BLEED, modtick = Tick}, NumTick) -> 
