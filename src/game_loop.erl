@@ -36,13 +36,16 @@ loop(NumTick, LastTime, GamePID) ->
     process_effects(NumTick),
 
     %Process events
-    EventsRecalc = process_events(CurrentTick),
+    ProcessedEventList = process_events(CurrentTick),
+
+    %Send events to observers
+    send_events(ProcessedEventList),
 
     %Get triggered perception
-    TriggeredRecalc = game:get_perception(),
+    %TriggeredRecalc = game:get_perception(),
    
     %Recalculate perception 
-    recalculate(EventsRecalc or TriggeredRecalc),
+    %recalculate(EventsRecalc or TriggeredRecalc),
    
     %Get triggered explored maps
     Explored = game:get_explored(),
@@ -89,22 +92,71 @@ check_sleep(CalcSleepTime, LastTime) ->
            end,
     Next.
 
+send_events(ProcessedEventList) ->
+    AllObj = ets:tab2list(obj),
+
+    F = fun(Obj = #obj{vision = Vision}) when Vision > 0 ->
+                send_visible_events(Obj, ProcessedEventList);
+           (_Obj) -> 
+                nothing
+        end,
+
+    lists:foreach(F, AllObj).
+
+send_visible_events(Obj, ProcessedEventList) ->
+    
+    F = fun(ProcessedEvent) ->
+            {Event, Id, SourcePos, DestPos, none} = ProcessedEvent,
+            
+            case SourcePos =:= DestPos of 
+                true -> 
+                    case map:distance(SourcePos, Obj#obj.pos) =< Obj#obj.vision of
+                        true ->
+                            [Conn] = db:read(connection, Obj#obj.player),
+                            message:send_to_process(Conn#connection.process, Event, {Id, SourcePos, DestPos});
+                        false ->
+                            nothing
+                    end;
+                false ->
+                    case map:distance(SourcePos, Obj#obj.pos) =< Obj#obj.vision of
+                        true ->
+                            [C1] = db:read(connection, Obj#obj.player),
+                            message:send_to_process(C1#connection.process, Event, {Id, SourcePos, DestPos});
+                        false ->
+                            nothing
+                    end,
+                    case map:distance(DestPos, Obj#obj.pos) =< Obj#obj.vision of
+                        true ->
+                            [C2] = db:read(connection, Obj#obj.player),
+                            message:send_to_process(C2#connection.process, Event, {Id, SourcePos, DestPos});
+                        false ->
+                            nothing
+                    end
+            end
+        end,
+
+    lists:foreach(F, ProcessedEventList).
+
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
     check_events(Events, false).
 
-check_events([], Recalc) ->
-    Recalc;
-check_events([Event | Rest], PrevRecalc) ->
-    Recalc  = do_event(Event#event.type,
-                       Event#event.data,
-                       Event#event.pid),
+check_events([], ProcessedEventList) ->
+    ProcessedEventList;
+check_events([Event | Rest], ProcessedEventList) ->
+    ProcessedEvent  = do_event(Event#event.type,
+                               Event#event.data,
+                               Event#event.pid),
 
-    NewRecalc = Recalc or PrevRecalc,
-    
-    db:delete(event, Event#event.id),
+    check_events(Rest, [ProcessedEvent | ProcessedEventList]).
 
-    check_events(Rest, NewRecalc).
+do_event(update_state, EventData, PlayerPid) ->
+    lager:info("Processing update state event ~p", [EventData]),
+    {SourceId, State} = EventData,
+
+    NewObj = obj:update_state(SourceId, State),
+
+    {event_update_state, SourceId, NewObj#obj.pos, NewObj#obj.pos, State};
 
 do_event(attack, EventData, PlayerPid) ->
     lager:debug("Processing action event: ~p", [EventData]),
@@ -123,17 +175,16 @@ do_event(defend, EventData, PlayerPid) ->
 
 do_event(move, EventData, PlayerPid) ->
     lager:debug("Processing move_obj event: ~p", [EventData]),
-    {_Player, Id, NewPos} = EventData,
+    {_Player, ObjId, SourcePos, DestPos} = EventData,
 
-    case obj:is_empty(Id, NewPos) of
-        true ->
-            obj:move(Id, NewPos);
-        false ->
-            obj:update_state(Id, none)
-    end,
+    NewObj = obj:move(ObjId, DestPos),
 
-    message:send_to_process(PlayerPid, event_complete, {move, Id}),
-    true;
+    Event = case NewObj#obj.pos =:= DestPos of
+                true -> {event_move, ObjId, SourcePos, DestPos, none};
+                false -> {event_move, ObjId, SourcePos, SourcePos, none}
+            end,
+
+    Event;
 
 do_event(ford, EventData, PlayerPid) ->
     lager:debug("Processing ford event: ~p", [EventData]),

@@ -91,11 +91,20 @@ create(Pos, PlayerId, UniqueName, Template, State) ->
     %Return ID
     Id.
 
+move(Obj, Pos) when is_record(Obj, obj) ->
+    case is_empty(Obj, Pos) of
+        true -> do_move(Obj, Pos);
+        false -> update_state(Obj, none)
+    end;
+
 move(Id, Pos) ->
     [Obj] = db:read(obj, Id),
+    move(Obj, Pos).
+
+do_move(Obj, Pos) ->
     NewObj = Obj#obj {pos = Pos},
 
-    %Update state to none
+    %Update state to none and write obj
     update_state(NewObj, none),
 
     %Update wall effect
@@ -119,7 +128,10 @@ move(Id, Pos) ->
     case is_player(Obj) of
         true -> encounter:check(Pos);
         false -> nothing
-    end.
+    end,
+
+    %Return new obj
+    NewObj.
 
 teleport(Id, Pos) ->
     [Obj] = db:read(obj, Id),
@@ -167,11 +179,11 @@ update_state(Obj, State, StateData) when is_record(Obj, obj) ->
 
     {atomic, NewObj} = mnesia:transaction(F),
 
-    %Trigger new perception
-    game:trigger_perception(),
-
     %Trigger any new effects
-    obj:trigger_effects(NewObj);
+    obj:trigger_effects(NewObj),
+
+    %Return new obj
+    NewObj;
 
 update_state(Id, State, StateData) ->
     F = fun() ->
@@ -193,11 +205,11 @@ update_state(Id, State, StateData) ->
 
     {atomic, NewObj} = mnesia:transaction(F),
 
-    %Trigger new perception
-    game:trigger_perception(),
-
     %Check if any effects are triggered
-    obj:trigger_effects(NewObj).
+    obj:trigger_effects(NewObj),
+
+    %Return new obj
+    NewObj.
 
 update_hp(Id, Value) ->
     Hp = obj_attr:value(Id, <<"hp">>),

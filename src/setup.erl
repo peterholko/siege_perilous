@@ -64,15 +64,17 @@ login(Username, Password, Socket) ->
             put(player_id, PlayerId),
 
             %Get init perception 
-            {PlayerId, ExploredMap, Objs} = player:init_perception(PlayerId),
+            {PlayerId, ExploredMap, Perception} = player:init_perception(PlayerId),
+
+            lager:info("Perception: ~p", [Perception]),
 
             %Check if initial login state requires any special data
             player:init_state(PlayerId),
 
-            Perception = [{<<"packet">>, <<"login">>},
-                          {<<"player">>, PlayerId},
-                          {<<"map">>, ExploredMap},
-                          {<<"objs">>, Objs}],
-            jsx:encode(Perception)
+            LoginPacket = [{<<"packet">>, <<"login">>},
+                           {<<"player">>, PlayerId},
+                           {<<"map">>, ExploredMap},
+                           {<<"objs">>, Perception}],
+            jsx:encode(LoginPacket)
     end.
 

@@ -72,6 +72,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(combo_def, [{ram_copies, [node()]}, {attributes, record_info(fields, combo_def)}]),  
     {atomic, ok} = mnesia:create_table(attack, [{ram_copies, [node()]}, {attributes, record_info(fields, attack)}]),  
 
+    mnesia:add_table_index(perception, player),
     mnesia:add_table_index(player, name),
     mnesia:add_table_index(player, npc),
     mnesia:add_table_index(connection, socket),

@@ -47,6 +47,7 @@
                 class}).
 
 -record(perception, {entity,
+                     player,
                      data}).
 
 -record(map, {index,

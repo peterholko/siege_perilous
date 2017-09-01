@@ -47,17 +47,15 @@
          is_player_owned/2]).
 
 init_perception(PlayerId) ->
-    %Get objs
-    AllObjs = db:index_read(obj, PlayerId, #obj.player),
-
     %Get explored tile list
     Explored = map:get_explored(PlayerId, all),
-    Objs = util:unique_list(get_visible_objs(AllObjs, [])),
 
-    lager:info([{player, PlayerId}], "Explored: ~p", [Explored]),
-    lager:info([{player, PlayerId}], "Objs: ~p", [Objs]),
+    %Get initial perception 
+    Perception = perception:init_perception(PlayerId),
 
-    {PlayerId, Explored, Objs}.
+    lager:info("Initial Perception: ~p", [Perception]),
+
+    {PlayerId, Explored, Perception}.
 
 init_state(PlayerId) ->
     Hero = obj:get_hero(PlayerId),
@@ -213,12 +211,13 @@ move(SourceId, Pos) ->
         true ->
             game:cancel_event(SourceId),
 
-            %Update state to moving
-            obj:update_state(Obj#obj.id, moving),
+            %Create update state to moving event
+            game:add_event(self(), update_state, {SourceId, moving}, SourceId, 0),
 
-            %Create event data
+            %Create move event data
             EventData = {PlayerId,
                          SourceId,
+                         Obj#obj.pos,
                          Pos},
 
             NumTicks = obj:movement_cost(Obj, Pos),

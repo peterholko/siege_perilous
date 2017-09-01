@@ -699,7 +699,7 @@ function onMessage(evt) {
             explored = jsonData.explored;
             objs = jsonData.objs;
 
-            updateObj(jsonData);
+            setupObjs();
 
             setPlayer();
             drawMap(jsonData.map);
@@ -1081,21 +1081,16 @@ function drawMap(tiles) {
 
 };
 
-function updateObj(jsonData) {
+function setupObjs() {
     console.log("updateObj");
     render = true;
-
-    var entity = jsonData.entity;
-    var objs = jsonData.objs;
-
-    perception[entity] = objs;
 
     for(var id in localObjs) {
         localObjs[id].op = 'remove';
     }
 
-    for(var i = 0; i < perception.length; i++) {        
-        var obj = perception[i];
+    for(var i = 0; i < objs.length; i++) {
+        var obj = objs[i];
 
         if(obj.id in localObjs) {
             var prev_state = localObjs[obj.id].state;
@@ -1122,7 +1117,6 @@ function updateObj(jsonData) {
             localObjs[obj.id].op = 'new';
         }
     }
-
 };
 
 function drawObj() {

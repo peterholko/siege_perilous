@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/0, broadcast/3, broadcast/4]).
+-export([recalculate/0, init_perception/1, broadcast/3, broadcast/4]).
 -export([is_visible/2]).
 
 %% ====================================================================
@@ -33,6 +33,9 @@ broadcast(SourcePos, Range, MessageData) ->
 
 broadcast(SourcePos, TargetPos, Range, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, Range, MessageData}).
+
+init_perception(Player) ->
+    gen_server:call({global, perception_pid}, {init_perception, Player}).
 
 is_visible(SourceId, TargetId) ->
     [Perception] = db:read(perception, SourceId),
@@ -75,6 +78,10 @@ handle_cast({broadcast, SourcePos, TargetPos, Range, MessageData}, Data) ->
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
+handle_call({init_perception, Player}, _From, Data) ->
+    Perception = calculate_perception(Player),
+    {reply, Perception, Data};
+
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
                               {line, ?LINE},
@@ -100,6 +107,22 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
+
+calculate_perception(Player) ->
+    AllObj = ets:tab2list(obj),
+    PlayerEntities = player_entities(AllObj, Player),
+
+    F = fun(Entity, Perception) -> 
+            visible_objs(AllObj, Entity) ++ Perception
+        end,
+
+    AllPerception = lists:foldl(F, [], PlayerEntities),
+    UniquePerception = util:unique_list(AllPerception),
+    UniquePerception.
+
+player_entities(AllObj, Player) ->
+    F = fun(Obj) -> (Obj#obj.vision > 0) and (Obj#obj.player =:= Player) end,
+    lists:filter(F, AllObj).
 
 do_recalculate() ->
     lager:debug("Perception recalculate"),
@@ -132,8 +155,9 @@ entity_perception([Entity | Rest], AllObj) ->
     %Compare old perception to new
     Result = compare_perception(NearbyObjs, PreviousObjs),
 
-    store_perception(Result, Entity#obj.id, NearbyObjs),
+    store_perception(Result, Entity, NearbyObjs),
 
+    %Check if new perception must be sent
     send_perception(Result, Entity, NearbyObjs),
 
     entity_perception(Rest, AllObj).
@@ -141,8 +165,8 @@ entity_perception([Entity | Rest], AllObj) ->
 compare_perception(_New, []) -> false;
 compare_perception(New, [Old]) -> New =:= Old#perception.data.
 
-store_perception(false, EntityId, NewPerception) ->
-    db:dirty_write(#perception {entity=EntityId, data=NewPerception});
+store_perception(false, Entity, NewPerception) ->
+    db:dirty_write(#perception {entity=Entity#obj.id, player=Entity#obj.player, data=NewPerception});
 store_perception(_Result, _EntityId, _NewPerception) ->
     nothing.
 
@@ -236,6 +260,10 @@ visible_objs(AllObjs, #obj {id = Id, pos = Pos, vision = Vision}) ->
         end,
 
     lists:foldl(F, [], AllObjs).
+
+
+
+
 
 build_message(MapObj) ->
     {X, Y} = MapObj#obj.pos,
