@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([recalculate/0, init_perception/1, broadcast/3, broadcast/4]).
--export([is_visible/2]).
+-export([check_event_visible/2, is_visible/2]).
 
 %% ====================================================================
 %% External functions
@@ -33,6 +33,35 @@ broadcast(SourcePos, Range, MessageData) ->
 
 broadcast(SourcePos, TargetPos, Range, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, Range, MessageData}).
+
+check_event_visible(Event, Observers) ->
+    F = fun(Observer, AllEvents) ->
+            {_EventName, _SourceId, SourcePos, DestPos, _Data} = Event,
+            lager:info("Event: ~p", [Event]),
+            NewAllEvents = add_observed_event(SourcePos, DestPos, Observer, Event, AllEvents),
+            lager:info("NewAllEvents: ~p", [NewAllEvents]),
+            NewAllEvents
+        end,
+
+    lists:foldl(F, [], Observers).
+
+%Case when only 1 position 
+add_observed_event(SourcePos, DestPos, Observer, Event, AllEvents) when SourcePos =:= DestPos ->
+    NewAllEvents = check_distance(SourcePos, Observer, Event, AllEvents),
+    NewAllEvents;
+%Case when 2 positions
+add_observed_event(SourcePos, DestPos, Observer, Event, AllEvents) ->
+    NewAllEvents1 = check_distance(SourcePos, Observer, Event, AllEvents),
+    NewAllEvents2 = check_distance(DestPos, Observer, Event, NewAllEvents1),
+    NewAllEvents2.
+
+check_distance(Pos, Observer, Event, AllEvents) ->
+    Distance = map:distance(Pos, Observer#obj.pos),
+
+    case Distance =< Observer#obj.vision of
+        true -> [ {Observer, Event} | AllEvents];
+        false -> AllEvents
+    end.
 
 init_perception(Player) ->
     gen_server:call({global, perception_pid}, {init_perception, Player}).

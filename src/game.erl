@@ -120,13 +120,13 @@ spawn_hero(PlayerId) ->
 
     F4 = fun() ->
             sound:talk(VillagerId, "The dead rise up!  We must be flee!")
-         end,
+         end.
 
     %game:add_event(none, event, F1, none, 20),
     %game:add_event(none, event, F2, none, 28),
     %game:add_event(none, event, F3, none, 36),
 
-    game:add_event(none, event, F4, none, 40).
+    %game:add_event(none, event, F4, none, 40).
 
 
 hero_dead(PlayerId, HeroId) ->

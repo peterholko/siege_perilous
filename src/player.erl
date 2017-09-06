@@ -44,7 +44,23 @@
          revent_response/1,
          set_event_lock/2,
          process_checks/1,
-         is_player_owned/2]).
+         is_player_owned/2,
+         is_player/1,
+         is_player_online/1,
+         get_conn/1]).
+
+is_player(PlayerId) -> PlayerId > ?NPC_ID.
+is_player_online(PlayerId) -> 
+    case db:read(connection, PlayerId) of
+        [_Conn] -> true;
+        _ -> false
+    end.
+
+get_conn(PlayerId) ->
+    case db:read(connection, PlayerId) of
+        [Conn] -> Conn;
+        _ -> false
+    end.
 
 init_perception(PlayerId) ->
     %Get explored tile list

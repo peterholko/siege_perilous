@@ -38,8 +38,11 @@ loop(NumTick, LastTime, GamePID) ->
     %Process events
     ProcessedEventList = process_events(CurrentTick),
 
-    %Send events to observers
-    send_events(ProcessedEventList),
+    %Get player observed events
+    PlayerObservedEvents = get_player_events(ProcessedEventList),
+
+    %Send player observed events
+    send_player_events(PlayerObservedEvents),
 
     %Get triggered perception
     %TriggeredRecalc = game:get_perception(),
@@ -92,63 +95,79 @@ check_sleep(CalcSleepTime, LastTime) ->
            end,
     Next.
 
-send_events(ProcessedEventList) ->
-    AllObj = ets:tab2list(obj),
+get_player_events(PerceptionEvents) ->
+    F = fun(PerceptionEvent, AllPlayerEvents) -> 
+            {Observer, Event} = PerceptionEvent,
 
-    F = fun(Obj = #obj{vision = Vision}) when Vision > 0 ->
-                send_visible_events(Obj, ProcessedEventList);
-           (_Obj) -> 
-                nothing
-        end,
-
-    lists:foreach(F, AllObj).
-
-send_visible_events(Obj, ProcessedEventList) ->
-    
-    F = fun(ProcessedEvent) ->
-            {Event, Id, SourcePos, DestPos, none} = ProcessedEvent,
-            
-            case SourcePos =:= DestPos of 
-                true -> 
-                    case map:distance(SourcePos, Obj#obj.pos) =< Obj#obj.vision of
-                        true ->
-                            [Conn] = db:read(connection, Obj#obj.player),
-                            message:send_to_process(Conn#connection.process, Event, {Id, SourcePos, DestPos});
-                        false ->
-                            nothing
-                    end;
+            case player:is_player(Observer#obj.player) andalso
+                 player:is_player_online(Observer#obj.player) of                
+                true ->
+                    PlayerEvents = maps:get(Observer#obj.id, AllPlayerEvents, []),
+                    
+                    maps:put(Observer#obj.player, [convert_event(Event) | PlayerEvents], AllPlayerEvents);
                 false ->
-                    case map:distance(SourcePos, Obj#obj.pos) =< Obj#obj.vision of
-                        true ->
-                            [C1] = db:read(connection, Obj#obj.player),
-                            message:send_to_process(C1#connection.process, Event, {Id, SourcePos, DestPos});
-                        false ->
-                            nothing
-                    end,
-                    case map:distance(DestPos, Obj#obj.pos) =< Obj#obj.vision of
-                        true ->
-                            [C2] = db:read(connection, Obj#obj.player),
-                            message:send_to_process(C2#connection.process, Event, {Id, SourcePos, DestPos});
-                        false ->
-                            nothing
-                    end
+                    AllPlayerEvents
             end
         end,
 
-    lists:foreach(F, ProcessedEventList).
+    lists:foldl(F, maps:new(), PerceptionEvents).
+
+convert_event(Event) ->
+    {EventName, SourceId, {SrcX, SrcY}, {DestX, DestY}, Data} = Event,
+
+    EventMap = #{<<"name">> => atom_to_binary(EventName, latin1),
+                 <<"source">> => SourceId,
+                 <<"src_x">> => SrcX,
+                 <<"src_y">> => SrcY,
+                 <<"dst_x">> => DestX,
+                 <<"dst_y">> => DestY,
+                 <<"data">> => Data},
+
+    EventMap.
+
+send_player_events(AllPlayerEventsMap) ->
+    AllPlayerEvents = maps:to_list(AllPlayerEventsMap),
+
+    F = fun(PlayerEvents) ->
+            {PlayerId, Events} = PlayerEvents,
+            UniqueEvents = util:unique_list(Events),
+
+            Conn = player:get_conn(PlayerId),
+
+            lager:info("UniqueEvents: ~p", [UniqueEvents]),
+            Conn#connection.process ! {events, UniqueEvents}
+
+        end,
+
+    lists:foreach(F, AllPlayerEvents).
+
+send_perception_events(PerceptionEvents) ->
+
+    F = fun(PerceptionEvent) ->
+            nothing
+        end,
+
+    lists:foreach(F, PerceptionEvents).
 
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
-    check_events(Events, false).
+    AllObjs = ets:tab2list(obj),
+    Observers = lists:filter(fun(Obj) -> Obj#obj.vision > 0 end, AllObjs),
+    check_events(Events, Observers, []).
 
-check_events([], ProcessedEventList) ->
-    ProcessedEventList;
-check_events([Event | Rest], ProcessedEventList) ->
+check_events([], _Observers, PerceptionEvents) ->
+    PerceptionEvents;
+check_events([Event | Rest], Observers, All) ->
     ProcessedEvent  = do_event(Event#event.type,
                                Event#event.data,
                                Event#event.pid),
 
-    check_events(Rest, [ProcessedEvent | ProcessedEventList]).
+    lager:info("ProcessedEvent: ~p Observers: ~p", [ProcessedEvent, Observers]),
+    PerceptionEvents = perception:check_event_visible(ProcessedEvent, Observers),
+
+    %send_perception_event(PerceptionEvents),
+
+    check_events(Rest, Observers, PerceptionEvents ++ All).
 
 do_event(update_state, EventData, PlayerPid) ->
     lager:info("Processing update state event ~p", [EventData]),
