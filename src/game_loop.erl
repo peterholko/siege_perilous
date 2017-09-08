@@ -112,18 +112,15 @@ get_player_events(PerceptionEvents) ->
 
     lists:foldl(F, maps:new(), PerceptionEvents).
 
-convert_event(Event) ->
-    {EventName, SourceId, {SrcX, SrcY}, {DestX, DestY}, Data} = Event,
-
-    EventMap = #{<<"name">> => atom_to_binary(EventName, latin1),
-                 <<"source">> => SourceId,
-                 <<"src_x">> => SrcX,
-                 <<"src_y">> => SrcY,
-                 <<"dst_x">> => DestX,
-                 <<"dst_y">> => DestY,
-                 <<"data">> => Data},
-
-    EventMap.
+convert_event({obj_update, #obj_update {obj = Obj, attr = Attr, value = Value}}) ->
+    #{<<"name">> => atom_to_binary(obj_update, latin1),
+      <<"obj">> => Obj#obj.id,
+      <<"attr">> => Attr,
+      <<"value">> => Value};
+convert_event({obj_move, #obj_move {obj = Obj, source_pos = SourcePos, dest_pos = DestPos}}) ->
+    #{<<"name">> => atom_to_binary(obj_update, latin1),
+      <<"obj">> => Obj#obj.id,
+      <<"source_pos">> 
 
 send_player_events(AllPlayerEventsMap) ->
     AllPlayerEvents = maps:to_list(AllPlayerEventsMap),
@@ -165,17 +162,40 @@ check_events([Event | Rest], Observers, All) ->
     lager:info("ProcessedEvent: ~p Observers: ~p", [ProcessedEvent, Observers]),
     PerceptionEvents = perception:check_event_visible(ProcessedEvent, Observers),
 
-    %send_perception_event(PerceptionEvents),
-
     check_events(Rest, Observers, PerceptionEvents ++ All).
 
-do_event(update_state, EventData, PlayerPid) ->
+do_event(obj_update, EventData, PlayerPid) ->
     lager:info("Processing update state event ~p", [EventData]),
     {SourceId, State} = EventData,
 
     NewObj = obj:update_state(SourceId, State),
 
-    {event_update_state, SourceId, NewObj#obj.pos, NewObj#obj.pos, State};
+    ObjUpdate = #obj_update {obj = NewObj, 
+                             source_pos = NewObj#obj.pos, 
+                             key = <<"state">>,
+                             value = State},
+
+    {obj_update, ObjUpdate};
+
+do_event(obj_move, EventData, PlayerPid) ->
+    lager:debug("Processing move_obj event: ~p", [EventData]),
+    {_Player, ObjId, SourcePos, DestPos} = EventData,
+
+    NewObj = obj:move(ObjId, DestPos),
+
+    ObjMove = case NewObj#obj.pos =:= DestPos of
+                  true -> 
+                      #obj_move {obj = NewObj,
+                                 source_pos = NewObj#obj.pos,
+                                 dest_pos = none};
+                  false -> 
+                      #obj_move {obj = NewObj,
+                                 source_pos = SourcePos,
+                                 dest_pos = NewObj#obj.pos}
+
+              end,
+
+    {obj_move, ObjMove};
 
 do_event(attack, EventData, PlayerPid) ->
     lager:debug("Processing action event: ~p", [EventData]),
@@ -192,18 +212,6 @@ do_event(defend, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {defend, EventData}),
     false;
 
-do_event(move, EventData, PlayerPid) ->
-    lager:debug("Processing move_obj event: ~p", [EventData]),
-    {_Player, ObjId, SourcePos, DestPos} = EventData,
-
-    NewObj = obj:move(ObjId, DestPos),
-
-    Event = case NewObj#obj.pos =:= DestPos of
-                true -> {event_move, ObjId, SourcePos, DestPos, none};
-                false -> {event_move, ObjId, SourcePos, SourcePos, none}
-            end,
-
-    Event;
 
 do_event(ford, EventData, PlayerPid) ->
     lager:debug("Processing ford event: ~p", [EventData]),

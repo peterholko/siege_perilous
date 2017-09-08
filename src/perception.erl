@@ -36,17 +36,21 @@ broadcast(SourcePos, TargetPos, Range, MessageData) ->
 
 check_event_visible(Event, Observers) ->
     F = fun(Observer, AllEvents) ->
-            {_EventName, _SourceId, SourcePos, DestPos, _Data} = Event,
-            lager:info("Event: ~p", [Event]),
-            NewAllEvents = add_observed_event(SourcePos, DestPos, Observer, Event, AllEvents),
+
+            {SourcePos, TargetPos} = get_event_pos(Event),
+
+            NewAllEvents = add_observed_event(SourcePos, TargetPos, Observer, Event, AllEvents),
             lager:info("NewAllEvents: ~p", [NewAllEvents]),
             NewAllEvents
         end,
 
     lists:foldl(F, [], Observers).
 
+get_event_pos({obj_update, #obj_update {source_pos = SourcePos}}) -> {SourcePos, none};
+get_event_pos({obj_update, #obj_move {source_pos = SourcePos, dest_pos = TargetPos}}) -> {SourcePos, TargetPos}.
+
 %Case when only 1 position 
-add_observed_event(SourcePos, DestPos, Observer, Event, AllEvents) when SourcePos =:= DestPos ->
+add_observed_event(SourcePos, none, Observer, Event, AllEvents) ->
     NewAllEvents = check_distance(SourcePos, Observer, Event, AllEvents),
     NewAllEvents;
 %Case when 2 positions

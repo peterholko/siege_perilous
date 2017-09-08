@@ -282,7 +282,7 @@ function handleRender(event) {
     if(render) {
         var currTime = createjs.Ticker.getTime();
         if((currTime - lastRenderTime) >= 200) {
-            drawObj();
+            drawAllObj();
             lastRenderTime = currTime;
             render = false;
         }
@@ -697,15 +697,14 @@ function onMessage(evt) {
 
             playerId = jsonData.player;
             explored = jsonData.explored;
-            objs = jsonData.objs;
 
-            setupObjs();
+            setObjs(jsonData.objs);
 
             setPlayer();
             drawMap(jsonData.map);
         }
-        else if(jsonData.packet == "perception") {
-            updateObj(jsonData);
+        else if(jsonData.packet == "events") {
+            processEvents(jsonData.data);
         }
         else if(jsonData.packet == "map") {
             drawMap(jsonData.data);
@@ -814,6 +813,71 @@ function onMessage(evt) {
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
 };
 
+function processEvents(events) {
+    for(var i = 0; i < events.length; i++) {
+        var evt = events[i];       
+        var obj = new Object();
+
+        if(evt.name == "event_move") {
+            obj.id = evt.source;
+            obj.x = evt.dst_x;
+            obj.y = evt.dst_y;
+            obj.state = "none";
+
+            updateObj(obj);        
+        } else if {evt.name == "event_update_state") {
+            obj.id = evt.source;
+            obj.state = evt.data;
+            
+            updateObj(obj);
+        }
+    }
+};
+
+function setObjs() {
+    console.log("setObj");
+    render = true;
+
+    for(var id in localObjs) {
+        localObjs[id].op = 'remove';
+    }
+
+    for(var i = 0; i < objs.length; i++) {
+        var obj = objs[i];
+
+        if(obj.id in localObjs) {
+            var prev_state = localObjs[obj.id].state;
+            var prev_x = localObjs[obj.id].x;
+            var prev_y = localObjs[obj.id].y;
+    
+            localObjs[obj.id].x = obj.x;
+            localObjs[obj.id].y = obj.y;
+            localObjs[obj.id].state = obj.state;
+            localObjs[obj.id].prev_state = prev_state;
+            localObjs[obj.id].prev_x = prev_x;
+            localObjs[obj.id].prev_y = prev_y;
+            localObjs[obj.id].vision = obj.vision;
+    
+            if(prev_state != obj.state) {
+                localObjs[obj.id].op = 'state';
+            } else if((prev_x != obj.x) || (prev_y != obj.y)) {
+                localObjs[obj.id].op = 'pos';
+            } else {
+                localObjs[obj.id].op = 'none';
+            }
+        } else {
+            localObjs[obj.id] = obj;
+            localObjs[obj.id].op = 'new';
+        }
+    }
+};
+
+function updateObj(obj) {
+    console.log("updateObj");
+
+    var localObj = getLocalObj(obj.
+    
+};
 function setPlayer() {
     for(var i = 0; i < objs.length; i++) {
         if(objs[i].player == playerId && is_hero(objs[i].subclass)) {
@@ -1081,46 +1145,9 @@ function drawMap(tiles) {
 
 };
 
-function setupObjs() {
-    console.log("updateObj");
-    render = true;
 
-    for(var id in localObjs) {
-        localObjs[id].op = 'remove';
-    }
-
-    for(var i = 0; i < objs.length; i++) {
-        var obj = objs[i];
-
-        if(obj.id in localObjs) {
-            var prev_state = localObjs[obj.id].state;
-            var prev_x = localObjs[obj.id].x;
-            var prev_y = localObjs[obj.id].y;
-    
-            localObjs[obj.id].x = obj.x;
-            localObjs[obj.id].y = obj.y;
-            localObjs[obj.id].state = obj.state;
-            localObjs[obj.id].prev_state = prev_state;
-            localObjs[obj.id].prev_x = prev_x;
-            localObjs[obj.id].prev_y = prev_y;
-            localObjs[obj.id].vision = obj.vision;
-    
-            if(prev_state != obj.state) {
-                localObjs[obj.id].op = 'state';
-            } else if((prev_x != obj.x) || (prev_y != obj.y)) {
-                localObjs[obj.id].op = 'pos';
-            } else {
-                localObjs[obj.id].op = 'none';
-            }
-        } else {
-            localObjs[obj.id] = obj;
-            localObjs[obj.id].op = 'new';
-        }
-    }
-};
-
-function drawObj() {
-    console.log("drawObj - start");
+function drawAllObj() {
+    console.log("drawAllObj - start");
     showLocalPanel();
 
     var localMapCont = localPanel.getChildByName("localMap");
@@ -1305,7 +1332,7 @@ function drawObj() {
     }
 
 
-    console.log("drawObj - end");
+    console.log("drawAllObj - end");
 };
 
 function drawSelectPanel(tileX, tileY) {

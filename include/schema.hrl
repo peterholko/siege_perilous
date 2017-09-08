@@ -12,6 +12,7 @@
 -record(connection, {player,
                      process = none}).
 
+
 -record(chat, {obj_id,
                text}).
 
@@ -49,6 +50,16 @@
 -record(perception, {entity,
                      player,
                      data}).
+
+
+-record(obj_update, {obj,
+                     source_pos,
+                     attr,
+                     value}).
+
+-record(obj_move, {obj,
+                   source_pos,
+                   dest_pos}).
 
 -record(map, {index,
               tile,
@@ -193,6 +204,5 @@
 -record(attack, {id,
                  combo_type, 
                  types}).
-
 
 
