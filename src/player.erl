@@ -67,7 +67,7 @@ init_perception(PlayerId) ->
     Explored = map:get_explored(PlayerId, all),
 
     %Get initial perception 
-    Perception = perception:init_perception(PlayerId),
+    Perception = perception:calculate(PlayerId),
 
     lager:info("Initial Perception: ~p", [Perception]),
 

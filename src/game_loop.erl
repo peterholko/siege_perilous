@@ -179,7 +179,7 @@ do_event(obj_update, EventData, PlayerPid) ->
 
 do_event(obj_move, EventData, PlayerPid) ->
     lager:debug("Processing move_obj event: ~p", [EventData]),
-    {_Player, ObjId, SourcePos, DestPos} = EventData,
+    {Player, ObjId, SourcePos, DestPos} = EventData,
 
     NewObj = obj:move(ObjId, DestPos),
 
@@ -194,6 +194,12 @@ do_event(obj_move, EventData, PlayerPid) ->
                                  dest_pos = NewObj#obj.pos}
 
               end,
+
+    %Send full recalculated perception to player incase new objects 
+    %were revealed by the move
+    NewPerception = perception:calculate(Player),
+
+    message:send_to_process(PlayerPid, perception, NewPerception),
 
     {obj_move, ObjMove};
 

@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/0, init_perception/1, broadcast/3, broadcast/4]).
+-export([recalculate/0, calculate/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, is_visible/2]).
 
 %% ====================================================================
@@ -67,8 +67,17 @@ check_distance(Pos, Observer, Event, AllEvents) ->
         false -> AllEvents
     end.
 
-init_perception(Player) ->
-    gen_server:call({global, perception_pid}, {init_perception, Player}).
+calculate(Player) ->
+    AllObj = ets:tab2list(obj),
+    PlayerEntities = player_entities(AllObj, Player),
+
+    F = fun(Entity, Perception) -> 
+            visible_objs(AllObj, Entity) ++ Perception
+        end,
+
+    AllPerception = lists:foldl(F, [], PlayerEntities),
+    UniquePerception = util:unique_list(AllPerception),
+    UniquePerception.
 
 is_visible(SourceId, TargetId) ->
     [Perception] = db:read(perception, SourceId),
@@ -111,10 +120,6 @@ handle_cast({broadcast, SourcePos, TargetPos, Range, MessageData}, Data) ->
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
-handle_call({init_perception, Player}, _From, Data) ->
-    Perception = calculate_perception(Player),
-    {reply, Perception, Data};
-
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
                               {line, ?LINE},
@@ -141,17 +146,6 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-calculate_perception(Player) ->
-    AllObj = ets:tab2list(obj),
-    PlayerEntities = player_entities(AllObj, Player),
-
-    F = fun(Entity, Perception) -> 
-            visible_objs(AllObj, Entity) ++ Perception
-        end,
-
-    AllPerception = lists:foldl(F, [], PlayerEntities),
-    UniquePerception = util:unique_list(AllPerception),
-    UniquePerception.
 
 player_entities(AllObj, Player) ->
     F = fun(Obj) -> (Obj#obj.vision > 0) and (Obj#obj.player =:= Player) end,

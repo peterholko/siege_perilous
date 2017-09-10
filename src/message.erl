@@ -370,10 +370,9 @@ prepare(map_perception, Message) ->
      ExploredTuple];
 
 prepare(perception, Message) ->
-    {EntityId, Objs} = Message,
+    lager:info("Message perception: ~p", [Message]),
     [{<<"packet">>, <<"perception">>},
-     {<<"entity">>, EntityId},
-     {<<"objs">>, Objs}];
+     {<<"data">>, Message}];
     
 prepare(loot_perception, {ObjId, Items}) ->    
     [{<<"packet">>, <<"loot_perception">>},
