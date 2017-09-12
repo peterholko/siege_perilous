@@ -46,26 +46,22 @@ check_event_visible(Event, Observers) ->
 
     lists:foldl(F, [], Observers).
 
-get_event_pos({obj_update, #obj_update {source_pos = SourcePos}}) -> {SourcePos, none};
-get_event_pos({obj_update, #obj_move {source_pos = SourcePos, dest_pos = TargetPos}}) -> {SourcePos, TargetPos}.
+get_event_pos(#obj_update {source_pos = SourcePos}}) -> {SourcePos, none};
+get_event_pos(#obj_move {source_pos = SourcePos, dest_pos = TargetPos}}) -> {SourcePos, TargetPos}.
 
-%Case when only 1 position 
-add_observed_event(SourcePos, none, Observer, Event, AllEvents) ->
-    NewAllEvents = check_distance(SourcePos, Observer, Event, AllEvents),
-    NewAllEvents;
+add_observed_event(Observer, #obj_update {source_pos = SourcePos}, AllEvents) ->
+    case check_distance(Observer, SourcePos) of
+        true ->
+
 %Case when 2 positions
 add_observed_event(SourcePos, DestPos, Observer, Event, AllEvents) ->
     NewAllEvents1 = check_distance(SourcePos, Observer, Event, AllEvents),
     NewAllEvents2 = check_distance(DestPos, Observer, Event, NewAllEvents1),
     NewAllEvents2.
 
-check_distance(Pos, Observer, Event, AllEvents) ->
-    Distance = map:distance(Pos, Observer#obj.pos),
-
-    case Distance =< Observer#obj.vision of
-        true -> [ {Observer, Event} | AllEvents];
-        false -> AllEvents
-    end.
+check_distance(Observer, Pos) ->
+    Distance = map:distance(Observer#obj.pos, Pos),
+    Distance =< Observer#obj.vision.
 
 calculate(Player) ->
     AllObj = ets:tab2list(obj),

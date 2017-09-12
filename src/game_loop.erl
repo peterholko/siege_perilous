@@ -172,10 +172,9 @@ do_event(obj_update, EventData, PlayerPid) ->
 
     ObjUpdate = #obj_update {obj = NewObj, 
                              source_pos = NewObj#obj.pos, 
-                             key = <<"state">>,
+                             attr = <<"state">>,
                              value = State},
-
-    {obj_update, ObjUpdate};
+    ObjUpdate;
 
 do_event(obj_move, EventData, PlayerPid) ->
     lager:debug("Processing move_obj event: ~p", [EventData]),
@@ -201,7 +200,7 @@ do_event(obj_move, EventData, PlayerPid) ->
 
     message:send_to_process(PlayerPid, perception, NewPerception),
 
-    {obj_move, ObjMove};
+    ObjMove;
 
 do_event(attack, EventData, PlayerPid) ->
     lager:debug("Processing action event: ~p", [EventData]),
