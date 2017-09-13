@@ -120,7 +120,7 @@ convert_event({obj_update, #obj_update {obj = Obj, attr = Attr, value = Value}})
 convert_event({obj_move, #obj_move {obj = Obj, source_pos = SourcePos, dest_pos = DestPos}}) ->
     #{<<"name">> => atom_to_binary(obj_update, latin1),
       <<"obj">> => Obj#obj.id,
-      <<"source_pos">> 
+      <<"source_pos">> => SourcePos}. 
 
 send_player_events(AllPlayerEventsMap) ->
     AllPlayerEvents = maps:to_list(AllPlayerEventsMap),
@@ -138,14 +138,6 @@ send_player_events(AllPlayerEventsMap) ->
 
     lists:foreach(F, AllPlayerEvents).
 
-send_perception_events(PerceptionEvents) ->
-
-    F = fun(PerceptionEvent) ->
-            nothing
-        end,
-
-    lists:foreach(F, PerceptionEvents).
-
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
     AllObjs = ets:tab2list(obj),
@@ -155,6 +147,7 @@ process_events(CurrentTick) ->
 check_events([], _Observers, PerceptionEvents) ->
     PerceptionEvents;
 check_events([Event | Rest], Observers, All) ->
+    lager:info("Processing Event: ~p", [Event]),
     ProcessedEvent  = do_event(Event#event.type,
                                Event#event.data,
                                Event#event.pid),
@@ -196,9 +189,9 @@ do_event(obj_move, EventData, PlayerPid) ->
 
     %Send full recalculated perception to player incase new objects 
     %were revealed by the move
-    NewPerception = perception:calculate(Player),
+    %NewPerception = perception:calculate(Player),
 
-    message:send_to_process(PlayerPid, perception, NewPerception),
+    %message:send_to_process(PlayerPid, perception, NewPerception),
 
     ObjMove;
 

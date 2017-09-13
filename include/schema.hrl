@@ -59,7 +59,8 @@
 
 -record(obj_move, {obj,
                    source_pos,
-                   dest_pos}).
+                   dest_pos,
+                   perception = []}).
 
 -record(map, {index,
               tile,

@@ -67,7 +67,7 @@ init_perception(PlayerId) ->
     Explored = map:get_explored(PlayerId, all),
 
     %Get initial perception 
-    Perception = perception:calculate(PlayerId),
+    Perception = perception:calculate_player(PlayerId),
 
     lager:info("Initial Perception: ~p", [Perception]),
 
@@ -228,7 +228,7 @@ move(SourceId, Pos) ->
             game:cancel_event(SourceId),
 
             %Create update state to moving event
-            game:add_event(self(), update_state, {SourceId, moving}, SourceId, 0),
+            game:add_event(self(), obj_update, {SourceId, moving}, SourceId, 0),
 
             %Create move event data
             EventData = {PlayerId,
@@ -238,7 +238,7 @@ move(SourceId, Pos) ->
 
             NumTicks = obj:movement_cost(Obj, Pos),
 
-            game:add_event(self(), move, EventData, SourceId, NumTicks),
+            game:add_event(self(), obj_move, EventData, SourceId, NumTicks),
 
             #{<<"move_time">> => NumTicks * ?TICKS_SEC};
         {false, Error} ->

@@ -824,12 +824,12 @@ function processEvents(events) {
             obj.y = evt.dst_y;
             obj.state = "none";
 
-            updateObj(obj);        
-        } else if {evt.name == "event_update_state") {
+            //updateObj(obj);        
+        } else if (evt.name == "event_update_state") {
             obj.id = evt.source;
             obj.state = evt.data;
             
-            updateObj(obj);
+            //updateObj(obj);
         }
     }
 };
@@ -875,7 +875,7 @@ function setObjs() {
 function updateObj(obj) {
     console.log("updateObj");
 
-    var localObj = getLocalObj(obj.
+    var localObj = getLocalObj(obj.id);
     
 };
 function setPlayer() {

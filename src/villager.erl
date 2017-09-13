@@ -874,7 +874,7 @@ move_unit(#obj {id = Id, pos = Pos, player = Player}, NewPos) ->
     EventData = {Player, Id, Pos, NewPos},
 
     lager:info("Villager: adding game move event"),
-    game:add_event(self(), move, EventData, Id, NumTicks).
+    game:add_event(self(), obj_move, EventData, Id, NumTicks).
 
 move_next_path(_VillagerObj, []) -> nothing;
 move_next_path(VillagerObj, Path) -> move_unit(VillagerObj, lists:nth(2, Path)).

@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/0, calculate/1, broadcast/3, broadcast/4]).
+-export([recalculate/0, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, is_visible/2]).
 
 %% ====================================================================
@@ -36,34 +36,52 @@ broadcast(SourcePos, TargetPos, Range, MessageData) ->
 
 check_event_visible(Event, Observers) ->
     F = fun(Observer, AllEvents) ->
-
-            {SourcePos, TargetPos} = get_event_pos(Event),
-
-            NewAllEvents = add_observed_event(SourcePos, TargetPos, Observer, Event, AllEvents),
+            lager:info("check_event_visible: ~p ~p ~p", [Observer, Event, AllEvents]),
+            NewAllEvents = add_observed_event(Observer, Event, AllEvents),
             lager:info("NewAllEvents: ~p", [NewAllEvents]),
             NewAllEvents
         end,
 
     lists:foldl(F, [], Observers).
 
-get_event_pos(#obj_update {source_pos = SourcePos}}) -> {SourcePos, none};
-get_event_pos(#obj_move {source_pos = SourcePos, dest_pos = TargetPos}}) -> {SourcePos, TargetPos}.
-
-add_observed_event(Observer, #obj_update {source_pos = SourcePos}, AllEvents) ->
+add_observed_event(Observer, Event = #obj_update{source_pos = SourcePos}, AllEvents) ->
     case check_distance(Observer, SourcePos) of
         true ->
+            send_event(Observer, Event),
 
-%Case when 2 positions
-add_observed_event(SourcePos, DestPos, Observer, Event, AllEvents) ->
-    NewAllEvents1 = check_distance(SourcePos, Observer, Event, AllEvents),
-    NewAllEvents2 = check_distance(DestPos, Observer, Event, NewAllEvents1),
-    NewAllEvents2.
+            [{Observer, Event} | AllEvents];
+        false ->
+            AllEvents
+    end;
+add_observed_event(Observer, Event = #obj_move{source_pos = SourcePos, dest_pos = DestPos}, AllEvents) ->
+    case check_distance(Observer, SourcePos) orelse 
+         check_distance(Observer, DestPos) of
+        true ->
+            Perception = calculate_entity(Observer),
+            NewEvent = Event#obj_move{perception = Perception},
+            
+            send_event(Observer, NewEvent),
+
+            [{Observer, Event} | AllEvents];
+        false ->
+            AllEvents
+    end.
+            
+ 
+send_event(Observer = #obj{subclass = Subclass}, Event) when Subclass =:= ?VILLAGER ->
+    Process = global:whereis_name(villager),
+    Process ! {Observer, Event};
+send_event(Observer = #obj{subclass = Subclass}, Event) when Subclass =:= ?NPC ->
+    [Conn] = db:read(connection, Observer#obj.player),
+    Conn#connection.process ! {Observer, Event};
+send_event(_Observer, _Event) ->
+    nothing.
 
 check_distance(Observer, Pos) ->
     Distance = map:distance(Observer#obj.pos, Pos),
     Distance =< Observer#obj.vision.
 
-calculate(Player) ->
+calculate_player(Player) ->
     AllObj = ets:tab2list(obj),
     PlayerEntities = player_entities(AllObj, Player),
 
@@ -74,6 +92,13 @@ calculate(Player) ->
     AllPerception = lists:foldl(F, [], PlayerEntities),
     UniquePerception = util:unique_list(AllPerception),
     UniquePerception.
+
+calculate_entity(Entity) ->
+    AllObj = ets:tab2list(obj),
+
+    Perception = visible_objs(AllObj, Entity),
+    Perception.
+
 
 is_visible(SourceId, TargetId) ->
     [Perception] = db:read(perception, SourceId),
