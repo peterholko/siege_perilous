@@ -52,6 +52,9 @@
                      data}).
 
 
+-record(obj_create, {obj,
+                     source_pos}).
+
 -record(obj_update, {obj,
                      source_pos,
                      attr,
@@ -59,8 +62,7 @@
 
 -record(obj_move, {obj,
                    source_pos,
-                   dest_pos,
-                   perception = []}).
+                   dest_pos}).
 
 -record(map, {index,
               tile,

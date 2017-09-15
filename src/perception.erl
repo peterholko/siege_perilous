@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([recalculate/0, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
+-export([create/1, update/2, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, is_visible/2]).
 
 %% ====================================================================
@@ -25,8 +25,14 @@
 start() ->
     gen_server:start({global, perception_pid}, perception, [], []).
 
-recalculate() ->
-    gen_server:cast({global, perception_pid}, recalculate).
+create(Obj) ->
+    gen_server:cast({global, perception_pid}, {create, Obj}).
+
+update(ObserverObj, UpdatedObj) ->
+    gen_server:cast({global, perception_pid}, {update, ObserverObj, UpdatedObj}).
+
+remove(ObserverObj, RemovedObj) ->
+    gen_server:cast({global, perception_pid}, {remove, ObserverObj, RemovedObj}).
 
 broadcast(SourcePos, Range, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, Range, MessageData}).
@@ -34,39 +40,61 @@ broadcast(SourcePos, Range, MessageData) ->
 broadcast(SourcePos, TargetPos, Range, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, Range, MessageData}).
 
+
+
 check_event_visible(Event, Observers) ->
     F = fun(Observer, AllEvents) ->
-            lager:info("check_event_visible: ~p ~p ~p", [Observer, Event, AllEvents]),
             NewAllEvents = add_observed_event(Observer, Event, AllEvents),
-            lager:info("NewAllEvents: ~p", [NewAllEvents]),
             NewAllEvents
         end,
 
     lists:foldl(F, [], Observers).
 
-add_observed_event(Observer, Event = #obj_update{source_pos = SourcePos}, AllEvents) ->
+add_observed_event(Observer, Event = #obj_create{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     case check_distance(Observer, SourcePos) of
         true ->
-            send_event(Observer, Event),
+            %Update observer's perception of obj after create event
+            perception:update(Observer, Obj), 
 
             [{Observer, Event} | AllEvents];
         false ->
             AllEvents
     end;
-add_observed_event(Observer, Event = #obj_move{source_pos = SourcePos, dest_pos = DestPos}, AllEvents) ->
-    case check_distance(Observer, SourcePos) orelse 
-         check_distance(Observer, DestPos) of
+add_observed_event(Observer, Event = #obj_update{obj = Obj, source_pos = SourcePos}, AllEvents) ->
+    case check_distance(Observer, SourcePos) of
         true ->
-            Perception = calculate_entity(Observer),
-            NewEvent = Event#obj_move{perception = Perception},
-            
-            send_event(Observer, NewEvent),
+            %Update observer's perception of obj after update event
+            perception:update(Observer, Obj), 
 
             [{Observer, Event} | AllEvents];
         false ->
             AllEvents
-    end.
+    end;
+add_observed_event(Observer, Event = #obj_move{obj = Obj, source_pos = SourcePos, dest_pos = DestPos}, AllEvents) ->
+    case {check_distance(Observer, SourcePos), check_distance(Observer, DestPos)} of
+        {true, true} -> % Moving obj is completely in observer's LOS
+
+            %Update observer's perception of obj after move event
+            perception:update(Observer, Obj),
+
+            [{Observer, Event} | AllEvents];
+        {true, false} -> % Moving obj has moved out of observer's LOS 
+
+            %Remove obj from observer's perception 
+            perception:remove(Observer, Obj),
+
+            [{Observer, Event} | AllEvents];
+
+        {false, true} -> % Moving obj has moved into observer's LOS
+
+            %Add obj to observer's perception
+            perception:update(Observer, Obj),
+
+            [{Observer, Event} | AllEvents];
+        {false, false} -> % Move event dot visible to observer
+            AllEvents
             
+    end.
  
 send_event(Observer = #obj{subclass = Subclass}, Event) when Subclass =:= ?VILLAGER ->
     Process = global:whereis_name(villager),
@@ -117,8 +145,37 @@ is_visible(SourceId, TargetId) ->
 init([]) ->
     {ok, []}.
 
-handle_cast(recalculate, Data) ->   
-    do_recalculate(),
+handle_cast({create, Obj}, Data) ->   
+    PerceptionData = calculate_entity(Obj),
+
+    Perception = #perception{entity = obj:id(Obj),
+                             player = obj:player(Obj),
+                             data = PerceptionData},
+
+    db:write(Perception),
+
+    {noreply, Data};
+
+handle_cast({update, ObserverObj, UpdatedObj}, Data) ->  
+    lager:info("perception:update Observer: ~p UpdatedObj: ~p", [ObserverObj, UpdatedObj]),
+    [Perception] = db:read(perception, obj:id(ObserverObj)),
+    lager:info("Perception: ~p", [Perception]),
+     
+    NewPerceptionData = maps:put(obj:id(UpdatedObj), UpdatedObj, Perception#perception.data),
+    NewPerception = Perception#perception{data = NewPerceptionData},
+
+    db:write(NewPerception),
+
+    {noreply, Data};
+
+handle_cast({remove, ObserverObj, RemovedObj}, Data) ->   
+    [Perception] = db:read(perception, obj:id(ObserverObj)),
+     
+    NewPerceptionData = maps:remove(obj:id(RemovedObj), Perception#perception.data),
+    NewPerception = Perception#perception{data = NewPerceptionData},
+
+    db:write(NewPerception),
+
     {noreply, Data};
 
 handle_cast({broadcast, SourcePos, Range, MessageData}, Data) ->
@@ -265,14 +322,15 @@ broadcast_to_objs(Objs, Message) ->
 
 % Undead units cannot see objects with SANCTUARY
 visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?UNDEAD ->
-    F = fun(Target, Visible) ->
+    F = fun(Target, PerceptionData) ->
             Result = Target#obj.state =/= hiding andalso
                      map:distance(Pos, Target#obj.pos) =< Vision andalso
-                     not effect:has_effect(Target#obj.id, ?SANCTUARY),
-            
+                     not effect:has_effect(Target#obj.id, ?SANCTUARY),            
             case Result of
-                true -> [build_message(Target) | Visible];
-                false -> Visible
+                true ->
+                    maps:put(Target#obj.id, Target, PerceptionData);
+                false -> 
+                    PerceptionData
             end
         end,
 
@@ -295,19 +353,21 @@ visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when P
 
 
 visible_objs(AllObjs, #obj {id = Id, pos = Pos, vision = Vision}) ->
-    F = fun(Target, Visible) when Target#obj.id =:= Id ->
-                [build_message(Target) | Visible];  %Include self
-           (Target, Visible) ->
+    F = fun(Target, PerceptionData) when Target#obj.id =:= Id ->
+                maps:put(Target#obj.id, Target, PerceptionData); %Include self
+           (Target, PerceptionData) ->
             Result = Target#obj.state =/= hiding andalso
                      map:distance(Pos, Target#obj.pos) =< Vision,
 
             case Result of
-                true -> [build_message(Target) | Visible];
-                false -> Visible
+                true -> 
+                    maps:put(Target#obj.id, Target, PerceptionData);
+                false -> 
+                    PerceptionData
             end
         end,
 
-    lists:foldl(F, [], AllObjs).
+    lists:foldl(F, #{}, AllObjs).
 
 
 
@@ -337,3 +397,7 @@ get_nearby_objs(SourcePos, Range) ->
         end,
 
     lists:filter(F, AllObj).
+
+update_obj(UpdatedObj, PerceptionData) ->
+    maps:put(obj:id(UpdatedObj), UpdatedObj, PerceptionData).
+

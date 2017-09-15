@@ -17,7 +17,7 @@
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
--export([class/1, subclass/1, template/1, state/1, pos/1]).
+-export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1]).
 
 init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
@@ -76,17 +76,25 @@ create(Pos, PlayerId, UniqueName, Template, State) ->
 
     db:write(Obj),
 
+    %Create state record
     StateRec = #state {id = Id,
-                    state = State,
-                    modtick = counter:value(tick)},
+                       state = State,
+                       modtick = counter:value(tick)},
     db:write(StateRec),
 
-    lager:debug("Triggering perception"),
-    %Trigger perception to be recalculated
-    game:trigger_perception(),
+    case Vision > 0 of
+        true ->
+            %Create init perception 
+            perception:create(Obj);
+        false ->
+            nothing
+    end,
 
     %Check subclass for any other post creation tasks
     process_subclass(Obj),
+
+    %Dispatch create obj event
+    game:add_event(self(), obj_create, Obj, Obj#obj.id, 1),
 
     %Return ID
     Id.
@@ -387,6 +395,8 @@ process_attrlist(Obj, AttrList) ->
 
     lists:foldl(F, true, AttrList).
 
+id(Obj = #obj{}) -> Obj#obj.id.
+player(Obj = #obj{}) -> Obj#obj.player.
 template(Obj = #obj{}) -> Obj#obj.template.
 class(Obj = #obj{}) -> Obj#obj.class.
 subclass(Obj = #obj{}) -> Obj#obj.subclass.

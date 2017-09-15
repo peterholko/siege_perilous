@@ -36,13 +36,16 @@ loop(NumTick, LastTime, GamePID) ->
     process_effects(NumTick),
 
     %Process events
-    ProcessedEventList = process_events(CurrentTick),
+    ObservedEvents = process_events(CurrentTick),
+
+    %Process observed events
+    %process_observed_events(ObservedEvents),
 
     %Get player observed events
-    PlayerObservedEvents = get_player_events(ProcessedEventList),
+    %ObservedEvents = get_player_events(ProcessedEventList),
 
     %Send player observed events
-    send_player_events(PlayerObservedEvents),
+    %send_player_events(PlayerObservedEvents),
 
     %Get triggered perception
     %TriggeredRecalc = game:get_perception(),
@@ -138,6 +141,16 @@ send_player_events(AllPlayerEventsMap) ->
 
     lists:foreach(F, AllPlayerEvents).
 
+%processed_observed_events([]) ->
+    
+
+%process_observed_events(ObservedEvents) ->
+%    F = fun(ObservedEvent, Acc) ->
+%        end,    
+%
+%    lists:foldl(F, [], ObservedEvents).
+    
+
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
     AllObjs = ets:tab2list(obj),
@@ -153,9 +166,18 @@ check_events([Event | Rest], Observers, All) ->
                                Event#event.pid),
 
     lager:info("ProcessedEvent: ~p Observers: ~p", [ProcessedEvent, Observers]),
-    PerceptionEvents = perception:check_event_visible(ProcessedEvent, Observers),
+    ObservedEvents = perception:check_event_visible(ProcessedEvent, Observers),
 
-    check_events(Rest, Observers, PerceptionEvents ++ All).
+    check_events(Rest, Observers, ObservedEvents ++ All).
+
+do_event(obj_create, EventData, PlayerPid) ->
+    lager:info("Processing create obj event ~p", [EventData]),
+    NewObj = EventData,
+
+    ObjCreate = #obj_create {obj = NewObj,
+                             source_pos = NewObj#obj.pos},
+
+    ObjCreate;
 
 do_event(obj_update, EventData, PlayerPid) ->
     lager:info("Processing update state event ~p", [EventData]),
