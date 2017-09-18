@@ -75,6 +75,7 @@ login(Username, Password, Socket) ->
                            {<<"player">>, PlayerId},
                            {<<"map">>, ExploredMap},
                            {<<"objs">>, Perception}],
+            lager:info("LoginPacket: ~p", [LoginPacket]),
             jsx:encode(LoginPacket)
     end.
 

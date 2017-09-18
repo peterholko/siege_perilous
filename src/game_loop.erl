@@ -199,9 +199,10 @@ do_event(obj_move, EventData, PlayerPid) ->
 
     ObjMove = case NewObj#obj.pos =:= DestPos of
                   true -> 
-                      #obj_move {obj = NewObj,
-                                 source_pos = NewObj#obj.pos,
-                                 dest_pos = none};
+                      #obj_update {obj = NewObj,
+                                   source_pos = NewObj#obj.pos,
+                                   attr = <<"state">>,
+                                   value = none};
                   false -> 
                       #obj_move {obj = NewObj,
                                  source_pos = SourcePos,

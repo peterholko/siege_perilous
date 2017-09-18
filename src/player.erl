@@ -67,7 +67,8 @@ init_perception(PlayerId) ->
     Explored = map:get_explored(PlayerId, all),
 
     %Get initial perception 
-    Perception = perception:calculate_player(PlayerId),
+    %Perception = perception:calculate_player(PlayerId),
+    Perception = #{},
 
     lager:info("Initial Perception: ~p", [Perception]),
 
@@ -805,17 +806,6 @@ cancel_event(false, _SourceId) ->
 cancel_event(true, SourceId) ->
     obj:update_state(SourceId, none),
     game:cancel_event(SourceId).
-
-get_visible_objs([], Objs) ->
-    Objs;
-
-get_visible_objs([Obj | Rest], Objs) ->
-
-    {X, Y} = Obj#obj.pos,
-    NearbyObjs = map:get_nearby_objs(X, Y, 2),
-    NewObjs = NearbyObjs ++ Objs,
-
-    get_visible_objs(Rest, NewObjs).
 
 is_player_owned(invalid, _Player) ->
     false;

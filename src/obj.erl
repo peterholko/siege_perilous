@@ -23,7 +23,7 @@ init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
 
     ExploredMap = map:get_explored(PlayerId, all),
-    ObjData = util:unique_list(get_visible_objs(PlayerUnits, [])),
+    ObjData = #{},
 
     lager:info("ExploredMap: ~p", [ExploredMap]), 
     lager:info("ObjData: ~p", [ObjData]), 
@@ -85,6 +85,7 @@ create(Pos, PlayerId, UniqueName, Template, State) ->
     case Vision > 0 of
         true ->
             %Create init perception 
+            lager:info("Creating perception..."),
             perception:create(Obj);
         false ->
             nothing

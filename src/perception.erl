@@ -71,29 +71,49 @@ add_observed_event(Observer, Event = #obj_update{obj = Obj, source_pos = SourceP
             AllEvents
     end;
 add_observed_event(Observer, Event = #obj_move{obj = Obj, source_pos = SourcePos, dest_pos = DestPos}, AllEvents) ->
-    case {check_distance(Observer, SourcePos), check_distance(Observer, DestPos)} of
-        {true, true} -> % Moving obj is completely in observer's LOS
-
-            %Update observer's perception of obj after move event
-            perception:update(Observer, Obj),
-
-            [{Observer, Event} | AllEvents];
-        {true, false} -> % Moving obj has moved out of observer's LOS 
-
-            %Remove obj from observer's perception 
-            perception:remove(Observer, Obj),
-
-            [{Observer, Event} | AllEvents];
-
-        {false, true} -> % Moving obj has moved into observer's LOS
-
-            %Add obj to observer's perception
-            perception:update(Observer, Obj),
-
-            [{Observer, Event} | AllEvents];
-        {false, false} -> % Move event dot visible to observer
-            AllEvents
+    case obj:id(Observer) =:= obj:id(Obj) of
+        true ->
+            [PrevPerception] = db:read(perception, obj:id(Obj)),
             
+            NewPerceptionData = calculate_entity(Obj),
+
+            PrevKeys = maps:keys(PrevPerception#perception.data),
+
+            DiffPerceptionData = maps:without(PrevKeys, NewPerceptionData),
+            
+            lager:info("DiffPerception: ~p", [DiffPerceptionData]),
+
+            NewPerception = PrevPerception#perception {data = NewPerceptionData},
+
+            db:write(NewPerception),
+
+            AllEvents;
+        false ->
+
+            case {check_distance(Observer, SourcePos), check_distance(Observer, DestPos)} of
+                {true, true} -> % Moving obj is completely in observer's LOS
+
+                    %Update observer's perception of obj after move event
+                    perception:update(Observer, Obj),
+
+                    [{Observer, Event} | AllEvents];
+                {true, false} -> % Moving obj has moved out of observer's LOS 
+
+                    %Remove obj from observer's perception 
+                    perception:remove(Observer, Obj),
+
+                    [{Observer, Event} | AllEvents];
+
+                {false, true} -> % Moving obj has moved into observer's LOS
+
+                    %Add obj to observer's perception
+                    perception:update(Observer, Obj),
+
+                    [{Observer, Event} | AllEvents];
+                {false, false} -> % Move event dot visible to observer
+                    AllEvents
+                    
+            end
     end.
  
 send_event(Observer = #obj{subclass = Subclass}, Event) when Subclass =:= ?VILLAGER ->
@@ -106,6 +126,7 @@ send_event(_Observer, _Event) ->
     nothing.
 
 check_distance(Observer, Pos) ->
+    lager:info("check_distance observer: ~p pos: ~p", [Observer, Pos]),
     Distance = map:distance(Observer#obj.pos, Pos),
     Distance =< Observer#obj.vision.
 
@@ -153,6 +174,7 @@ handle_cast({create, Obj}, Data) ->
                              data = PerceptionData},
 
     db:write(Perception),
+    lager:info("Inserted new perception: ~p", [Perception]),
 
     {noreply, Data};
 
