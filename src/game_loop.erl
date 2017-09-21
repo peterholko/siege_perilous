@@ -38,6 +38,13 @@ loop(NumTick, LastTime, GamePID) ->
     %Process events
     ObservedEvents = process_events(CurrentTick),
 
+    case ObservedEvents =/= [] of
+        true ->
+            lager:info("ObservedEvents: ~p",[ObservedEvents]);
+        false ->
+            nothing
+    end,
+
     %Process observed events
     %process_observed_events(ObservedEvents),
 
@@ -165,12 +172,11 @@ check_events([Event | Rest], Observers, All) ->
                                Event#event.data,
                                Event#event.pid),
 
-    lager:info("ProcessedEvent: ~p Observers: ~p", [ProcessedEvent, Observers]),
     ObservedEvents = perception:check_event_visible(ProcessedEvent, Observers),
 
     check_events(Rest, Observers, ObservedEvents ++ All).
 
-do_event(obj_create, EventData, PlayerPid) ->
+do_event(obj_create, EventData, _PlayerPid) ->
     lager:info("Processing create obj event ~p", [EventData]),
     NewObj = EventData,
 
@@ -179,7 +185,7 @@ do_event(obj_create, EventData, PlayerPid) ->
 
     ObjCreate;
 
-do_event(obj_update, EventData, PlayerPid) ->
+do_event(obj_update, EventData, _PlayerPid) ->
     lager:info("Processing update state event ~p", [EventData]),
     {SourceId, State} = EventData,
 
@@ -191,9 +197,9 @@ do_event(obj_update, EventData, PlayerPid) ->
                              value = State},
     ObjUpdate;
 
-do_event(obj_move, EventData, PlayerPid) ->
+do_event(obj_move, EventData, _PlayerPid) ->
     lager:debug("Processing move_obj event: ~p", [EventData]),
-    {Player, ObjId, SourcePos, DestPos} = EventData,
+    {_Player, ObjId, SourcePos, DestPos} = EventData,
 
     NewObj = obj:move(ObjId, DestPos),
 
@@ -209,12 +215,6 @@ do_event(obj_move, EventData, PlayerPid) ->
                                  dest_pos = NewObj#obj.pos}
 
               end,
-
-    %Send full recalculated perception to player incase new objects 
-    %were revealed by the move
-    %NewPerception = perception:calculate(Player),
-
-    %message:send_to_process(PlayerPid, perception, NewPerception),
 
     ObjMove;
 

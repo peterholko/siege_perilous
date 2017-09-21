@@ -209,3 +209,22 @@
                  types}).
 
 
+
+-record(p_update_attrs, {observer,
+                         event,
+                         obj,
+                         attrs = #{}}).
+
+-record(p_new_obj, {observer,
+                    event,
+                    obj}).
+
+-record(p_remove_obj, {observer,
+                       event,
+                       obj}).
+
+-record(p_reset, {observer,
+                  event,
+                  data = #{}}).
+
+

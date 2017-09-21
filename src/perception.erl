@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/1, update/2, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
+-export([create/1, update/2, remove/2, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, is_visible/2]).
 
 %% ====================================================================
@@ -50,72 +50,113 @@ check_event_visible(Event, Observers) ->
 
     lists:foldl(F, [], Observers).
 
-add_observed_event(Observer, Event = #obj_create{obj = Obj, source_pos = SourcePos}, AllEvents) ->
+add_observed_event(Observer, #obj_create{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     case check_distance(Observer, SourcePos) of
         true ->
             %Update observer's perception of obj after create event
             perception:update(Observer, Obj), 
 
-            [{Observer, Event} | AllEvents];
+            NewPerceptionEvent = #p_new_obj{observer = Observer,
+                                            event = obj_create,
+                                            obj = Obj},
+                                            
+
+            [NewPerceptionEvent | AllEvents];
         false ->
             AllEvents
     end;
-add_observed_event(Observer, Event = #obj_update{obj = Obj, source_pos = SourcePos}, AllEvents) ->
+add_observed_event(Observer, #obj_update{obj = Obj, source_pos = SourcePos, attr = Attr, value = Value}, AllEvents) ->
     case check_distance(Observer, SourcePos) of
         true ->
             %Update observer's perception of obj after update event
             perception:update(Observer, Obj), 
 
-            [{Observer, Event} | AllEvents];
+            NewPerceptionEvent = #p_update_attrs{observer = Observer,
+                                                 event = obj_update,
+                                                 obj = Obj,
+                                                 attrs = #{Attr => Value}},
+
+            [NewPerceptionEvent | AllEvents];
         false ->
             AllEvents
     end;
-add_observed_event(Observer, Event = #obj_move{obj = Obj, source_pos = SourcePos, dest_pos = DestPos}, AllEvents) ->
+add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
     case obj:id(Observer) =:= obj:id(Obj) of
         true ->
             [PrevPerception] = db:read(perception, obj:id(Obj)),
             
             NewPerceptionData = calculate_entity(Obj),
-
-            PrevKeys = maps:keys(PrevPerception#perception.data),
-
-            DiffPerceptionData = maps:without(PrevKeys, NewPerceptionData),
-            
-            lager:info("DiffPerception: ~p", [DiffPerceptionData]),
-
             NewPerception = PrevPerception#perception {data = NewPerceptionData},
 
             db:write(NewPerception),
 
-            AllEvents;
+            NewPerceptionEvent = #p_reset{observer = Observer,
+                                          event = obj_move,
+                                          data = NewPerceptionData},
+
+            [NewPerceptionEvent | AllEvents];
         false ->
-
-            case {check_distance(Observer, SourcePos), check_distance(Observer, DestPos)} of
-                {true, true} -> % Moving obj is completely in observer's LOS
-
-                    %Update observer's perception of obj after move event
-                    perception:update(Observer, Obj),
-
-                    [{Observer, Event} | AllEvents];
-                {true, false} -> % Moving obj has moved out of observer's LOS 
-
-                    %Remove obj from observer's perception 
-                    perception:remove(Observer, Obj),
-
-                    [{Observer, Event} | AllEvents];
-
-                {false, true} -> % Moving obj has moved into observer's LOS
-
-                    %Add obj to observer's perception
-                    perception:update(Observer, Obj),
-
-                    [{Observer, Event} | AllEvents];
-                {false, false} -> % Move event dot visible to observer
-                    AllEvents
-                    
-            end
+            process_move_event(Observer, Event, AllEvents)
     end.
- 
+
+process_move_event(Observer, ObjMove, AllEvents) ->
+    Result = {check_distance(Observer, ObjMove#obj_move.source_pos),
+              check_distance(Observer, ObjMove#obj_move.dest_pos)},
+
+    case Result of
+        {true, true} -> % Moving obj is completely in observer's LOS
+
+            %Update observer's perception of obj after move event
+            perception:update(Observer, ObjMove#obj_move.obj),
+
+            %Get obj from obj move event
+            Obj = ObjMove#obj_move.obj,
+            {X, Y} = obj:pos(Obj),
+            
+            Attrs = #{<<"x">> => X,
+                      <<"y">> => Y,
+                      <<"state">> => obj:state(Obj)},
+
+            NewPerceptionEvent = #p_update_attrs{observer = Observer,
+                                                 event = obj_move,
+                                                 obj = Obj,
+                                                 attrs = Attrs},
+
+
+            [NewPerceptionEvent | AllEvents];
+        {true, false} -> % Moving obj has moved out of observer's LOS 
+
+            %Remove obj from observer's perception 
+            perception:remove(Observer, ObjMove#obj_move.obj),
+            
+            %Get obj from obj move event
+            Obj = ObjMove#obj_move.obj,
+
+            NewPerceptionEvent = #p_remove_obj{observer = Observer,
+                                               event = obj_move,
+                                               obj = Obj},
+
+            [NewPerceptionEvent | AllEvents];
+
+        {false, true} -> % Moving obj has moved into observer's LOS
+
+            %Add obj to observer's perception
+            perception:update(Observer, ObjMove#obj_move.obj),
+
+            %Get obj from obj move event
+            Obj = ObjMove#obj_move.obj,
+
+            NewPerceptionEvent = #p_new_obj{observer = Observer,
+                                            event = obj_move,
+                                            obj = Obj},
+
+
+            [NewPerceptionEvent | AllEvents];
+        {false, false} -> % Move event dot visible to observer
+            AllEvents
+            
+    end.
+
 send_event(Observer = #obj{subclass = Subclass}, Event) when Subclass =:= ?VILLAGER ->
     Process = global:whereis_name(villager),
     Process ! {Observer, Event};
@@ -179,10 +220,8 @@ handle_cast({create, Obj}, Data) ->
     {noreply, Data};
 
 handle_cast({update, ObserverObj, UpdatedObj}, Data) ->  
-    lager:info("perception:update Observer: ~p UpdatedObj: ~p", [ObserverObj, UpdatedObj]),
     [Perception] = db:read(perception, obj:id(ObserverObj)),
-    lager:info("Perception: ~p", [Perception]),
-     
+
     NewPerceptionData = maps:put(obj:id(UpdatedObj), UpdatedObj, Perception#perception.data),
     NewPerception = Perception#perception{data = NewPerceptionData},
 
@@ -343,35 +382,36 @@ broadcast_to_objs(Objs, Message) ->
     lists:foreach(F, Objs).    
 
 % Undead units cannot see objects with SANCTUARY
-visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?UNDEAD ->
-    F = fun(Target, PerceptionData) ->
-            Result = Target#obj.state =/= hiding andalso
-                     map:distance(Pos, Target#obj.pos) =< Vision andalso
-                     not effect:has_effect(Target#obj.id, ?SANCTUARY),            
-            case Result of
-                true ->
-                    maps:put(Target#obj.id, Target, PerceptionData);
-                false -> 
-                    PerceptionData
-            end
-        end,
-
-    lists:foldl(F, [], AllObjs);
+%visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?UNDEAD ->
+%    F = fun(Target, PerceptionData) ->
+%            Result = Target#obj.state =/= hiding andalso
+%                     map:distance(Pos, Target#obj.pos) =< Vision andalso
+%                     not effect:has_effect(Target#obj.id, ?SANCTUARY),            
+%            case Result of
+%                true ->
+%                    maps:put(Target#obj.id, Target, PerceptionData);
+%                false -> 
+%                    PerceptionData
+%            end
+%        end,
+%
+%    lists:foldl(F, [], AllObjs);
 
 % Animal units cannot see objects with FORTIFIED
-visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?ANIMAL ->
-    F = fun(Target, Visible) ->
-            Result = Target#obj.state =/= hiding andalso
-                     map:distance(Pos, Target#obj.pos) =< Vision andalso
-                     not effect:has_effect(Target#obj.id, ?FORTIFIED),
-            
-            case Result of
-                true -> [build_message(Target) | Visible];
-                false -> Visible
-            end
-        end,
+%visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?ANIMAL ->
+%    F = fun(Target, Visible) ->
+%            Result = Target#obj.state =/= hiding andalso
+%                     map:distance(Pos, Target#obj.pos) =< Vision andalso
+%                     not effect:has_effect(Target#obj.id, ?FORTIFIED),
+%            
+%            case Result of
+%                true -> [build_message(Target) | Visible];
+%                false -> Visible
+%            end
+%        end,
 
-    lists:foldl(F, [], AllObjs);
+ 
+% lists:foldl(F, [], AllObjs);
 
 
 visible_objs(AllObjs, #obj {id = Id, pos = Pos, vision = Vision}) ->
@@ -392,22 +432,6 @@ visible_objs(AllObjs, #obj {id = Id, pos = Pos, vision = Vision}) ->
     lists:foldl(F, #{}, AllObjs).
 
 
-
-
-
-build_message(MapObj) ->
-    {X, Y} = MapObj#obj.pos,
-    #{<<"id">> => MapObj#obj.id, 
-      <<"player">> => MapObj#obj.player, 
-      <<"x">> => X,
-      <<"y">> => Y,
-      <<"name">> => MapObj#obj.name,
-      <<"template">> => MapObj#obj.template, 
-      <<"class">> => MapObj#obj.class,
-      <<"subclass">> => MapObj#obj.subclass,
-      <<"vision">> => MapObj#obj.vision,
-      <<"state">> => MapObj#obj.state}.
-
 get_nearby_objs(SourcePos, Range) ->
     AllObj = ets:tab2list(obj),
 
@@ -419,7 +443,4 @@ get_nearby_objs(SourcePos, Range) ->
         end,
 
     lists:filter(F, AllObj).
-
-update_obj(UpdatedObj, PerceptionData) ->
-    maps:put(obj:id(UpdatedObj), UpdatedObj, PerceptionData).
 

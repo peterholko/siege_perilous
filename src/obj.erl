@@ -18,6 +18,7 @@
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
 -export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1]).
+-export([rec_to_map/1]).
 
 init_perception(PlayerId) ->
     PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
@@ -722,3 +723,17 @@ is_blocking_state(?DEAD) -> false;
 is_blocking_state(?FOUNDED) -> false;
 is_blocking_state(?PROGRESSING) -> false;
 is_blocking_state(_) -> true.
+
+rec_to_map(Obj) ->
+    {X, Y} = Obj#obj.pos,
+    #{<<"id">> => Obj#obj.id, 
+      <<"player">> => Obj#obj.player, 
+      <<"x">> => X,
+      <<"y">> => Y,
+      <<"name">> => Obj#obj.name,
+      <<"template">> => Obj#obj.template, 
+      <<"class">> => Obj#obj.class,
+      <<"subclass">> => Obj#obj.subclass,
+      <<"vision">> => Obj#obj.vision,
+      <<"state">> => Obj#obj.state}.
+       
