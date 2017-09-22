@@ -203,7 +203,8 @@ do_event(obj_move, EventData, _PlayerPid) ->
 
     NewObj = obj:move(ObjId, DestPos),
 
-    ObjMove = case NewObj#obj.pos =:= DestPos of
+    %Check if obj was actually able to move
+    ObjMove = case obj:pos(NewObj) =:= SourcePos of
                   true -> 
                       #obj_update {obj = NewObj,
                                    source_pos = NewObj#obj.pos,
