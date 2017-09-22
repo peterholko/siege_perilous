@@ -58,7 +58,7 @@ add_observed_event(Observer, #obj_create{obj = Obj, source_pos = SourcePos}, All
 
             NewPerceptionEvent = #p_event{observer = Observer,
                                           event = <<"obj_create">>,
-                                          added = [Obj],
+                                          added = [obj:id(Obj)],
                                           removed = [],
                                           updated = []},
 
@@ -76,7 +76,7 @@ add_observed_event(Observer, #obj_update{obj = Obj, source_pos = SourcePos, attr
                                           event = <<"obj_update">>,
                                           added = [],
                                           removed = [],
-                                          updated = [{Obj, Attr}]},
+                                          updated = [{obj:id(Obj), Attr}]},
 
             [NewPerceptionEvent | AllEvents];
         false ->
@@ -93,6 +93,10 @@ add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
             %Calculate new perception data
             NewPerceptionData = calculate_entity(Obj),
 
+            %Save new perception
+            NewPerception = PrevPerception#perception {data = NewPerceptionData},
+            db:write(NewPerception),
+
             %Compare diff of keys between previous and new
             PrevKeys = maps:keys(PrevPerceptionData),
             NewKeys = maps:keys(NewPerceptionData),
@@ -102,13 +106,11 @@ add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
 
             lager:info("Added: ~p Removed: ~p", [AddedKeys, RemovedKeys]),
 
-            NewPerception = PrevPerception#perception {data = NewPerceptionData},
-
-            db:write(NewPerception),
-
-            NewPerceptionEvent = #p_reset{observer = Observer,
-                                          event = obj_move,
-                                          data = NewPerceptionData},
+            NewPerceptionEvent = #p_event{observer = Observer,
+                                          event = <<"obj_move">>,
+                                          added = AddedKeys, 
+                                          removed = RemovedKeys,
+                                          updated = []},
 
             [NewPerceptionEvent | AllEvents];
         false ->
@@ -119,38 +121,32 @@ process_move_event(Observer, ObjMove, AllEvents) ->
     Result = {check_distance(Observer, ObjMove#obj_move.source_pos),
               check_distance(Observer, ObjMove#obj_move.dest_pos)},
 
+    Obj = ObjMove#obj_move.obj,
+
     case Result of
         {true, true} -> % Moving obj is completely in observer's LOS
 
             %Update observer's perception of obj after move event
-            perception:update(Observer, ObjMove#obj_move.obj),
+            perception:update(Observer, Obj),
 
-            %Get obj from obj move event
-            Obj = ObjMove#obj_move.obj,
-            {X, Y} = obj:pos(Obj),
-            
-            Attrs = #{<<"x">> => X,
-                      <<"y">> => Y,
-                      <<"state">> => obj:state(Obj)},
-
-            NewPerceptionEvent = #p_update_attrs{observer = Observer,
-                                                 event = obj_move,
-                                                 obj = Obj,
-                                                 attrs = Attrs},
-
+            NewPerceptionEvent = #p_event{observer = Observer,
+                                          event = <<"obj_move">>,
+                                          added = [],
+                                          removed = [],
+                                          updated = [{obj:id(Obj), pos},
+                                                     {obj:id(Obj), state}]},
 
             [NewPerceptionEvent | AllEvents];
         {true, false} -> % Moving obj has moved out of observer's LOS 
 
             %Remove obj from observer's perception 
             perception:remove(Observer, ObjMove#obj_move.obj),
-            
-            %Get obj from obj move event
-            Obj = ObjMove#obj_move.obj,
 
-            NewPerceptionEvent = #p_remove_obj{observer = Observer,
-                                               event = obj_move,
-                                               obj = Obj},
+            NewPerceptionEvent = #p_event{observer = Observer,
+                                          event = <<"obj_move">>,
+                                          added = [], 
+                                          removed = [obj:id(Obj)],
+                                          updated = []},
 
             [NewPerceptionEvent | AllEvents];
 
@@ -159,13 +155,11 @@ process_move_event(Observer, ObjMove, AllEvents) ->
             %Add obj to observer's perception
             perception:update(Observer, ObjMove#obj_move.obj),
 
-            %Get obj from obj move event
-            Obj = ObjMove#obj_move.obj,
-
-            NewPerceptionEvent = #p_new_obj{observer = Observer,
-                                            event = obj_move,
-                                            obj = Obj},
-
+            NewPerceptionEvent = #p_event{observer = Observer,
+                                          event = <<"obj_move">>,
+                                          added = [obj:id(Obj)], 
+                                          removed = [],
+                                          updated = []},
 
             [NewPerceptionEvent | AllEvents];
         {false, false} -> % Move event dot visible to observer
