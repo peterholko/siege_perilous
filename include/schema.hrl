@@ -227,4 +227,8 @@
                   event,
                   data = #{}}).
 
-
+-record(p_event, {observer,
+                  event,
+                  added,
+                  removed,
+                  updated}).

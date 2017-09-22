@@ -56,10 +56,11 @@ add_observed_event(Observer, #obj_create{obj = Obj, source_pos = SourcePos}, All
             %Update observer's perception of obj after create event
             perception:update(Observer, Obj), 
 
-            NewPerceptionEvent = #p_new_obj{observer = Observer,
-                                            event = obj_create,
-                                            obj = Obj},
-                                            
+            NewPerceptionEvent = #p_event{observer = Observer,
+                                          event = <<"obj_create">>,
+                                          added = [Obj],
+                                          removed = [],
+                                          updated = []},
 
             [NewPerceptionEvent | AllEvents];
         false ->
@@ -71,10 +72,11 @@ add_observed_event(Observer, #obj_update{obj = Obj, source_pos = SourcePos, attr
             %Update observer's perception of obj after update event
             perception:update(Observer, Obj), 
 
-            NewPerceptionEvent = #p_update_attrs{observer = Observer,
-                                                 event = obj_update,
-                                                 obj = Obj,
-                                                 attrs = #{Attr => Value}},
+            NewPerceptionEvent = #p_event{observer = Observer,
+                                          event = <<"obj_update">>,
+                                          added = [],
+                                          removed = [],
+                                          updated = [{Obj, Attr}]},
 
             [NewPerceptionEvent | AllEvents];
         false ->
@@ -83,9 +85,23 @@ add_observed_event(Observer, #obj_update{obj = Obj, source_pos = SourcePos, attr
 add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
     case obj:id(Observer) =:= obj:id(Obj) of
         true ->
-            [PrevPerception] = db:read(perception, obj:id(Obj)),
-            
+            [PrevPerception] = db:read(perception, obj:id(Obj)),          
+
+            %Get previous perception data
+            PrevPerceptionData = PrevPerception#perception.data,
+
+            %Calculate new perception data
             NewPerceptionData = calculate_entity(Obj),
+
+            %Compare diff of keys between previous and new
+            PrevKeys = maps:keys(PrevPerceptionData),
+            NewKeys = maps:keys(NewPerceptionData),
+
+            AddedKeys = NewKeys -- PrevKeys,
+            RemovedKeys = PrevKeys -- NewKeys,
+
+            lager:info("Added: ~p Removed: ~p", [AddedKeys, RemovedKeys]),
+
             NewPerception = PrevPerception#perception {data = NewPerceptionData},
 
             db:write(NewPerception),
