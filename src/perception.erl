@@ -110,7 +110,8 @@ add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
                                           event = <<"obj_move">>,
                                           added = AddedKeys, 
                                           removed = RemovedKeys,
-                                          updated = []},
+                                          updated = [{obj:id(Obj), pos},
+                                                     {obj:id(Obj), state}]},
 
             [NewPerceptionEvent | AllEvents];
         false ->
