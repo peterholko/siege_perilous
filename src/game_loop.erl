@@ -40,7 +40,9 @@ loop(NumTick, LastTime, GamePID) ->
 
     case ObservedEvents =/= [] of
         true ->
-            lager:info("ObservedEvents: ~p",[ObservedEvents]);
+            lager:info("ObservedEvents: ~p",[ObservedEvents]),
+            PlayerChanges = perception:process_observed_events(ObservedEvents),
+            perception:send_observed_changes(PlayerChanges);
         false ->
             nothing
     end,

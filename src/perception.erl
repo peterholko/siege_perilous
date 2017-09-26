@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([create/1, update/2, remove/2, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
--export([check_event_visible/2, is_visible/2]).
+-export([check_event_visible/2, process_observed_events/1, send_observed_changes/1, is_visible/2]).
 
 %% ====================================================================
 %% External functions
@@ -49,6 +49,80 @@ check_event_visible(Event, Observers) ->
         end,
 
     lists:foldl(F, [], Observers).
+
+
+process_observed_events(AllEvents) ->
+    DefaultValue = {[], [], []},
+
+    F = fun(PEvent, AllEventsMap) ->
+            Observer = PEvent#p_event.observer,
+
+            {Added, Removed, Updated} = maps:get(obj:id(Observer), AllEventsMap, DefaultValue),
+
+            NewChanges = {util:unique_list(Added ++ PEvent#p_event.added),
+                          util:unique_list(Removed ++ PEvent#p_event.removed),
+                          util:unique_list(Updated ++ PEvent#p_event.updated)},
+
+            maps:put(obj:player(Observer), NewChanges, AllEventsMap)
+        end,
+
+    UniqueEvents = lists:foldl(F, #{}, AllEvents),
+    lager:info("UniqueEvents: ~p", [UniqueEvents]),
+    UniqueEvents.
+
+send_observed_changes(ChangesMap) ->
+    ChangesList = maps:to_list(ChangesMap),
+
+    F = fun(Change) ->
+            {PlayerId, {Added, Removed, Updated}} = Change,
+            
+            AddedMapList = added_to_map(Added),           
+            UpdatedMapList = updated_to_map(Updated),
+
+            Changes = #{<<"packet">> => <<"changes">>,
+                        <<"added">> => AddedMapList,
+                        <<"removed">> => Removed,
+                        <<"updated">> => UpdatedMapList},
+      
+            lager:info("~p", [Changes]),
+
+            case db:read(connection, PlayerId) of
+                [Conn] ->
+                    Conn#connection.process ! {changes, Changes};
+                _ ->
+                    nothing
+            end
+        end,
+
+    lists:foreach(F, ChangesList).
+
+added_to_map(ObjList) ->
+
+    F = fun(ObjId, AllObjs) ->
+            Obj = obj:get(ObjId),
+            ObjMap = obj:rec_to_map(Obj),
+
+            [ObjMap | AllObjs]
+        end,
+
+
+    lists:foldl(F, [], ObjList).
+
+updated_to_map(Updated) -> 
+
+    F = fun({ObjIdBin, Attr}, UpdatedMapList) ->
+            Obj = obj:get(ObjIdBin),
+            ObjMap = obj:rec_to_map(Obj),
+
+            AttrValue = maps:get(Attr, ObjMap),
+
+            AttrsMap = #{<<"id">> => ObjIdBin},
+            NewAttrsMap = maps:put(Attr, AttrValue, AttrsMap),
+
+            [NewAttrsMap | UpdatedMapList]
+        end,
+
+    lists:foldl(F, [], Updated).
 
 add_observed_event(Observer, #obj_create{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     case check_distance(Observer, SourcePos) of
@@ -110,8 +184,9 @@ add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
                                           event = <<"obj_move">>,
                                           added = AddedKeys, 
                                           removed = RemovedKeys,
-                                          updated = [{obj:id(Obj), pos},
-                                                     {obj:id(Obj), state}]},
+                                          updated = [{obj:id(Obj), <<"x">>},
+                                                     {obj:id(Obj), <<"y">>},
+                                                     {obj:id(Obj), <<"state">>}]},
 
             [NewPerceptionEvent | AllEvents];
         false ->
@@ -134,8 +209,9 @@ process_move_event(Observer, ObjMove, AllEvents) ->
                                           event = <<"obj_move">>,
                                           added = [],
                                           removed = [],
-                                          updated = [{obj:id(Obj), pos},
-                                                     {obj:id(Obj), state}]},
+                                          updated = [{obj:id(Obj), <<"x">>},
+                                                     {obj:id(Obj), <<"y">>},
+                                                     {obj:id(Obj), <<"state">>}]},
 
             [NewPerceptionEvent | AllEvents];
         {true, false} -> % Moving obj has moved out of observer's LOS 
