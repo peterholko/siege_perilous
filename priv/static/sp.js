@@ -709,6 +709,9 @@ function onMessage(evt) {
         else if(jsonData.packet == "map") {
             drawMap(jsonData.data);
         }
+        else if(jsonData.packet == "changes") {
+            updateObjs(jsonData);
+        }
         else if(jsonData.packet == "loot_perception") {
             drawLootDialog(jsonData);
         }        
@@ -834,49 +837,44 @@ function processEvents(events) {
     }
 };
 
-function setObjs() {
+function setObjs(jsonObjs) {
     console.log("setObj");
-    render = true;
-
-    for(var id in localObjs) {
-        localObjs[id].op = 'remove';
-    }
+    objs = jsonObjs;
 
     for(var i = 0; i < objs.length; i++) {
         var obj = objs[i];
 
-        if(obj.id in localObjs) {
-            var prev_state = localObjs[obj.id].state;
-            var prev_x = localObjs[obj.id].x;
-            var prev_y = localObjs[obj.id].y;
-    
-            localObjs[obj.id].x = obj.x;
-            localObjs[obj.id].y = obj.y;
-            localObjs[obj.id].state = obj.state;
-            localObjs[obj.id].prev_state = prev_state;
-            localObjs[obj.id].prev_x = prev_x;
-            localObjs[obj.id].prev_y = prev_y;
-            localObjs[obj.id].vision = obj.vision;
-    
-            if(prev_state != obj.state) {
-                localObjs[obj.id].op = 'state';
-            } else if((prev_x != obj.x) || (prev_y != obj.y)) {
-                localObjs[obj.id].op = 'pos';
-            } else {
-                localObjs[obj.id].op = 'none';
-            }
-        } else {
-            localObjs[obj.id] = obj;
-            localObjs[obj.id].op = 'new';
-        }
+        localObjs[obj.id] = obj;
     }
+    
+    render = true;
 };
 
-function updateObj(obj) {
+function updateObjs(packetChanges) {
     console.log("updateObj");
-
-    var localObj = getLocalObj(obj.id);
     
+    var added = packetChanges.added;
+    var removed = packetChanges.removed;
+    var updated = packetChanges.updated;
+
+    for(var i = 0; i < added.length; i++) {        
+        localObjs[added[i].id] = added[i];
+    }
+
+    for(var i = 0; i < updated.length; i++) {
+        var localObj = getLocalObj(updated[i].id);
+        
+        if(updated[i].hasOwnProperty('x')) {
+            localObj.x = updated[i].x;
+        }
+
+        if(updated[i].hasOwnProperty('y')) {
+            localObj.x = updated[i].y;
+        }
+       
+    }
+
+    render = true;
 };
 function setPlayer() {
     for(var i = 0; i < objs.length; i++) {

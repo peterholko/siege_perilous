@@ -257,8 +257,16 @@ calculate_player(Player) ->
             maps:merge(Perception, AllPerception)
         end,
 
-    AllPerception = lists:foldl(F, #{}, PlayerEntities),
-    AllPerception.
+    AllPerceptionMap = lists:foldl(F, #{}, PlayerEntities),
+    AllPerceptionList = maps:to_list(AllPerceptionMap),
+
+    G = fun({_ObjIdBin, Obj}, AllObjs) ->            
+            ObjMap = obj:rec_to_map(Obj),
+            [ ObjMap | AllObjs]
+        end,
+
+    PacketPerception = lists:foldl(G, [], AllPerceptionList),
+    PacketPerception.
 
 calculate_entity(Entity) ->
     AllObj = ets:tab2list(obj),
