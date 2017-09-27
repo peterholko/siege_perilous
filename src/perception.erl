@@ -40,8 +40,6 @@ broadcast(SourcePos, Range, MessageData) ->
 broadcast(SourcePos, TargetPos, Range, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, Range, MessageData}).
 
-
-
 check_event_visible(Event, Observers) ->
     F = fun(Observer, AllEvents) ->
             NewAllEvents = add_observed_event(Observer, Event, AllEvents),
@@ -244,15 +242,6 @@ process_move_event(Observer, ObjMove, AllEvents) ->
             
     end.
 
-send_event(Observer = #obj{subclass = Subclass}, Event) when Subclass =:= ?VILLAGER ->
-    Process = global:whereis_name(villager),
-    Process ! {Observer, Event};
-send_event(Observer = #obj{subclass = Subclass}, Event) when Subclass =:= ?NPC ->
-    [Conn] = db:read(connection, Observer#obj.player),
-    Conn#connection.process ! {Observer, Event};
-send_event(_Observer, _Event) ->
-    nothing.
-
 check_distance(Observer, Pos) ->
     lager:info("check_distance observer: ~p pos: ~p", [Observer, Pos]),
     Distance = map:distance(Observer#obj.pos, Pos),
@@ -262,20 +251,20 @@ calculate_player(Player) ->
     AllObj = ets:tab2list(obj),
     PlayerEntities = player_entities(AllObj, Player),
 
-    F = fun(Entity, Perception) -> 
-            visible_objs(AllObj, Entity) ++ Perception
+    F = fun(Entity, AllPerception) -> 
+            Perception = visible_objs(AllObj, Entity),
+            
+            maps:merge(Perception, AllPerception)
         end,
 
-    AllPerception = lists:foldl(F, [], PlayerEntities),
-    UniquePerception = util:unique_list(AllPerception),
-    UniquePerception.
+    AllPerception = lists:foldl(F, #{}, PlayerEntities),
+    AllPerception.
 
 calculate_entity(Entity) ->
     AllObj = ets:tab2list(obj),
 
     Perception = visible_objs(AllObj, Entity),
     Perception.
-
 
 is_visible(SourceId, TargetId) ->
     [Perception] = db:read(perception, SourceId),
