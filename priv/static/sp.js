@@ -869,7 +869,7 @@ function updateObjs(packetChanges) {
         }
 
         if(updated[i].hasOwnProperty('y')) {
-            localObj.x = updated[i].y;
+            localObj.y = updated[i].y;
         }
        
     }
