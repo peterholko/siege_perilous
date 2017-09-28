@@ -1,6 +1,9 @@
 var websocket;
 var stage;
-var render = false;
+
+var startRender = false;
+var rendering = false;
+
 var lastRenderTime = 0;
 var loaderQueue;
 var imagesQueue = [];
@@ -279,12 +282,17 @@ function init() {
 };
 
 function handleRender(event) {
-    if(render) {
+    if(startRender && !rendering) {        
+
         var currTime = createjs.Ticker.getTime();
         if((currTime - lastRenderTime) >= 200) {
+            rendering = true;
+
             drawAllObj();
             lastRenderTime = currTime;
-            render = false;
+
+            startRender = false;
+            rendering = false;
         }
     }
 };
@@ -692,9 +700,6 @@ function onMessage(evt) {
             $("#login").hide();        
             $("#navigation").fadeIn('slow');
 
-            //var localMapCont = localPanel.getChildByName("localMap")
-            //localMapCont.visible = false;
-
             playerId = jsonData.player;
             explored = jsonData.explored;
 
@@ -816,27 +821,6 @@ function onMessage(evt) {
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
 };
 
-function processEvents(events) {
-    for(var i = 0; i < events.length; i++) {
-        var evt = events[i];       
-        var obj = new Object();
-
-        if(evt.name == "event_move") {
-            obj.id = evt.source;
-            obj.x = evt.dst_x;
-            obj.y = evt.dst_y;
-            obj.state = "none";
-
-            //updateObj(obj);        
-        } else if (evt.name == "event_update_state") {
-            obj.id = evt.source;
-            obj.state = evt.data;
-            
-            //updateObj(obj);
-        }
-    }
-};
-
 function setObjs(jsonObjs) {
     console.log("setObj");
     objs = jsonObjs;
@@ -847,7 +831,7 @@ function setObjs(jsonObjs) {
         localObjs[obj.id] = obj;
     }
     
-    render = true;
+    startRender = true;
 };
 
 function updateObjs(packetChanges) {
@@ -874,7 +858,7 @@ function updateObjs(packetChanges) {
        
     }
 
-    render = true;
+    startRender = true;
 };
 function setPlayer() {
     for(var i = 0; i < objs.length; i++) {
