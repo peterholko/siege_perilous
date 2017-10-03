@@ -282,17 +282,15 @@ function init() {
 };
 
 function handleRender(event) {
-    if(startRender && !rendering) {        
+    if(startRender) {        
 
         var currTime = createjs.Ticker.getTime();
-        if((currTime - lastRenderTime) >= 200) {
-            rendering = true;
+        if((currTime - lastRenderTime) >= 500) {
 
             drawAllObj();
-            lastRenderTime = currTime;
 
+            lastRenderTime = currTime;
             startRender = false;
-            rendering = false;
         }
     }
 };
@@ -845,9 +843,17 @@ function updateObjs(packetChanges) {
         localObjs[added[i].id] = added[i];
     }
 
+    for(var i = 0; i < removed.length; i++) {
+        localObjs[removed[i].id].op = 'remove';
+    }
+
     for(var i = 0; i < updated.length; i++) {
         var localObj = getLocalObj(updated[i].id);
         
+        if(updated[i].hasOwnProperty('state')) {
+            localObj.state = updated[i].state;
+        }
+
         if(updated[i].hasOwnProperty('x')) {
             localObj.x = updated[i].x;
         }
