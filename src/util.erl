@@ -134,4 +134,4 @@ capfirst([Head | Tail]) when Head >= $a, Head =< $z ->
 capfirst(Other) ->
     Other.
 
-get_id() -> integer_to_binary(counter:increment(id)).
+get_id() -> counter:increment(id).

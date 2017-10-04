@@ -507,21 +507,7 @@ function sendLogin() {
 };
 
 function sendMove(newX, newY) {
-    if(localPanel.visible == false) {
-        playerObj = getObjByPlayer(playerId);
-        
-        var cmd = "move";
-        var id = playerObj.id;
-    }
-    else {
-        unit = getLocalObj(selectedPortrait);
-
-        var cmd = "move_unit";
-        var id = unit.id;
-    }
-    
-    var move = '{"cmd": "' + cmd + '", "id": "' + id + 
-        '", "x": ' + newX + ', "y": ' + newY + '}';
+    var move = '{"cmd": "move_unit", "id": ' + selectedPortrait + ', "x": ' + newX + ', "y": ' + newY + '}';
 
     websocket.send(move);
 };
@@ -533,66 +519,66 @@ function sendStructureList() {
 
 function sendAttack(attackType) {
     if(selectedUnit != -1) {
-        var attack = '{"cmd": "attack", "attacktype": "' + attackType + '", "sourceid": "' + selectedPortrait + '", "targetid": "' + selectedUnit + '"}';    
+        var attack = '{"cmd": "attack", "attacktype": "' + attackType + '", "sourceid": ' + selectedPortrait + ', "targetid": ' + selectedUnit + '}';    
         websocket.send(attack);
     }
 };
 
 function sendDefend(defendType) {
-    var guard = '{"cmd": "defend", "defendtype": "' + defendType + '", "sourceid": "' + selectedPortrait + '"}';    
+    var guard = '{"cmd": "defend", "defendtype": "' + defendType + '", "sourceid": ' + selectedPortrait + '}';    
     websocket.send(guard);
 };
 
 function sendBuild(structureName) {
-    var e = '{"cmd": "build", "sourceid": "' + selectedPortrait + '", "structure": "' + structureName + '"}';
+    var e = '{"cmd": "build", "sourceid": ' + selectedPortrait + ', "structure": "' + structureName + '"}';
     websocket.send(e);
 };
 
 function sendFinishBuild(structureid) {
     console.log("sendFinishBuild");
-    var e = '{"cmd": "finish_build", "sourceid": "' + selectedPortrait + '", "structureid": "' + structureid + '"}';
+    var e = '{"cmd": "finish_build", "sourceid": ' + selectedPortrait + ', "structureid": ' + structureid + '}';
     websocket.send(e);
 };
 
 function sendRefine(structureid) {
     console.log("sendRefine");
-    var e = '{"cmd": "refine", "structureid": "' + structureid + '"}';
+    var e = '{"cmd": "refine", "structureid": ' + structureid + '}';
     websocket.send(e);
 };
 
 function sendFord(sourceid, x, y) {
     console.log("sendFord");
-    var e = '{"cmd": "ford", "id": "' + selectedPortrait + '", "x": ' + selectedTile['x'] + ', "y": ' + selectedTile['y'] + '}';
+    var e = '{"cmd": "ford", "id": ' + selectedPortrait + ', "x": ' + selectedTile['x'] + ', "y": ' + selectedTile['y'] + '}';
     websocket.send(e);
 };
 
 function sendRecipeList(sourceid) {
-    var e = '{"cmd": "recipe_list", "sourceid": "' + sourceid + '"}';
+    var e = '{"cmd": "recipe_list", "sourceid": ' + sourceid + '}';
     websocket.send(e);
 };
 
 function sendAssign(sourceid, targetid) {
-    var e = '{"cmd": "assign", "sourceid": "' + sourceid + '", "targetid": "' + targetid + '"}';
+    var e = '{"cmd": "assign", "sourceid": ' + sourceid + ', "targetid": ' + targetid + '}';
     websocket.send(e);
 };
 
 function sendFollow(sourceid) {
-    var e = '{"cmd": "follow", "sourceid": "' + selectedPortrait + '"}';
+    var e = '{"cmd": "follow", "sourceid": ' + selectedPortrait + '}';
     websocket.send(e);
 };
 
 function sendOrderHarvest(sourceid) {
-    var e = '{"cmd": "order_harvest", "sourceid": "' + selectedPortrait + '"}';
+    var e = '{"cmd": "order_harvest", "sourceid": ' + selectedPortrait + '}';
     websocket.send(e);
 };
 
 function sendCraft(sourceid, recipe) {
-    var e = '{"cmd": "craft", "sourceid": "' + sourceid + '", "recipe": "' + recipe + '"}';
+    var e = '{"cmd": "craft", "sourceid": ' + sourceid + ', "recipe": "' + recipe + '"}';
     websocket.send(e);
 };
 
 function sendLoot(sourceid, item) {
-    var e = '{"cmd": "loot", "sourceid": "' + sourceid + '", "item": "' + item + '"}';
+    var e = '{"cmd": "loot", "sourceid": ' + sourceid + ', "item": "' + item + '"}';
     websocket.send(e);
 };
 
@@ -602,23 +588,23 @@ function sendEquip(item) {
 };
 
 function sendRest(sourceid) {
-    var e = '{"cmd": "rest", "sourceid": "' + selectedPortrait + '"}';
+    var e = '{"cmd": "rest", "sourceid": ' + selectedPortrait + '}';
     websocket.send(e);
 };
 
 function sendHide(sourceid) {
-    var e = '{"cmd": "order_attack", "sourceid": "' + selectedPortrait + '", "targetid": "' + selectedUnit + '"}';
+    var e = '{"cmd": "order_attack", "sourceid": ' + selectedPortrait + ', "targetid": ' + selectedUnit + '}';
     websocket.send(e);
 };
 
 function sendCombo(comboType) {
-    var e = '{"cmd": "combo", "sourceid": "' + selectedPortrait + '", "combotype": "' + comboType + '"}';
+    var e = '{"cmd": "combo", "sourceid": ' + selectedPortrait + ', "combotype": "' + comboType + '"}';
     websocket.send(e);
 };
 
 function sendItemTransfer(targetid, item) {
     console.log("targetid: " + targetid);
-    var e = '{"cmd": "item_transfer", "targetid": "' + targetid + '", "item": "' + item + '"}';
+    var e = '{"cmd": "item_transfer", "targetid": ' + targetid + ', "item": "' + item + '"}';
     websocket.send(e);
 };
 
@@ -644,22 +630,17 @@ function sendHarvest(sourceid, resource) {
 };
 
 function sendGetStats(id) {
-    var e = '{"cmd": "get_stats", "id": "' + id + '"}';
+    var e = '{"cmd": "get_stats", "id": ' + id + '}';
     websocket.send(e);
 };
 
-function sendInfoObj(id) {
-    var info = '{"cmd": "info_obj", "id": "' + id + '"}';
-    websocket.send(info);
-};
-
 function sendInfoUnit(id) {
-    var info = '{"cmd": "info_unit", "id": "' + id + '"}';
+    var info = '{"cmd": "info_unit", "id": ' + id + '}';
     websocket.send(info);
 };
 
 function sendInfoItem(id) {
-    var info = '{"cmd": "info_item", "id": "' + id + '"}';
+    var info = '{"cmd": "info_item", "id": ' + id + '}';
     websocket.send(info);
 };
 
@@ -669,7 +650,7 @@ function sendInfoItemByName(name) {
 }
 
 function sendInfoTile(x, y) {
-    var info = '{"cmd": "info_tile", "id": "' + heroId + '", "x": ' + x + ', "y": ' + y + '}';
+    var info = '{"cmd": "info_tile", "x": ' + x + ', "y": ' + y + '}';
     websocket.send(info);
 };
 
@@ -827,6 +808,7 @@ function setObjs(jsonObjs) {
         var obj = objs[i];
 
         localObjs[obj.id] = obj;
+        localObjs[obj.id].op = 'added';
     }
     
     startRender = true;
@@ -839,17 +821,25 @@ function updateObjs(packetChanges) {
     var removed = packetChanges.removed;
     var updated = packetChanges.updated;
 
+    //Reset the operation
+    for(var i = 0; i < localObjs.length; i++) {
+        localObjs[i].op = 'none';
+    }
+
     for(var i = 0; i < added.length; i++) {        
         localObjs[added[i].id] = added[i];
+        localObjs[added[i].id].op = 'added';
     }
 
     for(var i = 0; i < removed.length; i++) {
-        localObjs[removed[i].id].op = 'remove';
+        if(removed[i].id in localObjs) {
+            localObjs[removed[i].id].op = 'removed';
+        }
     }
 
     for(var i = 0; i < updated.length; i++) {
-        var localObj = getLocalObj(updated[i].id);
-        
+        var localObj = localObjs[updated[i]];
+
         if(updated[i].hasOwnProperty('state')) {
             localObj.state = updated[i].state;
         }
@@ -861,7 +851,8 @@ function updateObjs(packetChanges) {
         if(updated[i].hasOwnProperty('y')) {
             localObj.y = updated[i].y;
         }
-       
+      
+       localObj.op = 'updated'; 
     }
 
     startRender = true;
@@ -1150,7 +1141,8 @@ function drawAllObj() {
     for(var id in localObjs) {
         var localObj = localObjs[id];
 
-        if(!localObj.hasOwnProperty('icon')) {
+        if(localObj.op == 'added') {
+
             var pixel = hex_to_pixel(localObj.x, localObj.y);
             var unitTemplate = localObj.template;
             unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
@@ -1194,14 +1186,19 @@ function drawAllObj() {
 
             localObj.icon = icon;
         } 
-        else if(localObj.hasOwnProperty('icon'))
-        {
-            if(localObj.op == 'remove') {
+        else if(localObj.op == 'removed') {
+
+            //Check if local has an icon and then delete
+            if(localObj.hasOwnProperty('icon')) {       
                 var cont = localObj.icon.parent;
                 cont.removeChild(localObj.icon);
 
                 delete localObjs[id];
-            } else if(localObj.state == "moving") {
+            }
+        }
+        else if(localObj.op == 'updated') {
+
+            if(localObj.state == "moving") {
                 var sprite = localObj.icon.getChildByName("sprite");
                 sprite.gotoAndPlay("moving");
 
