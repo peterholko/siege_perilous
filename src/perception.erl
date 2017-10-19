@@ -157,6 +157,7 @@ add_observed_event(Observer, #obj_update{obj = Obj, source_pos = SourcePos, attr
 add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
     case obj:id(Observer) =:= obj:id(Obj) of
         true ->
+            lager:info("Processing move event: ~p", [Event]),
             [PrevPerception] = db:read(perception, obj:id(Obj)),          
 
             %Get previous perception data

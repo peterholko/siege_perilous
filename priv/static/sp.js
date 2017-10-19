@@ -822,8 +822,9 @@ function updateObjs(packetChanges) {
     var updated = packetChanges.updated;
 
     //Reset the operation
-    for(var i = 0; i < localObjs.length; i++) {
-        localObjs[i].op = 'none';
+    for(var localObjId in localObjs) {
+        var localObj = localObjs[localObjId];
+        localObj.op = 'none';
     }
 
     for(var i = 0; i < added.length; i++) {        
@@ -838,7 +839,7 @@ function updateObjs(packetChanges) {
     }
 
     for(var i = 0; i < updated.length; i++) {
-        var localObj = localObjs[updated[i]];
+        var localObj = localObjs[updated[i].id];
 
         if(updated[i].hasOwnProperty('state')) {
             localObj.state = updated[i].state;
