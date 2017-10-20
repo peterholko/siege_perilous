@@ -824,7 +824,6 @@ function setObjs(jsonObjs) {
 function updateObjs(packetChanges) {
     console.log("updateObj");
 
-    
     var added = packetChanges.added;
     var removed = packetChanges.removed;
     var updated = packetChanges.updated;
@@ -1267,6 +1266,14 @@ function drawAllObj() {
                     createjs.Tween.get(localObj.icon).to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear);
                 }
             }
+        }
+    }
+
+    for(var id in localObjs) {
+        var localObj = localObjs[id];
+
+        if(localObj.player == playerId) {
+            visibleTiles = range(localObj.x, localObj.y, localObj.vision);
         }
     }
 
