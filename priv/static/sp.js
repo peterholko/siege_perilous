@@ -3,6 +3,7 @@ var stage;
 
 var startRender = false;
 var rendering = false;
+var renderQueue = [];
 
 var lastRenderTime = 0;
 var loaderQueue;
@@ -282,10 +283,14 @@ function init() {
 };
 
 function handleRender(event) {
-    if(startRender) {        
+    if(startRender) {
 
         var currTime = createjs.Ticker.getTime();
         if((currTime - lastRenderTime) >= 500) {
+
+            if(renderQueue.length > 0) {
+                updateObjs(renderQueue.shift());
+            }
 
             drawAllObj();
 
@@ -684,6 +689,8 @@ function onMessage(evt) {
 
             setObjs(jsonData.objs);
 
+            startRender = true;
+
             setPlayer();
             drawMap(jsonData.map);
         }
@@ -694,7 +701,9 @@ function onMessage(evt) {
             drawMap(jsonData.data);
         }
         else if(jsonData.packet == "changes") {
-            updateObjs(jsonData);
+            renderQueue.push(jsonData);
+
+            startRender = true;
         }
         else if(jsonData.packet == "loot_perception") {
             drawLootDialog(jsonData);
@@ -810,12 +819,11 @@ function setObjs(jsonObjs) {
         localObjs[obj.id] = obj;
         localObjs[obj.id].op = 'added';
     }
-    
-    startRender = true;
 };
 
 function updateObjs(packetChanges) {
     console.log("updateObj");
+
     
     var added = packetChanges.added;
     var removed = packetChanges.removed;
@@ -855,9 +863,8 @@ function updateObjs(packetChanges) {
       
        localObj.op = 'updated'; 
     }
-
-    startRender = true;
 };
+
 function setPlayer() {
     for(var i = 0; i < objs.length; i++) {
         if(objs[i].player == playerId && is_hero(objs[i].subclass)) {
@@ -1179,7 +1186,6 @@ function drawAllObj() {
                     };
 
                     createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.getPowInOut(2)).call(showMap);
-
                 }
             }
 
@@ -1249,7 +1255,13 @@ function drawAllObj() {
                         c_x = 640 - 36 - pixel.x;
                         c_y = 400 - 36 - pixel.y;             
                         console.log("x: " + localMapCont.x + " y: " + localMapCont.y + " - " + "c_x: " + c_x + " c_y: " + c_y);
-                        createjs.Tween.get(localMapCont).to({x: c_x, y: c_y}, 500, createjs.Ease.linear);
+                        createjs.Tween.get(localMapCont)
+                                      .to({x: c_x, y: c_y}, 500, createjs.Ease.linear)
+                                      .addEventListener("complete", playerTweenComplete);
+
+                        function playerTweenComplete(event) {
+                        
+                        };
                     }
                 } else {
                     createjs.Tween.get(localObj.icon).to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear);
