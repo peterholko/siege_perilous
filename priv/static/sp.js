@@ -1175,7 +1175,6 @@ function drawAllObj() {
 
             if(localObj.player == playerId) {
                 if(is_hero(localObj.subclass)) {
-                    visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                     c_x = 640 - 36 - pixel.x;
                     c_y = 400 - 36 - pixel.y;
                     console.log("new c_x: " + c_x + " c_y: " + c_y);
@@ -1213,11 +1212,6 @@ function drawAllObj() {
                 localObj.icon.x = pixel.x
                 localObj.icon.y = pixel.y
 
-                if(localObj.player == playerId) {
-                    if(is_hero(localObj.subclass)) {
-                        visibleTiles = range(localObj.x, localObj.y, localObj.vision);
-                    }
-                }
             } else if(localObj.class == "structure") {
                 if(localObj.state == "none") {
                     var unitTemplate = localObj.template;
@@ -1250,17 +1244,12 @@ function drawAllObj() {
                     localObj.icon.y = pixel.y;
 
                     if(is_hero(localObj.subclass)) {
-                        visibleTiles = range(localObj.x, localObj.y, localObj.vision);
                         c_x = 640 - 36 - pixel.x;
                         c_y = 400 - 36 - pixel.y;             
                         console.log("x: " + localMapCont.x + " y: " + localMapCont.y + " - " + "c_x: " + c_x + " c_y: " + c_y);
                         createjs.Tween.get(localMapCont)
-                                      .to({x: c_x, y: c_y}, 500, createjs.Ease.linear)
-                                      .addEventListener("complete", playerTweenComplete);
+                                      .to({x: c_x, y: c_y}, 500, createjs.Ease.linear);
 
-                        function playerTweenComplete(event) {
-                        
-                        };
                     }
                 } else {
                     createjs.Tween.get(localObj.icon).to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear);
@@ -1273,7 +1262,7 @@ function drawAllObj() {
         var localObj = localObjs[id];
 
         if(localObj.player == playerId) {
-            visibleTiles = range(localObj.x, localObj.y, localObj.vision);
+            visibleTiles.concat(range(localObj.x, localObj.y, localObj.vision));
         }
     }
 
