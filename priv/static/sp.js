@@ -1261,8 +1261,9 @@ function drawAllObj() {
     for(var id in localObjs) {
         var localObj = localObjs[id];
 
-        if(localObj.player == playerId) {
-            visibleTiles.concat(range(localObj.x, localObj.y, localObj.vision));
+        if(localObj.player == playerId && localObj.vision > 0) {
+            var visibleRangeObj = range(localObj.x, localObj.y, localObj.vision);
+            visibleTiles = visibleTiles.concat(visibleRangeObj);
         }
     }
 
@@ -1285,6 +1286,15 @@ function drawAllObj() {
 
         if(obj.template == "Stockade" && obj.state == "none") {
             stockades.push(obj);
+        }
+
+        if(!is_visible(obj.x, obj.y, visibleTiles)) {
+            if(obj.hasOwnProperty('icon')) {       
+                var cont = obj.icon.parent;
+                cont.removeChild(obj.icon);
+
+                delete localObjs[id];
+            }
         }
     }
 

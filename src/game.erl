@@ -91,7 +91,7 @@ spawn_hero(PlayerId) ->
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 
-    VillagerId = obj:create(VillagerPos, PlayerId, <<"Human Villager">>),
+    %VillagerId = obj:create(VillagerPos, PlayerId, <<"Human Villager">>),
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
 
@@ -100,9 +100,9 @@ spawn_hero(PlayerId) ->
     item:create(ShipwreckId, <<"Cragroot Popular">>, 100),
    
     % Equip food so it isn't dumped
-    ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
-    ItemId = maps:get(<<"id">>, ItemMap),
-    item:equip(ItemId),
+    %ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
+    %ItemId = maps:get(<<"id">>, ItemMap),
+    %item:equip(ItemId),
 
     map:add_explored(PlayerId, HeroPos, 2),
 
@@ -116,11 +116,11 @@ spawn_hero(PlayerId) ->
 
     F3 = fun() ->
             obj:create({17,35}, ?UNDEAD, <<"Zombie">>)
-         end,
-
-    F4 = fun() ->
-            sound:talk(VillagerId, "The dead rise up!  We must be flee!")
          end.
+
+    %F4 = fun() ->
+    %        sound:talk(VillagerId, "The dead rise up!  We must be flee!")
+    %     end.
 
     %game:add_event(none, event, F1, none, 20),
     %game:add_event(none, event, F2, none, 28),

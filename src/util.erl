@@ -32,7 +32,8 @@
          console_off/0,
          debug/1,
          capfirst/1,
-         get_id/0
+         get_id/0,
+         freq/1
         ]).
 
 %%
@@ -135,3 +136,6 @@ capfirst(Other) ->
     Other.
 
 get_id() -> counter:increment(id).
+
+freq(L) ->
+    lists:foldl(fun(X,[{[X],I}|Q]) -> [{[X],I+1}|Q] ; (X,Acc) -> [{[X],1}|Acc] end , [], lists:sort(L)).
