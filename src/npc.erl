@@ -397,7 +397,7 @@ move_unit(#obj {id = Id, pos = Pos, player = Player}, NewPos) when is_tuple(NewP
     NumTicks = ?TICKS_SEC * 8,
 
     %Update unit state
-    obj:update_state(Id, moving),
+    game:add_event(self(), obj_update, {Id, moving}, Id, 0),
     
     %Create event data
     EventData = {Player,
