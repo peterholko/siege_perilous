@@ -38,6 +38,9 @@ loop(NumTick, LastTime, GamePID) ->
     %Process events
     ObservedEvents = process_events(CurrentTick),
 
+    %Process obj events
+    process_obj_events(CurrentTick),
+
     case ObservedEvents =/= [] of
         true ->
             lager:info("ObservedEvents: ~p",[ObservedEvents]),
@@ -107,101 +110,46 @@ check_sleep(CalcSleepTime, LastTime) ->
            end,
     Next.
 
-get_player_events(PerceptionEvents) ->
-    F = fun(PerceptionEvent, AllPlayerEvents) -> 
-            {Observer, Event} = PerceptionEvent,
+process_obj_events(CurrentTick) ->
+    ObjEvents = db:dirty_index_read(obj_event, CurrentTick, #obj_event.tick),
 
-            case player:is_player(Observer#obj.player) andalso
-                 player:is_player_online(Observer#obj.player) of                
-                true ->
-                    PlayerEvents = maps:get(Observer#obj.id, AllPlayerEvents, []),
-                    
-                    maps:put(Observer#obj.player, [convert_event(Event) | PlayerEvents], AllPlayerEvents);
-                false ->
-                    AllPlayerEvents
-            end
-        end,
-
-    lists:foldl(F, maps:new(), PerceptionEvents).
-
-convert_event({obj_update, #obj_update {obj = Obj, attr = Attr, value = Value}}) ->
-    #{<<"name">> => atom_to_binary(obj_update, latin1),
-      <<"obj">> => Obj#obj.id,
-      <<"attr">> => Attr,
-      <<"value">> => Value};
-convert_event({obj_move, #obj_move {obj = Obj, source_pos = SourcePos, dest_pos = DestPos}}) ->
-    #{<<"name">> => atom_to_binary(obj_update, latin1),
-      <<"obj">> => Obj#obj.id,
-      <<"source_pos">> => SourcePos}. 
-
-send_player_events(AllPlayerEventsMap) ->
-    AllPlayerEvents = maps:to_list(AllPlayerEventsMap),
-
-    F = fun(PlayerEvents) ->
-            {PlayerId, Events} = PlayerEvents,
-            UniqueEvents = util:unique_list(Events),
-
-            Conn = player:get_conn(PlayerId),
-
-            lager:info("UniqueEvents: ~p", [UniqueEvents]),
-            Conn#connection.process ! {events, UniqueEvents}
-
-        end,
-
-    lists:foreach(F, AllPlayerEvents).
-
-%processed_observed_events([]) ->
-    
-
-%process_observed_events(ObservedEvents) ->
-%    F = fun(ObservedEvent, Acc) ->
-%        end,    
-%
-%    lists:foldl(F, [], ObservedEvents).
-    
-
-process_events(CurrentTick) ->
-    Events = db:dirty_index_read(event, CurrentTick, #event.tick),
     AllObjs = ets:tab2list(obj),
-    Observers = lists:filter(fun(Obj) -> Obj#obj.vision > 0 end, AllObjs),
-    check_events(Events, Observers, []).
+    Observers = lists:filter(fun(Obj) -> obj:has_vision(Obj) end, AllObjs),
 
-check_events([], _Observers, PerceptionEvents) ->
+    check_obj_events(ObjEvents, Observers, []).
+
+check_obj_events([], _Observers, PerceptionEvents) ->
     PerceptionEvents;
-check_events([Event | Rest], Observers, All) ->
-    lager:info("Processing Event: ~p", [Event]),
-    ProcessedEvent  = do_event(Event#event.type,
-                               Event#event.data,
-                               Event#event.pid),
+check_obj_events([ObjEvent | Rest], Observers, All) ->
+    lager:info("*** Processing ObjEvent: ~p ", [ObjEvent]),
+    ProcessedEvent  = do_obj_event(ObjEvent#obj_event.event,
+                                   ObjEvent#obj_event.data),
 
     ObservedEvents = perception:check_event_visible(ProcessedEvent, Observers),
 
-    check_events(Rest, Observers, ObservedEvents ++ All).
+    check_obj_events(Rest, Observers, ObservedEvents ++ All).
 
-do_event(obj_create, EventData, _PlayerPid) ->
-    lager:info("Processing create obj event ~p", [EventData]),
-    NewObj = EventData,
+do_obj_event(obj_create, NewObj) ->
+    lager:info("obj_create: ~p", [NewObj]),
 
     ObjCreate = #obj_create {obj = NewObj,
                              source_pos = NewObj#obj.pos},
 
     ObjCreate;
 
-do_event(obj_update, EventData, _PlayerPid) ->
-    lager:info("Processing update state event ~p", [EventData]),
-    {SourceId, State} = EventData,
+do_obj_event(obj_update, {ObjId, _Attr, Value}) ->
+    lager:info("obj_update: ~p ~p", [ObjId, Value]),
 
-    NewObj = obj:update_state(SourceId, State),
+    NewObj = obj:update_state(ObjId, Value),
 
     ObjUpdate = #obj_update {obj = NewObj, 
                              source_pos = NewObj#obj.pos, 
                              attr = <<"state">>,
-                             value = State},
+                             value = Value},
     ObjUpdate;
 
-do_event(obj_move, EventData, _PlayerPid) ->
-    lager:debug("Processing move_obj event: ~p", [EventData]),
-    {_Player, ObjId, SourcePos, DestPos} = EventData,
+do_obj_event(obj_move, {ObjId, SourcePos, DestPos}) ->
+    lager:info("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
 
     NewObj = obj:move(ObjId, DestPos),
 
@@ -219,7 +167,11 @@ do_event(obj_move, EventData, _PlayerPid) ->
 
               end,
 
-    ObjMove;
+    ObjMove.
+
+process_events(CurrentTick) ->
+    Events = db:dirty_index_read(event, CurrentTick, #event.tick).
+    %check_events(Events, Observers, []).
 
 do_event(attack, EventData, PlayerPid) ->
     lager:debug("Processing action event: ~p", [EventData]),

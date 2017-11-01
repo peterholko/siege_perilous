@@ -14,6 +14,7 @@
 %%
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([add_obj_create/3, add_obj_update/5, add_obj_move/5]).
 -export([add_event/5, has_pre_events/1, has_post_events/1, cancel_event/1]).
 -export([trigger_perception/0, trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
@@ -153,6 +154,46 @@ spawn_wolf() ->
 
 start() ->
     gen_server:start({global, game_pid}, game, [], []).
+
+add_obj_create(Process, Obj, EventTick) ->
+    [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+
+    Data = Obj,
+
+    ObjEvent = #obj_event{id = counter:increment(obj_event),
+                          pid = Process,
+                          event = obj_create,
+                          data = Data,
+                          tick = CurrentTick + EventTick},
+
+    db:write(ObjEvent).
+
+add_obj_update(Process, ObjId, Attr, Value, EventTick) ->
+    [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+
+    Data = {ObjId, Attr, Value},
+
+    ObjEvent = #obj_event{id = counter:increment(obj_event),
+                          pid = Process,
+                          event = obj_update,
+                          data = Data,
+                          tick = CurrentTick + EventTick},
+
+    db:write(ObjEvent).
+
+add_obj_move(Process, ObjId, SourcePos, DestPos, EventTick) ->
+    [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+
+    Data = {ObjId, SourcePos, DestPos},
+
+    ObjEvent = #obj_event{id = counter:increment(obj_event),
+                          pid = Process,
+                          event = obj_move,
+                          data = Data,
+                          tick = CurrentTick + EventTick},
+
+    db:write(ObjEvent).
+
 
 add_event(Process, EventType, EventData, EventSource, EventTick) ->
     [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),

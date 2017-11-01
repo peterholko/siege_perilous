@@ -14,6 +14,7 @@
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
+-export([has_vision/1]).
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
@@ -723,6 +724,8 @@ is_blocking_state(?DEAD) -> false;
 is_blocking_state(?FOUNDED) -> false;
 is_blocking_state(?PROGRESSING) -> false;
 is_blocking_state(_) -> true.
+
+has_vision(Obj) -> Obj#obj.vision > 0.
 
 rec_to_map(Obj) ->
     {X, Y} = Obj#obj.pos,

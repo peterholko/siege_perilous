@@ -226,20 +226,17 @@ move(SourceId, Pos) ->
         true ->
             game:cancel_event(SourceId),
 
-            %Create update state to moving event
-            game:add_event(self(), obj_update, {SourceId, moving}, SourceId, 0),
+            SourcePos = Obj#obj.pos,
+            DestPos = Pos,
+            MoveTicks = obj:movement_cost(Obj, DestPos),
 
-            %Create move event data
-            EventData = {PlayerId,
-                         SourceId,
-                         Obj#obj.pos,
-                         Pos},
+            %Add obj update state to change to moving state on next tick
+            game:add_obj_update(self(), SourceId, ?STATE, ?MOVING),
+                
+            %Add obj move event to execute in MoveTicks
+            game:add_obj_move(self(), SourceId, SourcePos, DestPos, MoveTicks),
 
-            NumTicks = obj:movement_cost(Obj, Pos),
-
-            game:add_event(self(), obj_move, EventData, SourceId, NumTicks),
-
-            #{<<"move_time">> => NumTicks * ?TICKS_SEC};
+            #{<<"move_time">> => MoveTicks * ?TICKS_SEC};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.

@@ -864,17 +864,17 @@ get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
 get_next_task(_TaskIndex, _PlanLength) ->
         plan_completed.
 
-move_unit(#obj {id = Id, pos = Pos, player = Player}, NewPos) ->
-    NumTicks = ?TICKS_SEC * 8,
+move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) ->
 
-    %Update unit state
-    obj:update_state(Id, moving),
-    
-    %Create event data
-    EventData = {Player, Id, Pos, NewPos},
+    SourcePos = Pos,
+    DestPos = NewPos,
+    MoveTicks = obj:movement_cost(Obj, DestPos),
 
-    lager:info("Villager: adding game move event"),
-    game:add_event(self(), obj_move, EventData, Id, NumTicks).
+    %Add obj update state to change to moving state on next tick
+    game:add_obj_update(self(), Id, ?STATE, ?MOVING),
+                
+    %Add obj move event to execute in MoveTicks
+    game:add_obj_move(self(), Id, SourcePos, DestPos, MoveTicks).
 
 move_next_path(_VillagerObj, []) -> nothing;
 move_next_path(VillagerObj, Path) -> move_unit(VillagerObj, lists:nth(2, Path)).

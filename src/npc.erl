@@ -393,19 +393,16 @@ get_next_task(_TaskIndex, _PlanLength) ->
 move_next_path(_NPCObj, []) -> nothing;
 move_next_path(NPCObj, Path) -> move_unit(NPCObj, lists:nth(2, Path)).
 
-move_unit(#obj {id = Id, pos = Pos, player = Player}, NewPos) when is_tuple(NewPos) ->
-    NumTicks = ?TICKS_SEC * 8,
+move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) when is_tuple(NewPos) ->
+    SourcePos = Pos,
+    DestPos = NewPos,
+    MoveTicks = obj:movement_cost(Obj, DestPos),
 
-    %Update unit state
-    game:add_event(self(), obj_update, {Id, moving}, Id, 0),
-    
-    %Create event data
-    EventData = {Player,
-                 Id,
-                 Pos,
-                 NewPos},
-
-    game:add_event(self(), obj_move, EventData, Id, NumTicks);
+    %Add obj update state to change to moving state on next tick
+    game:add_obj_update(self(), Id, ?STATE, ?MOVING),
+                
+    %Add obj move event to execute in MoveTicks
+    game:add_obj_move(self(), Id, SourcePos, DestPos, MoveTicks);    
 move_unit(_Obj, _) -> invalid_pos.
 
 get_nearest(_NPCUnit, [], {EnemyUnit, _Distance}) ->

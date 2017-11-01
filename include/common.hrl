@@ -49,6 +49,7 @@
 -define(PROGRESSING, progressing).
 -define(UPGRADING, upgrading).
 
+
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
 -define(ANIMAL, 100).
@@ -139,6 +140,9 @@
 -define(ORDER_FOLLOW, <<"Follow">>).
 -define(ORDER_HARVEST, <<"Harvest">>).
 -define(ORDER_REFINE, <<"Refine">>).
+
+-define(STATE, <<"state">>).
+-define(MOVING, moving).
 
 %STATS
 -define(STRENGTH, <<"Strength">>).

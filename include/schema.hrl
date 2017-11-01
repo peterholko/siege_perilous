@@ -52,6 +52,12 @@
                      data}).
 
 
+-record(obj_event, {id, 
+                    pid,
+                    event, 
+                    data,
+                    tick}).
+
 -record(obj_create, {obj,
                      source_pos}).
 
@@ -209,23 +215,6 @@
                  types}).
 
 
-
--record(p_update_attrs, {observer,
-                         event,
-                         obj,
-                         attrs = #{}}).
-
--record(p_new_obj, {observer,
-                    event,
-                    obj}).
-
--record(p_remove_obj, {observer,
-                       event,
-                       obj}).
-
--record(p_reset, {observer,
-                  event,
-                  data = #{}}).
 
 -record(p_event, {observer,
                   event,
