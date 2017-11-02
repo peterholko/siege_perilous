@@ -105,13 +105,14 @@ check_obj_events([], _Observers, PerceptionEvents) ->
 check_obj_events([ObjEvent | Rest], Observers, All) ->
     lager:info("*** Processing ObjEvent: ~p ", [ObjEvent]),
     ProcessedEvent  = do_obj_event(ObjEvent#obj_event.event,
+                                   ObjEvent#obj_event.pid,
                                    ObjEvent#obj_event.data),
 
     ObservedEvents = perception:check_event_visible(ProcessedEvent, Observers),
 
     check_obj_events(Rest, Observers, ObservedEvents ++ All).
 
-do_obj_event(obj_create, NewObj) ->
+do_obj_event(obj_create, _Process, NewObj) ->
     lager:info("obj_create: ~p", [NewObj]),
 
     ObjCreate = #obj_create {obj = NewObj,
@@ -119,7 +120,7 @@ do_obj_event(obj_create, NewObj) ->
 
     ObjCreate;
 
-do_obj_event(obj_update, {ObjId, _Attr, Value}) ->
+do_obj_event(obj_update, _Process, {ObjId, _Attr, Value}) ->
     lager:info("obj_update: ~p ~p", [ObjId, Value]),
 
     NewObj = obj:update_state(ObjId, Value),
@@ -130,7 +131,7 @@ do_obj_event(obj_update, {ObjId, _Attr, Value}) ->
                              value = Value},
     ObjUpdate;
 
-do_obj_event(obj_move, {ObjId, SourcePos, DestPos}) ->
+do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
     lager:info("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
 
     NewObj = obj:move(ObjId, DestPos),
@@ -148,6 +149,11 @@ do_obj_event(obj_move, {ObjId, SourcePos, DestPos}) ->
                                  dest_pos = NewObj#obj.pos}
 
               end,
+
+    %Send event complete to source of event
+    message:send_to_process(Process, 
+                            event_complete, 
+                            {obj_move, ObjId}),
 
     ObjMove.
 

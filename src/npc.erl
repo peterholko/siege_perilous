@@ -259,10 +259,13 @@ handle_info({perception, {NPCId, Objs}}, Data) ->
     lager:debug("Perception processing end."),
     {noreply, Data};
 
-handle_info({event_complete, {_EventId, Id}}, Data) ->
+handle_info({event_complete, {obj_move, Id}}, Data) ->
+    lager:info("Received event_complete for obj_move"),
     NPC = db:read(npc, Id),
 
+    %Determine next task or if NPC is dead do nothing
     process_event_complete(NPC),
+
     {noreply, Data};
 handle_info({event_cancel, {EventId, Id}}, Data) ->
     lager:info("NPC Event cancelled ~p ~p", [EventId, Id]),
@@ -455,7 +458,7 @@ get_wander_pos(true, RandomPos, _Neighbours) ->
 get_wander_pos(false,  _, Neighbours) ->
     Random = util:rand(length(Neighbours)),
     RandomPos = lists:nth(Random, Neighbours),
-    IsEmpty = obj:is_empty(RandomPos),
+    IsEmpty = obj:is_empty(RandomPos) and map:is_passable(RandomPos),
 
     NewNeighbours = lists:delete(RandomPos, Neighbours),
 
