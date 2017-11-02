@@ -36,10 +36,7 @@ loop(NumTick, LastTime, GamePID) ->
     process_effects(NumTick),
 
     %Process events
-    ObservedEvents = process_events(CurrentTick),
-
-    %Process obj events
-    process_obj_events(CurrentTick),
+    ObservedEvents = process_obj_events(CurrentTick),
 
     case ObservedEvents =/= [] of
         true ->
@@ -50,21 +47,6 @@ loop(NumTick, LastTime, GamePID) ->
             nothing
     end,
 
-    %Process observed events
-    %process_observed_events(ObservedEvents),
-
-    %Get player observed events
-    %ObservedEvents = get_player_events(ProcessedEventList),
-
-    %Send player observed events
-    %send_player_events(PlayerObservedEvents),
-
-    %Get triggered perception
-    %TriggeredRecalc = game:get_perception(),
-   
-    %Recalculate perception 
-    %recalculate(EventsRecalc or TriggeredRecalc),
-   
     %Get triggered explored maps
     Explored = game:get_explored(),
 

@@ -214,8 +214,6 @@
                  combo_type, 
                  types}).
 
-
-
 -record(p_event, {observer,
                   event,
                   added,

@@ -267,9 +267,6 @@ update_dead(Id) ->
              end,
     db:write(NewObj),
 
-    %Trigger new perception
-    game:trigger_perception(),
-
     NewObj.
 
 trigger_effects(#obj{id = WallId, pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
@@ -553,8 +550,7 @@ remove(Id) ->
     db:delete(villager, Id),
     db:delete(npc, Id),
     db:delete(obj, Id),
-    db:delete(state, Id),
-    game:trigger_perception().
+    db:delete(state, Id).
 
 get_visible_objs([], Objs) ->
     Objs;

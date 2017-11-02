@@ -231,7 +231,7 @@ move(SourceId, Pos) ->
             MoveTicks = obj:movement_cost(Obj, DestPos),
 
             %Add obj update state to change to moving state on next tick
-            game:add_obj_update(self(), SourceId, ?STATE, ?MOVING),
+            game:add_obj_update(self(), SourceId, ?STATE, ?MOVING, 0),
                 
             %Add obj move event to execute in MoveTicks
             game:add_obj_move(self(), SourceId, SourcePos, DestPos, MoveTicks),

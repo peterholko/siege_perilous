@@ -16,7 +16,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([add_obj_create/3, add_obj_update/5, add_obj_move/5]).
 -export([add_event/5, has_pre_events/1, has_post_events/1, cancel_event/1]).
--export([trigger_perception/0, trigger_explored/1]).
+-export([trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
 -export([send_update_items/3, send_update_stats/2, send_revent/2]).
 -export([get_info_tile/1, get_valid_tiles/1]).
@@ -238,9 +238,6 @@ cancel_event(EventSource) ->
             nothing
     end.
 
-trigger_perception() ->
-    gen_server:cast({global, game_pid}, trigger_perception).
-
 trigger_explored(Player) ->
     gen_server:cast({global, game_pid}, {trigger_explored, Player}).
 
@@ -270,11 +267,6 @@ init([]) ->
 
 terminate(_Reason, _) ->
     ok.
-
-handle_cast(trigger_perception, #game{explored = Explored}) ->
-    NewData = #game {perception = true,
-                     explored = Explored},
-    {noreply, NewData};
 
 handle_cast({trigger_explored, Player}, #game{perception = Perception,
                                               explored = Explored} ) ->

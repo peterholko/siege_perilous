@@ -871,7 +871,7 @@ move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) ->
     MoveTicks = obj:movement_cost(Obj, DestPos),
 
     %Add obj update state to change to moving state on next tick
-    game:add_obj_update(self(), Id, ?STATE, ?MOVING),
+    game:add_obj_update(self(), Id, ?STATE, ?MOVING, 0),
                 
     %Add obj move event to execute in MoveTicks
     game:add_obj_move(self(), Id, SourcePos, DestPos, MoveTicks).
