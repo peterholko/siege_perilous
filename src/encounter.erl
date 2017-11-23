@@ -15,7 +15,7 @@ check(Pos) ->
     EncounterNum = get_num(Pos),
     NumMod = math:pow(0.5, EncounterNum),
 
-    BaseSpawnRate = 0.50,
+    BaseSpawnRate = 0.001,
     EffectiveSpawnRate = NumMod * BaseSpawnRate,
 
     Random = util:rand(),

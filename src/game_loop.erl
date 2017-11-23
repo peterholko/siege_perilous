@@ -35,7 +35,7 @@ loop(NumTick, LastTime, GamePID) ->
     %Process effects
     process_effects(NumTick),
 
-    %Process events
+    %Process Obj events
     ObservedEvents = process_obj_events(CurrentTick),
 
     case ObservedEvents =/= [] of
@@ -46,6 +46,9 @@ loop(NumTick, LastTime, GamePID) ->
         false ->
             nothing
     end,
+
+    %Process events
+    process_events(CurrentTick),
 
     %Get triggered explored maps
     Explored = game:get_explored(),
@@ -158,8 +161,17 @@ do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
     ObjMove.
 
 process_events(CurrentTick) ->
-    Events = db:dirty_index_read(event, CurrentTick, #event.tick).
-    %check_events(Events, Observers, []).
+    Events = db:dirty_index_read(event, CurrentTick, #event.tick),
+
+    F = fun(Event) ->
+            do_event(Event#event.type,
+                     Event#event.data,
+                     Event#event.pid),
+
+            db:delete(event, Event#event.id)
+        end,
+
+    lists:foreach(F, Events).
 
 do_event(attack, EventData, PlayerPid) ->
     lager:debug("Processing action event: ~p", [EventData]),
@@ -323,8 +335,11 @@ recalculate(true) ->
 process_explored([]) ->
     done;
 process_explored([Player | Rest]) ->
+    lager:info("Processed Explored: ~p", [Player]),
     [Conn] = db:dirty_read(connection, Player),
     ExploredTiles = map:get_explored(Player, new),
+    lager:info("Dump: ~p", [db:dump(explored_map)]),
+    lager:info("ExploredTiles: ~p", [ExploredTiles]),
     message:send_to_process(Conn#connection.process, map, ExploredTiles),
 
     process_explored(Rest).

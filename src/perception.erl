@@ -55,7 +55,7 @@ process_observed_events(AllEvents) ->
     F = fun(PEvent, AllEventsMap) ->
             Observer = PEvent#p_event.observer,
 
-            {Added, Removed, Updated} = maps:get(obj:id(Observer), AllEventsMap, DefaultValue),
+            {Added, Removed, Updated} = maps:get(obj:player(Observer), AllEventsMap, DefaultValue),
 
             NewChanges = {util:unique_list(Added ++ PEvent#p_event.added),
                           util:unique_list(Removed ++ PEvent#p_event.removed),

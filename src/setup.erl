@@ -63,18 +63,12 @@ login(Username, Password, Socket) ->
             %Stored player id in process dict for easy access
             put(player_id, PlayerId),
 
-            %Get init perception 
-            {PlayerId, ExploredMap, Perception} = player:init_perception(PlayerId),
-
-            lager:info("Perception: ~p", [Perception]),
-
-            %Check if initial login state requires any special data
-            player:init_state(PlayerId),
+            %Add event to spawn new player
+            game:spawn_new_player(PlayerId),
 
             LoginPacket = [{<<"packet">>, <<"login">>},
-                           {<<"player">>, PlayerId},
-                           {<<"map">>, ExploredMap},
-                           {<<"objs">>, Perception}],
+                           {<<"player">>, PlayerId}],
+
             lager:info("LoginPacket: ~p", [LoginPacket]),
             jsx:encode(LoginPacket)
     end.

@@ -88,7 +88,10 @@ create(Pos, PlayerId, UniqueName, Template, State) ->
         true ->
             %Create init perception 
             lager:info("Creating perception..."),
-            perception:create(Obj);
+            perception:create(Obj),
+
+            map:add_explored(Obj#obj.player, Pos, Obj#obj.vision),
+            game:trigger_explored(Obj#obj.player);
         false ->
             nothing
     end,
@@ -97,7 +100,7 @@ create(Pos, PlayerId, UniqueName, Template, State) ->
     process_subclass(Obj),
 
     %Dispatch create obj event
-    game:add_event(self(), obj_create, Obj, Obj#obj.id, 1),
+    game:add_obj_create(self(), Obj, 1),
 
     %Return ID
     Id.

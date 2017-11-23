@@ -50,8 +50,6 @@ login([], [Name, Pass, Socket]) ->
     db:write(Connection),
     db:write(ExploredMap),
    
-    game:spawn_hero(PlayerId),
-
     {success, PlayerId};
 
 login([PlayerInfo], [_Name, Pass,_] = Args)

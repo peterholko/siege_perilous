@@ -685,13 +685,13 @@ function onMessage(evt) {
             $("#navigation").fadeIn('slow');
 
             playerId = jsonData.player;
-            explored = jsonData.explored;
+            //explored = jsonData.explored;
 
-            setObjs(jsonData.objs);
+            //setObjs(jsonData.objs);
 
-            startRender = true;
+            //startRender = true;
 
-            setPlayer();
+            //setPlayer();
             drawMap(jsonData.map);
         }
         else if(jsonData.packet == "events") {
@@ -1218,8 +1218,8 @@ function drawAllObj() {
                     unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
                     var imagePath =  "/static/art/" + unitTemplate + ".json";
 
-                    localObj.icon.removeAllChildren();        
-                    addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
+                    //localObj.icon.removeAllChildren();        
+                    //addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
                 }
             } 
             else {
