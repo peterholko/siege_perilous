@@ -83,30 +83,28 @@ spawn_new_player(PlayerId) ->
     %Pos = map:random_location(),
     %AdjPos = map:get_random_neighbour(Pos),
 
-    F = fun() ->
-        HeroPos = {16,36},
-        VillagerPos = {16,37},
-        MonolithPos = {18,35},
-        ShipwreckPos = {15,36},
- 
-        MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
-        ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
-        HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),
-        
-        [Player] = db:read(player, PlayerId),
-        NewPlayer = Player#player {hero = HeroId},
-        db:write(NewPlayer),
+    HeroPos = {16,36},
+    VillagerPos = {16,37},
+    MonolithPos = {18,35},
+    ShipwreckPos = {15,36},
 
-        %VillagerId = obj:create(VillagerPos, PlayerId, <<"Human Villager">>),
-
-        item:create(HeroId, <<"Crimson Root">>, 100),
-        item:create(MonolithId, <<"Mana">>, 2500),
-        item:create(ShipwreckId, <<"Cragroot Popular">>, 100),
+    MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
+    ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
+    HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),
     
-        map:add_explored(PlayerId, HeroPos, 2)
-    end,
+    [Player] = db:read(player, PlayerId),
+    NewPlayer = Player#player {hero = HeroId},
+    db:write(NewPlayer),
 
-    game:add_event(none, event, F, none, 1),
+    %VillagerId = obj:create(VillagerPos, PlayerId, <<"Human Villager">>),
+
+    item:create(HeroId, <<"Crimson Root">>, 100),
+    item:create(MonolithId, <<"Mana">>, 2500),
+    item:create(ShipwreckId, <<"Cragroot Popular">>, 100),
+
+    map:add_explored(PlayerId, HeroPos, 2),
+
+    game:add_event(self(), new_player, none, none, 2),
    
     % Equip food so it isn't dumped
     %ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),

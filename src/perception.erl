@@ -17,6 +17,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([create/1, update/2, remove/2, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, process_observed_events/1, send_observed_changes/1, is_visible/2]).
+-export([get_by_player/1]).
 
 %% ====================================================================
 %% External functions
@@ -39,6 +40,25 @@ broadcast(SourcePos, Range, MessageData) ->
 
 broadcast(SourcePos, TargetPos, Range, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, Range, MessageData}).
+
+get_by_player(PlayerId) ->
+    AllPerception = db:index_read(perception, PlayerId, #perception.player),
+
+    F = fun(Perception, All) ->
+            Perception#perception.data ++ All
+        end,
+
+    ObjList = util:unique_list(lists:foldl(F, AllPerception)),
+
+    G = fun(ObjId, AllObjs) ->
+            Obj = obj:get(ObjId),
+            ObjMap = obj:rec_to_map(Obj),
+
+            [ObjMap | AllObjs]
+        end,
+
+
+    lists:foldl(G, [], ObjList).
 
 check_event_visible(Event, Observers) ->
     F = fun(Observer, AllEvents) ->

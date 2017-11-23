@@ -319,6 +319,17 @@ do_event(craft, EventData, PlayerPid) ->
 
     false;
 
+do_event(new_player, EventData, Pid) ->
+    PlayerId = EventData,
+
+    Objs = perception:get_by_player(PlayerId),
+    Map = map:get_explored(PlayerId, all),
+
+    Perception = #{<<"map">> => Map,
+                   <<"objs">> => Objs},
+
+    message:send_to_process(Pid, perception, Perception);
+
 do_event(event, EventData, _Pid) ->
     EventData(),
     false; 
