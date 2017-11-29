@@ -10,8 +10,8 @@
                  npc = false}).
 
 -record(connection, {player,
+                     status = init,
                      process = none}).
-
 
 -record(chat, {obj_id,
                text}).

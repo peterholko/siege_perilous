@@ -104,7 +104,7 @@ spawn_new_player(PlayerId) ->
 
     map:add_explored(PlayerId, HeroPos, 2),
 
-    game:add_event(self(), new_player, none, none, 2),
+    game:add_event(self(), new_player, PlayerId, none, 2),
    
     % Equip food so it isn't dumped
     %ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),

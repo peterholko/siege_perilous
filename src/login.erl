@@ -40,6 +40,7 @@ login([], [Name, Pass, Socket]) ->
                       password = Pass},
 
     Connection = #connection {player = PlayerId,
+                              status = init,
                               process = Socket},
 
     ExploredMap = #explored_map {player = PlayerId,

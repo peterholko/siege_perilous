@@ -46,14 +46,30 @@
          process_checks/1,
          is_player_owned/2,
          is_player/1,
-         is_player_online/1,
+         is_online/1,
+         set_player_online/1,
          get_conn/1]).
 
 is_player(PlayerId) -> PlayerId > ?NPC_ID.
-is_player_online(PlayerId) -> 
+
+is_online(PlayerId) -> 
     case db:read(connection, PlayerId) of
-        [_Conn] -> true;
-        _ -> false
+        [Conn] -> 
+            case Conn#connection.status =:= online of
+                true -> Conn;
+                false -> false
+            end;
+        _ -> 
+            false
+    end.
+
+set_player_online(PlayerId) ->
+    case db:read(connection, PlayerId) of
+        [Conn] ->
+            NewConn = Conn#connection{status = online},
+            db:write(NewConn);
+        _ ->
+            nothing
     end.
 
 get_conn(PlayerId) ->

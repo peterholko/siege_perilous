@@ -45,10 +45,10 @@ get_by_player(PlayerId) ->
     AllPerception = db:index_read(perception, PlayerId, #perception.player),
 
     F = fun(Perception, All) ->
-            Perception#perception.data ++ All
+            maps:keys(Perception#perception.data) ++ All
         end,
 
-    ObjList = util:unique_list(lists:foldl(F, AllPerception)),
+    ObjList = util:unique_list(lists:foldl(F, [], AllPerception)),
 
     G = fun(ObjId, AllObjs) ->
             Obj = obj:get(ObjId),
@@ -108,11 +108,10 @@ send_observed_changes(ChangesMap) ->
       
             lager:info("~p", [Changes]),
 
-            case db:read(connection, PlayerId) of
-                [Conn] ->
-                    Conn#connection.process ! {changes, Changes};
-                _ ->
-                    nothing
+            case player:is_online(PlayerId) of
+                false -> nothing;
+                Conn ->
+                    Conn#connection.process ! {changes, Changes}
             end
         end,
 
