@@ -692,7 +692,18 @@ function onMessage(evt) {
             //startRender = true;
 
             //setPlayer();
-            drawMap(jsonData.map);
+            //drawMap(jsonData.map);
+        }
+        else if(jsonData.packet == "perception") {
+            var data = jsonData.data;
+
+            drawMap(data.map);
+
+            setObjs(data.objs);
+
+            setPlayer();
+
+            startRender = true;
         }
         else if(jsonData.packet == "events") {
             processEvents(jsonData.data);
