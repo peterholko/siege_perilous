@@ -115,8 +115,11 @@ check_obj_events([ObjEvent | Rest], Observers, All) ->
 
     check_obj_events(Rest, Observers, ObservedEvents ++ All).
 
-do_obj_event(obj_create, _Process, NewObj) ->
-    lager:info("obj_create: ~p", [NewObj]),
+do_obj_event(obj_create, _Process, CreateData = {Id, Pos, PlayerId, Template, UniqueName, State}) ->
+    lager:info("obj_create: ~p", [CreateData]),
+
+    NewObj = obj:process_create(Id, Pos, PlayerId, Template, UniqueName, State),
+    lager:info("NewObj: ~p", [NewObj]),
 
     ObjCreate = #obj_create {obj = NewObj,
                              source_pos = NewObj#obj.pos},
@@ -328,6 +331,15 @@ do_event(new_player, EventData, Pid) ->
 
     Perception = #{<<"map">> => Map,
                    <<"objs">> => Objs},
+
+    %TODO move this code
+    case db:read(connection, PlayerId) of
+        [Connection] ->
+            NewConnection = Connection#connection{status = online},
+            db:write(NewConnection);
+        _ -> 
+            nothing
+    end,
 
     message:send_to_process(Pid, perception, Perception);
 

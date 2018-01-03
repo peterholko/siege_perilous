@@ -199,10 +199,10 @@ do(Q) ->
 
 test_tables() ->
     [
-     {connection, 98, none},     
-     {connection, ?UNDEAD, none},     
-     {connection, ?ANIMAL, none},     
-     {connection, ?EMPIRE, none},     
+     {connection, 98, online, none},     
+     {connection, ?UNDEAD, online, none},     
+     {connection, ?ANIMAL, online, none},     
+     {connection, ?EMPIRE, online, none},     
      {player, 98, <<"natives">>, <<"123123">>, 0, false, false, true},
      {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, true},
      {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, true},
