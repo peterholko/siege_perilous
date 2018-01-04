@@ -557,9 +557,7 @@ movement_cost(_Obj, NextPos) ->
 
 remove(Id) ->
     db:delete(villager, Id),
-    db:delete(npc, Id),
-    db:delete(obj, Id),
-    db:delete(state, Id).
+    db:delete(npc, Id).
 
 get_visible_objs([], Objs) ->
     Objs;

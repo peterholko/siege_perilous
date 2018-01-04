@@ -314,10 +314,9 @@ message_handle(<<"get_stats">>, Message) ->
 
 message_handle(<<"info_tile">>, Message) ->
     lager:info("message: info_tile"),
-    Id = map_get(<<"id">>, Message),
     X = map_get(<<"x">>, Message),
     Y = map_get(<<"y">>, Message),
-    InfoMaps = player:get_info_tile(Id, {X, Y}),
+    InfoMaps = player:get_info_tile({X, Y}),
     ReturnMsg = maps:put(<<"packet">>, <<"info_tile">>, InfoMaps),
     jsx:encode(ReturnMsg);
 

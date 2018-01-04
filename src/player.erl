@@ -9,7 +9,7 @@
 -export([init_perception/1,
          init_state/1,
          get_stats/1, 
-         get_info_tile/2,
+         get_info_tile/1,
          get_info_unit/1,
          get_info_item/1,
          get_info_item_name/1,
@@ -112,13 +112,10 @@ get_stats(Id) ->
             []
     end.
 
-get_info_tile(Id, Pos) ->
+get_info_tile(Pos) ->
     lager:info("info_tile"),
-    [Unit] = db:read(obj, Id),
 
-    Distance = map:distance(Unit#obj.pos, Pos),
-
-    case Distance =< Unit#obj.vision of
+    case is_visible(Pos) of
         true ->
             game:get_info_tile(Pos);
         false ->
@@ -856,6 +853,17 @@ is_structure_req(Item, #obj{id = Id, class = Class, state = State}) when Class =
 
     lists:any(F, ReqList);
 is_structure_req(_Item, _Obj) -> true.
+
+is_visible(Pos) ->
+    Player = get(player_id),
+    Units = db:index_read(obj, Player, #obj.player),
+
+    F = fun(Unit) ->
+            Distance = map:distance(Unit#obj.pos, Pos),
+            Distance =< Unit#obj.vision
+        end,
+
+    lists:any(F, Units).
 
 process_checks([]) ->
     true;
