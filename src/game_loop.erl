@@ -24,7 +24,7 @@ loop(NumTick, LastTime, GamePID) ->
     CurrentTick = counter:increment(tick),	
 
     %Check day/night transition
-    process_transition(NumTick),
+    %process_transition(NumTick),
 
     %Process resource upkeep
     process_upkeep(NumTick),
