@@ -583,12 +583,12 @@ function sendCraft(sourceid, recipe) {
 };
 
 function sendLoot(sourceid, item) {
-    var e = '{"cmd": "loot", "sourceid": ' + sourceid + ', "item": "' + item + '"}';
+    var e = '{"cmd": "loot", "sourceid": ' + sourceid + ', "item": ' + item + '}';
     websocket.send(e);
 };
 
 function sendEquip(item) {
-    var e = '{"cmd": "equip", "item": "' + item + '"}';
+    var e = '{"cmd": "equip", "item": ' + item + '}';
     websocket.send(e);
 };
 
@@ -609,28 +609,28 @@ function sendCombo(comboType) {
 
 function sendItemTransfer(targetid, item) {
     console.log("targetid: " + targetid);
-    var e = '{"cmd": "item_transfer", "targetid": ' + targetid + ', "item": "' + item + '"}';
+    var e = '{"cmd": "item_transfer", "targetid": ' + targetid + ', "item": ' + item + '}';
     websocket.send(e);
 };
 
 function sendItemSplit(item, quantity) {
     console.log("quantity: " + quantity);
-    var e = '{"cmd": "item_split", "item": "' + item + '", "quantity": "' + quantity + '"}';
+    var e = '{"cmd": "item_split", "item": ' + item + ', "quantity": ' + quantity + '}';
     websocket.send(e);
 };
 
 function sendProspect(sourceid) {
-    var e = '{"cmd": "prospect", "sourceid": "' + selectedPortrait + '"}';    
+    var e = '{"cmd": "prospect", "sourceid": ' + selectedPortrait + '}';    
     websocket.send(e);
 };
 
 function sendSurvey(sourceid) {
-    var e = '{"cmd": "survey", "sourceid": "' + sourceid + '"}';    
+    var e = '{"cmd": "survey", "sourceid": ' + selectedPortrait + '}';    
     websocket.send(e);
 };
 
 function sendHarvest(sourceid, resource) {
-    var e = '{"cmd": "harvest", "sourceid": "' + selectedPortrait + '", "resource": "' + resource + '"}';    
+    var e = '{"cmd": "harvest", "sourceid": ' + selectedPortrait + ', "resource": "' + resource + '"}';    
     websocket.send(e);
 };
 

@@ -142,8 +142,6 @@ do_move(Obj, Pos) ->
             nothing
     end,
 
-    lager:info("Is Player: ~p", [is_player(Obj)]),
-
     %Check if player triggered encounter
     case is_player(Obj) of
         true -> encounter:check(Pos);

@@ -85,14 +85,14 @@ process_observed_events(AllEvents) ->
         end,
 
     UniqueEvents = lists:foldl(F, #{}, AllEvents),
-    lager:info("UniqueEvents: ~p", [UniqueEvents]),
+    lager:debug("UniqueEvents: ~p", [UniqueEvents]),
     UniqueEvents.
 
 send_observed_changes(ChangesMap) ->
     ChangesList = maps:to_list(ChangesMap),
 
     F = fun(Change) ->                
-            lager:info("Change: ~p", [Change]),
+            lager:debug("Change: ~p", [Change]),
             {PlayerId, {AddedList, RemovedList, UpdatedList}} = Change,
             
             %Check if added exists in the update list, meaning it isn't a newly visible object
@@ -106,7 +106,7 @@ send_observed_changes(ChangesMap) ->
                         <<"removed">> => RemovedList,
                         <<"updated">> => UpdatedMapList},
       
-            lager:info("~p", [Changes]),
+            lager:debug("~p", [Changes]),
 
             case player:is_online(PlayerId) of
                 false -> nothing;
@@ -118,7 +118,7 @@ send_observed_changes(ChangesMap) ->
     lists:foreach(F, ChangesList).
 
 check_added(AddedList, UpdatedList) ->
-    lager:info("Check added: ~p ~p", [AddedList, UpdatedList]),
+    lager:debug("Check added: ~p ~p", [AddedList, UpdatedList]),
     F = fun(Added) -> not lists:keymember(Added, 1, UpdatedList) end,
 
     lists:filter(F, AddedList).
@@ -189,13 +189,13 @@ add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
             lager:info("Processing move event: ~p", [Event]),
             [PrevPerception] = db:read(perception, obj:id(Obj)),          
 
-            lager:info("PrevPerception: ~p", [PrevPerception]),
+            lager:debug("PrevPerception: ~p", [PrevPerception]),
             %Get previous perception data
             PrevPerceptionData = PrevPerception#perception.data,
 
             %Calculate new perception data
             NewPerceptionData = calculate_entity(Obj),
-            lager:info("NewPerceptionData: ~p", [NewPerceptionData]),
+            lager:debug("NewPerceptionData: ~p", [NewPerceptionData]),
 
             %Save new perception
             NewPerception = PrevPerception#perception {data = NewPerceptionData},
@@ -208,7 +208,7 @@ add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
             AddedKeys = NewKeys -- PrevKeys,
             RemovedKeys = PrevKeys -- NewKeys,
 
-            lager:info("Added: ~p Removed: ~p", [AddedKeys, RemovedKeys]),
+            lager:debug("Added: ~p Removed: ~p", [AddedKeys, RemovedKeys]),
 
             NewPerceptionEvent = #p_event{observer = Observer,
                                           event = <<"obj_move">>,
@@ -277,7 +277,7 @@ process_move_event(Observer, ObjMove, AllEvents) ->
     end.
 
 check_distance(Observer, Pos) ->
-    lager:info("check_distance observer: ~p pos: ~p", [Observer, Pos]),
+    lager:debug("check_distance observer: ~p pos: ~p", [Observer, Pos]),
     Distance = map:distance(Observer#obj.pos, Pos),
     Distance =< Observer#obj.vision.
 

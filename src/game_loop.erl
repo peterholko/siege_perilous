@@ -40,7 +40,7 @@ loop(NumTick, LastTime, GamePID) ->
 
     case ObservedEvents =/= [] of
         true ->
-            lager:info("ObservedEvents: ~p",[ObservedEvents]),
+            lager:debug("ObservedEvents: ~p",[ObservedEvents]),
             PlayerChanges = perception:process_observed_events(ObservedEvents),
             perception:send_observed_changes(PlayerChanges);
         false ->
@@ -119,7 +119,6 @@ do_obj_event(obj_create, _Process, CreateData = {Id, Pos, PlayerId, Template, Un
     lager:info("obj_create: ~p", [CreateData]),
 
     NewObj = obj:process_create(Id, Pos, PlayerId, Template, UniqueName, State),
-    lager:info("NewObj: ~p", [NewObj]),
 
     ObjCreate = #obj_create {obj = NewObj,
                              source_pos = NewObj#obj.pos},
@@ -359,12 +358,15 @@ recalculate(true) ->
 process_explored([]) ->
     done;
 process_explored([Player | Rest]) ->
-    lager:info("Processed Explored: ~p", [Player]),
-    [Conn] = db:dirty_read(connection, Player),
-    ExploredTiles = map:get_explored(Player, new),
-    lager:info("Dump: ~p", [db:dump(explored_map)]),
-    lager:info("ExploredTiles: ~p", [ExploredTiles]),
-    message:send_to_process(Conn#connection.process, map, ExploredTiles),
+    case player:is_player(Player) of
+        true ->        
+            lager:debug("Processed Explored: ~p", [Player]),
+            [Conn] = db:dirty_read(connection, Player),
+            ExploredTiles = map:get_explored(Player, new),
+            message:send_to_process(Conn#connection.process, map, ExploredTiles);
+        false ->
+            nothing
+    end,
 
     process_explored(Rest).
 

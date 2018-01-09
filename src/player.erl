@@ -221,6 +221,7 @@ defend(DefendType, SourceId) ->
     end.
 
 move(SourceId, Pos) ->
+    lager:info("Move: ~p", [SourceId]),
     PlayerId = get(player_id),
     [Obj] = db:read(obj, SourceId),
 

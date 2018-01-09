@@ -222,7 +222,6 @@ handle_cast({add_explored, Player, Pos, Range}, Data) ->
                                     tiles = sets:to_list(SetAllTiles),
                                     new_tiles = sets:to_list(SetNewTiles)},
 
-    lager:info("NewExploredMap: ~p", [NewExploredMap]),
     db:write(NewExploredMap),
 
     {noreply, Data};
