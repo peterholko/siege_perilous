@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/1, update/2, remove/2, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
+-export([create/1, update/2, remove/2, recalculate/1, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, process_observed_events/1, send_observed_changes/1, is_visible/2]).
 -export([get_by_player/1]).
 
@@ -28,6 +28,9 @@ start() ->
 
 create(Obj) ->
     gen_server:cast({global, perception_pid}, {create, Obj}).
+
+recalculate(Obj) ->
+    gen_server:cast({global, perception_pid}, {recalculate, Obj}).
 
 update(ObserverObj, UpdatedObj) ->
     gen_server:cast({global, perception_pid}, {update, ObserverObj, UpdatedObj}).
@@ -60,33 +63,69 @@ get_by_player(PlayerId) ->
 
     lists:foldl(G, [], ObjList).
 
-check_event_visible(Event, Observers) ->
-    F = fun(Observer, AllEvents) ->
-            NewAllEvents = add_observed_event(Observer, Event, AllEvents),
-            NewAllEvents
-        end,
-
-    lists:foldl(F, [], Observers).
-
-
 process_observed_events(AllEvents) ->
-    DefaultValue = {[], [], []},
+    
+    EventsByPlayerMap = events_by_player(AllEvents),   
+    EventsByPlayerList = maps:to_list(EventsByPlayerMap),
 
-    F = fun(PEvent, AllEventsMap) ->
-            Observer = PEvent#p_event.observer,
+    F = fun(EventsByPlayer) ->
+            {PlayerId, Events} = EventsByPlayer,
+            
+            case player:is_online(PlayerId) of
+                false -> nothing;
+                Conn ->
+                    UniqueEvents = util:unique_list(Events),
+                    lager:info("Sending list of events: ~p", [UniqueEvents]),
+                    ConvertedEvents = convert_events(UniqueEvents),
+                    lager:info("Converted Events: ~p", [ConvertedEvents]),
 
-            {Added, Removed, Updated} = maps:get(obj:player(Observer), AllEventsMap, DefaultValue),
-
-            NewChanges = {util:unique_list(Added ++ PEvent#p_event.added),
-                          util:unique_list(Removed ++ PEvent#p_event.removed),
-                          util:unique_list(Updated ++ PEvent#p_event.updated)},
-
-            maps:put(obj:player(Observer), NewChanges, AllEventsMap)
+                    send_events(Conn, ConvertedEvents)
+            end
         end,
 
-    UniqueEvents = lists:foldl(F, #{}, AllEvents),
-    lager:debug("UniqueEvents: ~p", [UniqueEvents]),
-    UniqueEvents.
+    lists:foreach(F, EventsByPlayerList).
+  
+events_by_player(AllEvents) ->
+    DefaultVault = [],
+
+    F = fun({Observer, Event}, EventsByPlayer) ->
+            PlayerEvents = maps:get(obj:player(Observer), EventsByPlayer, DefaultVault),
+            NewPlayerEvents = [Event | PlayerEvents],
+
+            maps:put(obj:player(Observer), NewPlayerEvents, EventsByPlayer)
+        end,
+
+    lists:foldl(F, #{}, AllEvents).
+
+send_events(Conn, Events) ->
+    Packet = #{<<"packet">> => <<"changes">>,
+               <<"events">> => Events},
+
+    Conn#connection.process ! {changes, Packet}.
+
+convert_events(Events) ->
+
+    F = fun(Event, AccEvent) ->
+            [convert_event(Event) | AccEvent]
+        end,
+
+    lists:foldl(F, [], Events).
+
+convert_event(#obj_create{obj = Obj}) ->
+    ObjMap = obj:rec_to_map(Obj),
+    #{<<"event">> => <<"obj_create">>,
+      <<"obj">> => ObjMap};
+convert_event(#obj_update{obj = Obj, attr = Attr, value = Value}) ->
+    #{<<"event">> => <<"obj_update">>,
+      <<"obj_id">> => obj:id(Obj),
+      <<"attr">> => Attr,
+      <<"value">> => Value};
+convert_event(#obj_move{obj = Obj, source_pos = {X, Y}}) ->
+    ObjMap = obj:rec_to_map(Obj),
+    #{<<"event">> => <<"obj_move">>,
+      <<"obj">> => ObjMap,
+      <<"src_x">> => X,
+      <<"src_y">> => Y}.
 
 send_observed_changes(ChangesMap) ->
     ChangesList = maps:to_list(ChangesMap),
@@ -132,7 +171,6 @@ added_to_map(ObjList) ->
             [ObjMap | AllObjs]
         end,
 
-
     lists:foldl(F, [], ObjList).
 
 updated_to_map(Updated) -> 
@@ -151,83 +189,42 @@ updated_to_map(Updated) ->
 
     lists:foldl(F, [], Updated).
 
-add_observed_event(Observer, #obj_create{obj = Obj, source_pos = SourcePos}, AllEvents) ->
+check_event_visible(Event, Observers) ->
+    F = fun(Observer, AllEvents) ->
+            NewAllEvents = add_observed_event(Observer, Event, AllEvents),
+            NewAllEvents
+        end,
+
+    lists:foldl(F, [], Observers).
+
+add_observed_event(Observer, Event = #obj_create{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     case check_distance(Observer, SourcePos) of
         true ->
             %Update observer's perception of obj after create event
             perception:update(Observer, Obj), 
 
-            NewPerceptionEvent = #p_event{observer = Observer,
-                                          event = <<"obj_create">>,
-                                          added = [obj:id(Obj)],
-                                          removed = [],
-                                          updated = []},
+            NewPerceptionEvent = {Observer, Event},
 
             [NewPerceptionEvent | AllEvents];
         false ->
             AllEvents
     end;
-add_observed_event(Observer, #obj_update{obj = Obj, source_pos = SourcePos, attr = Attr}, AllEvents) ->
+add_observed_event(Observer, Event = #obj_update{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     case check_distance(Observer, SourcePos) of
         true ->
             %Update observer's perception of obj after update event
             perception:update(Observer, Obj), 
 
-            NewPerceptionEvent = #p_event{observer = Observer,
-                                          event = <<"obj_update">>,
-                                          added = [],
-                                          removed = [],
-                                          updated = [{obj:id(Obj), Attr}]},
+            NewPerceptionEvent = {Observer, Event},
 
             [NewPerceptionEvent | AllEvents];
         false ->
             AllEvents
     end;
-add_observed_event(Observer, Event = #obj_move{obj = Obj}, AllEvents) ->
-    case obj:id(Observer) =:= obj:id(Obj) of
-        true ->
-            lager:info("Processing move event: ~p", [Event]),
-            [PrevPerception] = db:read(perception, obj:id(Obj)),          
-
-            lager:debug("PrevPerception: ~p", [PrevPerception]),
-            %Get previous perception data
-            PrevPerceptionData = PrevPerception#perception.data,
-
-            %Calculate new perception data
-            NewPerceptionData = calculate_entity(Obj),
-            lager:debug("NewPerceptionData: ~p", [NewPerceptionData]),
-
-            %Save new perception
-            NewPerception = PrevPerception#perception {data = NewPerceptionData},
-            db:write(NewPerception),
-
-            %Compare diff of keys between previous and new
-            PrevKeys = maps:keys(PrevPerceptionData),
-            NewKeys = maps:keys(NewPerceptionData),
-
-            AddedKeys = NewKeys -- PrevKeys,
-            RemovedKeys = PrevKeys -- NewKeys,
-
-            lager:debug("Added: ~p Removed: ~p", [AddedKeys, RemovedKeys]),
-
-            NewPerceptionEvent = #p_event{observer = Observer,
-                                          event = <<"obj_move">>,
-                                          added = AddedKeys, 
-                                          removed = [],
-                                          updated = [{obj:id(Obj), <<"x">>},
-                                                     {obj:id(Obj), <<"y">>},
-                                                     {obj:id(Obj), <<"state">>}]},
-
-            [NewPerceptionEvent | AllEvents];
-        false ->
-            process_move_event(Observer, Event, AllEvents)
-    end.
-
-process_move_event(Observer, ObjMove, AllEvents) ->
-    Result = {check_distance(Observer, ObjMove#obj_move.source_pos),
-              check_distance(Observer, ObjMove#obj_move.dest_pos)},
-
-    Obj = ObjMove#obj_move.obj,
+add_observed_event(Observer, ObjMove = #obj_move{obj = Obj, source_pos = SourcePos, 
+                                                 dest_pos = DestPos}, AllEvents) ->
+    Result = {check_distance(Observer, SourcePos),
+              check_distance(Observer, DestPos)},
 
     case Result of
         {true, true} -> % Moving obj is completely in observer's LOS
@@ -235,13 +232,7 @@ process_move_event(Observer, ObjMove, AllEvents) ->
             %Update observer's perception of obj after move event
             perception:update(Observer, Obj),
 
-            NewPerceptionEvent = #p_event{observer = Observer,
-                                          event = <<"obj_move">>,
-                                          added = [],
-                                          removed = [],
-                                          updated = [{obj:id(Obj), <<"x">>},
-                                                     {obj:id(Obj), <<"y">>},
-                                                     {obj:id(Obj), <<"state">>}]},
+            NewPerceptionEvent = {Observer, ObjMove},
 
             [NewPerceptionEvent | AllEvents];
         {true, false} -> % Moving obj has moved out of observer's LOS 
@@ -249,13 +240,7 @@ process_move_event(Observer, ObjMove, AllEvents) ->
             %Remove obj from observer's perception 
             perception:remove(Observer, Obj),
 
-            NewPerceptionEvent = #p_event{observer = Observer,
-                                          event = <<"obj_move">>,
-                                          added = [], 
-                                          removed = [],
-                                          updated = [{obj:id(Obj), <<"x">>},
-                                                     {obj:id(Obj), <<"y">>},
-                                                     {obj:id(Obj), <<"state">>}]},
+            NewPerceptionEvent = {Observer, ObjMove},
 
             [NewPerceptionEvent | AllEvents];
 
@@ -264,11 +249,7 @@ process_move_event(Observer, ObjMove, AllEvents) ->
             %Add obj to observer's perception
             perception:update(Observer, Obj),
 
-            NewPerceptionEvent = #p_event{observer = Observer,
-                                          event = <<"obj_move">>,
-                                          added = [obj:id(Obj)], 
-                                          removed = [],
-                                          updated = []},
+            NewPerceptionEvent = {Observer, ObjMove},
 
             [NewPerceptionEvent | AllEvents];
         {false, false} -> % Move event dot visible to observer
@@ -340,8 +321,11 @@ handle_cast({create, Obj}, Data) ->
 handle_cast({update, ObserverObj, UpdatedObj}, Data) ->  
     [Perception] = db:read(perception, obj:id(ObserverObj)),
 
+    PrevDiff = Perception#perception.diff,
+    
     NewPerceptionData = maps:put(obj:id(UpdatedObj), UpdatedObj, Perception#perception.data),
-    NewPerception = Perception#perception{data = NewPerceptionData},
+    NewPerception = Perception#perception{data = NewPerceptionData,
+                                          diff = PrevDiff ++ [obj:id(UpdatedObj)]},
 
     db:write(NewPerception),
 
@@ -350,11 +334,30 @@ handle_cast({update, ObserverObj, UpdatedObj}, Data) ->
 handle_cast({remove, ObserverObj, RemovedObj}, Data) ->   
     [Perception] = db:read(perception, obj:id(ObserverObj)),
      
+    PrevDiff = Perception#perception.diff,
+
     NewPerceptionData = maps:remove(obj:id(RemovedObj), Perception#perception.data),
-    NewPerception = Perception#perception{data = NewPerceptionData},
+    NewPerception = Perception#perception{data = NewPerceptionData,
+                                          diff = PrevDiff ++ [obj:id(RemovedObj) * -1]},
 
     db:write(NewPerception),
 
+    {noreply, Data};
+
+handle_cast({recalculate, ObserverObj}, Data) ->
+    [Perception] = db:read(perception, obj:id(ObserverObj)),
+
+    OldPerceptionData = Perception#perception.data,
+    NewPerceptionData = calculate_entity(ObserverObj),
+
+    PrevDiff = Perception#perception.diff,
+
+    DiffObjs = maps:keys(OldPerceptionData) -- maps:keys(NewPerceptionData),
+
+    NewPerception = Perception#perception{data = NewPerceptionData,
+                                          diff = PrevDiff ++ DiffObjs},
+
+    db:write(NewPerception),
     {noreply, Data};
 
 handle_cast({broadcast, SourcePos, Range, MessageData}, Data) ->

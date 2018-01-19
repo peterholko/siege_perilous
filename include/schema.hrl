@@ -49,7 +49,8 @@
 
 -record(perception, {entity,
                      player,
-                     data}).
+                     data,
+                     diff = []}).
 
 
 -record(obj_event, {id, 

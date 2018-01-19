@@ -735,7 +735,7 @@ rec_to_map(Obj) ->
       <<"x">> => X,
       <<"y">> => Y,
       <<"name">> => Obj#obj.name,
-      <<"template">> => Obj#obj.template, 
+      <<"template">> => Obj#obj.template, %TODO convert to binary everywhere
       <<"class">> => Obj#obj.class,
       <<"subclass">> => Obj#obj.subclass,
       <<"vision">> => Obj#obj.vision,

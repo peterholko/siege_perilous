@@ -41,8 +41,7 @@ loop(NumTick, LastTime, GamePID) ->
     case ObservedEvents =/= [] of
         true ->
             lager:debug("ObservedEvents: ~p",[ObservedEvents]),
-            PlayerChanges = perception:process_observed_events(ObservedEvents),
-            perception:send_observed_changes(PlayerChanges);
+            perception:process_observed_events(ObservedEvents);
         false ->
             nothing
     end,
@@ -149,6 +148,9 @@ do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
                                    attr = <<"state">>,
                                    value = none};
                   false -> 
+                      %Recalculate perception for obj that moved
+                      perception:recalculate(NewObj),
+
                       #obj_move {obj = NewObj,
                                  source_pos = SourcePos,
                                  dest_pos = NewObj#obj.pos}

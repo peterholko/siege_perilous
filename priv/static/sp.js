@@ -835,7 +835,37 @@ function setObjs(jsonObjs) {
 function updateObjs(packetChanges) {
     console.log("updateObj");
 
-    var added = packetChanges.added;
+    var events = packetChanges.events;
+
+    //Reset the operation
+    for(var localObjId in localObjs) {
+        var localObj = localObjs[localObjId];
+        localObj.op = 'none';
+    }
+
+    for(var i = 0; i < events.length; i++) {
+        var eventType = events[i].event;
+        var obj = events[i].obj;
+        var src_x = events[i].src_x;
+        var src_y = events[i].src_y;
+
+        if(eventType == "obj_move") {
+            if(obj.id in localObjs) {
+                localObjs[obj.id].state = obj.state;
+                localObjs[obj.id].x = obj.x;
+                localObjs[obj.id].y = obj.y;
+                localObjs[obj.id].op = 'updated';
+            } else {
+                localObjs[obj.id] = obj;
+                localObjs[obj.id].op = 'added';
+            }
+        } else if(eventType == "obj_create") {
+            localObjs[obj.id] = obj;
+            localObjs[obj.id].op = 'added';
+        } 
+    }
+
+    /*var added = packetChanges.added;
     var removed = packetChanges.removed;
     var updated = packetChanges.updated;
 
@@ -872,7 +902,7 @@ function updateObjs(packetChanges) {
         }
       
        localObj.op = 'updated'; 
-    }
+    }*/
 };
 
 function setPlayer() {
