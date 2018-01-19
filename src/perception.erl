@@ -16,7 +16,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([create/1, update/2, remove/2, recalculate/1, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
--export([check_event_visible/2, process_observed_events/1, send_observed_changes/1, is_visible/2]).
+-export([check_event_visible/2, process_observed_events/1, is_visible/2]).
 -export([get_by_player/1]).
 
 %% ====================================================================
@@ -126,68 +126,6 @@ convert_event(#obj_move{obj = Obj, source_pos = {X, Y}}) ->
       <<"obj">> => ObjMap,
       <<"src_x">> => X,
       <<"src_y">> => Y}.
-
-send_observed_changes(ChangesMap) ->
-    ChangesList = maps:to_list(ChangesMap),
-
-    F = fun(Change) ->                
-            lager:debug("Change: ~p", [Change]),
-            {PlayerId, {AddedList, RemovedList, UpdatedList}} = Change,
-            
-            %Check if added exists in the update list, meaning it isn't a newly visible object
-            ProcessedAddedList = check_added(AddedList, UpdatedList),
-
-            AddedMapList = added_to_map(ProcessedAddedList),
-            UpdatedMapList = updated_to_map(UpdatedList),
-
-            Changes = #{<<"packet">> => <<"changes">>,
-                        <<"added">> => AddedMapList,
-                        <<"removed">> => RemovedList,
-                        <<"updated">> => UpdatedMapList},
-      
-            lager:debug("~p", [Changes]),
-
-            case player:is_online(PlayerId) of
-                false -> nothing;
-                Conn ->
-                    Conn#connection.process ! {changes, Changes}
-            end
-        end,
-
-    lists:foreach(F, ChangesList).
-
-check_added(AddedList, UpdatedList) ->
-    lager:debug("Check added: ~p ~p", [AddedList, UpdatedList]),
-    F = fun(Added) -> not lists:keymember(Added, 1, UpdatedList) end,
-
-    lists:filter(F, AddedList).
-
-added_to_map(ObjList) ->
-
-    F = fun(ObjId, AllObjs) ->
-            Obj = obj:get(ObjId),
-            ObjMap = obj:rec_to_map(Obj),
-
-            [ObjMap | AllObjs]
-        end,
-
-    lists:foldl(F, [], ObjList).
-
-updated_to_map(Updated) -> 
-
-    F = fun({ObjIdBin, Attr}, UpdatedMapList) ->
-            Obj = obj:get(ObjIdBin),
-            ObjMap = obj:rec_to_map(Obj),
-
-            AttrValue = maps:get(Attr, ObjMap),
-
-            AttrsMap = #{<<"id">> => ObjIdBin},
-            NewAttrsMap = maps:put(Attr, AttrValue, AttrsMap),
-
-            [NewAttrsMap | UpdatedMapList]
-        end,
-
-    lists:foldl(F, [], Updated).
 
 check_event_visible(Event, Observers) ->
     F = fun(Observer, AllEvents) ->
