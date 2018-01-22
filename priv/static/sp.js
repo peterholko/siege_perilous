@@ -34,6 +34,8 @@ var perception = {};
 var units = {};
 var stats = {};
 
+var visibleTiles = [];
+
 var playerId;
 var playerPos;
 var heroId;
@@ -858,6 +860,9 @@ function updateObjs(packetChanges) {
             } else {
                 localObjs[obj.id] = obj;
                 localObjs[obj.id].op = 'added';
+                localObjs[obj.id].eventType = 'obj_move';
+                localObjs[obj.id].prev_x = src_x;
+                localObjs[obj.id].prev_y = src_y;
             }
         } else if(eventType == "obj_create") {
             localObjs[obj.id] = obj;
@@ -1184,7 +1189,7 @@ function drawAllObj() {
 
     localShroudCont.removeAllChildren();
 
-    var visibleTiles = [];
+    visibleTiles = [];
 
     for(var id in localObjs) {
         var localObj = localObjs[id];
@@ -1197,8 +1202,16 @@ function drawAllObj() {
             var imagePath =  "/static/art/" + unitTemplate + ".json";
             var icon = new createjs.Container();
             
-            icon.x = pixel.x;
-            icon.y = pixel.y;
+            if(localObj.eventType == 'obj_move') {
+                var p = hex_to_pixel(localObj.prev_x, localObj.prev_y);
+
+                icon.x = p.x;
+                icon.y = p.y;
+            } else {
+                icon.x = pixel.x;
+                icon.y = pixel.y;
+            } 
+
             icon.player = localObj.player;
             icon.name = localObj.id;
             
@@ -1231,6 +1244,10 @@ function drawAllObj() {
             addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: localObj.state}); 
 
             localObj.icon = icon;
+
+            if(localObj.eventType == 'obj_move') {
+                createjs.Tween.get(localObj.icon).to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear);
+            }
         } 
         else if(localObj.op == 'removed') {
 
@@ -1281,19 +1298,27 @@ function drawAllObj() {
 
 
                 if(localObj.player == playerId) {
-                    localObj.icon.x = pixel.x;
-                    localObj.icon.y = pixel.y;
 
                     if(is_hero(localObj.subclass)) {
+                        localObj.icon.x = pixel.x;
+                        localObj.icon.y = pixel.y;
+
                         c_x = 640 - 36 - pixel.x;
                         c_y = 400 - 36 - pixel.y;             
                         console.log("x: " + localMapCont.x + " y: " + localMapCont.y + " - " + "c_x: " + c_x + " c_y: " + c_y);
                         createjs.Tween.get(localMapCont)
-                                      .to({x: c_x, y: c_y}, 500, createjs.Ease.linear);
+                                      .to({x: c_x, y: c_y}, 500, createjs.Ease.linear)
+                                      .call(handlePlayerMoveComplete);
 
+                    } else {
+                        createjs.Tween.get(localObj.icon)
+                            .to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear)
+                            .call(handlePlayerMoveComplete);
                     }
                 } else {
-                    createjs.Tween.get(localObj.icon).to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear);
+                    createjs.Tween.get(localObj.icon)
+                        .to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear)
+                        .call(handleMoveComplete);
                 }
             }
         }
@@ -1329,14 +1354,6 @@ function drawAllObj() {
             stockades.push(obj);
         }
 
-        if(!is_visible(obj.x, obj.y, visibleTiles)) {
-            if(obj.hasOwnProperty('icon')) {       
-                var cont = obj.icon.parent;
-                cont.removeChild(obj.icon);
-
-                delete localObjs[id];
-            }
-        }
     }
 
     for(var stockadeId in stockades) {
@@ -1376,8 +1393,33 @@ function drawAllObj() {
         }
     }
 
-
     console.log("drawAllObj - end");
+};
+
+function handleMoveComplete(evt) {
+    var icon = evt.target;
+    var obj = localObjs[icon.name];
+
+    if(!is_visible(obj.x, obj.y, visibleTiles)) {
+        var cont = icon.parent;
+        cont.removeChild(icon);
+
+        delete localObjs[obj.id];
+    }
+};
+
+function handlePlayerMoveComplete(evt) {
+
+    for(var id in localObjs) {
+        var obj = localObjs[id];
+
+        if(!is_visible(obj.x, obj.y, visibleTiles)) {
+            var cont = obj.icon.parent;
+            cont.removeChild(obj.icon);
+
+            delete localObjs[id];
+        }
+    }
 };
 
 function drawSelectPanel(tileX, tileY) {
@@ -2187,12 +2229,21 @@ function drawInfoUnit(jsonData) {
 
             icon.on("pressmove", function(evt) {
                 if(evt.nativeEvent.button != 2) {
-                    pressmove = true;
+                    var cont = this.parent;
 
-                    evt.target.x = evt.localX - 25;
-                    evt.target.y = evt.localY - 25;
+                    if(!pressmove) {                            
+                        origX = evt.target.x;
+                        origY = evt.target.y;
+                    }
+
+                    pressmove = true;                    
+
+                    var p = cont.globalToLocal(evt.stageX, evt.stageY);
+
+                    evt.target.x = p.x - 25;
+                    evt.target.y = p.y - 25;
                 
-                    stage.setChildIndex(this.parent.parent, stage.numChildren - 1);
+                    stage.setChildIndex(cont.parent, stage.numChildren - 1);
                 }
             });
             icon.on("pressup", function(evt) { 
@@ -2214,8 +2265,8 @@ function drawInfoUnit(jsonData) {
                 }
 
                 if(!transfer) {
-                    evt.target.x = 0;
-                    evt.target.y = 0;
+                    evt.target.x = origX;
+                    evt.target.y = origY;
                 }
         
             });

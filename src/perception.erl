@@ -15,7 +15,8 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/1, update/2, remove/2, recalculate/1, calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
+-export([create/1, update/2, remove/2, recalculate/1, clear_diff/1,
+         calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, process_observed_events/1, is_visible/2]).
 -export([get_by_player/1]).
 
@@ -37,6 +38,9 @@ update(ObserverObj, UpdatedObj) ->
 
 remove(ObserverObj, RemovedObj) ->
     gen_server:cast({global, perception_pid}, {remove, ObserverObj, RemovedObj}).
+
+clear_diff(Obj) ->
+    gen_server:cast({global, perception_pid}, {clear_diff, Obj}).
 
 broadcast(SourcePos, Range, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, Range, MessageData}).
@@ -129,12 +133,35 @@ convert_event(#obj_move{obj = Obj, source_pos = {X, Y}}) ->
 
 check_event_visible(Event, Observers) ->
     F = fun(Observer, AllEvents) ->
+            
+
             NewAllEvents = add_observed_event(Observer, Event, AllEvents),
             NewAllEvents
         end,
 
     lists:foldl(F, [], Observers).
 
+add_observed_event(Observer = #obj{id = ObserverId}, 
+                   Event = #obj_move{obj = #obj{id = ObjId}}, 
+                   AllEvents) when ObserverId =:= ObjId ->
+    
+    [Perception] = db:read(perception, ObserverId),
+
+    F = fun(DiffObjId, Acc) ->
+            DiffObj = obj:get(DiffObjId),
+            NewObj = #obj_create{obj = DiffObj,
+                                 source_pos = {1,1}},
+            [{Observer, NewObj} | Acc]
+        end,
+
+    DiffEvents = lists:foldl(F, [], Perception#perception.diff),
+    lager:info("DiffEvents: ~p", [DiffEvents]),   
+    
+    perception:clear_diff(Observer), 
+
+    NewEvents = [{Observer, Event} | AllEvents],
+
+    NewEvents ++ DiffEvents;
 add_observed_event(Observer, Event = #obj_create{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     case check_distance(Observer, SourcePos) of
         true ->
@@ -259,11 +286,8 @@ handle_cast({create, Obj}, Data) ->
 handle_cast({update, ObserverObj, UpdatedObj}, Data) ->  
     [Perception] = db:read(perception, obj:id(ObserverObj)),
 
-    PrevDiff = Perception#perception.diff,
-    
     NewPerceptionData = maps:put(obj:id(UpdatedObj), UpdatedObj, Perception#perception.data),
-    NewPerception = Perception#perception{data = NewPerceptionData,
-                                          diff = PrevDiff ++ [obj:id(UpdatedObj)]},
+    NewPerception = Perception#perception{data = NewPerceptionData},
 
     db:write(NewPerception),
 
@@ -272,11 +296,8 @@ handle_cast({update, ObserverObj, UpdatedObj}, Data) ->
 handle_cast({remove, ObserverObj, RemovedObj}, Data) ->   
     [Perception] = db:read(perception, obj:id(ObserverObj)),
      
-    PrevDiff = Perception#perception.diff,
-
     NewPerceptionData = maps:remove(obj:id(RemovedObj), Perception#perception.data),
-    NewPerception = Perception#perception{data = NewPerceptionData,
-                                          diff = PrevDiff ++ [obj:id(RemovedObj) * -1]},
+    NewPerception = Perception#perception{data = NewPerceptionData},
 
     db:write(NewPerception),
 
@@ -290,10 +311,18 @@ handle_cast({recalculate, ObserverObj}, Data) ->
 
     PrevDiff = Perception#perception.diff,
 
-    DiffObjs = maps:keys(OldPerceptionData) -- maps:keys(NewPerceptionData),
+    DiffObjs = maps:keys(NewPerceptionData) -- maps:keys(OldPerceptionData),
 
     NewPerception = Perception#perception{data = NewPerceptionData,
                                           diff = PrevDiff ++ DiffObjs},
+
+    db:write(NewPerception),
+    {noreply, Data};
+
+handle_cast({clear_diff, ObserverObj}, Data) ->
+    [Perception] = db:read(perception, obj:id(ObserverObj)),
+
+    NewPerception = Perception#perception {diff = []},
 
     db:write(NewPerception),
     {noreply, Data};

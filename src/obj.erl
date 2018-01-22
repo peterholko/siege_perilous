@@ -9,7 +9,7 @@
 -include("common.hrl").
 
 -export([init_perception/1]).
--export([create/3, create/5, remove/1, move/2, teleport/2, process_create/6]).
+-export([create/3, create/4, create/5, remove/1, move/2, teleport/2, process_create/6]).
 -export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
@@ -33,6 +33,9 @@ init_perception(PlayerId) ->
 
 create(Pos, PlayerId, Template) ->
     create(Pos, PlayerId, Template, none, none).
+
+create(Pos, PlayerId, Template, State) ->
+    create(Pos, PlayerId, Template, none, State).
 
 create(Pos, PlayerId, Template, UniqueName, State) ->
     Id = util:get_id(),
