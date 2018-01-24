@@ -14,7 +14,7 @@
 %%
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([add_obj_create/3, add_obj_update/5, add_obj_move/5]).
+-export([add_obj_create/3, add_obj_update/4, add_obj_update/5, add_obj_move/5]).
 -export([add_event/5, has_pre_events/1, has_post_events/1, cancel_event/1]).
 -export([trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
@@ -96,7 +96,7 @@ spawn_new_player(PlayerId) ->
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 
-    VillagerId = obj:create(VillagerPos, PlayerId, <<"Human Villager">>),
+    %VillagerId = obj:create(VillagerPos, PlayerId, <<"Human Villager">>),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(MonolithId, <<"Mana">>, 2500),
@@ -107,9 +107,9 @@ spawn_new_player(PlayerId) ->
     game:add_event(self(), new_player, PlayerId, none, 2),
    
     % Equip food so it isn't dumped
-    ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
-    ItemId = maps:get(<<"id">>, ItemMap),
-    item:equip(ItemId),
+    %ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
+    %ItemId = maps:get(<<"id">>, ItemMap),
+    %item:equip(ItemId),
 
 
     F1 = fun() ->
@@ -173,8 +173,12 @@ add_obj_create(Process, Obj, EventTick) ->
 
     db:write(ObjEvent).
 
+add_obj_update(Process, ObjId, Attr, Value) -> 
+    add_obj_update(Process, ObjId, Attr, Value, 1).
+
 add_obj_update(Process, ObjId, Attr, Value, EventTick) ->
     [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+    lager:info("add_obj_update - ~p ~p ~p ~p ~p", [ObjId, Attr, Value, EventTick, CurrentTick]),
 
     Data = {ObjId, Attr, Value},
 

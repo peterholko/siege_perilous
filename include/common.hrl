@@ -43,12 +43,16 @@
 
 -define(NPC_ID, 1000).
 
+-define(STATE, <<"state">>).
 -define(NONE, none).
 -define(DEAD, dead).
 -define(FOUNDED, founded).
 -define(PROGRESSING, progressing).
+-define(PROSPECTING, prospecting).
+-define(HARVESTING, harvesting).
 -define(UPGRADING, upgrading).
-
+-define(MOVING, moving).
+-define(BUILDING, building).
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
@@ -141,8 +145,6 @@
 -define(ORDER_HARVEST, <<"Harvest">>).
 -define(ORDER_REFINE, <<"Refine">>).
 
--define(STATE, <<"state">>).
--define(MOVING, moving).
 
 %STATS
 -define(STRENGTH, <<"Strength">>).

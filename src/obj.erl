@@ -8,9 +8,10 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([init_perception/1]).
--export([create/3, create/4, create/5, remove/1, move/2, teleport/2, process_create/6]).
--export([update_state/2, update_state/3, update_hp/2, update_stamina/2, update_dead/1]).
+-export([create/3, create/4, create/5, update_state/2]).
+-export([remove/1]).
+-export([process_create/6, process_update_state/2, process_move/2]).
+-export([update_hp/2, update_stamina/2, update_dead/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
@@ -20,16 +21,6 @@
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
 -export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1]).
 -export([rec_to_map/1]).
-
-init_perception(PlayerId) ->
-    PlayerUnits = db:index_read(obj, PlayerId, #obj.player),
-
-    ExploredMap = map:get_explored(PlayerId, all),
-    ObjData = #{},
-
-    lager:info("ExploredMap: ~p", [ExploredMap]), 
-    lager:info("ObjData: ~p", [ObjData]), 
-    {ExploredMap, ObjData}.
 
 create(Pos, PlayerId, Template) ->
     create(Pos, PlayerId, Template, none, none).
@@ -45,6 +36,12 @@ create(Pos, PlayerId, Template, UniqueName, State) ->
     game:add_obj_create(self(), CreateData, 1),
 
     Id.
+
+update_state(Obj, State) when is_record(Obj, obj) ->
+    game:add_obj_update(self(), Obj#obj.id, ?STATE, State);
+update_state(ObjId, State) ->
+    [Obj] = db:read(obj, ObjId),
+    update_state(Obj, State).
 
 process_create(Id, Pos, PlayerId, Template, UniqueName, State) ->
     lager:info("Creating object ~p", [Template]),
@@ -83,13 +80,7 @@ process_create(Id, Pos, PlayerId, Template, UniqueName, State) ->
                 vision = Vision,
                 modtick = counter:value(tick)},
 
-    db:write(Obj),
-
-    %Create state record
-    StateRec = #state {id = Id,
-                       state = State,
-                       modtick = counter:value(tick)},
-    db:write(StateRec),
+    save(Obj),
 
     case Vision > 0 of
         true ->
@@ -106,27 +97,23 @@ process_create(Id, Pos, PlayerId, Template, UniqueName, State) ->
     %Check subclass for any other post creation tasks
     process_subclass(Obj),
 
-    %Dispatch create obj event
-    %game:add_obj_create(self(), Obj, 1),
-
     %Return Obj
     Obj.
 
-move(Obj, Pos) when is_record(Obj, obj) ->
+process_move(Obj, Pos) when is_record(Obj, obj) ->
+    %Check if move can be completed
     case is_empty(Obj, Pos) of
         true -> do_move(Obj, Pos);
-        false -> update_state(Obj, none)
+        false -> process_update_state(Obj, none)
     end;
 
-move(Id, Pos) ->
+process_move(Id, Pos) ->
     [Obj] = db:read(obj, Id),
-    move(Obj, Pos).
+    process_move(Obj, Pos).
 
 do_move(Obj, Pos) ->
-    NewObj = Obj#obj {pos = Pos},
-
-    %Update state to none and write obj
-    update_state(NewObj, none),
+    NewObj = Obj#obj {pos = Pos, 
+                      state = ?NONE},
 
     %Update wall effect
     IsBehindWall = is_behind_wall(Pos),
@@ -137,100 +124,37 @@ do_move(Obj, Pos) ->
     apply_sanctuary(IsNearbyMonolith, NewObj),
 
     %Add explored if object is granted vision
-    case Obj#obj.vision > -1 of
+    case NewObj#obj.vision > 0 of
         true ->
-            map:add_explored(Obj#obj.player, Pos, Obj#obj.vision),
-            game:trigger_explored(Obj#obj.player);
+            map:add_explored(NewObj#obj.player, Pos, NewObj#obj.vision),
+            game:trigger_explored(NewObj#obj.player);
         false ->
             nothing
     end,
 
     %Check if player triggered encounter
-    case is_player(Obj) of
+    case is_player(NewObj) of
         true -> encounter:check(Pos);
         false -> nothing
     end,
 
-    %Return new obj
-    NewObj.
-
-teleport(Id, Pos) ->
-    [Obj] = db:read(obj, Id),
-    NewObj = Obj#obj {pos = Pos},
-
-    %Update state to none
-    update_state(NewObj, none),
-
-    %Update wall effect
-    IsBehindWall = is_behind_wall(Pos),
-    apply_wall(IsBehindWall, NewObj),
-
-    %Update sanctuary effect
-    IsNearbyMonolith = is_monolith_nearby(Pos),
-    apply_sanctuary(IsNearbyMonolith, NewObj),
-
-    %Add explored if object is granted vision
-    case Obj#obj.vision > -1 of
-        true ->
-            map:add_explored(Obj#obj.player, Pos, Obj#obj.vision),
-            game:trigger_explored(Obj#obj.player);
-        false ->
-            nothing
-    end.
-
-update_state(Obj, State) ->
-    update_state(Obj, State, none).
-
-update_state(Obj, State, StateData) when is_record(Obj, obj) ->
-    F = fun() ->
-            %Update state table
-            NewState = #state {id = Obj#obj.id, 
-                               state = State, 
-                               data = StateData,
-                               modtick = counter:value(tick)},            
-            mnesia:write(NewState),
-
-            %Update obj state
-            NewObj = Obj#obj {state = State},
-            mnesia:write(NewObj),
-
-            %Return new obj
-            NewObj   
-        end,
-
-    {atomic, NewObj} = mnesia:transaction(F),
-
-    %Trigger any new effects
-    obj:trigger_effects(NewObj),
-
-    %Return new obj
-    NewObj;
-
-update_state(Id, State, StateData) ->
-    F = fun() ->
-            %Update state table
-            NewState = #state {id = Id, 
-                               state = State, 
-                               data = StateData,
-                               modtick = counter:value(tick)},            
-            mnesia:write(NewState),
-            
-            %Update obj state
-            [Obj] = mnesia:read(obj, Id),
-            NewObj = Obj#obj {state = State},        
-            mnesia:write(NewObj),
-
-            %Return NewObj
-            NewObj
-        end,
-
-    {atomic, NewObj} = mnesia:transaction(F),
-
-    %Check if any effects are triggered
-    obj:trigger_effects(NewObj),
+    %Save new obj
+    save(NewObj),
 
     %Return new obj
     NewObj.
+
+process_update_state(Obj, State) when is_record(Obj, obj) ->
+    process_update_state(Obj, State, none);
+
+process_update_state(ObjId, State) ->
+    [Obj] = db:read(obj, ObjId),
+    process_update_state(Obj, State, none).
+
+process_update_state(Obj, State, StateData) when is_record(Obj, obj) ->
+    NewObj = Obj#obj {state = State},
+
+    save(NewObj, StateData).
 
 update_hp(Id, Value) ->
     Hp = obj_attr:value(Id, <<"hp">>),
@@ -275,7 +199,9 @@ update_dead(Id) ->
                 _ ->
                      Obj#obj {state = dead}
              end,
-    db:write(NewObj),
+
+    %Save object
+    save(NewObj),
 
     NewObj.
 
@@ -744,3 +670,29 @@ rec_to_map(Obj) ->
       <<"vision">> => Obj#obj.vision,
       <<"state">> => Obj#obj.state}.
        
+save(NewObj) ->
+    save(NewObj, none).
+
+save(NewObj, StateData) when is_record(NewObj, obj) ->
+    F = fun() ->
+            %Update state table
+            NewState = #state {id = NewObj#obj.id, 
+                               state = NewObj#obj.state, 
+                               data = StateData,
+                               modtick = counter:value(tick)},            
+            mnesia:write(NewState),
+
+            %Write obj
+            mnesia:write(NewObj),
+
+            %Return new obj
+            NewObj   
+        end,
+
+    {atomic, NewObj} = mnesia:transaction(F),
+
+    %Trigger any new effects
+    obj:trigger_effects(NewObj),
+
+    %Return new obj
+    NewObj.

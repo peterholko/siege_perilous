@@ -245,7 +245,7 @@ move(SourceId, Pos) ->
             MoveTicks = obj:movement_cost(Obj, DestPos),
 
             %Add obj update state to change to moving state on next tick
-            game:add_obj_update(self(), SourceId, ?STATE, ?MOVING, 0),
+            game:add_obj_update(self(), SourceId, ?STATE, ?MOVING),
                 
             %Add obj move event to execute in MoveTicks
             game:add_obj_move(self(), SourceId, SourcePos, DestPos, MoveTicks),
@@ -318,7 +318,7 @@ prospect(ObjId) ->
 
     case process_checks(Checks) of
         true ->
-            obj:update_state(ObjId, prospecting),
+            game:add_obj_update(self(), ObjId, ?STATE, ?PROSPECTING),
 
             NumTicks = 8,
 
@@ -336,7 +336,6 @@ prospect(ObjId) ->
 
 harvest(ObjId, Resource) ->
     PlayerId = get(player_id),
-    NumTicks = 20,
 
     [Obj] = db:read(obj, ObjId),
 
@@ -350,9 +349,10 @@ harvest(ObjId, Resource) ->
             %Get objs on the same tile
             Objs = db:index_read(obj, Obj#obj.pos, #obj.pos),
             AutoHarvest = resource:is_auto(Objs, Resource),
+            NumTicks = 20,
         
             %Update obj state
-            obj:update_state(ObjId, harvesting),
+            game:add_obj_update(self(), ObjId, ?STATE, ?HARVESTING),
 
             %Check for encounter
             encounter:check(Obj#obj.pos),
@@ -490,8 +490,9 @@ finish_build(PlayerId, SourceId, Structure = #obj {state = ?FOUNDED}) ->
 
             EventData = {SourceId, Structure#obj.id},
 
-            obj:update_state(SourceId, building),
-            obj:update_state(Structure#obj.id, ?PROGRESSING),
+            %Add obj update state to change to moving state on next tick
+            game:add_obj_update(self(), SourceId, ?STATE, ?BUILDING, 0),
+            game:add_obj_update(self(), obj:id(Structure), ?STATE, ?PROGRESSING, 0),
 
             game:add_event(self(), finish_build, EventData, SourceId, NumTicks),
 

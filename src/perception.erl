@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/1, update/2, remove/2, recalculate/1, clear_diff/1,
+-export([create/1, get_entity/1, update/2, remove/2, recalculate/1, clear_diff/1,
          calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, process_observed_events/1, is_visible/2]).
 -export([get_by_player/1]).
@@ -29,6 +29,9 @@ start() ->
 
 create(Obj) ->
     gen_server:cast({global, perception_pid}, {create, Obj}).
+
+get_entity(Obj) ->
+    gen_server:call({global, perception_pid}, {get_entity, Obj}).
 
 recalculate(Obj) ->
     gen_server:cast({global, perception_pid}, {recalculate, Obj}).
@@ -79,9 +82,7 @@ process_observed_events(AllEvents) ->
                 false -> nothing;
                 Conn ->
                     UniqueEvents = util:unique_list(Events),
-                    lager:info("Sending list of events: ~p", [UniqueEvents]),
                     ConvertedEvents = convert_events(UniqueEvents),
-                    lager:info("Converted Events: ~p", [ConvertedEvents]),
 
                     send_events(Conn, ConvertedEvents)
             end
@@ -144,8 +145,9 @@ check_event_visible(Event, Observers) ->
 add_observed_event(Observer = #obj{id = ObserverId}, 
                    Event = #obj_move{obj = #obj{id = ObjId}}, 
                    AllEvents) when ObserverId =:= ObjId ->
-    
-    [Perception] = db:read(perception, ObserverId),
+   
+    Perception = perception:get_entity(Observer), 
+    lager:info("Perception: ~p", [Perception]),
 
     F = fun(DiffObjId, Acc) ->
             DiffObj = obj:get(DiffObjId),
@@ -291,6 +293,8 @@ handle_cast({update, ObserverObj, UpdatedObj}, Data) ->
 
     db:write(NewPerception),
 
+    notify_obj(ObserverObj),
+
     {noreply, Data};
 
 handle_cast({remove, ObserverObj, RemovedObj}, Data) ->   
@@ -300,6 +304,8 @@ handle_cast({remove, ObserverObj, RemovedObj}, Data) ->
     NewPerception = Perception#perception{data = NewPerceptionData},
 
     db:write(NewPerception),
+    
+    notify_obj(ObserverObj),
 
     {noreply, Data};
 
@@ -317,6 +323,11 @@ handle_cast({recalculate, ObserverObj}, Data) ->
                                           diff = PrevDiff ++ DiffObjs},
 
     db:write(NewPerception),
+
+    lager:info("NewPerception: ~p", [NewPerception]),
+
+    notify_obj(ObserverObj),
+
     {noreply, Data};
 
 handle_cast({clear_diff, ObserverObj}, Data) ->
@@ -347,6 +358,11 @@ handle_cast({broadcast, SourcePos, TargetPos, Range, MessageData}, Data) ->
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
 
+handle_call({get_entity, Obj}, _From, Data) ->
+    [Perception] = db:read(perception, obj:id(Obj)),
+
+    {reply, Perception, Data};
+
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
                               {line, ?LINE},
@@ -373,6 +389,17 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
+notify_obj(Obj) ->
+    case obj:subclass(Obj) of
+        ?NPC ->
+            [Conn] = db:read(connection, obj:player(Obj)),
+            send_to_process(Conn#connection.process, {perception, obj:id(Obj)});
+        ?VILLAGER ->
+            Process = global:whereis_name(villager),
+            send_to_process(Process, {perception, obj:id(Obj)});
+        _ -> 
+            nothing
+    end.
 
 player_entities(AllObj, Player) ->
     F = fun(Obj) -> (Obj#obj.vision > 0) and (Obj#obj.player =:= Player) end,
@@ -437,10 +464,10 @@ send_perception(false, Entity, NewPerception) ->
     [Conn] = db:read(connection, Entity#obj.player),
     send_to_process(Conn#connection.process, {Entity#obj.id, NewPerception}).
 
-send_to_process(Process, NewPerception) when is_pid(Process) ->
-    lager:debug("Sending ~p to ~p", [NewPerception, Process]),
-    Process ! {perception, NewPerception};
-send_to_process(_Process, _NewPerception) ->
+send_to_process(Process, MessageData) when is_pid(Process) ->
+    lager:debug("Sending ~p to ~p", [MessageData, Process]),
+    Process ! {perception, MessageData};
+send_to_process(_Process, _MessageData) ->
     none.
 
 broadcast_to_objs(Objs, Message) ->

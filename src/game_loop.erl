@@ -94,7 +94,7 @@ check_sleep(CalcSleepTime, LastTime) ->
            end,
     Next.
 
-process_obj_events(CurrentTick) ->
+process_obj_events(CurrentTick) ->    
     ObjEvents = db:dirty_index_read(obj_event, CurrentTick, #obj_event.tick),
 
     AllObjs = ets:tab2list(obj),
@@ -127,7 +127,7 @@ do_obj_event(obj_create, _Process, CreateData = {Id, Pos, PlayerId, Template, Un
 do_obj_event(obj_update, _Process, {ObjId, _Attr, Value}) ->
     lager:info("obj_update: ~p ~p", [ObjId, Value]),
 
-    NewObj = obj:update_state(ObjId, Value),
+    NewObj = obj:process_update_state(ObjId, Value),
 
     ObjUpdate = #obj_update {obj = NewObj, 
                              source_pos = NewObj#obj.pos, 
@@ -138,7 +138,7 @@ do_obj_event(obj_update, _Process, {ObjId, _Attr, Value}) ->
 do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
     lager:info("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
 
-    NewObj = obj:move(ObjId, DestPos),
+    NewObj = obj:process_move(ObjId, DestPos),
 
     %Check if obj was actually able to move
     ObjMove = case obj:pos(NewObj) =:= SourcePos of
@@ -151,6 +151,7 @@ do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
                       %Recalculate perception for obj that moved
                       perception:recalculate(NewObj),
 
+                      lager:info("Moved Obj: ~p",[NewObj]),
                       #obj_move {obj = NewObj,
                                  source_pos = SourcePos,
                                  dest_pos = NewObj#obj.pos}
@@ -274,14 +275,14 @@ do_event(finish_build, EventData, _PlayerPid) ->
     {ObjId, StructureId} = EventData,
 
     %Set unit builder state to none
-    obj:update_state(ObjId, none),
+    game:add_obj_update(self(), ObjId, ?STATE, ?NONE, 1),
 
     %Set structure state to none
-    obj:update_state(StructureId, none), 
+    game:add_obj_update(self(), StructureId, ?STATE, ?NONE, 1),
 
     %Set structure hp to max
-    BaseHp = obj_attr:value(StructureId, <<"base_hp">>),
-    obj_attr:set(StructureId, <<"hp">>, BaseHp),
+    %BaseHp = obj_attr:value(StructureId, <<"base_hp">>),
+    %obj_attr:set(StructureId, <<"hp">>, BaseHp),
 
     true;
 

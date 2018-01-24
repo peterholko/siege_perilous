@@ -847,11 +847,29 @@ function updateObjs(packetChanges) {
 
     for(var i = 0; i < events.length; i++) {
         var eventType = events[i].event;
-        var obj = events[i].obj;
-        var src_x = events[i].src_x;
-        var src_y = events[i].src_y;
 
-        if(eventType == "obj_move") {
+        if(eventType == "obj_create") {
+            var obj = events[i].obj;
+
+            localObjs[obj.id] = obj;
+            localObjs[obj.id].op = 'added';
+            
+        } else if(eventType == "obj_update") {
+            var obj_id = events[i].obj_id;
+            var attr = events[i].attr;
+            var value = events[i].value;
+
+            if(attr == 'state') {
+                localObjs[obj_id].state = value;
+            }
+
+            localObjs[obj_id].op = 'updated';
+
+        } else if(eventType == "obj_move") {
+            var obj = events[i].obj;
+            var src_x = events[i].src_x;
+            var src_y = events[i].src_y;      
+
             if(obj.id in localObjs) {
                 localObjs[obj.id].state = obj.state;
                 localObjs[obj.id].x = obj.x;
@@ -859,14 +877,13 @@ function updateObjs(packetChanges) {
                 localObjs[obj.id].op = 'updated';
             } else {
                 localObjs[obj.id] = obj;
-                localObjs[obj.id].op = 'added';
                 localObjs[obj.id].eventType = 'obj_move';
                 localObjs[obj.id].prev_x = src_x;
                 localObjs[obj.id].prev_y = src_y;
+                localObjs[obj.id].op = 'added';
             }
-        } else if(eventType == "obj_create") {
-            localObjs[obj.id] = obj;
-            localObjs[obj.id].op = 'added';
+
+
         } 
     }
 
@@ -1276,8 +1293,8 @@ function drawAllObj() {
                     unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
                     var imagePath =  "/static/art/" + unitTemplate + ".json";
 
-                    //localObj.icon.removeAllChildren();        
-                    //addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
+                    localObj.icon.removeAllChildren();        
+                    addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
                 }
             } 
             else {
