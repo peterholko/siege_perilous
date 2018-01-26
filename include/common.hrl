@@ -43,6 +43,7 @@
 
 -define(NPC_ID, 1000).
 
+%STATES
 -define(STATE, <<"state">>).
 -define(NONE, none).
 -define(DEAD, dead).
@@ -69,6 +70,8 @@
 -define(DECAYING, <<"Decaying">>).
 -define(BLOODMOON, <<"Bloodmoon">>).
 
+%CLASS and SUBCLASS
+-define(CORPSE, corpse).
 -define(MONOLITH, <<"monolith">>).
 -define(NPC, <<"npc">>).
 -define(VILLAGER, <<"villager">>).

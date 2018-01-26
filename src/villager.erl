@@ -627,11 +627,15 @@ handle_call(Event, From, Data) ->
                              ]),
     {noreply, Data}.
 
-handle_info({perception, {VillagerId, Objs}}, Data) ->
+handle_info({perception, VillagerId}, Data) ->
+    lager:info("Villager ~p perception updated", [VillagerId]),
+
     [Villager] = db:read(villager, VillagerId),
     [VillagerObj] = db:read(obj, VillagerId),
 
-    Enemies = find_enemies(VillagerObj, Objs, []),
+    Perception = perception:get_entity(VillagerObj),
+
+    Enemies = find_enemies(VillagerObj, maps:to_list(Perception), []),
     NewVillager = Villager#villager{enemies = Enemies},
     db:write(NewVillager),
 
@@ -781,14 +785,14 @@ complete_task(Villager) ->
 
 find_enemies(_Villager, [], Enemies) ->
     Enemies;
-find_enemies(Villager, [PerceptionObj | Rest], Enemies) ->
-    NewEnemies = filter_objs(Villager#obj.player, PerceptionObj, Enemies),
-    find_enemies(Villager, Rest, NewEnemies).
+find_enemies(VillagerObj, [{_ObjId, PerceptionObj} | Rest], Enemies) ->
+    NewEnemies = filter_objs(obj:player(VillagerObj), PerceptionObj, Enemies),
+    find_enemies(VillagerObj, Rest, NewEnemies).
 
-filter_objs(_Player, #{<<"state">> := State}, Enemies) when State =:= dead -> Enemies;
-filter_objs(_Player, #{<<"class">> := Class}, Enemies) when Class =:= corpse -> Enemies;
-filter_objs(Player, #{<<"player">> := ObjPlayer}, Enemies) when Player =:= ObjPlayer -> Enemies;
-filter_objs(_Player, Obj, Enemies) -> [Obj | Enemies].
+filter_objs(_VillagerPlayer, #obj{state = State}, Enemies) when State =:= ?DEAD -> Enemies;
+filter_objs(_VillagerPlayer, #obj{class = Class}, Enemies) when Class =:= ?CORPSE -> Enemies;
+filter_objs(VillagerPlayer, #obj{player = ObjPlayer}, Enemies) when VillagerPlayer =:= ObjPlayer -> Enemies;
+filter_objs(_VillagerPlayer, Obj, Enemies) -> [Obj | Enemies].
 
 process('$end_of_table') ->
     lager:debug("Done processing villagers");

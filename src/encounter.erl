@@ -13,9 +13,9 @@ check(Pos) ->
     TileName = map:tile_name(Tile#map.tile),
 
     EncounterNum = get_num(Pos),
-    NumMod = math:pow(0.5, EncounterNum),
+    NumMod = math:pow(0.0001, EncounterNum),
 
-    BaseSpawnRate = 0.001,
+    BaseSpawnRate = 0.25,
     EffectiveSpawnRate = NumMod * BaseSpawnRate,
 
     Random = util:rand(),

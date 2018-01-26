@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/1, get_entity/1, update/2, remove/2, recalculate/1, clear_diff/1,
+-export([create/1, get_entity/1, get_player/1, get_diff/1, update/2, remove/2, recalculate/1, clear_diff/1,
          calculate_player/1, calculate_entity/1, broadcast/3, broadcast/4]).
 -export([check_event_visible/2, process_observed_events/1, is_visible/2]).
 -export([get_by_player/1]).
@@ -32,6 +32,12 @@ create(Obj) ->
 
 get_entity(Obj) ->
     gen_server:call({global, perception_pid}, {get_entity, Obj}).
+
+get_player(Obj) ->
+    gen_server:call({global, perception_pid}, {get_player, Obj}).
+
+get_diff(Obj) ->
+    gen_server:call({global, perception_pid}, {get_diff, Obj}).
 
 recalculate(Obj) ->
     gen_server:cast({global, perception_pid}, {recalculate, Obj}).
@@ -146,17 +152,22 @@ add_observed_event(Observer = #obj{id = ObserverId},
                    Event = #obj_move{obj = #obj{id = ObjId}}, 
                    AllEvents) when ObserverId =:= ObjId ->
    
-    Perception = perception:get_entity(Observer), 
-    lager:info("Perception: ~p", [Perception]),
+    EntityDiff = perception:get_diff(Observer),
+    PlayerPerception = perception:get_player(Observer), 
 
     F = fun(DiffObjId, Acc) ->
-            DiffObj = obj:get(DiffObjId),
-            NewObj = #obj_create{obj = DiffObj,
-                                 source_pos = {1,1}},
-            [{Observer, NewObj} | Acc]
+            case maps:is_key(DiffObjId, PlayerPerception) of
+                false ->
+                    DiffObj = obj:get(DiffObjId),
+                    NewObj = #obj_create{obj = DiffObj,
+                                         source_pos = {1,1}},
+                    [{Observer, NewObj} | Acc];
+                true ->
+                    Acc
+            end
         end,
 
-    DiffEvents = lists:foldl(F, [], Perception#perception.diff),
+    DiffEvents = lists:foldl(F, [], EntityDiff),
     lager:info("DiffEvents: ~p", [DiffEvents]),   
     
     perception:clear_diff(Observer), 
@@ -361,7 +372,24 @@ handle_cast(stop, Data) ->
 handle_call({get_entity, Obj}, _From, Data) ->
     [Perception] = db:read(perception, obj:id(Obj)),
 
-    {reply, Perception, Data};
+    {reply, Perception#perception.data, Data};
+
+handle_call({get_player, Obj}, _From, Data) ->
+    AllPerception = db:index_read(perception, obj:player(Obj), #perception.player),
+
+    F = fun(Perception, Acc) ->
+            maps:merge(Perception#perception.data, Acc)
+        end,
+
+    PlayerPerception = lists:foldl(F, #{}, AllPerception),
+    lager:info("PlayerPerception: ~p", [PlayerPerception]),
+
+    {reply, PlayerPerception, Data};
+
+handle_call({get_diff, Obj}, _From, Data) ->
+    [Perception] = db:read(perception, obj:id(Obj)),
+
+    {reply, Perception#perception.diff, Data};
 
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
@@ -393,10 +421,10 @@ notify_obj(Obj) ->
     case obj:subclass(Obj) of
         ?NPC ->
             [Conn] = db:read(connection, obj:player(Obj)),
-            send_to_process(Conn#connection.process, {perception, obj:id(Obj)});
+            send_to_process(Conn#connection.process, obj:id(Obj));
         ?VILLAGER ->
             Process = global:whereis_name(villager),
-            send_to_process(Process, {perception, obj:id(Obj)});
+            send_to_process(Process, obj:id(Obj));
         _ -> 
             nothing
     end.

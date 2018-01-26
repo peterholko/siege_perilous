@@ -55,52 +55,24 @@ create(Pos, Template) ->
     Id = obj:create(Pos, PlayerId, Template),
     Id.
 
-%% HTN Functions %%%
+%% HTN Conditions %%%
 
-hp_normal(NPCId) ->
-    NPCHp = obj_attr:value(NPCId, <<"hp">>),
-    NPCBaseHp = obj_attr:value(NPCId, <<"base_hp">>),
-    
-    HpNormal = (NPCHp / NPCBaseHp) > 0.20,
-    HpNormal.
-
-hp_very_low(NPCId) ->
-    NPCHp = obj_attr:value(NPCId, <<"hp">>),
-    NPCBaseHp = obj_attr:value(NPCId, <<"base_hp">>),
-    
-    HpNormal = (NPCHp / NPCBaseHp) < 0.20,
-    HpNormal.
-
-set_pos_flee(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(obj, NPCId),
-
-    Radius = 5,
-    RandomPos = map:random_location_from(NPCObj#obj.player, NPCObj#obj.pos, Radius),
-
-    NewNPC = NPC#npc {order_data = RandomPos},
-    db:write(NewNPC).
-
-move_random_pos(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:dirty_read(obj, NPCId),
-    {X, Y} = NPCObj#obj.pos,
-
-    Neighbours = map:neighbours(X, Y),
-    NewPos = get_wander_pos(false, none, Neighbours),
-   
-    NewNPC = NPC#npc {task_state = inprogress},
-    db:write(NewNPC),
-
-    move_unit(NPCObj, NewPos).
-
-target_visible(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
+target_visible(Id) ->
+    [NPC] = db:read(npc, Id),
     NPC#npc.target =/= none.
 
-target_adjacent(NPCId) ->
-    [NPC] = db:read(npc, NPCId), 
-    [NPCObj] = db:read(obj, NPCId),
+max_guard_dist(Id) ->
+    [NPC] = db:read(npc, Id),
+    [NPCObj] = db:read(obj, NPC#npc.id),
+
+    GuardPos = NPC#npc.order_data,
+    NPCPos = NPCObj#obj.pos,
+
+    map:distance(GuardPos, NPCPos) > 3. 
+
+target_adjacent(Id) ->
+    [NPC] = db:read(npc, Id),
+    [NPCObj] = db:read(obj, NPC#npc.id),
 
     case NPC#npc.target =/= none of
         true -> 
@@ -110,15 +82,51 @@ target_adjacent(NPCId) ->
             false
     end.
 
-move_to_target(NPCId) ->
-    [NPC] = db:read(npc, NPCId), 
-    [NPCObj] = db:read(obj, NPCId),
+hp_normal(Id) ->
+    [NPC] = db:read(npc, Id),
+    NPCHp = obj_attr:value(NPC#npc.id, <<"hp">>),
+    NPCBaseHp = obj_attr:value(NPC#npc.id, <<"base_hp">>),
+    
+    HpNormal = (NPCHp / NPCBaseHp) > 0.20,
+    HpNormal.
+
+hp_very_low(Id) ->
+    [NPC] = db:read(npc, Id),
+    NPCHp = obj_attr:value(NPC#npc.id, <<"hp">>),
+    NPCBaseHp = obj_attr:value(NPC#npc.id, <<"base_hp">>),
+    
+    HpNormal = (NPCHp / NPCBaseHp) < 0.20,
+    HpNormal.
+
+%%% HTN Primitives %%%
+
+set_pos_flee(NPC) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
+
+    Radius = 5,
+    RandomPos = map:random_location_from(NPCObj#obj.player, NPCObj#obj.pos, Radius),
+
+    NewNPC = NPC#npc {order_data = RandomPos},
+    db:write(NewNPC).
+
+move_random_pos(NPC) ->
+    [NPCObj] = db:dirty_read(obj, NPC#npc.id),
+    {X, Y} = NPCObj#obj.pos,
+
+    Neighbours = map:neighbours(X, Y),
+    NewPos = get_wander_pos(false, none, Neighbours),
+   
+    move_unit(NPCObj, NewPos),
+
+    NPC#npc {task_state = running}.
+
+move_to_target(NPC) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
 
     case NPC#npc.target of
         none ->
             %Invalid target due to either moving out of range or dying
-            NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC);
+            NPC#npc {task_state = completed};
         _ -> 
             [TargetObj] = db:read(obj, NPC#npc.target),
 
@@ -127,22 +135,18 @@ move_to_target(NPCId) ->
             case IsAdjacent of
                 false ->
                     Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos, NPCObj),
-                    NewNPC = NPC#npc {task_state = inprogress,
-                                      path = Path},
-                    db:write(NewNPC),
+                    move_next_path(NPCObj, Path),
 
-                    move_next_path(NPCObj, Path);
+                    NPC#npc {task_state = running,
+                             path = Path};
                 true ->
-                    NewNPC = NPC#npc {task_state = completed},
-                    db:write(NewNPC)
+                    NPC#npc {task_state = completed}
             end
     end.
 
-
-melee_attack(NPCId) ->
-    lager:debug("Melee_attack: ~p", [NPCId]),
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(obj, NPCId),
+melee_attack(NPC) ->
+    lager:debug("Melee_attack: ~p", [NPC]),
+    [NPCObj] = db:read(obj, NPC#npc.id),
 
     TargetObj = combat:is_valid_target(NPC#npc.target),
 
@@ -152,37 +156,34 @@ melee_attack(NPCId) ->
              combat:is_targetable(TargetObj),
 
     lager:debug("Checks: ~p", [Checks]),
-    NewNPC = case Checks of
-                 true ->
-                     Attacks = case NPC#npc.attacks =:= NPC#npc.combo of
-                                   true -> [];
-                                   false -> NPC#npc.attacks
-                               end,
+    case Checks of
+        true ->
+             Attacks = case NPC#npc.attacks =:= NPC#npc.combo of
+                           true -> [];
+                           false -> NPC#npc.attacks
+                       end,
 
-                     Combo = case Attacks of
-                                 [] -> get_combo(NPCObj);
-                                 _ -> NPC#npc.combo
-                             end,
+             Combo = case Attacks of
+                         [] -> get_combo(NPCObj);
+                         _ -> NPC#npc.combo
+                     end,
 
-                     NextAttack = get_next_attack(Attacks, Combo),
-                     
-                     combat:attack(NextAttack, NPCId, NPC#npc.target),
+             NextAttack = get_next_attack(Attacks, Combo),
+             
+             combat:attack(NextAttack, NPC#npc.id, NPC#npc.target),
 
-                     EventData = NPCId,
-                     game:add_event(self(), attack, EventData, NPCId, util:rand(16) + 6),
+             EventData = NPC#npc.id,
+             game:add_event(self(), attack, EventData, NPC#npc.id, util:rand(16) + 6),
 
-                     NPC#npc {task_state = inprogress,        
-                              combo = Combo,                      
-                              attacks = Attacks ++ [NextAttack]};
-                 false ->
-                     NPC#npc {task_state = completed}
-             end,
-
-    db:write(NewNPC).
-
-move_to_order_pos(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(obj, NPCId),
+             NPC#npc {task_state = running,
+                      combo = Combo,                      
+                      attacks = Attacks ++ [NextAttack]};
+         false ->
+             NPC#npc {task_state = completed}
+    end.
+    
+move_to_order_pos(NPC) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
 
     Pos = NPC#npc.order_data,
 
@@ -199,14 +200,6 @@ move_to_order_pos(NPCId) ->
             db:write(NewNPC)
     end.
 
-max_guard_dist(NPCId) ->
-    [NPC] = db:read(npc, NPCId),
-    [NPCObj] = db:read(obj, NPCId),
-
-    GuardPos = NPC#npc.order_data,
-    NPCPos = NPCObj#obj.pos,
-
-    map:distance(GuardPos, NPCPos) > 3. 
 
 
 %% ====================================================================
@@ -248,19 +241,21 @@ handle_call(Event, From, Data) ->
                              ]),
     {noreply, Data}.
 
-handle_info({map_perception_disabled, _Perception}, Data) ->
-    {noreply, Data};
+handle_info({perception, NPCId}, Data) ->
+    lager:info("Perception received."),
+    [NPCObj] = db:read(obj, NPCId),
+    [NPC] = db:read(npc, NPCId),
 
-handle_info({perception, {NPCId, Objs}}, Data) ->
-    lager:debug("Perception received."),
+    Perception = perception:get_entity(NPCObj),
+    Target = process_perception(NPCObj, maps:to_list(Perception)),
 
-    perception(NPCId, Objs),
-
+    NewNPC = NPC#npc {target = Target},
+    db:write(NewNPC),
     lager:debug("Perception processing end."),
     {noreply, Data};
 
-handle_info({event_complete, {obj_move, Id}}, Data) ->
-    lager:info("Received event_complete for obj_move"),
+handle_info({event_complete, {_Event, Id}}, Data) ->
+    lager:info("NPC received event_complete"),
     NPC = db:read(npc, Id),
 
     %Determine next task or if NPC is dead do nothing
@@ -282,33 +277,23 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-
-filter_targets([], Targets) ->
-    Targets;
-
-filter_targets([PerceptionObj | Rest], Targets) ->
+filter_targets(AllPerception) ->
     Player = get(player_id),
-    ObjPlayer = maps:get(<<"player">>, PerceptionObj),
-    NewTargets = case valid_target(Player, ObjPlayer) of
-                     true ->
-                         add_obj(PerceptionObj, Targets);
-                     false ->
-                         Targets
-                 end,
+    F = fun({_ObjId, TargetObj}, Targets) ->
+            case valid_target(Player, obj:player(TargetObj)) of
+                true ->
+                    [TargetObj | Targets];
+                false ->
+                    Targets
+            end
+        end,
 
-    filter_targets(Rest, NewTargets).
+    FilteredTargets = lists:foldl(F, [], AllPerception),
+    FilteredTargets.
 
 valid_target(_, -1) -> false;
 valid_target(Player, ObjPlayer) when Player =:= ObjPlayer -> false;
 valid_target(_, _) -> true.
-
-
-add_obj(PerceptionObj, AllObjs) ->
-    Id = maps:get(<<"id">>, PerceptionObj),
-    case db:read(obj, Id) of
-        [Obj] -> [Obj | AllObjs];
-        [] -> AllObjs
-    end.
 
 process_replan('$end_of_table') ->
     done;
@@ -326,7 +311,7 @@ process_replan(Id) ->
             NewNPC = NPC#npc {plan = NewPlan,
                               new_plan = true,
                               task_state = completed,
-                              task_index = 0},
+                              task_index = 1},
             db:write(NewNPC);
         true ->
             nothing
@@ -339,31 +324,38 @@ process_run_plan('$end_of_table') ->
 process_run_plan(Id) ->
     [NPC] = db:read(npc, Id),
 
-    lager:debug("Task State: ~p", [NPC#npc.task_state]),
-    case NPC#npc.task_state of
-        completed ->
-            TaskIndex = NPC#npc.task_index,
-            PlanLength = length(NPC#npc.plan),
-
-            NextTask = get_next_task(TaskIndex, PlanLength),
-            lager:debug("NextTask: ~p", [NextTask]),
-            case NextTask of
-                {next_task, NextTaskIndex} ->
-                    NewNPC = NPC#npc {task_index = NextTaskIndex},
-                    db:write(NewNPC),
-                    TaskToRun = lists:nth(NextTaskIndex, NPC#npc.plan),
-                    lager:debug("TaskToRun: ~p", [TaskToRun]),
-                    erlang:apply(npc, TaskToRun, [Id]);
-                plan_completed ->
-                    NewNPC = NPC#npc { task_state = completed,
-                                       task_index = 0},
-                    db:write(NewNPC)
-            end;
-        _ ->
-            nothing
+    case NPC#npc.plan of
+        [] -> nothing;
+        _ -> %Process npc task state
+            lager:info("NPC: ~p", [NPC]),
+            NewNPC = process_task_state(NPC#npc.task_state, NPC),
+            db:write(NewNPC)
     end,
 
-    process_run_plan(mnesia:dirty_next(npc, Id)).
+    process_run_plan(db:next(npc, Id)).
+
+process_task_state(init, NPC) ->
+    TaskToRun = lists:nth(1, NPC#npc.plan),
+    NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
+    NewNPC;
+process_task_state(completed, NPC) ->
+    TaskIndex = NPC#npc.task_index,
+    PlanLength = length(NPC#npc.plan),
+
+    NextTask = get_next_task(TaskIndex, PlanLength),
+    lager:info("NextTask: ~p", [NextTask]),
+
+    case NextTask of
+        {next_task, NextTaskIndex} ->
+            TaskToRun = lists:nth(NextTaskIndex, NPC#npc.plan),
+            NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
+            lager:info("NewNPC: ~p", [NewNPC]),
+            NewNPC#npc{task_index = NextTaskIndex};
+        plan_completed -> 
+            NPC#npc{task_state = init, task_index = 1}
+    end;
+process_task_state(running, NPC) ->
+    NPC.
 
 process_event_complete([NPC]) ->
     Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
@@ -372,20 +364,41 @@ process_event_complete([NPC]) ->
 
     case Task of
         move_random_pos ->
-            NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC);
+            complete_task(NPC);
         move_to_target ->
-            move_to_target(NPC#npc.id);
+            process_move_to_target_complete(NPC);
         move_to_order_pos ->
             move_to_order_pos(NPC#npc.id);
         melee_attack ->
-            NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC);
+            complete_task(NPC);
         _ ->
             nothing
     end;
 process_event_complete(_) -> 
     nothing.
+
+process_move_to_target_complete(NPC) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
+
+    case NPC#npc.target of
+        none -> 
+            NewNPC = NPC#npc{task_state = completed},
+            db:write(NewNPC);
+        TargetId ->
+            [TargetObj] = db:read(obj, TargetId),
+
+            case map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos) of
+                false ->
+                    move_to_target(NPC);
+                true ->
+                    NewNPC = NPC#npc{task_state = completed},
+                    db:write(NewNPC)
+            end
+    end.
+
+complete_task(NPC) ->
+    NewNPC = NPC#npc{task_state = completed},
+    db:write(NewNPC).
 
 get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
     NewTaskIndex = TaskIndex + 1,
@@ -508,18 +521,12 @@ combo({<<"Undead">>, <<"Shadow">>}, Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FI
 combo({<<"Undead">>, <<"Shadow">>}, _) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE];
 combo(_, _) -> [?QUICK, ?QUICK, ?QUICK, ?FIERCE].
 
-perception(NPCId, Objs) ->
-    [NPCObj] = db:read(obj, NPCId),
-    [NPC] = db:read(npc, NPCId),
-
+process_perception(NPCObj, Perception) ->
     %Remove from same player and non targetable objs
-    FilteredTargets = filter_targets(Objs, []),
+    FilteredTargets = filter_targets(Perception),
+    lager:info("NPCObj: ~p", [NPCObj]),
+    lager:info("FilteredTargets: ~p", [FilteredTargets]),
 
     %Find target
     Target = find_target(NPCObj, FilteredTargets),
-
-    lager:debug("Find Target: ~p", [Target]),
-
-    %Store target
-    NewNPC = NPC#npc {target = Target},
-    db:write(NewNPC).
+    Target.
