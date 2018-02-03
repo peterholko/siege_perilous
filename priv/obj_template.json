@@ -1,4 +1,5 @@
-[{
+[
+{
 	"_id": {
 		"$oid": "54b43dcb03c27178c3ebd976"
 	},
@@ -13,6 +14,30 @@
 	"subclass": "npc",
     "template": "Zombie",
     "family": "Undead",
+	"int": "mindless",
+	"base_vision": 2,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	]
+},
+{
+	"name": "Elite Zombie",
+	"base_hp": 150,
+	"base_stamina": 10000,
+	"base_dmg": 2,
+	"dmg_range": 6,
+	"base_def": 7,
+	"base_speed": 3,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Zombie",
+    "family": "Undead",
+    "image": "Zombie2",
+    "hsl": [90,50,0],
 	"int": "mindless",
 	"base_vision": 2,
 	"aggression": "high",
@@ -559,7 +584,7 @@
 	"name": "Mana",
 	"class": "resource",
 	"subclass": "resource",
-    "template": "Mana",
+    "template": "Mana"
 },
 {
 	"_id": {
@@ -775,15 +800,7 @@
 	"subclass": "poi",
     "template": "Shipwreck",
 	"base_hp": "0"
-},
-   
-    
-    
-    
-    
-    
-    
-    
+}
     
     
 ]

@@ -85,6 +85,8 @@
               state,
               effect = [],
               vision = -1,
+              image,
+              hsl = [],
               modtick}).
 
 -record(obj_attr, {key, % {id, attr}
@@ -146,7 +148,7 @@
                    shelter = none,
                    storage = none,
                    morale = 60,
-                   enemies = none,
+                   enemies = [],
                    dest = none,
                    plan = [],
                    plan_data = none,

@@ -117,19 +117,20 @@ spawn_new_player(PlayerId) ->
          end,
 
     F2 = fun() ->
-            obj:create({16,35}, ?UNDEAD, <<"Zombie">>)
+            obj:create({16,35}, ?ANIMAL, <<"Giant Rat">>)
          end,
 
     F3 = fun() ->
             obj:create({17,35}, ?UNDEAD, <<"Zombie">>)
-         end,
+         end.
 
     %F4 = fun() ->
     %        sound:talk(VillagerId, "The dead rise up!  We must be flee!")
     %     end.
 
-    game:add_event(none, event, F1, none, 20).
-    %game:add_event(none, event, F2, none, 28),
+    %game:add_event(none, event, F1, none, 20),
+    
+    %game:add_event(none, event, F2, none, 28).
     %game:add_event(none, event, F3, none, 36),
 
     %game:add_event(none, event, F4, none, 40).

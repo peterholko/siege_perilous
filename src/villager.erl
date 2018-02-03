@@ -55,7 +55,7 @@ generate(Level) ->
     Template = <<"Human Villager">>,
     State = none,
 
-    Id = obj:create(OffMapPos, PlayerId, Name, Template, State),
+    Id = obj:create(OffMapPos, PlayerId, Template, Name, State),
 
     obj_attr:set(Id, ?STRENGTH, util:rand(10 + Level)),
     obj_attr:set(Id, ?TOUGHNESS, util:rand(10 + Level)),
@@ -78,6 +78,7 @@ generate(Level) ->
 
     Skill3 = lists:nth(util:rand(length(RemainingSkills2)), RemainingSkills2),
 
+    lager:info("Skills1: ~p", [Skill1]),
     skill:update(Id, maps:get(<<"name">>, Skill1), util:rand(26) - 1),
     skill:update(Id, maps:get(<<"name">>, Skill2), util:rand(26) - 1),
     skill:update(Id, maps:get(<<"name">>, Skill3), util:rand(26) - 1).
@@ -331,7 +332,6 @@ move_to_pos(Villager) ->
                          lager:info("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
                          Villager#villager {task_state = completed}
                  end,
-    lager:info("Move Villager: ~p",[NewVillager]),
     NewVillager.
 
 move_randomly(Villager) ->
@@ -627,20 +627,6 @@ handle_call(Event, From, Data) ->
                              ]),
     {noreply, Data}.
 
-handle_info({perception, VillagerId}, Data) ->
-    lager:info("Villager ~p perception updated", [VillagerId]),
-
-    [Villager] = db:read(villager, VillagerId),
-    [VillagerObj] = db:read(obj, VillagerId),
-
-    Perception = perception:get_entity(VillagerObj),
-
-    Enemies = find_enemies(VillagerObj, maps:to_list(Perception), []),
-    NewVillager = Villager#villager{enemies = Enemies},
-    db:write(NewVillager),
-
-    {noreply, Data};
-
 handle_info({broadcast, Message}, Data) ->
     
     case maps:get(<<"packet">>, Message) of
@@ -685,10 +671,14 @@ terminate(_Reason, _) ->
 process_create_plan('$end_of_table') ->
     done;
 process_create_plan(Id) ->
+    lager:debug("Villager ~p creating plan", [Id]),
+    process_perception(Id),
+
     [Villager] = db:read(villager, Id),
 
     CurrentPlan = Villager#villager.plan,
     NewPlan = htn:plan(villager, Id, villager),
+    lager:debug("Villager NewPlan: ~p", [NewPlan]),
 
     case NewPlan =:= CurrentPlan of
         false ->
@@ -785,7 +775,8 @@ complete_task(Villager) ->
 
 find_enemies(_Villager, [], Enemies) ->
     Enemies;
-find_enemies(VillagerObj, [{_ObjId, PerceptionObj} | Rest], Enemies) ->
+find_enemies(VillagerObj, [PerceptionObjId | Rest], Enemies) ->
+    PerceptionObj = obj:get(PerceptionObjId),
     NewEnemies = filter_objs(obj:player(VillagerObj), PerceptionObj, Enemies),
     find_enemies(VillagerObj, Rest, NewEnemies).
 
@@ -900,4 +891,14 @@ get_claimed_shelters(Player) ->
         end,
 
     lists:foldl(F, [], Villagers).
+
+process_perception(VillagerId) ->
+    [Villager] = db:read(villager, VillagerId),
+    [VillagerObj] = db:read(obj, VillagerId),
+
+    Perception = perception:get_entity(VillagerObj),
+
+    Enemies = find_enemies(VillagerObj, Perception, []),
+    NewVillager = Villager#villager{enemies = Enemies},
+    db:write(NewVillager).
 

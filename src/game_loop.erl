@@ -114,10 +114,10 @@ check_obj_events([ObjEvent | Rest], Observers, All) ->
 
     check_obj_events(Rest, Observers, ObservedEvents ++ All).
 
-do_obj_event(obj_create, _Process, CreateData = {Id, Pos, PlayerId, Template, UniqueName, State}) ->
-    lager:info("obj_create: ~p", [CreateData]),
+do_obj_event(obj_create, _Process, Id) ->
+    lager:info("obj_create: ~p", [Id]),
 
-    NewObj = obj:process_create(Id, Pos, PlayerId, Template, UniqueName, State),
+    NewObj = obj:process_create(Id),
 
     ObjCreate = #obj_create {obj = NewObj,
                              source_pos = NewObj#obj.pos},
@@ -149,7 +149,7 @@ do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
                                    value = none};
                   false -> 
                       %Recalculate perception for obj that moved
-                      perception:recalculate(NewObj),
+                      %perception:recalculate(NewObj),
 
                       lager:info("Moved Obj: ~p",[NewObj]),
                       #obj_move {obj = NewObj,
@@ -266,9 +266,7 @@ do_event(sharvest, EventData, _Pid) ->
             lager:debug("sharvest error: ~p", [ErrMsg]),
             FailureData = StructureId,
             message:send_to_process(global:whereis_name(villager), event_failure, {harvest, VillagerId, ErrMsg, FailureData})
-    end,
-
-    false;
+    end;
 
 do_event(finish_build, EventData, _PlayerPid) ->
     lager:info("Processing build event: ~p", [EventData]),
@@ -281,10 +279,8 @@ do_event(finish_build, EventData, _PlayerPid) ->
     game:add_obj_update(self(), StructureId, ?STATE, ?NONE, 1),
 
     %Set structure hp to max
-    %BaseHp = obj_attr:value(StructureId, <<"base_hp">>),
-    %obj_attr:set(StructureId, <<"hp">>, BaseHp),
-
-    true;
+    BaseHp = obj_attr:value(StructureId, <<"base_hp">>),
+    obj_attr:set(StructureId, <<"hp">>, BaseHp);
 
 do_event(refine, EventData, PlayerPid) ->
     lager:debug("Processing refine event: ~p", [EventData]),
@@ -297,9 +293,7 @@ do_event(refine, EventData, PlayerPid) ->
             game:add_event(PlayerPid, refine, EventData, UnitId, NumTicks);
         false ->
             obj:update_state(UnitId, none)
-    end,
-
-    false;
+    end;
 
 do_event(craft, EventData, PlayerPid) ->
     lager:debug("Processing craft event: ~p", [EventData]),
@@ -353,11 +347,6 @@ do_event(_Unknown, _Data, _Pid) ->
     lager:debug("Unknown event"),
     false.
 
-recalculate(false) ->
-    done;
-recalculate(true) ->
-    perception:recalculate().
-
 process_explored([]) ->
     done;
 process_explored([Player | Rest]) ->
@@ -404,12 +393,12 @@ process_effects(NumTick) when (NumTick rem ?TICKS_SEC * 1) =:= 0 ->
     effects(NumTick);
 process_effects(NumTick) -> nothing.
 
-npc_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
+npc_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 5)) =:= 0 ->
     npc:replan(?UNDEAD);
 npc_create_plan(_) ->
     nothing.
 
-npc_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 2)) =:= 0 ->
+npc_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 5)) =:= 0 ->
    npc:run_plan(?UNDEAD);
 npc_run_plan(_) ->
     nothing.

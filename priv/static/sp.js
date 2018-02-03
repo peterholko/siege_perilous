@@ -2085,12 +2085,12 @@ function drawInfoUnit(jsonData) {
     console.log('activeInfoPanel: ' + activeInfoPanel.id); 
 
     var nameText = new createjs.Text(unitTemplate, h1Font, textColor);
+    addChildInfoPanel(nameText);
 
     var nameBounds = nameText.getBounds();
     nameText.x =  Math.floor(infoPanelBg.width / 2) - nameBounds.width / 2;
     nameText.y = 12;
 
-    addChildInfoPanel(nameText);
 
     unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
     var imagePath =  "/static/art/" + unitTemplate + ".png";
@@ -2544,7 +2544,7 @@ function drawReventPanel(jsonData, reventState) {
 };
 
 function drawActionBar(objId) {
-    var obj = getObj(objId);
+    var obj = getLocalObj(objId);
 
     detailsButton.visible = true;
 

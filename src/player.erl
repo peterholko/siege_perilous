@@ -543,9 +543,6 @@ recipe_list(SourceId) ->
              end,
     Result.
 
-refine(StructureId) when is_binary(StructureId) ->
-    Structure = obj:get(StructureId),
-    refine(Structure); 
 refine(Structure) when is_record(Structure, obj) ->
     Player = get(player_id),
     Checks = [{not is_event_locked(Structure#obj.id), "Event in progress"},
@@ -561,10 +558,12 @@ refine(Structure) when is_record(Structure, obj) ->
             villager:set_order_refine(VillagerId),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
+            lager:info("Refine failed: ~p", [Error]),
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
-refine(_StructureId) ->
-    #{<<"errmsg">> => list_to_binary("Invalid structure")}.
+refine(StructureId) ->
+    Structure = obj:get(StructureId),
+    refine(Structure).
 
 craft(StructureId, Recipe) ->
     Player = get(player_id),

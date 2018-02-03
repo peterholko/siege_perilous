@@ -10,7 +10,7 @@
 
 -export([create/3, create/4, create/5, update_state/2]).
 -export([remove/1]).
--export([process_create/6, process_update_state/2, process_move/2]).
+-export([process_create/1, process_update_state/2, process_move/2]).
 -export([update_hp/2, update_stamina/2, update_dead/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
@@ -30,20 +30,6 @@ create(Pos, PlayerId, Template, State) ->
 
 create(Pos, PlayerId, Template, UniqueName, State) ->
     Id = util:get_id(),
-
-    CreateData = {Id, Pos, PlayerId, Template, UniqueName, State},
-
-    game:add_obj_create(self(), CreateData, 1),
-
-    Id.
-
-update_state(Obj, State) when is_record(Obj, obj) ->
-    game:add_obj_update(self(), Obj#obj.id, ?STATE, State);
-update_state(ObjId, State) ->
-    [Obj] = db:read(obj, ObjId),
-    update_state(Obj, State).
-
-process_create(Id, Pos, PlayerId, Template, UniqueName, State) ->
     lager:info("Creating object ~p", [Template]),
 
     %Create obj attr entries from obj def entries
@@ -56,13 +42,17 @@ process_create(Id, Pos, PlayerId, Template, UniqueName, State) ->
     %TODO reconsider if class should not be binary
     Class = binary_to_atom(obj_attr:value(Id, <<"class">>, none), latin1),
     Subclass = obj_attr:value(Id, <<"subclass">>, none),
-    Vision = obj_attr:value(Id, <<"base_vision">>, 0),
+
+    Image = obj_attr:value(Id, <<"image">>, Template),
+    HSL = obj_attr:value(Id, <<"hsl">>, []),
 
     %Set Unique Name or use unit template
     Name = case UniqueName of
                none -> obj_attr:value(Id, <<"name">>);
                _ -> UniqueName
            end,
+
+    
 
     %Add attributes from base
     obj_attr:set(Id, <<"hp">>, BaseHp),
@@ -77,28 +67,53 @@ process_create(Id, Pos, PlayerId, Template, UniqueName, State) ->
                 class = Class,
                 subclass = Subclass,
                 state = State,
-                vision = Vision,
+                image = Image,
+                hsl = HSL, 
                 modtick = counter:value(tick)},
 
+    %Save obj
     save(Obj),
+
+    %Add obj create event
+    game:add_obj_create(self(), Id, 1),
+
+    %Return Obj ID
+    Id.
+
+process_create(ObjId) ->
+    [Obj] = db:read(obj, ObjId),
+
+    %Set vision to complete the obj setup
+    Vision = obj_attr:value(ObjId, <<"base_vision">>, 0),
+
+    NewObj = Obj#obj{vision = Vision},
+
+    %Save obj
+    save(NewObj),
 
     case Vision > 0 of
         true ->
             %Create init perception 
             lager:info("Creating perception..."),
-            perception:create(Obj),
+            perception:create(NewObj),
 
-            map:add_explored(Obj#obj.player, Pos, Obj#obj.vision),
-            game:trigger_explored(Obj#obj.player);
+            map:add_explored(NewObj#obj.player, NewObj#obj.pos, NewObj#obj.vision),
+            game:trigger_explored(NewObj#obj.player);
         false ->
             nothing
     end,
 
     %Check subclass for any other post creation tasks
-    process_subclass(Obj),
+    process_subclass(NewObj),
 
-    %Return Obj
-    Obj.
+    %Return NewObj
+    NewObj.
+
+update_state(Obj, State) when is_record(Obj, obj) ->
+    game:add_obj_update(self(), Obj#obj.id, ?STATE, State);
+update_state(ObjId, State) ->
+    [Obj] = db:read(obj, ObjId),
+    update_state(Obj, State).
 
 process_move(Obj, Pos) when is_record(Obj, obj) ->
     %Check if move can be completed
@@ -486,13 +501,6 @@ remove(Id) ->
     db:delete(villager, Id),
     db:delete(npc, Id).
 
-get_visible_objs([], Objs) ->
-    Objs;
-get_visible_objs([Obj | Rest], Objs) ->
-    NearbyObjs = map:get_nearby_objs(Obj#obj.pos, 2),
-    NewObjs = Objs ++ NearbyObjs,
-    get_visible_objs(Rest, NewObjs).
-
 filter_units(Objs) ->
     F = fun(Obj) -> Obj#obj.class =:= unit end,
     lists:filter(F, Objs).
@@ -563,13 +571,14 @@ info_other(Id) ->
     Info1 = maps:put(<<"class">>, atom_to_binary(Obj#obj.class, latin1), Info0),
     Info2 = maps:put(<<"subclass">>, Obj#obj.subclass, Info1),
     Info3 = maps:put(<<"name">>, Obj#obj.name, Info2),
-    Info4 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info3),
-    Info5 = maps:put(<<"effects">>, Effects, Info4),
+    Info4 = maps:put(<<"template">>, Obj#obj.template, Info3),
+    Info5 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info4),
+    Info6 = maps:put(<<"effects">>, Effects, Info5),
 
     % Add items if obj is dead to info
     case Obj#obj.state of
-        dead -> maps:put(<<"items">>, Items, Info5);
-        _ -> Info5
+        dead -> maps:put(<<"items">>, Items, Info6);
+        _ -> Info6
     end.
 
 info_subclass(<<"villager">>, Obj, Info) ->
@@ -668,7 +677,9 @@ rec_to_map(Obj) ->
       <<"class">> => Obj#obj.class,
       <<"subclass">> => Obj#obj.subclass,
       <<"vision">> => Obj#obj.vision,
-      <<"state">> => Obj#obj.state}.
+      <<"state">> => Obj#obj.state,
+      <<"image">> => Obj#obj.image,
+      <<"hsl">> => Obj#obj.hsl}.
        
 save(NewObj) ->
     save(NewObj, none).

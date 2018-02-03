@@ -33,8 +33,8 @@ create(Obj) ->
 get_entity(Obj) ->
     gen_server:call({global, perception_pid}, {get_entity, Obj}).
 
-get_player(Obj) ->
-    gen_server:call({global, perception_pid}, {get_player, Obj}).
+get_player(PlayerId) ->
+    gen_server:call({global, perception_pid}, {get_player, PlayerId}).
 
 get_diff(Obj) ->
     gen_server:call({global, perception_pid}, {get_diff, Obj}).
@@ -58,15 +58,9 @@ broadcast(SourcePos, TargetPos, Range, MessageData) ->
     gen_server:cast({global, perception_pid}, {broadcast, SourcePos, TargetPos, Range, MessageData}).
 
 get_by_player(PlayerId) ->
-    AllPerception = db:index_read(perception, PlayerId, #perception.player),
+    ObjList = perception:get_player(PlayerId),
 
-    F = fun(Perception, All) ->
-            maps:keys(Perception#perception.data) ++ All
-        end,
-
-    ObjList = util:unique_list(lists:foldl(F, [], AllPerception)),
-
-    G = fun(ObjId, AllObjs) ->
+    F = fun(ObjId, AllObjs) ->
             Obj = obj:get(ObjId),
             ObjMap = obj:rec_to_map(Obj),
 
@@ -74,7 +68,7 @@ get_by_player(PlayerId) ->
         end,
 
 
-    lists:foldl(G, [], ObjList).
+    lists:foldl(F, [], ObjList).
 
 process_observed_events(AllEvents) ->
     
@@ -152,11 +146,14 @@ add_observed_event(Observer = #obj{id = ObserverId},
                    Event = #obj_move{obj = #obj{id = ObjId}}, 
                    AllEvents) when ObserverId =:= ObjId ->
    
+    PlayerPerception = perception:get_player(obj:player(Observer)), 
+
+    perception:recalculate(ObserverId),
+
     EntityDiff = perception:get_diff(Observer),
-    PlayerPerception = perception:get_player(Observer), 
 
     F = fun(DiffObjId, Acc) ->
-            case maps:is_key(DiffObjId, PlayerPerception) of
+            case lists:member(DiffObjId, PlayerPerception) of
                 false ->
                     DiffObj = obj:get(DiffObjId),
                     NewObj = #obj_create{obj = DiffObj,
@@ -285,7 +282,7 @@ init([]) ->
     {ok, []}.
 
 handle_cast({create, Obj}, Data) ->   
-    PerceptionData = calculate_entity(Obj),
+    PerceptionData = maps:keys(calculate_entity(Obj)),
 
     Perception = #perception{entity = obj:id(Obj),
                              player = obj:player(Obj),
@@ -299,36 +296,41 @@ handle_cast({create, Obj}, Data) ->
 handle_cast({update, ObserverObj, UpdatedObj}, Data) ->  
     [Perception] = db:read(perception, obj:id(ObserverObj)),
 
-    NewPerceptionData = maps:put(obj:id(UpdatedObj), UpdatedObj, Perception#perception.data),
+    IsMember = lists:member(obj:id(UpdatedObj), Perception#perception.data),
+
+    NewPerceptionData = case IsMember of
+                            true -> 
+                                Perception#perception.data;
+                            false ->
+                                [obj:id(UpdatedObj) | Perception#perception.data]
+                        end,
+
     NewPerception = Perception#perception{data = NewPerceptionData},
-
     db:write(NewPerception),
-
-    notify_obj(ObserverObj),
 
     {noreply, Data};
 
 handle_cast({remove, ObserverObj, RemovedObj}, Data) ->   
     [Perception] = db:read(perception, obj:id(ObserverObj)),
-     
-    NewPerceptionData = maps:remove(obj:id(RemovedObj), Perception#perception.data),
+    
+    NewPerceptionData = lists:delete(obj:id(RemovedObj), Perception#perception.data), 
     NewPerception = Perception#perception{data = NewPerceptionData},
 
     db:write(NewPerception),
     
-    notify_obj(ObserverObj),
-
     {noreply, Data};
 
-handle_cast({recalculate, ObserverObj}, Data) ->
+handle_cast({recalculate, ObserverId}, Data) ->
+    ObserverObj = obj:get(ObserverId),
     [Perception] = db:read(perception, obj:id(ObserverObj)),
 
     OldPerceptionData = Perception#perception.data,
-    NewPerceptionData = calculate_entity(ObserverObj),
+    NewPerceptionData = maps:keys(calculate_entity(ObserverObj)),
 
     PrevDiff = Perception#perception.diff,
 
-    DiffObjs = maps:keys(NewPerceptionData) -- maps:keys(OldPerceptionData),
+    lager:info("Old: ~p New: ~p", [OldPerceptionData, NewPerceptionData]),
+    DiffObjs = NewPerceptionData -- OldPerceptionData,
 
     NewPerception = Perception#perception{data = NewPerceptionData,
                                           diff = PrevDiff ++ DiffObjs},
@@ -336,8 +338,6 @@ handle_cast({recalculate, ObserverObj}, Data) ->
     db:write(NewPerception),
 
     lager:info("NewPerception: ~p", [NewPerception]),
-
-    notify_obj(ObserverObj),
 
     {noreply, Data};
 
@@ -374,14 +374,14 @@ handle_call({get_entity, Obj}, _From, Data) ->
 
     {reply, Perception#perception.data, Data};
 
-handle_call({get_player, Obj}, _From, Data) ->
-    AllPerception = db:index_read(perception, obj:player(Obj), #perception.player),
+handle_call({get_player, PlayerId}, _From, Data) ->
+    AllPerception = db:index_read(perception, PlayerId, #perception.player),
 
     F = fun(Perception, Acc) ->
-            maps:merge(Perception#perception.data, Acc)
+            Perception#perception.data ++ Acc
         end,
 
-    PlayerPerception = lists:foldl(F, #{}, AllPerception),
+    PlayerPerception = util:unique_list(lists:foldl(F, [], AllPerception)),
     lager:info("PlayerPerception: ~p", [PlayerPerception]),
 
     {reply, PlayerPerception, Data};
@@ -561,7 +561,8 @@ visible_objs(AllObjs, #obj {id = Id, pos = Pos, vision = Vision}) ->
     F = fun(Target, PerceptionData) when Target#obj.id =:= Id ->
                 maps:put(Target#obj.id, Target, PerceptionData); %Include self
            (Target, PerceptionData) ->
-            Result = Target#obj.state =/= hiding andalso
+            Result = Target#obj.state =/= hiding andalso %Not hiding
+                     Target#obj.vision >= 0 andalso %Obj being created
                      map:distance(Pos, Target#obj.pos) =< Vision,
 
             case Result of

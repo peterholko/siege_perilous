@@ -241,16 +241,8 @@ handle_call(Event, From, Data) ->
                              ]),
     {noreply, Data}.
 
-handle_info({perception, NPCId}, Data) ->
-    lager:info("Perception received."),
-    [NPCObj] = db:read(obj, NPCId),
-    [NPC] = db:read(npc, NPCId),
-
-    Perception = perception:get_entity(NPCObj),
-    Target = process_perception(NPCObj, maps:to_list(Perception)),
-
-    NewNPC = NPC#npc {target = Target},
-    db:write(NewNPC),
+handle_info({perception, _NPCId}, Data) ->
+    lager:debug("Perception received."),
     lager:debug("Perception processing end."),
     {noreply, Data};
 
@@ -277,10 +269,11 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-filter_targets(AllPerception) ->
-    Player = get(player_id),
-    F = fun({_ObjId, TargetObj}, Targets) ->
-            case valid_target(Player, obj:player(TargetObj)) of
+filter_targets(PlayerId, AllPerception) ->
+    F = fun(TargetId, Targets) ->
+            TargetObj = obj:get(TargetId),
+
+            case valid_target(PlayerId, obj:player(TargetObj)) of
                 true ->
                     [TargetObj | Targets];
                 false ->
@@ -298,6 +291,8 @@ valid_target(_, _) -> true.
 process_replan('$end_of_table') ->
     done;
 process_replan(Id) ->
+    process_perception(Id),
+
     [NPC] = db:read(npc, Id),
 
     CurrPlan = NPC#npc.plan,
@@ -327,7 +322,6 @@ process_run_plan(Id) ->
     case NPC#npc.plan of
         [] -> nothing;
         _ -> %Process npc task state
-            lager:info("NPC: ~p", [NPC]),
             NewNPC = process_task_state(NPC#npc.task_state, NPC),
             db:write(NewNPC)
     end,
@@ -336,6 +330,7 @@ process_run_plan(Id) ->
 
 process_task_state(init, NPC) ->
     TaskToRun = lists:nth(1, NPC#npc.plan),
+    lager:info("NPC: ~p Running task: ~p", [NPC#npc.id, TaskToRun]),
     NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
     NewNPC;
 process_task_state(completed, NPC) ->
@@ -343,7 +338,7 @@ process_task_state(completed, NPC) ->
     PlanLength = length(NPC#npc.plan),
 
     NextTask = get_next_task(TaskIndex, PlanLength),
-    lager:info("NextTask: ~p", [NextTask]),
+    lager:info("NPC: ~p NextTask: ~p ", [NPC#npc.id, NextTask]),
 
     case NextTask of
         {next_task, NextTaskIndex} ->
@@ -521,12 +516,20 @@ combo({<<"Undead">>, <<"Shadow">>}, Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FI
 combo({<<"Undead">>, <<"Shadow">>}, _) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE];
 combo(_, _) -> [?QUICK, ?QUICK, ?QUICK, ?FIERCE].
 
-process_perception(NPCObj, Perception) ->
+process_perception(NPCId) ->
+    [NPCObj] = db:read(obj, NPCId),
+    [NPC] = db:read(npc, NPCId),
+
+    Perception = perception:get_entity(NPCObj),
+
     %Remove from same player and non targetable objs
-    FilteredTargets = filter_targets(Perception),
-    lager:info("NPCObj: ~p", [NPCObj]),
-    lager:info("FilteredTargets: ~p", [FilteredTargets]),
+    FilteredTargets = filter_targets(obj:player(NPCObj), Perception),
+    lager:info("NPC: ~p FilteredTargets: ~p", [NPCId, FilteredTargets]),
 
     %Find target
     Target = find_target(NPCObj, FilteredTargets),
-    Target.
+    lager:info("NPC: ~p Target: ~p", [NPCId, Target]),
+
+    NewNPC = NPC#npc {target = Target},
+    db:write(NewNPC).
+
