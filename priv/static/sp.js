@@ -236,6 +236,9 @@ btnEquipRestImg.src = "/static/art/btn_equip_rest.png";
 
 gravestone.src = "/static/art/gravestone.png";
 
+var villager = new Image();
+villager.src = "/static/art/humanvillager2.png";
+
 $(document).ready(init);
 
 function init() {
@@ -324,7 +327,7 @@ function handleQueueComplete()
 {
     while(imagesQueue.length > 0) {
         var imageTask = imagesQueue.shift();
-        var image = loaderQueue.getResult(imageTask.id);
+        var image = loaderQueue.getResult(imageTask.id + "img");
 
         if(image) {
             var bitmap = new createjs.Bitmap(image);
@@ -343,9 +346,16 @@ function handleQueueComplete()
 
     while(spritesQueue.length > 0) {
         var spriteTask = spritesQueue.shift();
-        var spriteSheet = loaderQueue.getResult(spriteTask.id);
+        var spriteId = spriteTask.id.toLowerCase().replace(/ /g, '');
+        var spriteSheetJSON = loaderQueue.getResult(spriteId + "json");
+        var spriteSheetIMG = loaderQueue.getResult(spriteId + "ss");
+
+        if(spriteSheetJSON && spriteSheetIMG) {
+            
+            spriteSheetJSON.images = [spriteSheetIMG];
         
-        if(spriteSheet) {
+            var spriteSheet = new createjs.SpriteSheet(spriteSheetJSON);
+
             if(spriteSheet.animations.length > 0) {
                 var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
 
@@ -366,16 +376,14 @@ function handleQueueComplete()
                     spriteTask.target.addChild(sprite);
                 }
             } 
-            else {  
-                for(var i = 0; i < spriteSheet.getNumFrames(); i++) {
-                    var sprite = new createjs.Sprite(spriteSheet);
-                    sprite.gotoAndStop(i);
+            else { 
+                var sprite = new createjs.Sprite(spriteSheet);
 
-                    sprite.x = spriteTask.x;
-                    sprite.y = spriteTask.y;
+                sprite.gotoAndStop(0);
+                sprite.x = spriteTask.x;
+                sprite.y = spriteTask.y;
 
-                    spriteTask.target.addChild(sprite);
-                }     
+                spriteTask.target.addChild(sprite); 
             }
         }
     }
@@ -391,10 +399,20 @@ function handleQueueError(evt) {
 };
 
 function addSprite(spriteTask) {
-     var spriteSheet = loaderQueue.getResult(spriteTask.id);
+    var spriteId = spriteTask.id.toLowerCase().replace(/ /g, '');
+    var artPath = "/static/art/";
 
-    if(spriteSheet) {
+    var spriteSheetJSON = loaderQueue.getResult(spriteId + "json");
+    var spriteSheetIMG = loaderQueue.getResult(spriteId + "ss");
+
+    if(spriteSheetJSON && spriteSheetIMG) {
+            
+        spriteSheetJSON.images = [spriteSheetIMG];
+        
+        var spriteSheet = new createjs.SpriteSheet(spriteSheetJSON);
+
         console.log("Sprite loaded");
+
         if(spriteSheet.animations.length > 0) {
             
             var sprite = new createjs.Sprite(spriteSheet, spriteTask.animation);
@@ -417,25 +435,26 @@ function addSprite(spriteTask) {
             }
         } 
         else {
-            for(var i = 0; i < spriteSheet.getNumFrames(); i++) {
-                var sprite = new createjs.Sprite(spriteSheet);
-                                
-                sprite.gotoAndStop(i);
-                sprite.x = spriteTask.x;
-                sprite.y = spriteTask.y;
+            var sprite = new createjs.Sprite(spriteSheet);
 
-                spriteTask.target.addChild(sprite);
-            }
+            sprite.gotoAndStop(0);
+            sprite.x = spriteTask.x;
+            sprite.y = spriteTask.y;
+
+            spriteTask.target.addChild(sprite); 
         }
     }
     else {
+        var imageName = spriteTask.image.toLowerCase().replace(/ /g, '') + ".png";
+
         spritesQueue.push(spriteTask);
-        loaderQueue.loadFile({id: spriteTask.id, src: spriteTask.path, type: "spritesheet"});
+        loaderQueue.loadFile({id: spriteId + "ss", src: artPath + imageName});
+        loaderQueue.loadFile({id: spriteId + "json", src: artPath + spriteId + ".json", type: "json"});
     }
 };
 
 function addImage(imageTask) {
-    var image = loaderQueue.getResult(imageTask.id);
+    var image = loaderQueue.getResult(imageTask.id + "img");
 
     if(image) {
         
@@ -463,7 +482,7 @@ function addImage(imageTask) {
     }
     else {        
         imagesQueue.push(imageTask);
-        loaderQueue.loadFile({id: imageTask.id, src: imageTask.path});        
+        loaderQueue.loadFile({id: imageTask.id + "img", src: imageTask.path});        
     }
 };
 
@@ -886,45 +905,6 @@ function updateObjs(packetChanges) {
 
         } 
     }
-
-    /*var added = packetChanges.added;
-    var removed = packetChanges.removed;
-    var updated = packetChanges.updated;
-
-    //Reset the operation
-    for(var localObjId in localObjs) {
-        var localObj = localObjs[localObjId];
-        localObj.op = 'none';
-    }
-
-    for(var i = 0; i < added.length; i++) {        
-        localObjs[added[i].id] = added[i];
-        localObjs[added[i].id].op = 'added';
-    }
-
-    for(var i = 0; i < removed.length; i++) {
-        if(removed[i].id in localObjs) {
-            localObjs[removed[i].id].op = 'removed';
-        }
-    }
-
-    for(var i = 0; i < updated.length; i++) {
-        var localObj = localObjs[updated[i].id];
-
-        if(updated[i].hasOwnProperty('state')) {
-            localObj.state = updated[i].state;
-        }
-
-        if(updated[i].hasOwnProperty('x')) {
-            localObj.x = updated[i].x;
-        }
-
-        if(updated[i].hasOwnProperty('y')) {
-            localObj.y = updated[i].y;
-        }
-      
-       localObj.op = 'updated'; 
-    }*/
 };
 
 function setPlayer() {
@@ -1216,7 +1196,7 @@ function drawAllObj() {
             var pixel = hex_to_pixel(localObj.x, localObj.y);
             var unitTemplate = localObj.template;
             unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
-            var imagePath =  "/static/art/" + unitTemplate + ".json";
+            var imagePath =  "/static/art/";
             var icon = new createjs.Container();
             
             if(localObj.eventType == 'obj_move') {
@@ -1258,7 +1238,7 @@ function drawAllObj() {
                 }
             }
 
-            addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: icon, animation: localObj.state}); 
+            addSprite({id: unitTemplate, x: 0, y: 0, target: icon, animation: localObj.state, image: localObj.image}); 
 
             localObj.icon = icon;
 
@@ -1294,7 +1274,7 @@ function drawAllObj() {
                     var imagePath =  "/static/art/" + unitTemplate + ".json";
 
                     localObj.icon.removeAllChildren();        
-                    addSprite({id: unitTemplate + "_ss", path: imagePath, x: 0, y: 0, target: localObj.icon, animation: localObj.state});
+                    addSprite({id: unitTemplate, x: 0, y: 0, target: localObj.icon, animation: localObj.state, image: localObj.image});
                 }
             } 
             else {
@@ -1485,16 +1465,6 @@ function drawSelectPanel(tileX, tileY) {
         selectIcon.x = 7;
         selectIcon.y = 7;
         selectIcon.name = "selectIcon";
-
-        /*if(i == 0) {
-            selectIcon.visible = true
-            selectedUnit = localObjs[i].id;    
-        }
-        else {
-            selectIcon.visible = false; 
-        }
-     
-        icon.addChild(selectIcon);*/
         selectIcon.visible = false; 
 
         var hitArea  = new createjs.Shape();
@@ -1522,7 +1492,7 @@ function drawSelectPanel(tileX, tileY) {
         });
         
         content.addChild(icon);
-        addImage({id: unitTemplate, path: imagePath, x: 0, y: 0, target: icon});
+        addSprite({id: unitTemplate, x: 0, y: 0, target: icon, animation: "none", image: localObjs[i].image}); 
         
         icons.push(icon); 
     }
@@ -1544,10 +1514,9 @@ function drawSelectPanel(tileX, tileY) {
     icon.tileX = tileX;
     icon.tileY = tileY;
   
-
-     var hitArea  = new createjs.Shape();
-     hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
-     icon.hitArea = hitArea;
+    var hitArea  = new createjs.Shape();
+    hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
+    icon.hitArea = hitArea;
 
     icon.on("mousedown", function(evt) {
         for(var i = 0; i < icons.length; i++) {
@@ -1593,10 +1562,8 @@ function drawSelectedPortrait() {
 
             selectedPortrait = selectedUnit;
 
-            var objName = obj.template.toLowerCase().replace(/ /g, '');
-            var imagePath =  "/static/art/" + objName + ".png";
-
-            var text = new createjs.Text(obj.name, h1Font, textColor);
+            var template = obj.template.toLowerCase().replace(/ /g, '');
+            var text = new createjs.Text(template, h1Font, textColor);
 
             text.x = 160;
             text.y = 9;
@@ -1605,7 +1572,7 @@ function drawSelectedPortrait() {
 
             content.addChild(text);
 
-            addImage({id: objName, path: imagePath, x: 10, y: 5, target: content});
+            addSprite({id: template, x: 10, y: 5, target: content, animation: "none", image: obj.image});
 
             sendGetStats(selectedPortrait);
         }
@@ -2078,13 +2045,15 @@ function drawInfoTile(jsonData) {
 
 function drawInfoUnit(jsonData) {
     showInfoPanel();
-
+    
     var unitTemplate = jsonData.template;
+    var unitName = jsonData.name;
+
     activeInfoPanel.unitTemplate = unitTemplate;   
     activeInfoPanel.id = jsonData.id;
     console.log('activeInfoPanel: ' + activeInfoPanel.id); 
 
-    var nameText = new createjs.Text(unitTemplate, h1Font, textColor);
+    var nameText = new createjs.Text(unitName, h1Font, textColor);
     addChildInfoPanel(nameText);
 
     var nameBounds = nameText.getBounds();
@@ -2095,10 +2064,13 @@ function drawInfoUnit(jsonData) {
     unitTemplate = unitTemplate.toLowerCase().replace(/ /g, '');
     var imagePath =  "/static/art/" + unitTemplate + ".png";
 
-    imagesQueue.push({id: unitTemplate, 
                       x: Math.floor(infoPanelBg.width / 2) - 45, 
-                      y: 50, target: getInfoPanelContent()});
-    loaderQueue.loadFile({id: unitTemplate, src: imagePath});
+    addSprite({id: unitTemplate, 
+        x: Math.floor(infoPanelBg.width / 2) - 45, 
+        y: 50, 
+        target: getInfoPanelContent(), 
+        animation: "none", 
+        image: jsonData.image}); 
 
     if(jsonData.class == "unit") {
         var itemDamage = getItemDamage(jsonData.items);

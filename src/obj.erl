@@ -43,7 +43,7 @@ create(Pos, PlayerId, Template, UniqueName, State) ->
     Class = binary_to_atom(obj_attr:value(Id, <<"class">>, none), latin1),
     Subclass = obj_attr:value(Id, <<"subclass">>, none),
 
-    Image = obj_attr:value(Id, <<"image">>, Template),
+    Images = obj_attr:value(Id, <<"images">>, []),
     HSL = obj_attr:value(Id, <<"hsl">>, []),
 
     %Set Unique Name or use unit template
@@ -51,8 +51,17 @@ create(Pos, PlayerId, Template, UniqueName, State) ->
                none -> obj_attr:value(Id, <<"name">>);
                _ -> UniqueName
            end,
-
     
+    %Pick image
+    NumImages = length(Images),
+    
+    Image = case NumImages > 0 of
+                true ->
+                    Index = util:rand(NumImages),
+                    lists:nth(Index, Images);
+                false ->
+                    Template
+            end,
 
     %Add attributes from base
     obj_attr:set(Id, <<"hp">>, BaseHp),
@@ -547,18 +556,23 @@ info(Id) ->
     Skills = skill:get_by_owner(Id),
     Effects = effect:get_effects(Id),
 
-    %Get attrs
-    Attrs = obj_attr:all_to_map(Id),
+    %Get attrs and remove unnecessary ones
+    AllAttrs = obj_attr:all_to_map(Id),
+    Attrs0 = maps:remove(<<"name">>, AllAttrs),
+    Attrs1 = maps:remove(<<"images">>, Attrs0),
+
 
     %State, items, skills, effects stats
-    Info0 = maps:put(<<"id">>, Id, Attrs),
-    Info1 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info0), 
-    Info2 = maps:put(<<"items">>, Items, Info1),
-    Info3 = maps:put(<<"skills">>, Skills, Info2),
-    Info4 = maps:put(<<"effects">>, Effects, Info3),
+    Info0 = maps:put(<<"id">>, Id, Attrs1),
+    Info1 = maps:put(<<"name">>, Obj#obj.name, Info0),
+    Info2 = maps:put(<<"image">>, Obj#obj.image, Info1),
+    Info3 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info2), 
+    Info4 = maps:put(<<"items">>, Items, Info3),
+    Info5 = maps:put(<<"skills">>, Skills, Info4),
+    Info6 = maps:put(<<"effects">>, Effects, Info5),
 
     %Check if any subclass specific info should be added
-    AllInfo = info_subclass(Obj#obj.subclass, Obj, Info4),
+    AllInfo = info_subclass(Obj#obj.subclass, Obj, Info6),
     AllInfo.
 
 info_other(Id) ->
@@ -572,13 +586,14 @@ info_other(Id) ->
     Info2 = maps:put(<<"subclass">>, Obj#obj.subclass, Info1),
     Info3 = maps:put(<<"name">>, Obj#obj.name, Info2),
     Info4 = maps:put(<<"template">>, Obj#obj.template, Info3),
-    Info5 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info4),
-    Info6 = maps:put(<<"effects">>, Effects, Info5),
+    Info5 = maps:put(<<"image">>, Obj#obj.image, Info4),
+    Info6 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info5),
+    Info7 = maps:put(<<"effects">>, Effects, Info6),
 
     % Add items if obj is dead to info
     case Obj#obj.state of
-        dead -> maps:put(<<"items">>, Items, Info6);
-        _ -> Info6
+        dead -> maps:put(<<"items">>, Items, Info7);
+        _ -> Info7
     end.
 
 info_subclass(<<"villager">>, Obj, Info) ->

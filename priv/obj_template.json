@@ -34,9 +34,9 @@
 	"base_speed": 3,
 	"class": "unit",
 	"subclass": "npc",
-    "template": "Zombie",
+    "template": "Elite Zombie",
     "family": "Undead",
-    "image": "Zombie2",
+    "images": ["zombie2"],
     "hsl": [90,50,0],
 	"int": "mindless",
 	"base_vision": 2,
@@ -113,9 +113,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "55671d8dbecfe3e72e7864f4"
-	},
 	"name": "Human Villager",
 	"base_hp": 500,
 	"base_stamina": 10000,
@@ -127,6 +124,8 @@
 	"class": "unit",
 	"subclass": "villager",
     "template": "Human Villager",
+    "images": ["humanvillager1", "humanvillager2", "humanvillager3", "humanvillager4"],
+    "hsl": [90,50,0], 
 	"capacity": 121
 },
 {
@@ -741,9 +740,6 @@
 	"npc_template": "Animals"
 },
 {
-	"_id": {
-		"$oid": "56b4dd9f97d56a3098db61b1"
-	},
 	"name": "Stockade",
 	"base_hp": 50,
 	"base_dmg": 0,
@@ -770,9 +766,6 @@
 	"tax": 1
 },
 {
-	"_id": {
-		"$oid": "585d5ec89648dc64bece3b20"
-	},
 	"name": "Shadow",
 	"base_hp": 500,
 	"base_stamina": 10000,

@@ -33,7 +33,7 @@
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([has_order/2, has_effect/2, has_not_effect/2]).
--export([generate/1]).
+-export([generate/1, generate/3]).
 
 %% ====================================================================
 %% External functions
@@ -49,13 +49,16 @@ run_plan() ->
     gen_server:cast({global, villager}, run_plan).
 
 generate(Level) ->
-    OffMapPos = {-9999, 9999},
     PlayerId = -9999, 
+    OffMapPos = {-9999, 9999},
+    generate(Level, PlayerId, OffMapPos).
+
+generate(Level, PlayerId, Pos) ->
     Name = generate_name(),
     Template = <<"Human Villager">>,
     State = none,
 
-    Id = obj:create(OffMapPos, PlayerId, Template, Name, State),
+    Id = obj:create(Pos, PlayerId, Template, Name, State),
 
     obj_attr:set(Id, ?STRENGTH, util:rand(10 + Level)),
     obj_attr:set(Id, ?TOUGHNESS, util:rand(10 + Level)),
@@ -81,7 +84,10 @@ generate(Level) ->
     lager:info("Skills1: ~p", [Skill1]),
     skill:update(Id, maps:get(<<"name">>, Skill1), util:rand(26) - 1),
     skill:update(Id, maps:get(<<"name">>, Skill2), util:rand(26) - 1),
-    skill:update(Id, maps:get(<<"name">>, Skill3), util:rand(26) - 1).
+    skill:update(Id, maps:get(<<"name">>, Skill3), util:rand(26) - 1),
+
+    %Return ID
+    Id.
 
 generate_name() ->
     Names = [<<"Geoffry Holte">>,

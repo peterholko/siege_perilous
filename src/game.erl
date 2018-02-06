@@ -96,7 +96,7 @@ spawn_new_player(PlayerId) ->
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 
-    VillagerId = obj:create(VillagerPos, PlayerId, <<"Human Villager">>),
+    VillagerId = villager:generate(0, PlayerId, VillagerPos),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(MonolithId, <<"Mana">>, 2500),

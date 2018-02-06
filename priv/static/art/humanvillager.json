@@ -4,12 +4,23 @@
         "height": 72
     },
     "animations": {
-        "die": [0,1,"dead", 0.05],
-        "dead": [1],
-        "harvesting": [0, 1, "harvesting", 0.05],
-        "crafting": [0, 1, "crafting", 0.05],
-        "none": [1],
-        "moving": [0,1, "moving", 0.05]
-    },
-    "images": ["/static/art/humanvillager_ss.png"]
+        "die": [11],
+        "dead": [11],
+        "harvesting": {
+            "frames": [11,1,0,1],
+            "next": "harvesting",
+            "speed": 0.05
+        },
+        "crafting": {
+            "frames": [11,1,0,1],
+            "next": "crafting",
+            "speed": 0.05
+        },
+        "none": [11],
+        "moving": {
+            "frames": [11,1,0,1],
+            "next": "moving",
+            "speed": 0.05
+        }
+    }
 }
