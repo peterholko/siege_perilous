@@ -9,6 +9,5 @@
         "attack": [1,1, "none", 0.01],
         "none": [0],
         "moving": [0, 1, "moving", 0.1]
-    },
-    "images": ["/static/art/zombie_ss.png"]
+    }
 }

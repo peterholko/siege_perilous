@@ -249,6 +249,13 @@ message_handle(<<"hide">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"hide">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"assign_list">>, _Message) ->
+    lager:info("message: assign_list"),
+    
+    AssignList = player:assign_list(),
+    jsx:encode([{<<"packet">>, <<"assign_list">>},
+                {<<"result">>, AssignList}]);
+
 message_handle(<<"assign">>, Message) ->
     lager:info("message: assign"),
     

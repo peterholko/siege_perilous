@@ -16,6 +16,5 @@
             "next": "moving",
             "speed": 0.05
         }
-    },
-    "images": ["/static/art/wolf_ss.png"]
+    }
 }

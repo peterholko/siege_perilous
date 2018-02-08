@@ -58,13 +58,25 @@ login(Username, Password, Socket) ->
     case login:login(Username, Password, Socket) of
         {error, Error} ->
             Error;
-        {success, PlayerId} ->
-            lager:info("Successful login"),
+        {firstlogin, PlayerId} ->
+            lager:info("Successful first login"),
             %Stored player id in process dict for easy access
             put(player_id, PlayerId),
 
             %Add event to spawn new player
-            game:spawn_new_player(PlayerId),
+            game:new_player(PlayerId),
+
+            LoginPacket = [{<<"packet">>, <<"login">>},
+                           {<<"player">>, PlayerId}],
+
+            lager:info("LoginPacket: ~p", [LoginPacket]),
+            jsx:encode(LoginPacket);
+        {relogin, PlayerId} ->
+            lager:info("Successful relogin"),
+            put(player_id, PlayerId),
+
+            %Add even to relogin player
+            game:login(PlayerId),
 
             LoginPacket = [{<<"packet">>, <<"login">>},
                            {<<"player">>, PlayerId}],

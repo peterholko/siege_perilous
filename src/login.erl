@@ -51,7 +51,7 @@ login([], [Name, Pass, Socket]) ->
     db:write(Connection),
     db:write(ExploredMap),
    
-    {success, PlayerId};
+    {firstlogin, PlayerId};
 
 login([PlayerInfo], [_Name, Pass,_] = Args)
   when is_record(PlayerInfo, player) ->
@@ -113,7 +113,7 @@ login(PlayerInfo, PlayerConn, player_offline, [Name, _, Socket]) ->
     PlayerConn1 = PlayerConn#connection {player = PlayerInfo#player.id,
                                          process = Socket
                                         },
-    {PlayerInfo, PlayerConn1, {success, PlayerInfo#player.id}}.
+    {PlayerInfo, PlayerConn1, {relogin, PlayerInfo#player.id}}.
 
 check_player(PlayerInfo, PlayerConn, Pass, [Guard|Rest]) ->
     case Guard(PlayerInfo, PlayerConn, Pass) of

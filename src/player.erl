@@ -6,7 +6,7 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([init_perception/1,
+-export([perception/1,
          init_state/1,
          get_stats/1, 
          get_info_tile/1,
@@ -35,6 +35,7 @@
          unequip/1,
          rest/1,
          hide/1,
+         assign_list/0,
          assign/2,
          follow/1,
          order_harvest/1,
@@ -78,15 +79,12 @@ get_conn(PlayerId) ->
         _ -> false
     end.
 
-init_perception(PlayerId) ->
-    %Get explored tile list
-    Explored = map:get_explored(PlayerId, all),
+perception(PlayerId) ->
+    Objs = perception:get_by_player(PlayerId),
+    Map = map:get_explored(PlayerId, all),    
 
-    %Get initial perception 
-    Perception = perception:calculate_player(PlayerId),
-    lager:info("Initial Perception: ~p", [Perception]),
-
-    {PlayerId, Explored, Perception}.
+    #{<<"map">> => Map,
+      <<"objs">> => Objs}.
 
 init_state(PlayerId) ->
     Hero = obj:get_hero(PlayerId),
@@ -661,7 +659,11 @@ hide(ObjId) ->
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
-      
+
+assign_list() ->
+    Player = get(player_id),
+    lager:info("Assign list"),
+    villager:assign_list(Player).
 
 assign(SourceId, TargetId) ->
     Player = get(player_id),

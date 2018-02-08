@@ -13,6 +13,5 @@
             "next": "moving",
             "speed": 0.05
         }
-    },
-    "images": ["/static/art/giantrat_ss.png"]
+    }
 }

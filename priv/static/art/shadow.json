@@ -9,6 +9,5 @@
         "attack": [3, 8,"none", 0.2],
         "none": [0],
         "moving": [0, 2,"moving", 0.05]
-    },
-    "images": ["/static/art/shadow_ss.png"]
+    }
 }

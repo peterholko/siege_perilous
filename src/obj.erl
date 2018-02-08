@@ -19,7 +19,7 @@
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
--export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1]).
+-export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, name/1, image/1]).
 -export([rec_to_map/1]).
 
 create(Pos, PlayerId, Template) ->
@@ -362,6 +362,8 @@ class(Obj = #obj{}) -> Obj#obj.class.
 subclass(Obj = #obj{}) -> Obj#obj.subclass.
 state(Obj = #obj{}) -> Obj#obj.state.
 pos(Obj = #obj{}) -> Obj#obj.pos.
+name(Obj = #obj{}) -> Obj#obj.name.
+image(Obj = #obj{}) -> Obj#obj.image.
 
 %Get vital stats
 get_stats(Id) ->

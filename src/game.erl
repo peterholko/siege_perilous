@@ -20,8 +20,9 @@
 -export([get_perception/0, get_explored/0, reset/0]).
 -export([send_update_items/3, send_update_stats/2, send_revent/2]).
 -export([get_info_tile/1, get_valid_tiles/1]).
--export([spawn_new_player/1, hero_dead/2]).
+-export([hero_dead/2]).
 -export([spawn_shadow/1, spawn_wolf/0]).
+-export([new_player/1, login/1]).
 
 
 %% Common functions
@@ -78,7 +79,7 @@ get_valid_tiles({X, Y}) ->
 
     lists:filter(F, Neighbours).
 
-spawn_new_player(PlayerId) ->
+new_player(PlayerId) ->
     lager:info("Spawning new player: ~p", [PlayerId]),
     %Pos = map:random_location(),
     %AdjPos = map:get_random_neighbour(Pos),
@@ -104,7 +105,8 @@ spawn_new_player(PlayerId) ->
 
     map:add_explored(PlayerId, HeroPos, 2),
 
-    game:add_event(self(), new_player, PlayerId, none, 2),
+    %Log player in
+    game:add_event(self(), login, PlayerId, none, 2),
    
     % Equip food so it isn't dumped
     ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
@@ -135,6 +137,9 @@ spawn_new_player(PlayerId) ->
 
     %game:add_event(none, event, F4, none, 40).
 
+login(PlayerId) ->
+    %Log player in
+    game:add_event(self(), login, PlayerId, none, 2).
 
 hero_dead(PlayerId, HeroId) ->
     lager:info("Hero killed").

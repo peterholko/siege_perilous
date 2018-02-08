@@ -318,8 +318,8 @@ do_event(craft, EventData, PlayerPid) ->
 
     false;
 
-do_event(new_player, EventData, Pid) ->
-    lager:info("Processing new_player event: ~p", [EventData]),
+do_event(login, EventData, Pid) ->
+    lager:info("Processing login event: ~p", [EventData]),
     PlayerId = EventData,
 
     Objs = perception:get_by_player(PlayerId),

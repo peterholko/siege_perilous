@@ -7,6 +7,5 @@
         "combat": [0],
         "none": [0],
         "moving": [0]
-    },
-    "images": ["/static/art/scorpion.png"]
+    }
 }

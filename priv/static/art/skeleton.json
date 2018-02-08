@@ -9,6 +9,5 @@
         "attack": [9,18,"none", 0.1],
         "none": [28],
         "moving": [19,27,"moving", 0.1]
-    },
-    "images": ["/static/art/skeleton_ss.png"]
+    }
 }

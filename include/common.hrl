@@ -77,6 +77,7 @@
 -define(VILLAGER, <<"villager">>).
 -define(HERO, <<"hero">>).
 -define(POI, <<"poi">>).
+-define(STRUCTURE, <<"structure">>).
 
 -define(WALL, <<"Wall">>).
 -define(HARVESTER, <<"resource">>).

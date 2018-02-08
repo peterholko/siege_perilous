@@ -33,7 +33,7 @@
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([has_order/2, has_effect/2, has_not_effect/2]).
--export([generate/1, generate/3]).
+-export([generate/1, generate/3, assign_list/1]).
 
 %% ====================================================================
 %% External functions
@@ -96,6 +96,29 @@ generate_name() ->
              <<"Andes Bardaye">>],
 
     lists:nth(util:rand(length(Names)), Names).
+
+assign_list(Player) ->
+    Villagers = db:index_read(villager, Player, #villager.player),
+
+    F = fun(Villager, Acc) ->
+            VillagerObj = obj:get(Villager#villager.id),
+
+            StructureName = case Villager#villager.structure of
+                                none -> <<"unassigned">>;
+                                StructureId ->
+                                    StructureObj = obj:get(StructureId),
+                                    obj:name(StructureObj)
+                            end,
+
+            [#{<<"id">> => Villager#villager.id,
+               <<"name">> => obj:name(VillagerObj),
+               <<"image">> => obj:image(VillagerObj),
+               <<"order">> => Villager#villager.order,
+               <<"structure">> => StructureName} | Acc]
+              
+        end,
+
+    lists:foldl(F, [], Villagers).
 
 %%%
 %%% HTN Conditions %%%
@@ -324,6 +347,7 @@ move_to_pos(Villager) ->
     NewVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
                       true ->
                          Path = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
+                         lager:info("Path: ~p", [Path]),
 
                          case Path of
                              [] -> 
@@ -866,6 +890,7 @@ get_next_task(_TaskIndex, _PlanLength) ->
         plan_completed.
 
 move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) ->
+    lager:info("Pos: ~p NewPos: ~p", [Pos, NewPos]),
 
     SourcePos = Pos,
     DestPos = NewPos,
