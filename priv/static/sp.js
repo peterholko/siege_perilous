@@ -813,10 +813,10 @@ function onMessage(evt) {
             drawDmg(jsonData);
         }
         else if(jsonData.packet == "sound") {
-            updateTextLog(jsonData.text)
+            updateTextLog(jsonData.text);
         } 	
         else if(jsonData.packet == "speech") {
-            updateTextLog(jsonData.text)
+            drawSpeech(jsonData);
         } 	
         else if(jsonData.packet == "info_tile") {
             drawInfoTile(jsonData);
@@ -1800,6 +1800,36 @@ function drawDmg(jsonData) {
                 updateTextLog(txt);
             }
         }        
+    }
+};
+
+function drawSpeech(jsonData) {
+    if(localPanel.visible) {
+        var source = getLocalObj(jsonData.source);
+
+        var speechText = new createjs.Text(jsonData.text, 'bold 16px Tahoma', '#FFFFFF');
+        speechText.x = source.icon.x + 33;
+        speechText.y = source.icon.y - 10;         
+        speechText.textAlign = "center";
+        speechText.lineWidth = 100;
+
+        var roundedRect = new createjs.Graphics();
+        roundedRect.setStrokeStyle(1);
+        roundedRect.beginFill("rgba(0,0,0,0.5)");
+        roundedRect.drawRoundedRect(source.icon.x - 50, 
+                                    source.icon.y - 20,
+                                    100,
+                                    40,
+                                    5,
+                                    5,
+                                    5,
+                                    5);
+
+        addChildLocalMap(roundedRect, "textLayer");
+        addChildLocalMap(speechText, "textLayer");
+        createjs.Tween.get(speechText).to({alpha: 0},15000);
+        
+        updateTextLog(source.name + ": " + jsonData.text);
     }
 };
 

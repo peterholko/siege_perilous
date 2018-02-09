@@ -86,7 +86,7 @@ new_player(PlayerId) ->
 
     HeroPos = {16,36},
     VillagerPos = {16,37},
-    Villager2Pos = {15,37},
+    Villager2Pos = {17,36},
     MonolithPos = {18,35},
     ShipwreckPos = {15,36},
 
@@ -121,23 +121,21 @@ new_player(PlayerId) ->
          end,
 
     F2 = fun() ->
-            obj:create({16,35}, ?ANIMAL, <<"Giant Rat">>)
+            obj:create({16,35}, ?UNDEAD, <<"Zombie">>)
          end,
 
     F3 = fun() ->
             obj:create({17,35}, ?UNDEAD, <<"Zombie">>)
-         end.
+         end,
 
-    %F4 = fun() ->
-    %        sound:talk(VillagerId, "The dead rise up!  We must be flee!")
-    %     end.
+    F4 = fun() ->
+            sound:talk(VillagerId, "The dead rise up!  We must flee!")
+         end,
 
-    %game:add_event(none, event, F1, none, 20),
-    
-    %game:add_event(none, event, F2, none, 28).
-    %game:add_event(none, event, F3, none, 36),
-
-    %game:add_event(none, event, F4, none, 40).
+    game:add_event(none, event, F1, none, 20),
+    game:add_event(none, event, F2, none, 28),
+    game:add_event(none, event, F3, none, 36),
+    game:add_event(none, event, F4, none, 40).
 
 login(PlayerId) ->
     %Log player in
