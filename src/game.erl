@@ -86,6 +86,7 @@ new_player(PlayerId) ->
 
     HeroPos = {16,36},
     VillagerPos = {16,37},
+    Villager2Pos = {15,37},
     MonolithPos = {18,35},
     ShipwreckPos = {15,36},
 
@@ -98,6 +99,7 @@ new_player(PlayerId) ->
     db:write(NewPlayer),
 
     VillagerId = villager:generate(0, PlayerId, VillagerPos),
+    Villager2Id = villager:generate(0, PlayerId, Villager2Pos),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(MonolithId, <<"Mana">>, 2500),

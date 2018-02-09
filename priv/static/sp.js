@@ -346,6 +346,7 @@ function handleQueueComplete()
 
     while(spritesQueue.length > 0) {
         var spriteTask = spritesQueue.shift();
+        console.log(spriteTask);
 
         var spriteId = spriteTask.id.toLowerCase().replace(/ /g, '');
         var spriteImage = spriteTask.image.toLowerCase().replace(/ /g, '');
@@ -355,13 +356,21 @@ function handleQueueComplete()
 
         console.log("queueComplete: " + spriteSheetJSON + " " + spriteSheetIMG);
         if(spriteSheetJSON && spriteSheetIMG) {
-
-            // If the JSON file has images defined use them otherwise use the spriteSheetIMG
-            if(!spriteSheetJSON.hasOwnProperty("images")) {           
-                spriteSheetJSON.images = [spriteSheetIMG];
+            var json = {
+                "frames": spriteSheetJSON.frames
+            };
+          
+            if(spriteSheetJSON.hasOwnProperty("animations")) {
+                json.animations = spriteSheetJSON.animations;
             }
-        
-            var spriteSheet = new createjs.SpriteSheet(spriteSheetJSON);
+            
+            if(spriteSheetJSON.hasOwnProperty("images")) {           
+                json.images = spriteSheetJSON.images;
+            } else {
+                json.images = [spriteSheetIMG];
+            }
+           
+            var spriteSheet = new createjs.SpriteSheet(json)
             console.log(spriteSheet);
 
             if(spriteSheet.animations.length > 0) {
@@ -422,12 +431,21 @@ function addSprite(spriteTask) {
     console.log("addSprite: " + spriteSheetJSON + " " + spriteSheetIMG);
     if(spriteSheetJSON && spriteSheetIMG) {
 
-        // If the JSON file has images defined use them otherwise use the spriteSheetIMG
-        if(!spriteSheetJSON.hasOwnProperty("images")) {           
-            spriteSheetJSON.images = [spriteSheetIMG];
+        var json = {
+            "frames": spriteSheetJSON.frames
+        };
+      
+        if(spriteSheetJSON.hasOwnProperty("animations")) {
+            json.animations = spriteSheetJSON.animations;
+        }
+        
+        if(spriteSheetJSON.hasOwnProperty("images")) {           
+            json.images = spriteSheetJSON.images;
+        } else {
+            json.images = [spriteSheetIMG];
         }
        
-        var spriteSheet = new createjs.SpriteSheet(spriteSheetJSON);
+        var spriteSheet = new createjs.SpriteSheet(json)
 
         console.log("Sprite loaded");
 
