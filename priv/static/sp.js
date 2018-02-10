@@ -1807,27 +1807,25 @@ function drawSpeech(jsonData) {
     if(localPanel.visible) {
         var source = getLocalObj(jsonData.source);
 
-        var speechText = new createjs.Text(jsonData.text, 'bold 16px Tahoma', '#FFFFFF');
+        var speechText = new createjs.Text(jsonData.text, 'bold 14px Tahoma', '#FFFFFF');
         speechText.x = source.icon.x + 33;
         speechText.y = source.icon.y - 10;         
         speechText.textAlign = "center";
         speechText.lineWidth = 100;
 
-        var roundedRect = new createjs.Graphics();
-        roundedRect.setStrokeStyle(1);
-        roundedRect.beginFill("rgba(0,0,0,0.5)");
-        roundedRect.drawRoundedRect(source.icon.x - 50, 
-                                    source.icon.y - 20,
-                                    100,
-                                    40,
-                                    5,
-                                    5,
-                                    5,
-                                    5);
+        var roundedRect = new createjs.Shape();
+        roundedRect.graphics.setStrokeStyle(1);
+        roundedRect.graphics.beginFill("rgba(0,0,0,0.5)");
+        roundedRect.graphics.drawRoundRect(source.icon.x - 50 `+ 36, 
+                                           source.icon.y - 20,
+                                           100,
+                                           40,
+                                           5);
 
         addChildLocalMap(roundedRect, "textLayer");
         addChildLocalMap(speechText, "textLayer");
-        createjs.Tween.get(speechText).to({alpha: 0},15000);
+        createjs.Tween.get(roundedRect).to({alpha: 0},25000);
+        createjs.Tween.get(speechText).to({alpha: 0},25000);
         
         updateTextLog(source.name + ": " + jsonData.text);
     }
