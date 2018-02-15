@@ -253,6 +253,10 @@ function init() {
 
     canvas = document.getElementById("map");
 
+    var font = "https://fonts.googleapis.com/css?family=Alegreya";
+    var loader = new createjs.FontLoader({src: font, type: "fontcss"}, true);
+    loader.load();
+
     stage = new createjs.Stage(canvas);
     stage.autoClear = true;
     stage.snapToPixelEnabled = true;
@@ -1807,25 +1811,25 @@ function drawSpeech(jsonData) {
     if(localPanel.visible) {
         var source = getLocalObj(jsonData.source);
 
-        var speechText = new createjs.Text(jsonData.text, 'bold 14px Tahoma', '#FFFFFF');
-        speechText.x = source.icon.x + 33;
-        speechText.y = source.icon.y - 10;         
+        var speechText = new createjs.Text(jsonData.text, '14px Alegreya', '#FFFFFF');
+        speechText.x = source.icon.x + 36;
+        speechText.y = source.icon.y - 15;
         speechText.textAlign = "center";
-        speechText.lineWidth = 100;
+        speechText.lineWidth = 120;
 
         var roundedRect = new createjs.Shape();
         roundedRect.graphics.setStrokeStyle(1);
         roundedRect.graphics.beginFill("rgba(0,0,0,0.5)");
-        roundedRect.graphics.drawRoundRect(source.icon.x - 50 `+ 36, 
+        roundedRect.graphics.drawRoundRect(source.icon.x - 60 + 36, 
                                            source.icon.y - 20,
-                                           100,
+                                           120,
                                            40,
                                            5);
 
         addChildLocalMap(roundedRect, "textLayer");
         addChildLocalMap(speechText, "textLayer");
-        createjs.Tween.get(roundedRect).to({alpha: 0},25000);
-        createjs.Tween.get(speechText).to({alpha: 0},25000);
+        createjs.Tween.get(roundedRect).to({alpha: 0},15000);
+        createjs.Tween.get(speechText).to({alpha: 0},15000);
         
         updateTextLog(source.name + ": " + jsonData.text);
     }
@@ -2137,7 +2141,9 @@ function drawInfoTile(jsonData) {
     showInfoPanel();
 
     var tileName = jsonData.name + " (" + jsonData.x + ", " + jsonData.y + ")";   
+    var sanctuary = jsonData.sanctuary ? "yes" : "no";
     var passable = jsonData.passable ? "yes" : "no";
+   
 
     var nameText = new createjs.Text(tileName, h1Font, textColor);
     nameText.x = Math.floor(infoPanelBg.width / 2);
@@ -2146,7 +2152,8 @@ function drawInfoTile(jsonData) {
   
     addChildInfoPanel(nameText);
 
-    var stats = "Wildness: " + jsonData.wildness + "\n" +
+    var stats = "Sanctuary: " + sanctuary + "\n" +
+                "Wildness: " + jsonData.wildness + "\n" +
                 "Movement Cost: " + jsonData.mc + "\n" + 
                 "Defense Bonus: " + jsonData.def + "\n" + 
                 "Passable: " + passable + "\n";

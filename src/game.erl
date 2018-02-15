@@ -59,16 +59,18 @@ get_info_tile(Pos) ->
     DefenseBonus = map:defense_bonus(TileName),
     Passable = map:is_passable(TileName),
     WildnessLevel = encounter:get_wildness(Pos), 
+    HasSanctuary = map:has_sanctuary(Pos),
 
     Info0 = maps:put(<<"x">>, X , #{}),
     Info1 = maps:put(<<"y">>, Y , Info0),
     Info2 = maps:put(<<"name">>, TileName, Info1),
     Info3 = maps:put(<<"mc">>, MovementCost, Info2),
     Info4 = maps:put(<<"def">>, DefenseBonus, Info3),
-    Info5 = maps:put(<<"passable">>, Passable, Info4),
-    Info6 = maps:put(<<"wildness">>, WildnessLevel, Info5),
+    Info5 = maps:put(<<"sanctuary">>, HasSanctuary, Info4),
+    Info6 = maps:put(<<"passable">>, Passable, Info5),
+    Info7 = maps:put(<<"wildness">>, WildnessLevel, Info6),
 
-    Info6.
+    Info7.
 
 get_valid_tiles({X, Y}) ->
     Neighbours = map:neighbours(X, Y),

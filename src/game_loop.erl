@@ -393,15 +393,11 @@ process_effects(NumTick) when (NumTick rem ?TICKS_SEC * 1) =:= 0 ->
     effects(NumTick);
 process_effects(NumTick) -> nothing.
 
-npc_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 5)) =:= 0 ->
-    npc:replan(?UNDEAD);
-npc_create_plan(_) ->
-    nothing.
+npc_create_plan(NumTick) ->
+    npc:replan(?UNDEAD, NumTick).
 
-npc_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 5)) =:= 0 ->
-   npc:run_plan(?UNDEAD);
-npc_run_plan(_) ->
-    nothing.
+npc_run_plan(NumTick) ->
+   npc:run_plan(?UNDEAD, NumTick).
 
 villager_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
     villager:create_plan();

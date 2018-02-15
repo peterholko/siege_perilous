@@ -23,7 +23,7 @@
 -export([movement_cost/1, is_passable/1, is_not_blocked/2, is_river/1, random_location/0, random_location_from/3]).
 -export([check_distance/4, distance/2]).
 -export([range/2, ring/2, filter_pos/1]).
--export([spawn_resources/0, tile_name/1, defense_bonus/1]).
+-export([spawn_resources/0, tile_name/1, defense_bonus/1, has_sanctuary/1]).
 -export([num_tiles/1]).
 
 -record(data, {}).
@@ -98,6 +98,9 @@ defense_bonus(Pos) when is_tuple(Pos) ->
     def_bonus(TileName);
 defense_bonus(TileName) when is_binary(TileName) -> 
     def_bonus(TileName).
+
+has_sanctuary(Pos) ->
+    effect:has_effect({tile, Pos}, ?SANCTUARY).
 
 random_location() ->
     random_location(false, {0, 0}).

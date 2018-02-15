@@ -173,36 +173,61 @@ add_observed_event(Observer = #obj{id = ObserverId},
 
     NewEvents ++ DiffEvents;
 add_observed_event(Observer, Event = #obj_create{obj = Obj, source_pos = SourcePos}, AllEvents) ->
-    case check_distance(Observer, SourcePos) of
-        true ->
+    Result = {is_visible_by_observer(Observer, Obj),
+              check_distance(Observer, SourcePos)},
+
+    case Result of
+        {_, false} ->
+            AllEvents; %Obj create is not seen by observer
+        {false, _} ->
+            AllEvents; %Obj state or effect is not visible by observer
+        {true, true} ->
             %Update observer's perception of obj after create event
             perception:update(Observer, Obj), 
 
             NewPerceptionEvent = {Observer, Event},
 
-            [NewPerceptionEvent | AllEvents];
-        false ->
-            AllEvents
+            [NewPerceptionEvent | AllEvents]
     end;
 add_observed_event(Observer, Event = #obj_update{obj = Obj, source_pos = SourcePos}, AllEvents) ->
-    case check_distance(Observer, SourcePos) of
-        true ->
+    Result = {is_visible_by_observer(Observer, Obj),
+              check_distance(Observer, SourcePos)},
+
+    case Result of
+        {_, false} ->
+            AllEvents; %Obj update is not seen by observer
+        {false, _} ->
+            %Remove obj from observer's perception 
+            perception:remove(Observer, Obj),
+
+            NewPerceptionEvent = {Observer, Event},
+
+            [NewPerceptionEvent | AllEvents];
+        {true, true} ->
             %Update observer's perception of obj after update event
             perception:update(Observer, Obj), 
 
             NewPerceptionEvent = {Observer, Event},
 
-            [NewPerceptionEvent | AllEvents];
-        false ->
-            AllEvents
+            [NewPerceptionEvent | AllEvents]
     end;
 add_observed_event(Observer, ObjMove = #obj_move{obj = Obj, source_pos = SourcePos, 
                                                  dest_pos = DestPos}, AllEvents) ->
-    Result = {check_distance(Observer, SourcePos),
+    Result = {is_visible_by_observer(Observer, Obj),
+              check_distance(Observer, SourcePos),
               check_distance(Observer, DestPos)},
 
     case Result of
-        {true, true} -> % Moving obj is completely in observer's LOS
+        {_, false, false} -> % If moving obj is not within distance, event not seen
+            AllEvents;
+        {false, _, _} -> % Moving obj is no longer visible due to an effect or state 
+            %Remove obj from observer's perception 
+            perception:remove(Observer, Obj),
+
+            NewPerceptionEvent = {Observer, ObjMove},
+
+            [NewPerceptionEvent | AllEvents];
+        {true, true, true} -> % Moving obj is completely in observer's LOS
 
             %Update observer's perception of obj after move event
             perception:update(Observer, Obj),
@@ -210,8 +235,7 @@ add_observed_event(Observer, ObjMove = #obj_move{obj = Obj, source_pos = SourceP
             NewPerceptionEvent = {Observer, ObjMove},
 
             [NewPerceptionEvent | AllEvents];
-        {true, false} -> % Moving obj has moved out of observer's LOS 
-
+        {true, true, false} -> % Moving obj has moved out of observer's LOS 
             %Remove obj from observer's perception 
             perception:remove(Observer, Obj),
 
@@ -219,17 +243,14 @@ add_observed_event(Observer, ObjMove = #obj_move{obj = Obj, source_pos = SourceP
 
             [NewPerceptionEvent | AllEvents];
 
-        {false, true} -> % Moving obj has moved into observer's LOS
+        {true, false, true} -> % Moving obj has moved into observer's LOS
 
             %Add obj to observer's perception
             perception:update(Observer, Obj),
 
             NewPerceptionEvent = {Observer, ObjMove},
 
-            [NewPerceptionEvent | AllEvents];
-        {false, false} -> % Move event dot visible to observer
-            AllEvents
-            
+            [NewPerceptionEvent | AllEvents]
     end.
 
 check_distance(Observer, Pos) ->
@@ -273,6 +294,13 @@ is_visible(SourceId, TargetId) ->
         end,
 
     lists:any(F, Perception#perception.data).
+
+is_visible_by_observer(_Obs = #obj{player = Player}, Obj) when Player =:= ?UNDEAD ->
+    not effect:has_effect(obj:id(Obj), ?SANCTUARY);
+is_visible_by_observer(_Obs = #obj{player = Player}, Obj) when Player =:= ?ANIMAL ->
+    not effect:has_effect(obj:id(Obj), ?FORTIFIED);
+is_visible_by_observer(_, _) ->
+    true.
 
 %% ====================================================================
 %% Server functions
@@ -525,20 +553,24 @@ broadcast_to_objs(Objs, Message) ->
     lists:foreach(F, Objs).    
 
 % Undead units cannot see objects with SANCTUARY
-%visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?UNDEAD ->
-%    F = fun(Target, PerceptionData) ->
-%            Result = Target#obj.state =/= hiding andalso
-%                     map:distance(Pos, Target#obj.pos) =< Vision andalso
-%                     not effect:has_effect(Target#obj.id, ?SANCTUARY),            
-%            case Result of
-%                true ->
-%                    maps:put(Target#obj.id, Target, PerceptionData);
-%                false -> 
-%                    PerceptionData
-%            end
-%        end,
-%
-%    lists:foldl(F, [], AllObjs);
+visible_objs(AllObjs, #obj {id = Id, player = Player, pos = Pos, vision = Vision}) when Player =:= ?UNDEAD ->
+    F = fun(Target, PerceptionData) when Target#obj.id =:= Id ->
+                maps:put(Target#obj.id, Target, PerceptionData); %Include self
+           (Target, PerceptionData) ->
+            Result = Target#obj.state =/= hiding andalso %Not hiding
+                     Target#obj.vision >= 0 andalso %Obj being created
+                     not effect:has_effect(Target#obj.id, ?SANCTUARY) andalso %Cannot see Sanctuary
+                     map:distance(Pos, Target#obj.pos) =< Vision,
+
+            case Result of
+                true -> 
+                    maps:put(Target#obj.id, Target, PerceptionData);
+                false -> 
+                    PerceptionData
+            end
+        end,
+
+    lists:foldl(F, #{}, AllObjs);
 
 % Animal units cannot see objects with FORTIFIED
 %visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?ANIMAL ->

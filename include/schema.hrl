@@ -179,7 +179,9 @@
               task_index = 0,
               path = none,
               combo = [],
-              attacks = []}).
+              attacks = [],
+              nextplan,
+              nextrun}).
 
 -record(state, {id, 
                 state,

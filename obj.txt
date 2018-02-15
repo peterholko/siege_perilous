@@ -1,0 +1,42 @@
+
+
+Class
+    Subclass
+        Name
+
+
+Class -> Subclass -> Type -> Subtype -> Name
+
+
+Examples:
+
+unit
+    npc
+        Zombie
+
+
+unit -> npc -> Zombie -> Random Zombie Name? 
+unit -> npc -> Undead -> Zombie -> Random Zombie Name
+unit -> npc -> Dragon -> Fire Dragon -> Random Fire Dragon name
+
+unit -> hero -> Human -> Human Mage -> Izendur
+unit -> villager -> Human -> Human Villager -> Randal 
+
+
+
+structure -> craft -> Smelter -> ? -> Izendur's Smelter
+
+
+
+
+unit 
+    villager
+        Human Villager
+
+poi
+    poi
+        Shipwreck
+
+
+
+

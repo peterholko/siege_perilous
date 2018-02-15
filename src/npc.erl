@@ -15,7 +15,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([replan/1, run_plan/1, get_nearest/3]).
+-export([replan/2, run_plan/2, get_nearest/3]).
 -export([hp_normal/1, hp_very_low/1, target_visible/1, target_adjacent/1, max_guard_dist/1]).
 -export([set_pos_flee/1, move_random_pos/1, move_to_target/1, melee_attack/1, move_to_order_pos/1]).
 -export([get_player_id/1, add/1, remove/1, set_order/3, create/2]).
@@ -26,11 +26,11 @@
 start(PlayerId) ->
     gen_server:start({global, {npc, PlayerId}}, npc, [PlayerId], []).
 
-replan(PlayerId) ->
-    gen_server:cast({global, {npc, PlayerId}}, replan).
+replan(PlayerId, Tick) ->
+    gen_server:cast({global, {npc, PlayerId}}, {replan, Tick}).
 
-run_plan(PlayerId) ->
-    gen_server:cast({global, {npc, PlayerId}}, run_plan).
+run_plan(PlayerId, Tick) ->
+    gen_server:cast({global, {npc, PlayerId}}, {run_plan, Tick}).
 
 get_player_id(NPCType) ->
     [NPCPlayer] = db:index_read(player, NPCType, #player.name),
@@ -114,7 +114,7 @@ move_random_pos(NPC) ->
     {X, Y} = NPCObj#obj.pos,
 
     Neighbours = map:neighbours(X, Y),
-    NewPos = get_wander_pos(false, none, Neighbours),
+    NewPos = get_wander_pos(NPCObj, false, none, Neighbours),
    
     move_unit(NPCObj, NewPos),
 
@@ -221,12 +221,25 @@ handle_cast(create, Data) ->
     
     {noreply, Data};
 
-handle_cast(replan, Data) ->
-    process_replan(mnesia:dirty_first(npc)),
+handle_cast({replan, Tick}, Data) ->
+    NPCList = db:dirty_index_read(npc, Tick, #npc.nextplan),
+
+    F = fun(NPC) ->
+            process_replan(NPC)
+        end,
+
+    lists:foreach(F, NPCList),
+
     {noreply, Data};
 
-handle_cast(run_plan, Data) ->
-    process_run_plan(mnesia:dirty_first(npc)),
+handle_cast({run_plan, Tick}, Data) ->
+    NPCList = db:dirty_index_read(npc, Tick, #npc.nextrun),
+    
+    F = fun(NPC) ->
+            process_run_plan(NPC)
+        end,
+
+    lists:foreach(F, NPCList),
     {noreply, Data};
 
 handle_cast(stop, Data) ->
@@ -285,48 +298,46 @@ filter_targets(PlayerId, AllPerception) ->
     FilteredTargets.
 
 valid_target(_, -1) -> false;
-valid_target(Player, ObjPlayer) when Player =:= ObjPlayer -> false;
+valid_target(SrcPlayer, TargetPlayer) when SrcPlayer =:= TargetPlayer -> false; %Ignore same player
+valid_target(_SrcPlayer, TargetPlayer) when TargetPlayer < ?NPC_ID -> false; %Ignore other npc
 valid_target(_, _) -> true.
 
-process_replan('$end_of_table') ->
-    done;
-process_replan(Id) ->
-    process_perception(Id),
-
-    [NPC] = db:read(npc, Id),
+process_replan(NPC) ->
+    process_perception(NPC#npc.id),
 
     CurrPlan = NPC#npc.plan,
-    NewPlan = htn:plan(NPC#npc.order, Id, npc),
+    NewPlan = htn:plan(NPC#npc.order, NPC#npc.id, npc),
     case NewPlan =:= CurrPlan of
         false ->
             %New plan cancel current event
-            game:cancel_event(Id),
+            game:cancel_event(NPC#npc.id),
+
+            %Next plan tick 
+            NextPlanTick = NPC#npc.nextplan + (2 * ?TICKS_SEC),
 
             %Reset NPC variables
             NewNPC = NPC#npc {plan = NewPlan,
                               new_plan = true,
                               task_state = completed,
-                              task_index = 1},
+                              task_index = 1,
+                              nextplan = NextPlanTick},
             db:write(NewNPC);
         true ->
             nothing
-    end,
+    end.
 
-    process_replan(mnesia:dirty_next(npc, Id)).
-
-process_run_plan('$end_of_table') ->
-    done;
-process_run_plan(Id) ->
-    [NPC] = db:read(npc, Id),
+process_run_plan(NPC) ->
 
     case NPC#npc.plan of
         [] -> nothing;
         _ -> %Process npc task state
-            NewNPC = process_task_state(NPC#npc.task_state, NPC),
-            db:write(NewNPC)
-    end,
+            NextRunTick = NPC#npc.nextrun + (2 *?TICKS_SEC),
 
-    process_run_plan(db:next(npc, Id)).
+            NewNPC = process_task_state(NPC#npc.task_state, NPC),
+            NewNPC2 = NewNPC#npc {nextrun = NextRunTick},
+
+            db:write(NewNPC2)
+    end.
 
 process_task_state(init, NPC) ->
     TaskToRun = lists:nth(1, NPC#npc.plan),
@@ -459,18 +470,27 @@ remove_poi(ObjList) ->
         end,
     lists:filter(F, ObjList).
 
-get_wander_pos(_, _, []) ->
+get_wander_pos(_, _, _, []) ->
     none;
-get_wander_pos(true, RandomPos, _Neighbours) ->
+get_wander_pos(_NPCObj, true, RandomPos, _Neighbours) ->
     RandomPos;
-get_wander_pos(false,  _, Neighbours) ->
+get_wander_pos(NPCObj, false,  _, Neighbours) ->
     Random = util:rand(length(Neighbours)),
     RandomPos = lists:nth(Random, Neighbours),
-    IsEmpty = obj:is_empty(RandomPos) and map:is_passable(RandomPos),
+
+    IsAvailable = is_pos_available(NPCObj, RandomPos),
 
     NewNeighbours = lists:delete(RandomPos, Neighbours),
 
-    get_wander_pos(IsEmpty, RandomPos, NewNeighbours).
+    get_wander_pos(NPCObj, IsAvailable, RandomPos, NewNeighbours).
+
+is_pos_available(#obj{player = Player}, RandomPos) when Player =:= ?UNDEAD ->
+    IsAvailable = obj:is_empty(RandomPos) andalso
+                  map:is_passable(RandomPos) andalso
+                  not effect:has_effect({tile, RandomPos}, ?SANCTUARY),
+    IsAvailable;
+is_pos_available(_, RandomPos) ->
+    obj:is_empty(RandomPos) and map:is_passable(RandomPos).
 
 check_wall(#obj{id = Id} = EnemyUnit) ->    
     case effect:get_effect_data(Id, ?FORTIFIED) of
