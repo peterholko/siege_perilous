@@ -12,35 +12,42 @@
 %% --------------------------------------------------------------------
 -include("schema.hrl").
 -include("common.hrl").
+
+-record(ndata, {id, 
+                plan = [],
+                plan_data = none,
+                task_state = none,
+                task_index = 0,
+                path = none,
+                last_plan,
+                last_run,
+                plan_start_time}).
 %% --------------------------------------------------------------------
 %% External exports
--export([start/1, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([replan/2, run_plan/2, get_nearest/3]).
+-export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([create/3, process/1, get_nearest/3]).
 -export([hp_normal/1, hp_very_low/1, target_visible/1, target_adjacent/1, max_guard_dist/1]).
 -export([set_pos_flee/1, move_random_pos/1, move_to_target/1, melee_attack/1, move_to_order_pos/1]).
--export([get_player_id/1, add/1, remove/1, set_order/3, create/2]).
+-export([get_player_id/1, remove/1, set_order/3, generate/2, generate/3]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
 
-start(PlayerId) ->
-    gen_server:start({global, {npc, PlayerId}}, npc, [PlayerId], []).
+start() ->
+    gen_server:start({global, npc}, npc, [], []).
 
-replan(PlayerId, Tick) ->
-    gen_server:cast({global, {npc, PlayerId}}, {replan, Tick}).
+create(Id, Player, Tick) ->
+    gen_server:cast({global, npc}, {create, Id, Player, Tick}).
 
-run_plan(PlayerId, Tick) ->
-    gen_server:cast({global, {npc, PlayerId}}, {run_plan, Tick}).
+remove(Id) ->
+    gen_server:cast({global, npc}, {remove, Id}).
+
+process(Tick) ->
+    gen_server:cast({global, npc}, {process, Tick}).
 
 get_player_id(NPCType) ->
     [NPCPlayer] = db:index_read(player, NPCType, #player.name),
     NPCPlayer#player.id.
-
-add(Id) ->
-    NPC = #npc {id = Id},
-    db:write(NPC).
-remove(Id) ->
-    db:delete(npc, Id).
 
 set_order(Id, Orders, OrdersData) ->
     [NPC] = db:read(npc, Id),
@@ -49,9 +56,13 @@ set_order(Id, Orders, OrdersData) ->
                       order_data = OrdersData},
     db:write(NewNPC).
 
-create(Pos, Template) ->
+generate(Pos, Template) ->
     Family = obj_template:value(Template, <<"family">>),
     PlayerId = get_player_id(Family),
+    Id = obj:create(Pos, PlayerId, Template),
+    Id.
+
+generate(Pos, PlayerId, Template) ->
     Id = obj:create(Pos, PlayerId, Template),
     Id.
 
@@ -206,41 +217,35 @@ move_to_order_pos(NPC) ->
 %% Server functions
 %% ====================================================================
 
-init([PlayerId]) ->
-    %Store player id in process dict
-    put(player_id, PlayerId),
+init([]) ->
+    NPCData = [],
 
-    %Store npc process in connection table
-    [Connection] = db:dirty_read(connection, PlayerId),
-    NewConnection = Connection#connection {process = self()},
-    db:dirty_write(NewConnection),
+    {ok, NPCData}.
 
-    {ok, []}.
+handle_cast({create, NPCId, Player, _Tick}, Data) ->   
+    lager:info("Create NPC ~p", [NPCId]),
+    NPC = #npc{id = NPCId,
+               player = Player},
+    db:write(NPC),
 
-handle_cast(create, Data) ->   
-    
-    {noreply, Data};
+    NData = #ndata{id = NPCId,
+                   last_plan = 0,
+                   last_run = 0},
 
-handle_cast({replan, Tick}, Data) ->
-    NPCList = db:dirty_index_read(npc, Tick, #npc.nextplan),
+    NewData = [NData | Data],
 
-    F = fun(NPC) ->
-            process_replan(NPC)
-        end,
+    {noreply, NewData};
 
-    lists:foreach(F, NPCList),
+handle_cast({process, Tick}, Data) ->
+    NewData = create_new_plans(Tick, Data),
+    NewData2 = run_new_plans(Tick, NewData),
 
-    {noreply, Data};
+    {noreply, NewData2};
 
-handle_cast({run_plan, Tick}, Data) ->
-    NPCList = db:dirty_index_read(npc, Tick, #npc.nextrun),
-    
-    F = fun(NPC) ->
-            process_run_plan(NPC)
-        end,
+handle_cast({remove, NPCId}, Data) ->
+    NewData = lists:keydelete(NPCId, #ndata.id, Data),
 
-    lists:foreach(F, NPCList),
-    {noreply, Data};
+    {noreply, NewData};
 
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
@@ -260,7 +265,7 @@ handle_info({perception, _NPCId}, Data) ->
     {noreply, Data};
 
 handle_info({event_complete, {_Event, Id}}, Data) ->
-    lager:info("NPC received event_complete"),
+    lager:debug("NPC received event_complete"),
     NPC = db:read(npc, Id),
 
     %Determine next task or if NPC is dead do nothing
@@ -268,7 +273,7 @@ handle_info({event_complete, {_Event, Id}}, Data) ->
 
     {noreply, Data};
 handle_info({event_cancel, {EventId, Id}}, Data) ->
-    lager:info("NPC Event cancelled ~p ~p", [EventId, Id]),
+    lager:debug("NPC Event cancelled ~p ~p", [EventId, Id]),
     {noreply, Data};
 handle_info(_Info, Data) ->
     {noreply, Data}.
@@ -282,6 +287,40 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
+
+create_new_plans(Tick, Data) ->
+    F = fun(NData, Acc) ->
+            case Tick >= (NData#ndata.last_plan + (2 * ?TICKS_SEC)) of
+                true ->
+                    [NPC] = db:dirty_read(npc, NData#ndata.id),
+                    process_plan(NPC),
+
+                    NewNData = NData#ndata{last_plan = Tick},
+                    [NewNData | Acc];
+                false ->
+                    [NData | Acc]
+            end
+        end,
+
+    lists:foldl(F, [], Data). 
+
+run_new_plans(Tick, Data) ->
+    F = fun(NData, Acc) ->
+            case Tick >= (NData#ndata.last_run + (2 * ?TICKS_SEC) + 2) of
+                true ->
+                    [NPC] = db:dirty_read(npc, NData#ndata.id),
+                    process_run_plan(NPC),
+
+                    NewNData = NData#ndata{last_run = Tick},
+                    [NewNData | Acc];
+                false ->
+                    [NData | Acc]
+            end
+        end,
+
+    lists:foldl(F, [], Data).
+
+
 filter_targets(PlayerId, AllPerception) ->
     F = fun(TargetId, Targets) ->
             TargetObj = obj:get(TargetId),
@@ -302,46 +341,38 @@ valid_target(SrcPlayer, TargetPlayer) when SrcPlayer =:= TargetPlayer -> false; 
 valid_target(_SrcPlayer, TargetPlayer) when TargetPlayer < ?NPC_ID -> false; %Ignore other npc
 valid_target(_, _) -> true.
 
-process_replan(NPC) ->
+process_plan(NPC) ->
     process_perception(NPC#npc.id),
 
-    CurrPlan = NPC#npc.plan,
-    NewPlan = htn:plan(NPC#npc.order, NPC#npc.id, npc),
-    case NewPlan =:= CurrPlan of
+    CurrentPlan = NPC#npc.plan,    
+    {_PlanLabel, NewPlan} = htn:plan(NPC#npc.order, NPC#npc.id, npc),
+
+    case NewPlan =:= CurrentPlan of
         false ->
             %New plan cancel current event
             game:cancel_event(NPC#npc.id),
 
-            %Next plan tick 
-            NextPlanTick = NPC#npc.nextplan + (2 * ?TICKS_SEC),
-
             %Reset NPC variables
             NewNPC = NPC#npc {plan = NewPlan,
-                              new_plan = true,
-                              task_state = completed,
-                              task_index = 1,
-                              nextplan = NextPlanTick},
+                              task_state = init,
+                              task_index = 1},
+
             db:write(NewNPC);
         true ->
             nothing
     end.
 
 process_run_plan(NPC) ->
-
     case NPC#npc.plan of
         [] -> nothing;
         _ -> %Process npc task state
-            NextRunTick = NPC#npc.nextrun + (2 *?TICKS_SEC),
-
             NewNPC = process_task_state(NPC#npc.task_state, NPC),
-            NewNPC2 = NewNPC#npc {nextrun = NextRunTick},
-
-            db:write(NewNPC2)
+            db:write(NewNPC)
     end.
 
 process_task_state(init, NPC) ->
     TaskToRun = lists:nth(1, NPC#npc.plan),
-    lager:info("NPC: ~p Running task: ~p", [NPC#npc.id, TaskToRun]),
+    lager:debug("NPC: ~p Running task: ~p", [NPC#npc.id, TaskToRun]),
     NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
     NewNPC;
 process_task_state(completed, NPC) ->
@@ -349,13 +380,13 @@ process_task_state(completed, NPC) ->
     PlanLength = length(NPC#npc.plan),
 
     NextTask = get_next_task(TaskIndex, PlanLength),
-    lager:info("NPC: ~p NextTask: ~p ", [NPC#npc.id, NextTask]),
+    lager:debug("NPC: ~p NextTask: ~p ", [NPC#npc.id, NextTask]),
 
     case NextTask of
         {next_task, NextTaskIndex} ->
             TaskToRun = lists:nth(NextTaskIndex, NPC#npc.plan),
             NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
-            lager:info("NewNPC: ~p", [NewNPC]),
+            lager:debug("NewNPC: ~p", [NewNPC]),
             NewNPC#npc{task_index = NextTaskIndex};
         plan_completed -> 
             NPC#npc{task_state = init, task_index = 1}
@@ -544,11 +575,11 @@ process_perception(NPCId) ->
 
     %Remove from same player and non targetable objs
     FilteredTargets = filter_targets(obj:player(NPCObj), Perception),
-    lager:info("NPC: ~p FilteredTargets: ~p", [NPCId, FilteredTargets]),
+    lager:debug("NPC: ~p FilteredTargets: ~p", [NPCId, FilteredTargets]),
 
     %Find target
     Target = find_target(NPCObj, FilteredTargets),
-    lager:info("NPC: ~p Target: ~p", [NPCId, Target]),
+    lager:debug("NPC: ~p Target: ~p", [NPCId, Target]),
 
     NewNPC = NPC#npc {target = Target},
     db:write(NewNPC).

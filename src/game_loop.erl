@@ -55,13 +55,11 @@ loop(NumTick, LastTime, GamePID) ->
     %Send out new explored maps
     process_explored(Explored),
 
-    %NPC generate plan and run plan
-    npc_create_plan(NumTick),
-    npc_run_plan(NumTick),
+    %Villager create plan and run it
+    villager_process(NumTick),
 
-    %Villager generate plan and run plan
-    villager_create_plan(NumTick),
-    villager_run_plan(NumTick),
+    %NPC create plan and run it
+    npc_process(NumTick),
 
     %Clean up
     clean_up(NumTick),
@@ -393,22 +391,6 @@ process_effects(NumTick) when (NumTick rem ?TICKS_SEC * 1) =:= 0 ->
     effects(NumTick);
 process_effects(NumTick) -> nothing.
 
-npc_create_plan(NumTick) ->
-    npc:replan(?UNDEAD, NumTick).
-
-npc_run_plan(NumTick) ->
-   npc:run_plan(?UNDEAD, NumTick).
-
-villager_create_plan(NumTick) when (NumTick rem (?TICKS_SEC * 2)) =:= 0 ->
-    villager:create_plan();
-villager_create_plan(_) ->
-    nothing.
-
-villager_run_plan(NumTick) when ((NumTick + (?TICKS_SEC)) rem (?TICKS_SEC * 2)) =:= 0 ->
-    villager:run_plan();
-villager_run_plan(_) ->
-    nothing.
-
 clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
     lager:debug("Cleaning up dead objs"),
     Objs = ets:tab2list(obj),
@@ -435,6 +417,13 @@ clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
 
 clean_up(_) ->
     nothing. 
+villager_process(0) -> nothing;
+villager_process(NumTick) ->
+    villager:process(NumTick).
+
+npc_process(0) -> nothing;
+npc_process(NumTick) -> 
+    npc:process(NumTick).
 
 transition(Time) ->
     NewTimeOfDay = #world {attr = time,

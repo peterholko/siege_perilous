@@ -93,8 +93,10 @@ create_schema() ->
     mnesia:add_table_index(villager, shelter),
     mnesia:add_table_index(villager, structure),
     mnesia:add_table_index(villager, storage),
-    mnesia:add_table_index(npc, nextplan),
-    mnesia:add_table_index(npc, nextrun),
+    mnesia:add_table_index(villager, next_plan),
+    mnesia:add_table_index(villager, next_run),
+    mnesia:add_table_index(npc, next_plan),
+    mnesia:add_table_index(npc, next_run),
 
     mnesia:stop().
 

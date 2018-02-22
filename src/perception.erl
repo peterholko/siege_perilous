@@ -448,8 +448,8 @@ terminate(_Reason, _) ->
 notify_obj(Obj) ->
     case obj:subclass(Obj) of
         ?NPC ->
-            [Conn] = db:read(connection, obj:player(Obj)),
-            send_to_process(Conn#connection.process, obj:id(Obj));
+            Process = global:whereis_name(npc),
+            send_to_process(Process, obj:id(Obj));
         ?VILLAGER ->
             Process = global:whereis_name(villager),
             send_to_process(Process, obj:id(Obj));

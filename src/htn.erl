@@ -135,8 +135,10 @@ plan(PlanName, Id, Module) ->
     
     process_child(SortedChildren, Parent#htn.type, Id),
 
+    PlanLabel = get(plan_label),
     Plan = get(plan),
-    Plan.
+
+    {PlanLabel, Plan}.
 
 process_child([], primitive_task, _NPC) ->
     done;
@@ -195,8 +197,10 @@ add_to_plan(Children) when is_list(Children) ->
         end,
 
     lists:foreach(F, Children);
-add_to_plan(#htn{task = Task, type = Type}) when Type =:= primitive ->
-    Plan = get_plan(get(plan)),    
+add_to_plan(#htn{parent = Parent, task = Task, type = Type}) when Type =:= primitive ->
+    put(plan_label, Parent),
+
+    Plan = get_plan(get(plan)),
     put(plan, Plan ++ [Task]);
 add_to_plan(_) ->
     nothing.

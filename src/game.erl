@@ -119,7 +119,7 @@ new_player(PlayerId) ->
 
 
     F1 = fun() ->
-            obj:create({15,35}, ?UNDEAD, <<"Zombie">>)
+            npc:generate({15,35}, ?UNDEAD, <<"Zombie">>) 
          end,
 
     F2 = fun() ->
@@ -135,8 +135,8 @@ new_player(PlayerId) ->
          end,
 
     game:add_event(none, event, F1, none, 20),
-    game:add_event(none, event, F2, none, 28),
-    game:add_event(none, event, F3, none, 36),
+    %game:add_event(none, event, F2, none, 28),
+    %game:add_event(none, event, F3, none, 36),
     game:add_event(none, event, F4, none, 40).
 
 login(PlayerId) ->

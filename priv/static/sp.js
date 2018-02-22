@@ -1817,19 +1817,23 @@ function drawSpeech(jsonData) {
         speechText.textAlign = "center";
         speechText.lineWidth = 120;
 
-        var roundedRect = new createjs.Shape();
-        roundedRect.graphics.setStrokeStyle(1);
-        roundedRect.graphics.beginFill("rgba(0,0,0,0.5)");
-        roundedRect.graphics.drawRoundRect(source.icon.x - 60 + 36, 
-                                           source.icon.y - 20,
-                                           120,
-                                           40,
-                                           5);
+        if(jsonData.text.length > 5) {
 
-        addChildLocalMap(roundedRect, "textLayer");
+            var roundedRect = new createjs.Shape();
+            roundedRect.graphics.setStrokeStyle(1);
+            roundedRect.graphics.beginFill("rgba(0,0,0,0.5)");
+            roundedRect.graphics.drawRoundRect(source.icon.x - 60 + 36, 
+                                               source.icon.y - 20,
+                                               120,
+                                               40,
+                                               5);
+
+            addChildLocalMap(roundedRect, "textLayer");
+            createjs.Tween.get(roundedRect).to({alpha: 0},12000);
+        }
+
         addChildLocalMap(speechText, "textLayer");
-        createjs.Tween.get(roundedRect).to({alpha: 0},15000);
-        createjs.Tween.get(speechText).to({alpha: 0},15000);
+        createjs.Tween.get(speechText).to({alpha: 0},12000);
         
         updateTextLog(source.name + ": " + jsonData.text);
     }

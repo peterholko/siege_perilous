@@ -12,11 +12,22 @@
 %% --------------------------------------------------------------------
 -include("schema.hrl").
 -include("common.hrl").
+
+-record(vdata, {id,
+                plan = [],
+                plan_data = none,
+                task_state = none,
+                task_index = 0,
+                path = none,
+                last_plan,
+                last_run,
+                plan_start_time}).
+    
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([has_assigned/1, assign/2, remove/1, remove_structure/1, get_by_structure/1]).
--export([create_plan/0, run_plan/0]).
+-export([process/1]).
 -export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
@@ -33,7 +44,7 @@
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([has_order/2, has_effect/2, has_not_effect/2]).
--export([generate/1, generate/3, assign_list/1]).
+-export([create/3, generate/1, generate/3, assign_list/1]).
 
 %% ====================================================================
 %% External functions
@@ -42,11 +53,11 @@
 start() ->
     gen_server:start({global, villager}, villager, [], []).
 
-create_plan() ->
-    gen_server:cast({global, villager}, create_plan).
+create(Id, Player, Tick) ->
+    gen_server:cast({global, villager}, {create, Id, Player, Tick}).
 
-run_plan() ->
-    gen_server:cast({global, villager}, run_plan).
+process(Tick) ->
+    gen_server:cast({global, villager}, {process, Tick}).
 
 generate(Level) ->
     PlayerId = -9999, 
@@ -629,21 +640,29 @@ remove_storage(StructureId) ->
 %% ====================================================================
 
 init([]) ->
-    {ok, []}.
+    Villagers = [],
+    {ok, Villagers}.
 
-handle_cast(create_plan, Data) ->
-    process_create_plan(db:first(villager)),
-    {noreply, Data};
+handle_cast({create, VillagerId, Player, _Tick}, Data) ->
+    lager:info("Create Villager: ~p", [VillagerId]),
+    Villager = #villager{id = VillagerId,
+                         player = Player},
+    db:write(Villager),
 
-handle_cast(run_plan, Data) ->
-    process_run_plan(db:first(villager)),
-    {noreply, Data};
+    VData = #vdata{id = VillagerId,
+                   last_plan = 0,
+                   last_run = 0},
 
-handle_cast(process, Data) ->   
+    NewData = [VData | Data],
 
-    process(db:first(villager)),
+    {noreply, NewData};
 
-    {noreply, Data};
+handle_cast({process, Tick}, Data) ->   
+
+    NewData = create_new_plans(Tick, Data),
+    NewData2 = run_new_plans(Tick, NewData),
+
+    {noreply, NewData2};
 
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
@@ -698,50 +717,71 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%
 
-process_create_plan('$end_of_table') ->
-    done;
-process_create_plan(Id) ->
-    lager:debug("Villager ~p creating plan", [Id]),
-    process_perception(Id),
+create_new_plans(Tick, Data) ->
+    F = fun(VData, Acc) ->
+            case Tick >= (VData#vdata.last_plan + (2 * ?TICKS_SEC)) of
+                true ->
+                    [Villager] = db:dirty_read(villager, VData#vdata.id),
+                    process_plan(Villager),
 
-    [Villager] = db:read(villager, Id),
+                    NewVData = VData#vdata{last_plan = Tick},
+                    [NewVData | Acc];
+                false ->
+                    [VData | Acc]
+            end
+        end,
+
+    lists:foldl(F, [], Data). 
+
+run_new_plans(Tick, Data) ->
+    F = fun(VData, Acc) ->
+            case Tick >= (VData#vdata.last_run + (2 * ?TICKS_SEC) + 2) of
+                true ->
+                    [Villager] = db:dirty_read(villager, VData#vdata.id),
+                    process_run_plan(Villager),
+
+                    NewVData = VData#vdata{last_run = Tick},
+                    [NewVData | Acc];
+                false ->
+                    [VData | Acc]
+            end
+        end,
+
+    lists:foldl(F, [], Data).
+
+process_plan(Villager) ->
+    process_perception(Villager#villager.id),
 
     CurrentPlan = Villager#villager.plan,
-    NewPlan = htn:plan(villager, Id, villager),
-    lager:debug("Villager NewPlan: ~p", [NewPlan]),
+    {PlanLabel, NewPlan} = htn:plan(villager, Villager#villager.id, villager),
 
     case NewPlan =:= CurrentPlan of
         false ->
             %New plan cancel current event
-            game:cancel_event(Id),
+            game:cancel_event(Villager#villager.id),
+
+            PlanLabelTalk = convert_plan_label(PlanLabel),
+
+            %Broadcast new plan
+            sound:talk(Villager#villager.id, PlanLabelTalk),
 
             %Reset Villager statistics
-            NewVillager = Villager#villager {plan = NewPlan,
-                                             new_plan = true,
-                                             task_state = init,
-                                             task_index = 1},
+            NewVillager = Villager#villager{plan = NewPlan,
+                                            task_state = init,
+                                            task_index = 1},
             db:write(NewVillager);
         true ->
-            nothing
-    end,
+          nothing
+    end.
 
-    process_create_plan(db:next(villager, Id)).
-
-process_run_plan('$end_of_table') ->
-    done;
-process_run_plan(Id) ->
-    lager:debug("Villager Run plan ~p", [Id]),
-    [Villager] = db:read(villager, Id),
-
+process_run_plan(Villager) ->
     %Skip if plan is empty
     case Villager#villager.plan of
         [] -> nothing;
         _ -> %Process villager task state
              NewVillager = process_task_state(Villager#villager.task_state, Villager),
              db:write(NewVillager)
-    end,
-
-    process_run_plan(db:next(villager, Id)).
+    end.
 
 process_task_state(init, Villager) ->
     TaskToRun = lists:nth(1, Villager#villager.plan),
@@ -814,22 +854,6 @@ filter_objs(_VillagerPlayer, #obj{state = State}, Enemies) when State =:= ?DEAD 
 filter_objs(_VillagerPlayer, #obj{class = Class}, Enemies) when Class =:= ?CORPSE -> Enemies;
 filter_objs(VillagerPlayer, #obj{player = ObjPlayer}, Enemies) when VillagerPlayer =:= ObjPlayer -> Enemies;
 filter_objs(_VillagerPlayer, Obj, Enemies) -> [Obj | Enemies].
-
-process('$end_of_table') ->
-    lager:debug("Done processing villagers");
-process(Id) ->
-    [Villager] = db:read(villager, Id),
-    [Obj] = db:read(obj, Id),
-
-    NewVillager = process_morale(Villager, Obj),
-
-    %Write only if changes
-    case Villager =/= NewVillager of
-        true -> db:write(NewVillager);
-        false -> nothing
-    end,
-    
-    process(db:next(villager, Id)).
 
 find_structure(Villager, Type) ->       
     lager:debug("find_structure: ~p", [Type]),
@@ -933,3 +957,8 @@ process_perception(VillagerId) ->
     NewVillager = Villager#villager{enemies = Enemies},
     db:write(NewVillager).
 
+convert_plan_label({villager, flee_to_hero}) -> "I need protection!";
+convert_plan_label({villager, flee_randomly}) -> "Run away!";
+convert_plan_label({villager, do_follow}) -> "Yes sir, following!";
+convert_plan_label({villager, do_idle}) -> "Nothing to do...";
+convert_plan_label(_) -> "Not sure what to say".

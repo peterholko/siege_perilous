@@ -25,6 +25,18 @@ start() ->
 
     lager:info("Starting game process..."),
     game:start(),
+    
+    lager:info("Starting Battle Manager"),
+    combat:start(),
+
+    lager:info("Starting NPC manager"),
+    npc:start(),
+
+    lager:info("Starting Villager Manager"),
+    villager:start(),
+
+    lager:info("Loading NPC Task Definitions"),
+    htn:load(),
 
     lager:info("Starting game loop"),
     spawn(fun() -> game_loop:loop(0, util:get_time(), global:whereis_name(game_pid)) end),
@@ -37,22 +49,10 @@ start() ->
 
     lager:info("Generating resource bonuses..."),
     resource:generate_effects(),
-
+    
     lager:info("Starting perception"),
-    perception:start(),
+    perception:start().
 
-    lager:info("Starting NPC manager"),
-    npc_mgr:start(),
-    npc_mgr:start_all_npc(),
-
-    lager:info("Starting Battle Manager"),
-    combat:start(),
-
-    lager:info("Starting Villager Manager"),
-    villager:start(),
-
-    lager:info("Loading NPC Task Definitions"),
-    htn:load().
 
 login(Username, Password, Socket) ->
     case login:login(Username, Password, Socket) of

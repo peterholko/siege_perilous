@@ -46,7 +46,7 @@ spawn_random_npc(TileName, Pos) ->
         Neighbours ->
             RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
-            NPCId = npc:create(NPCPos, NPCName),
+            NPCId = npc:generate(NPCPos, NPCName),
             
             generate_loot(NPCId),
             
@@ -61,7 +61,7 @@ spawn_npc(NPCName, Pos) ->
         Neighbours ->
             RandomPos = util:rand(length(Neighbours)),
             NPCPos = lists:nth(RandomPos, Neighbours),
-            NPCId = npc:create(NPCPos, NPCName),
+            NPCId = npc:generate(NPCPos, NPCName),
 
             generate_loot(NPCId)
     end.

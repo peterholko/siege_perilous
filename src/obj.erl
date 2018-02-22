@@ -484,15 +484,11 @@ process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subcl
     combat:init_combos(Id),
     Hero = #hero{player = Player, obj = Id},
     db:write(Hero);
-process_subclass(#obj{id = Id, subclass = Subclass, modtick = Tick}) when Subclass =:= ?NPC ->
+process_subclass(#obj{id = Id, player = Player, subclass = Subclass, modtick = Tick}) when Subclass =:= ?NPC ->
     combat:init_combos(Id),
-    NPC = #npc{id = Id,
-               nextplan = Tick + ?TICKS_SEC,
-               nextrun = Tick + ?TICKS_SEC + 2},
-    db:write(NPC);
-process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subclass =:= ?VILLAGER ->
-    Villager = #villager{id = Id, player = Player},
-    db:write(Villager);
+    npc:create(Id, Player, Tick);
+process_subclass(#obj{id = Id, player = Player, subclass = Subclass, modtick = Tick}) when Subclass =:= ?VILLAGER ->
+    villager:create(Id, Player, Tick); 
 process_subclass(#obj{pos = Pos, name = Name, subclass = Subclass}) when Subclass =:= ?MONOLITH ->
     Radius = get_monolith_radius(Name),
     NearbyPosList = map:range(Pos, Radius), 

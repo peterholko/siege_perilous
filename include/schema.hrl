@@ -152,7 +152,6 @@
                    dest = none,
                    plan = [],
                    plan_data = none,
-                   new_plan = false,
                    task_state = none,
                    task_index = 0,
                    path = none
@@ -170,6 +169,7 @@
               task = none}).
 
 -record(npc, {id,
+              player,
               target = none,
               order = wander,
               order_data = none,
@@ -180,8 +180,8 @@
               path = none,
               combo = [],
               attacks = [],
-              nextplan,
-              nextrun}).
+              next_plan,
+              next_run}).
 
 -record(state, {id, 
                 state,

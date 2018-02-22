@@ -53,14 +53,19 @@
 
 is_player(PlayerId) -> PlayerId > ?NPC_ID.
 
-is_online(PlayerId) -> 
-    case db:read(connection, PlayerId) of
-        [Conn] -> 
-            case Conn#connection.status =:= online of
-                true -> Conn;
-                false -> false
+is_online(PlayerId) ->
+    case is_player(PlayerId) of
+        true ->
+            case db:read(connection, PlayerId) of
+                [Conn] -> 
+                    case Conn#connection.status =:= online of
+                        true -> Conn;
+                        false -> false
+                    end;
+                _ -> 
+                    false
             end;
-        _ -> 
+        false ->
             false
     end.
 

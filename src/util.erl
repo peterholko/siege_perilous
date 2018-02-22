@@ -33,7 +33,8 @@
          debug/1,
          capfirst/1,
          get_id/0,
-         freq/1
+         freq/1,
+         backup/0, restore/0
         ]).
 
 %%
@@ -139,3 +140,16 @@ get_id() -> counter:increment(id).
 
 freq(L) ->
     lists:foldl(fun(X,[{[X],I}|Q]) -> [{[X],I+1}|Q] ; (X,Acc) -> [{[X],1}|Acc] end , [], lists:sort(L)).
+
+backup() ->
+    Tables = mnesia:system_info(tables) -- [schema, ok], %For some reason schema and ok are included in tables
+    mnesia:activate_checkpoint([{name, last},
+                                {min, Tables},
+                                {ram_overrides_dump, true}]),
+    mnesia:backup_checkpoint(last, "/home/izend/sp_backups/backup.bup").
+
+restore() ->
+    Tables = mnesia:system_info(tables) -- [schema, ok], %For some reason schema and ok are incldued in tables
+    mnesia:restore("/home/izend/sp_backups/backup.bup", 
+                   [{clear_tables, Tables}]).
+
