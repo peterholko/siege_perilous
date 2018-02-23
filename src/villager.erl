@@ -961,4 +961,8 @@ convert_plan_label({villager, flee_to_hero}) -> "I need protection!";
 convert_plan_label({villager, flee_randomly}) -> "Run away!";
 convert_plan_label({villager, do_follow}) -> "Yes sir, following!";
 convert_plan_label({villager, do_idle}) -> "Nothing to do...";
+convert_plan_label({villager, process_harvest}) -> "Yes sir, harvesting!";
+convert_plan_label({villager, process_refine}) -> "Yes sir, refining!";
+convert_plan_label({villager, process_crafting}) -> "Yes sir, crafting!";
+convert_plan_label({villager, harvest_idle}) -> "We are out of storage for all these resources";
 convert_plan_label(_) -> "Not sure what to say".

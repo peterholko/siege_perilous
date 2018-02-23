@@ -27,6 +27,7 @@ harvest(ObjId, Resource) ->
 
             %Create new item
             NewItem = item:create(ObjId, name(Resource), 1),
+            lager:info("Creating Item ~p", [NewItem]),
         
             %Set quantity to 1, as the returns of this function 
             %should be only the new quantity not combined quantity 
