@@ -1,3 +1,9 @@
 hail storms - need for shelter
 rain - need for shelter/warm clothing?
 snow- need for warm clothing 
+
+victory conditions - randomly generated per world? 
+
+Melee combat occurs on the same hex?  Maybe a charge out of Fortified mechanism?
+
+
