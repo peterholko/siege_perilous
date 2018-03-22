@@ -27,8 +27,10 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([create/3, process/1, get_nearest/3]).
 -export([hp_normal/1, hp_very_low/1, target_visible/1, target_adjacent/1, max_guard_dist/1]).
--export([set_pos_flee/1, move_random_pos/1, move_to_target/1, melee_attack/1, move_to_order_pos/1]).
--export([get_player_id/1, remove/1, set_order/3, generate/2, generate/3]).
+-export([set_pos_flee/1, move_random_pos/1, move_to_target/1, attack/1, move_to_pos/1]).
+-export([get_player_id/1, remove/1, set_order/3, set_event/2, generate/2, generate/3]).
+-export([has_mana/2, phase_id/2, corpses_nearby/1, move_in_range/1, cast_raise_dead/1, 
+         cast_shadow_bolt/1, set_pos_mausoleum/1, hide_by_mausoleum/1, next_phase/1]). 
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -54,6 +56,14 @@ set_order(Id, Orders, OrdersData) ->
 
     NewNPC = NPC#npc {order = Orders, 
                       order_data = OrdersData},
+    db:write(NewNPC).
+
+set_event(Id, Event) ->
+    [NPC] = db:read(npc, Id),
+    Data = #{phase => 1},
+
+    NewNPC = NPC#npc{order = Event,
+                     data = Data},
     db:write(NewNPC).
 
 generate(Pos, Template) ->
@@ -109,6 +119,20 @@ hp_very_low(Id) ->
     HpNormal = (NPCHp / NPCBaseHp) < 0.20,
     HpNormal.
 
+has_mana(_Id, _ManaValue) ->
+    true.
+
+%%% Event Conditions %%%
+phase_id(Id, EventPhase) ->
+    [NPC] = db:read(npc, Id),
+
+    NPCPhase = maps:get(phase, NPC#npc.data),
+    NPCPhase =:= EventPhase.
+
+corpses_nearby(Id) ->
+    [NPCObj] = db:read(obj, Id),
+    obj:get_nearby_corpses(NPCObj) =/= [].
+
 %%% HTN Primitives %%%
 
 set_pos_flee(NPC) ->
@@ -155,18 +179,16 @@ move_to_target(NPC) ->
             end
     end.
 
-melee_attack(NPC) ->
-    lager:debug("Melee_attack: ~p", [NPC]),
+attack(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
 
     TargetObj = combat:is_valid_target(NPC#npc.target),
 
-    Checks = TargetObj =/= false andalso
-             map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos) andalso
+    Checks = combat:is_valid_target(NPC#npc.target) =/= false andalso
              combat:is_target_alive(TargetObj) andalso
-             combat:is_targetable(TargetObj),
+             combat:is_targetable(TargetObj) andalso
+             combat:in_range(NPCObj, TargetObj),
 
-    lager:debug("Checks: ~p", [Checks]),
     case Checks of
         true ->
              Attacks = case NPC#npc.attacks =:= NPC#npc.combo of
@@ -192,26 +214,61 @@ melee_attack(NPC) ->
          false ->
              NPC#npc {task_state = completed}
     end.
-    
-move_to_order_pos(NPC) ->
+
+move_to_pos(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
 
-    Pos = NPC#npc.order_data,
+    Dest = NPC#npc.dest,
 
-    case NPCObj#obj.pos =:= Pos of
-        false ->
-            Path = astar:astar(NPCObj#obj.pos, Pos, NPCObj),
-            NewNPC = NPC#npc {task_state = inprogress,
-                              path = Path},
-            db:write(NewNPC),
+    %If dest is set and dest does not equal villager current pos
+    NewVillager = case (Dest =/= none) and (Dest =/= NPCObj#obj.pos) of
+                      true ->
+                         Path = astar:astar(NPCObj#obj.pos, Dest, NPCObj),
 
-            move_next_path(NPCObj, Path);
-        true ->
-            NewNPC = NPC#npc {task_state = completed},
-            db:write(NewNPC)
-    end.
+                         case Path of
+                             [] -> 
+                                 %No path, move task completed
+                                 NPC#npc {task_state = completed};
+                             _ -> 
+                                 %Move to next path location
+                                 move_unit(NPCObj, lists:nth(2, Path)),
+                                 NPC#npc {task_state = running, path = Path}
+                         end;
+                      false ->
+                         NPC#npc {task_state = completed}
+                 end,
+    NewVillager.
 
+move_in_range(NPC) ->
+    NPC#npc{task_state = completed}.
 
+cast_raise_dead(NPC) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
+    
+    [Corpse | _] = obj:get_nearby_corpses(NPCObj),
+
+    %TODO cleanup
+    npc:generate(Corpse#obj.pos, obj:player(NPCObj), <<"Zombie">>),
+    %db:delete(obj, Corpse#obj.id),
+
+    NPC#npc{task_state = completed}.
+
+cast_shadow_bolt(NPC) ->
+    NPC#npc{task_state = completed}.
+
+set_pos_mausoleum(NPC) ->
+    MausoleumPos = maps:get(mausoleum_pos, NPC#npc.data),
+    NPC#npc{dest = MausoleumPos, task_state = completed}.
+
+hide_by_mausoleum(NPC) ->
+    obj:update_state(NPC#npc.id, hiding), 
+    NPC#npc{task_state = compelted}.
+
+next_phase(NPC) ->
+    Phase = maps:get(phase, NPC#npc.data),
+    NextPhase = Phase + 1,
+    NewData = maps:put(phase, NextPhase, NPC#npc.data),
+    NPC#npc{data = NewData}.
 
 %% ====================================================================
 %% Server functions
@@ -404,9 +461,9 @@ process_event_complete([NPC]) ->
             complete_task(NPC);
         move_to_target ->
             process_move_to_target_complete(NPC);
-        move_to_order_pos ->
-            move_to_order_pos(NPC#npc.id);
-        melee_attack ->
+        move_to_pos ->
+            move_to_pos(NPC#npc.id);
+        attack ->
             complete_task(NPC);
         _ ->
             nothing

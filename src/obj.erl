@@ -19,6 +19,7 @@
 -export([trigger_effects/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
+-export([get_nearby_corpses/1]).
 -export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, name/1, image/1]).
 -export([rec_to_map/1]).
 
@@ -416,6 +417,16 @@ get_assignable(QueryPos) ->
 get_capacity(ObjId) ->
     obj_attr:value(ObjId, <<"capacity">>, 0).
 
+get_nearby_corpses(SourceObj) ->
+    Corpses = db:index_read(obj, ?CORPSE, #obj.class),
+
+    F = fun(Corpse) ->
+            Distance = map:distance(SourceObj#obj.pos, Corpse#obj.pos),
+            Distance =< SourceObj#obj.vision    
+        end,
+
+    lists:filter(F, Corpses).
+
 is_hero_nearby(_Target = #obj{subclass = Subclass}, _HeroPlayer) when Subclass =:= <<"hero">> ->
     true;
 is_hero_nearby(Target, HeroPlayerId) when is_record(Target, obj) ->
@@ -447,6 +458,9 @@ is_monolith_nearby(QueryPos) ->
 
 is_subclass(IsSubclass, #obj{subclass = Subclass}) when Subclass =:= IsSubclass -> true;
 is_subclass(_, _) -> false.
+
+
+
 
 is_player(#obj{player = Player}) when Player > ?NPC_ID -> true;
 is_player(_) -> false.

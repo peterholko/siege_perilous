@@ -17,6 +17,7 @@ load() ->
     guard(),
     move_to_pos(),
     wander_flee(),
+    necro_event(),
     villager().
 
 wander() ->
@@ -24,7 +25,7 @@ wander() ->
     add_select_one(attack_enemy, wander, [target_visible], []),
         add_select_all(do_attack, attack_enemy, [], []),
             add_primitive(move_to_target, do_attack, [], [], move_to_target),
-            add_primitive(melee_attack, do_attack, [], [], melee_attack),
+            add_primitive(attack, do_attack, [], [], attack),
     add_select_all(do_wander, wander, [], []),
         add_primitive(move_random_pos, do_wander, [], [], move_random_pos).
 
@@ -35,7 +36,7 @@ guard() ->
             add_primitive(move_guard_pos1, return_to_guard, [], [], move_to_order_pos),
         add_select_all(do_attack, attack_enemy, [], []),
             add_primitive(move_to_target, do_attack, [], [], move_to_target),
-            add_primitive(melee_attack, do_attack, [], [], melee_attack),
+            add_primitive(attack, do_attack, [], [], attack),
     add_select_all(do_guard, guard, [], []),
         add_primitive(move_guard_pos2, do_guard, [], [], move_to_order_pos).
 
@@ -43,7 +44,7 @@ move_to_pos() ->
     new(move_to_pos),
     add_select_one(attack_enemy, move_to_pos, [target_adjacent], []),
         add_select_all(do_attack, attack_enemy, [], []),
-            add_primitive(melee_attack, do_attack, [], [], melee_attack),
+            add_primitive(attack, do_attack, [], [], attack),
     add_select_all(do_move_to_pos, move_to_pos, [], []),
         add_primitive(move_to_order_pos, do_move_to_pos, [], [], move_to_order_pos).
           
@@ -52,19 +53,42 @@ wander_flee() ->
     add_select_one(attack_enemy, wander_flee, [target_visible, hp_normal], []),
         add_select_all(do_attack, attack_enemy, [], []),
             add_primitive(move_to_target, do_attack, [], [], move_to_target),
-            add_primitive(melee_attack, do_attack, [], [], melee_attack),
+            add_primitive(attack, do_attack, [], [], attack),
     add_select_all(do_flee, wander_flee, [hp_very_low], []),
         add_primitive(set_pos_flee, do_flee, [], [], set_pos_flee),
         add_primitive(move_to_flee, do_flee, [], [], move_to_order_pos),
     add_select_all(do_wander, wander_flee, [], []),
         add_primitive(move_random_pos, do_wander, [], [], move_random_pos).
 
+necro_event() ->
+    new(necro_event),
+    add_select_one(phase1, necro_event, [{phase_id, ?NECRO_PHASE1}], []),
+        add_select_all(do_flee, phase1, [hp_very_low], []),
+            add_primitive(set_pos_mausoleum, do_flee, [], [], set_pos_mausoleum),
+            add_primitive(move_pos_mausoleum, do_flee, [], [], move_to_pos),
+            add_primitive(hide_by_mausoleum, do_flee, [], [], hide_by_mausoleum),
+            add_primitive(next_phase, do_flee, [], [], next_phase),
+        add_select_all(raise_dead, phase1, [corpses_nearby, {has_mana, ?NECRO_RAISE_MANA}], []),
+            add_primitive(cast_raise_dead, raise_dead, [], [], cast_raise_dead),
+        add_select_all(attack_enemy, phase1, [target_visible], []),
+            add_primitive(move_in_range, attack_enemy, [], [], move_in_range),
+            add_primitive(cast_shadow_bolt, attack_enemy, [], [], cast_shadow_bolt),
+        add_select_all(wander, phase1, [], []),
+            add_primitive(move_random_pos, wander, [], [], move_random_pos),
+    add_select_one(phase2, necro_event, [{phase_id, ?NECRO_PHASE2}], []),
+        add_select_all(mass_raise_dead, phase2, [corpses_nearby, mausoleum_guardian_dead, {has_minions, less, ?NECRO_NUM_MINIONS}], []),
+            add_primitive(cast_raise_dead, mass_raise_dead, [], [], cast_raise_dead),
+        add_select_all(swarm_attack, phase2, [mausoleum_guardian_dead, {has_minions, moreorequal, ?NECRO_NUM_MINIONS}], []),  
+            add_primitive(cast_raise_dead, swarm_attack, [], [], attack_player),
+        add_select_all(idle, phase2, [], []),
+            add_primitive(idle, phase2, [], [], ideal).
+
 villager() ->
     new(villager),
      add_select_one(process_attack, villager, [morale_normal, {has_order, ?ORDER_ATTACK}], []),
         add_select_all(do_attack, process_attack, [], []),
             add_primitive(move_to_target, do_attack, [], [], move_to_target),
-            add_primitive(melee_attack, do_attack, [], [], melee_attack),
+            add_primitive(attack, do_attack, [], [], attack),
     add_select_one(nearby_enemy, villager, [enemy_visible, {has_not_effect, ?SANCTUARY}], []),
         add_select_all(flee_to_shelter, nearby_enemy, [has_shelter], []),
             add_primitive(set_pos_shelter, flee_to_shelter, [], [], set_pos_shelter),
@@ -182,6 +206,10 @@ eval(_Conditions, false, _NPC) ->
     false;
 eval([], Result, _NPC) ->
     Result;
+eval([{ConditionFunc, ConditionOp, ConditionParam} | Rest], Result, Id) ->
+    Module = get(plan_module),
+    NewResult = erlang:apply(Module, ConditionFunc, [Id, ConditionOp, ConditionParam]),
+    eval(Rest, Result and NewResult, Id);
 eval([{ConditionFunc, ConditionParam} | Rest], Result, Id) ->
     Module = get(plan_module),
     NewResult = erlang:apply(Module, ConditionFunc, [Id, ConditionParam]),

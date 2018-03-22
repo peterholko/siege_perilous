@@ -26,7 +26,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([has_assigned/1, assign/2, remove/1, remove_structure/1, get_by_structure/1]).
+-export([has_assigned/1, assign/2, remove_structure/1, get_by_structure/1]).
 -export([process/1]).
 -export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
@@ -44,7 +44,7 @@
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([has_order/2, has_effect/2, has_not_effect/2]).
--export([create/3, generate/1, generate/3, assign_list/1]).
+-export([create/3, remove/1, generate/1, generate/3, assign_list/1]).
 
 %% ====================================================================
 %% External functions
@@ -55,6 +55,9 @@ start() ->
 
 create(Id, Player, Tick) ->
     gen_server:cast({global, villager}, {create, Id, Player, Tick}).
+
+remove(Id) ->
+    gen_server:cast({global, villager}, {remove, Id}).
 
 process(Tick) ->
     gen_server:cast({global, villager}, {process, Tick}).
@@ -358,7 +361,7 @@ move_to_pos(Villager) ->
     NewVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
                       true ->
                          Path = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
-                         lager:info("Path: ~p", [Path]),
+                         lager:debug("Path: ~p", [Path]),
 
                          case Path of
                              [] -> 
@@ -370,7 +373,7 @@ move_to_pos(Villager) ->
                                  Villager#villager {task_state = running, path = Path}
                          end;
                       false ->
-                         lager:info("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
+                         lager:debug("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
                          Villager#villager {task_state = completed}
                  end,
     NewVillager.
@@ -598,8 +601,6 @@ set_target(SourceId, TargetId) ->
     [Villager] = db:read(villager, SourceId),
     db:write(Villager#villager {target = TargetId}).
 
-remove(ObjId) ->
-    db:delete(villager, ObjId).
 
 remove_structure(StructureId) ->
     remove_shelters(StructureId),
@@ -656,6 +657,13 @@ handle_cast({create, VillagerId, Player, _Tick}, Data) ->
     NewData = [VData | Data],
 
     {noreply, NewData};
+
+handle_cast({remove, VillagerId}, Data) ->
+    db:delete(villager, VillagerId),
+
+    NewVData = lists:keydelete(VillagerId, #vdata.id, Data),
+
+    {noreply, NewVData};
 
 handle_cast({process, Tick}, Data) ->   
 

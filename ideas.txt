@@ -7,3 +7,33 @@ victory conditions - randomly generated per world?
 Melee combat occurs on the same hex?  Maybe a charge out of Fortified mechanism?
 
 
+Necromancer Event:
+
+Part 1)
+1a. Spawns near player's shipwreck
+1b. Masoleum spawns within 5 tile radius of player
+2. Raises 3 dead sailors as zombies
+3. Range attacks / casts spells ?
+4. After the 3 zombies are killed, runs away and hides beside the Mausoleum
+5. Waits for the player to come and inspect the Mausoleum, triggers on getInfo Mausoleum
+6. Necromancer reveals himself and begins raising an army of Skeletons from the Mausoleum
+7. Necromancer orders skeletons to chase down hero
+
+Phase1:
+
+
+
+
+Part 2)
+8. If hero escapes/hides in their town for a certain duration, necromancer orders skeletons 
+   to stand down and hides out somewhere for a period of time
+9. Necromancer waits until a peaseant is X tiles away from the monolith and rushes the peasent 
+   surround him with skeletons which do not attack.
+10. Necromancer casts a spell to immobilize the peasent and brings him to a ritual circle 
+11. Necromancer begins ritual to become immortal
+12. Necromancer unintentionally turns himself into a lich
+
+ 
+
+
+

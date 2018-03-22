@@ -88,7 +88,7 @@ new_player(PlayerId) ->
 
     HeroPos = {16,36},
     VillagerPos = {16,37},
-    Villager2Pos = {17,36},
+    Villager2Pos = {16,35},
     MonolithPos = {18,35},
     ShipwreckPos = {15,36},
 
@@ -119,7 +119,8 @@ new_player(PlayerId) ->
 
 
     F1 = fun() ->
-            npc:generate({15,35}, ?UNDEAD, <<"Zombie">>) 
+            obj:update_dead(Villager2Id),           
+            NPCId = npc:generate({15,35}, ?UNDEAD, <<"Shadow">>)
          end,
 
     F2 = fun() ->

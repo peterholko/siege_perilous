@@ -40,3 +40,10 @@ poi
 
 
 
+Obj Class/State
+---------
+
+Unit
+Corpse
+Bones
+

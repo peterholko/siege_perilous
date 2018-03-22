@@ -173,6 +173,12 @@
 -define(DAGGER_SPD_P, <<"Dagger Speed %">>).
 -define(SPEAR_SPD_P, <<"Spear Speed %">>).
 
+%EVENTS
+-define(NECRO_PHASE1, 1).
+-define(NECRO_PHASE2, 2).
+-define(NECRO_RAISE_MANA, 10).
+-define(NECRO_NUM_MINIONS, 10).
+
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

@@ -788,6 +788,34 @@
 	]
 },
 {
+	"name": "Rakar The Resurrector",
+	"base_hp": 1500,
+	"base_stamina": 10000,
+	"base_dmg": 4,
+	"dmg_range": 10,
+	"base_def": 10,
+	"base_speed": 4,
+	"class": "unit",
+	"subclass": "npc",
+    "template": "Necromancer",
+	"int": "high",
+	"base_vision": 3,
+	"aggression": "high",
+	"kill_xp": 100,
+	"orders": [
+		"guard",
+		"10",
+		"10"
+	]
+},
+{
+    "name": "Human Corpse", 
+    "class": "corpse",
+    "subclass": "villager",
+    "template": "Human Corpse",
+    "base_vision": 0
+},
+{
 	"name": "Shipwreck",
 	"class": "poi",
 	"subclass": "poi",

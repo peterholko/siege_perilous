@@ -178,10 +178,10 @@
               task_state = none,
               task_index = 0,
               path = none,
+              dest = none,
               combo = [],
               attacks = [],
-              next_plan,
-              next_run}).
+              data = #{}}).
 
 -record(state, {id, 
                 state,
