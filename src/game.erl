@@ -119,7 +119,7 @@ new_player(PlayerId) ->
 
 
     F1 = fun() ->
-            npc:generate({15,35}, ?UNDEAD, <<"Zombie">>) 
+            npc:generate({15,35}, ?UNDEAD, <<"Shadow">>) 
          end,
 
     F2 = fun() ->
