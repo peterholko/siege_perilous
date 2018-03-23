@@ -418,7 +418,8 @@ get_capacity(ObjId) ->
     obj_attr:value(ObjId, <<"capacity">>, 0).
 
 get_nearby_corpses(SourceObj) ->
-    Corpses = db:index_read(obj, ?CORPSE, #obj.class),
+    Corpses = db:index_read(obj, ?CORPSE, #obj.subclass),
+    lager:info("Corpses: ~p", [Corpses]),
 
     F = fun(Corpse) ->
             Distance = map:distance(SourceObj#obj.pos, Corpse#obj.pos),

@@ -782,7 +782,7 @@
 	"aggression": "high",
 	"kill_xp": 100,
 	"orders": [
-		"guard",
+		"necro_event",
 		"10",
 		"10"
 	]
@@ -811,7 +811,7 @@
 {
     "name": "Human Corpse", 
     "class": "corpse",
-    "subclass": "villager",
+    "subclass": "corpse",
     "template": "Human Corpse",
     "base_vision": 0
 },

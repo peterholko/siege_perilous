@@ -94,14 +94,13 @@ new_player(PlayerId) ->
 
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
-    HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),
+    HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),   
     
     [Player] = db:read(player, PlayerId),
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 
     VillagerId = villager:generate(0, PlayerId, VillagerPos),
-    Villager2Id = villager:generate(0, PlayerId, Villager2Pos),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(MonolithId, <<"Mana">>, 2500),
@@ -117,9 +116,11 @@ new_player(PlayerId) ->
     ItemId = maps:get(<<"id">>, ItemMap),
     item:equip(ItemId),
 
+    %Create 2 corpses
+    obj:create({16,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
+    obj:create({17,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
 
     F1 = fun() ->
-            obj:update_dead(Villager2Id),           
             NPCId = npc:generate({15,35}, ?UNDEAD, <<"Shadow">>)
          end,
 

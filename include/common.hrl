@@ -71,7 +71,7 @@
 -define(BLOODMOON, <<"Bloodmoon">>).
 
 %CLASS and SUBCLASS
--define(CORPSE, corpse).
+-define(CORPSE, <<"corpse">>).
 -define(MONOLITH, <<"monolith">>).
 -define(NPC, <<"npc">>).
 -define(VILLAGER, <<"villager">>).
