@@ -247,9 +247,12 @@ cast_raise_dead(NPC) ->
     
     [Corpse | _] = obj:get_nearby_corpses(NPCObj),
 
-    %TODO cleanup
-    npc:generate(Corpse#obj.pos, obj:player(NPCObj), <<"Zombie">>),
-    %db:delete(obj, Corpse#obj.id),
+    EventData = {NPC#npc.id, obj:id(Corpse), ?RAISE_DEAD},
+    
+    game:add_event(self(), cast, EventData, NPC#npc.id, ?TICKS_SEC * 10),
+    game:add_obj_update(self(), NPC#npc.id, ?STATE, ?CASTING, 0),
+
+    sound:talk(NPC#npc.id, "Raise from the dead my minions!"),
 
     NPC#npc{task_state = completed}.
 

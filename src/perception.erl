@@ -120,6 +120,9 @@ convert_event(#obj_create{obj = Obj}) ->
     ObjMap = obj:rec_to_map(Obj),
     #{<<"event">> => <<"obj_create">>,
       <<"obj">> => ObjMap};
+convert_event(#obj_delete{obj = Obj}) ->
+    #{<<"event">> => <<"obj_delete">>,
+      <<"obj_id">> => obj:id(Obj)};
 convert_event(#obj_update{obj = Obj, attr = Attr, value = Value}) ->
     #{<<"event">> => <<"obj_update">>,
       <<"obj_id">> => obj:id(Obj),
@@ -189,6 +192,25 @@ add_observed_event(Observer, Event = #obj_create{obj = Obj, source_pos = SourceP
 
             [NewPerceptionEvent | AllEvents]
     end;
+
+add_observed_event(Observer, Event = #obj_delete{obj = Obj, source_pos = SourcePos}, AllEvents) ->
+    Result = {is_visible_by_observer(Observer, Obj),
+              check_distance(Observer, SourcePos)},
+
+    case Result of
+        {_, false} ->
+            AllEvents; %Obj deleted is not seen by observer
+        {false, _} ->
+            AllEvents; %Obj state or effect is not visible by observer
+        {true, true} ->
+            %Update observer's perception of obj after delete event
+            perception:remove(Observer, Obj), 
+
+            NewPerceptionEvent = {Observer, Event},
+
+            [NewPerceptionEvent | AllEvents]
+    end;
+
 add_observed_event(Observer, Event = #obj_update{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     Result = {is_visible_by_observer(Observer, Obj),
               check_distance(Observer, SourcePos)},

@@ -92,10 +92,15 @@ new_player(PlayerId) ->
     MonolithPos = {18,35},
     ShipwreckPos = {15,36},
 
+
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
     HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),   
     
+    %Create 2 corpses
+    obj:create({16,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
+    obj:create({17,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
+
     [Player] = db:read(player, PlayerId),
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
@@ -116,9 +121,6 @@ new_player(PlayerId) ->
     ItemId = maps:get(<<"id">>, ItemMap),
     item:equip(ItemId),
 
-    %Create 2 corpses
-    obj:create({16,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
-    obj:create({17,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
 
     F1 = fun() ->
             NPCId = npc:generate({15,35}, ?UNDEAD, <<"Shadow">>)

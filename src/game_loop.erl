@@ -108,9 +108,22 @@ check_obj_events([ObjEvent | Rest], Observers, All) ->
                                    ObjEvent#obj_event.pid,
                                    ObjEvent#obj_event.data),
 
-    ObservedEvents = perception:check_event_visible(ProcessedEvent, Observers),
+    %Check if new observer created
+    NewObservers = check_new_observer(ProcessedEvent, Observers),
 
-    check_obj_events(Rest, Observers, ObservedEvents ++ All).
+    ObservedEvents = perception:check_event_visible(ProcessedEvent, NewObservers),
+
+    check_obj_events(Rest, NewObservers, ObservedEvents ++ All).
+
+check_new_observer(#obj_create{obj = Obj}, Observers) -> 
+    case Obj#obj.vision > 0 of
+        true ->
+            [Obj | Observers];
+        false ->
+            Observers
+    end;
+check_new_observer(_, Observers) -> 
+    Observers.
 
 do_obj_event(obj_create, _Process, Id) ->
     lager:info("obj_create: ~p", [Id]),
@@ -161,7 +174,13 @@ do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
                             event_complete, 
                             {obj_move, ObjId}),
 
-    ObjMove.
+    ObjMove;
+
+do_obj_event(obj_delete, _Process, Id) ->
+    Obj = obj:get(Id),
+    ObjDelete = #obj_delete{obj = Obj},
+    
+    ObjDelete.
 
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
@@ -191,6 +210,17 @@ do_event(defend, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {defend, EventData}),
     false;
 
+do_event(cast, EventData, _PlayerPid) ->
+    lager:info("Processing cast event: ~p", [EventData]),
+
+    {SourceId, TargetId, Spell} = EventData,
+    
+    SourceObj = obj:get(SourceId),
+    TargetObj = obj:get(TargetId),
+
+    magic:cast(SourceObj, TargetObj, Spell),
+
+    false;
 
 do_event(ford, EventData, PlayerPid) ->
     lager:debug("Processing ford event: ~p", [EventData]),

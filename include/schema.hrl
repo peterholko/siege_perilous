@@ -71,6 +71,9 @@
                    source_pos,
                    dest_pos}).
 
+-record(obj_delete, {obj,
+                     source_pos}).
+
 -record(map, {index,
               tile,
               layers}).

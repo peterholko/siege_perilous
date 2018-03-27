@@ -54,6 +54,7 @@
 -define(UPGRADING, upgrading).
 -define(MOVING, moving).
 -define(BUILDING, building).
+-define(CASTING, casting).
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
@@ -72,6 +73,7 @@
 
 %CLASS and SUBCLASS
 -define(CORPSE, <<"corpse">>).
+-define(BONES, <<"bones">>).
 -define(MONOLITH, <<"monolith">>).
 -define(NPC, <<"npc">>).
 -define(VILLAGER, <<"villager">>).
@@ -178,6 +180,9 @@
 -define(NECRO_PHASE2, 2).
 -define(NECRO_RAISE_MANA, 10).
 -define(NECRO_NUM_MINIONS, 10).
+
+%MAGIC
+-define(RAISE_DEAD, <<"Raise Dead">>).
 
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
