@@ -6,6 +6,25 @@ victory conditions - randomly generated per world?
 
 Melee combat occurs on the same hex?  Maybe a charge out of Fortified mechanism?
 
+start phase:
+
+1. zombies attack from necro event
+2. need to inspect monolith to receive undead vanquisher bonus
+3. monolith buff decreases by distance away from it 
+4. kill zombies and scare away necromancer
+5. build tent for shelter, allows for sleep
+6. wolf attack at night, need to build walls 
+
+
+
+
+
+
+
+
+
+
+
 
 Necromancer Event:
 
