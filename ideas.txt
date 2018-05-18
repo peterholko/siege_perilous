@@ -35,7 +35,7 @@ Randomize Tile bonuses:
 -Rich Vein -> mining bonus
 -Old Growth -> woodcutting bonus
 -Teeming with Wildlife -> hunting bonus
--
+-Abundant Nature Stone -> stone cutting bonus
 
 
 
