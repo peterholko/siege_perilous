@@ -16,6 +16,37 @@ start phase:
 6. wolf attack at night, need to build walls 
 
 
+Sleep/Rest:
+Day to Night Ratio 20:2
+Villagers/Heros require 60 secs of sleep per day
+Villagers will take rest breaks throughout the day
+
+
+Water:
+Water will be required, “survey” for water and build wells, contaminated water, salt water, etc...
+
+Food:
+Farms will have to be planted 
+Hunting meat will have to be cooked or risk contamination
+Gathering berries/fruits/tubers
+
+Randomize Tile bonuses:
+-Fertile Soil -> farming bonus
+-Rich Vein -> mining bonus
+-Old Growth -> lumber bonus
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
