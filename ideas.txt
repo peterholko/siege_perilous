@@ -33,8 +33,9 @@ Gathering berries/fruits/tubers
 Randomize Tile bonuses:
 -Fertile Soil -> farming bonus
 -Rich Vein -> mining bonus
--Old Growth -> lumber bonus
-
+-Old Growth -> woodcutting bonus
+-Teeming with Wildlife -> hunting bonus
+-
 
 
 
