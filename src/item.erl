@@ -206,7 +206,7 @@ update(ItemId, NewQuantity) ->
     db:write(NewItem).
 
 create(Owner, Name, Quantity) ->
-    lager:debug("Owner: ~p Name: ~p Quantity: ~p", [Owner, Name, Quantity]),
+    lager:info("Owner: ~p Name: ~p Quantity: ~p", [Owner, Name, Quantity]),
     AllItems = db:dirty_index_read(item, Owner, #item.owner),
 
     NewItem = case filter_by_name(AllItems, Name) of

@@ -295,7 +295,7 @@ function handleRender(event) {
     if(startRender) {
 
         var currTime = createjs.Ticker.getTime();
-        if((currTime - lastRenderTime) >= 500) {
+        if((currTime - lastRenderTime) >= 200) {
 
             if(renderQueue.length > 0) {
                 updateObjs(renderQueue.shift());
@@ -886,7 +886,7 @@ function onMessage(evt) {
             }
         }
     }
-
+    console.log(evt.data);
     showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
 };
 
@@ -949,10 +949,13 @@ function updateObjs(packetChanges) {
                 localObjs[obj.id].prev_x = src_x;
                 localObjs[obj.id].prev_y = src_y;
                 localObjs[obj.id].op = 'added';
-            }
+            }            
+        } else if(eventType =="obj_delete") {            
+            var obj_id = events[i].obj_id;
 
-
+            localObjs[obj_id].op = 'deleted';
         } 
+
     }
 };
 
@@ -1295,7 +1298,7 @@ function drawAllObj() {
                 createjs.Tween.get(localObj.icon).to({x: pixel.x, y: pixel.y}, 500, createjs.Ease.linear);
             }
         } 
-        else if(localObj.op == 'removed') {
+        else if(localObj.op == 'deleted') {
 
             //Check if local has an icon and then delete
             if(localObj.hasOwnProperty('icon')) {       
@@ -1444,11 +1447,13 @@ function handleMoveComplete(evt) {
     var icon = evt.target;
     var obj = localObjs[icon.name];
 
-    if(!is_visible(obj.x, obj.y, visibleTiles)) {
-        var cont = icon.parent;
-        cont.removeChild(icon);
+    if(obj != false) {
+        if(!is_visible(obj.x, obj.y, visibleTiles)) {
+            var cont = icon.parent;
+            cont.removeChild(icon);
 
-        delete localObjs[obj.id];
+            delete localObjs[obj.id];
+        }
     }
 };
 
@@ -1772,6 +1777,7 @@ function drawDmg(jsonData) {
             createjs.Tween.get(dmgText).to({alpha: 0},3000);
 
             if(source && target) {
+                
                 var sprite = source.icon.getChildByName("sprite");
                 sprite.gotoAndPlay("attack");
 
@@ -1784,8 +1790,23 @@ function drawDmg(jsonData) {
                 var destX = (origX + diffX) - 36;
                 var destY = (origY + diffY) - 36;
 
-                createjs.Tween.get(source.icon).to({x: destX, y: destY}, 1000, createjs.Ease.getPowInOut(4))
-                                               .to({x: origX - 36, y: origY - 36}, 200, createjs.Ease.getPowInOut(2));
+                if(jsonData.attacktype == "Shadow Bolt") {
+                    
+                    var projectile = new createjs.Container();
+                    projectile.x = source.icon.x;
+                    projectile.y = source.icon.y;
+                    addChildLocalMap(projectile, "textLayer");
+
+                    addSprite({id: "shadowbolt", x: 0, y: 0, target: projectile, animation: "projectile", image: "shadowbolt"});
+
+
+                    createjs.Tween.get(projectile).to({x: target.icon.x, y: target.icon.y}, 1000, createjs.Ease.getPowInOut(4))
+                                                  .call(projectileComplete);
+                                                   
+                } else {
+                    createjs.Tween.get(source.icon).to({x: destX, y: destY}, 1000, createjs.Ease.getPowInOut(4))
+                                                   .to({x: origX - 36, y: origY - 36}, 200, createjs.Ease.getPowInOut(2));
+                }
             }
 
             if(jsonData.state == "dead") {
@@ -1807,35 +1828,42 @@ function drawDmg(jsonData) {
     }
 };
 
+function projectileComplete(evt) {
+    var projectile = evt.target;
+    removeChildLocalMap(projectile, "textLayer");
+}
+
 function drawSpeech(jsonData) {
     if(localPanel.visible) {
         var source = getLocalObj(jsonData.source);
 
-        var speechText = new createjs.Text(jsonData.text, '14px Alegreya', '#FFFFFF');
-        speechText.x = source.icon.x + 36;
-        speechText.y = source.icon.y - 15;
-        speechText.textAlign = "center";
-        speechText.lineWidth = 120;
+        if(source != false) {
 
-        if(jsonData.text.length > 5) {
+            var speechText = new createjs.Text(jsonData.text, '14px Alegreya', '#FFFFFF');
+            speechText.x = source.icon.x + 36;
+            speechText.y = source.icon.y - 15;
+            speechText.textAlign = "center";
+            speechText.lineWidth = 120;
 
-            var roundedRect = new createjs.Shape();
-            roundedRect.graphics.setStrokeStyle(1);
-            roundedRect.graphics.beginFill("rgba(0,0,0,0.5)");
-            roundedRect.graphics.drawRoundRect(source.icon.x - 60 + 36, 
-                                               source.icon.y - 20,
-                                               120,
-                                               40,
-                                               5);
+            if(jsonData.text.length > 5) {
 
-            addChildLocalMap(roundedRect, "textLayer");
-            createjs.Tween.get(roundedRect).to({alpha: 0},12000);
+                var roundedRect = new createjs.Shape();
+                roundedRect.graphics.setStrokeStyle(1);
+                roundedRect.graphics.beginFill("rgba(0,0,0,0.5)");
+                roundedRect.graphics.drawRoundRect(source.icon.x - 60 + 36, 
+                                                   source.icon.y - 20,
+                                                   120,
+                                                   40,
+                                                   5);
+
+                addChildLocalMap(roundedRect, "textLayer");
+                createjs.Tween.get(roundedRect).to({alpha: 0},6000);
+            }
+
+            addChildLocalMap(speechText, "textLayer");
+            createjs.Tween.get(speechText).to({alpha: 0},6000);
+            updateTextLog(source.name + ": " + jsonData.text);
         }
-
-        addChildLocalMap(speechText, "textLayer");
-        createjs.Tween.get(speechText).to({alpha: 0},12000);
-        
-        updateTextLog(source.name + ": " + jsonData.text);
     }
 };
 

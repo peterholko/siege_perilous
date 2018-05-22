@@ -16,7 +16,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([combo/2, attack/3, defend/2]).
+-export([combo/2, attack/3, defend/2, spell/3]).
 -export([has_stamina/2, stamina_cost/1, num_ticks/1]).
 -export([is_valid_target/1, is_adjacent/2, is_target_alive/1, is_targetable/1, is_combo_type/1, in_range/2]).
 -export([init_combos/1]).
@@ -47,6 +47,9 @@ attack(AttackType, SourceId, TargetId) ->
 defend(DefendType, SourceId) ->
     gen_server:cast({global, combat}, {defend, DefendType, SourceId}).
 
+spell(SpellType, SourceId, TargetId) ->
+    gen_server:cast({global, combat}, {spell, SpellType, SourceId, TargetId}).
+
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -55,14 +58,20 @@ init([]) ->
     {ok, []}.
 
 handle_cast({attack, AttackType, SourceId, TargetId}, Data) ->
-    lager:info("Attack ~p ~p ~p", [AttackType, SourceId, TargetId]), 
+    lager:debug("Attack ~p ~p ~p", [AttackType, SourceId, TargetId]), 
     process_attack(AttackType, SourceId, TargetId),
 
     {noreply, Data};
 
 handle_cast({defend, DefendType, SourceId}, Data) ->
-    lager:info("Defend ~p ~p", [DefendType, SourceId]),
+    lager:debug("Defend ~p ~p", [DefendType, SourceId]),
     process_defend(SourceId, DefendType),
+
+    {noreply, Data};
+
+handle_cast({spell, SpellType, SourceId, TargetId}, Data) ->
+    lager:debug("Spell ~p ~p ~p", [SpellType, SourceId, TargetId]), 
+    process_spell(SpellType, SourceId, TargetId),
 
     {noreply, Data};
 
@@ -116,6 +125,28 @@ process_attack(AttackType, AtkId, DefId) ->
     Parried = check_parry(HasParry),
 
     process_damage(Dodged, Parried, AttackType, AtkId, DefId).
+
+process_spell(_SpellType, CasterId, DefId) ->
+    %TODO spell damage
+    FinalDamage = 0,
+
+    DefHp = obj_attr:value(DefId, <<"hp">>),
+    NewHp = DefHp - FinalDamage,
+
+    UnitState = is_dead(NewHp),
+    Combo = false,
+    Countered = false,
+
+    broadcast_dmg(CasterId, DefId, ?SHADOW_BOLT, FinalDamage, UnitState, Combo, 
+                  Countered),
+
+    %Check if unit is dead 
+    case UnitState of
+        <<"alive">> ->
+            obj_attr:set(DefId, <<"hp">>, NewHp);
+        <<"dead">> ->
+            process_unit_dead(DefId)
+    end.
 
 %(Dodged, Parried, CombatData)
 process_damage(true, _Parried, _AttackType, _AtkId, _DefId) ->
@@ -184,11 +215,11 @@ calculate_damage(AttackType, AtkId, DefId) ->
 
     %Check if combo is finished
     Combo = check_combo(AtkId),
-    lager:info("Combo: ~p", [Combo]),
+    lager:debug("Combo: ~p", [Combo]),
 
     %Check if combo is countered
     Countered = check_countered(AttackType, HasDefend, Combo),
-    lager:info("Countered: ~p", [Countered]),
+    lager:debug("Countered: ~p", [Countered]),
     
     %Remove defend effect if countered
     remove_defend(Countered, DefId, HasDefend),
@@ -206,7 +237,7 @@ calculate_damage(AttackType, AtkId, DefId) ->
     RollDamage = util:rand(DamageRange) + BaseDamage,
 
     %Calculate Total Base Damage
-    lager:info("Roll: ~p Base: ~p Combo: ~p Type: ~p Effect: ~p ItemEffect: ~p", [RollDamage, ItemDamage, ComboDamage, AttackTypeDamage, AtkEffectDamage, AtkItemDamageEffect]),
+    lager:debug("Roll: ~p Base: ~p Combo: ~p Type: ~p Effect: ~p ItemEffect: ~p", [RollDamage, ItemDamage, ComboDamage, AttackTypeDamage, AtkEffectDamage, AtkItemDamageEffect]),
     TotalDamage = (RollDamage + ItemDamage) * ComboDamage * AttackTypeDamage * AtkEffectDamage * AtkItemDamageEffect,
 
     %Determin Total armor
@@ -242,7 +273,7 @@ calculate_damage(AttackType, AtkId, DefId) ->
     UnitState = is_dead(NewHp),
 
     %Broadcast damage
-    lager:info("Broadcasting countered: ~p ~p ~p", [Countered, HasDefend, countered(Countered, HasDefend)]),
+    lager:debug("Broadcasting countered: ~p ~p ~p", [Countered, HasDefend, countered(Countered, HasDefend)]),
     broadcast_dmg(AtkId, DefId, AttackType, FinalDamage, UnitState, Combo, countered(Countered, HasDefend)),
 
     %Check if unit is dead 
@@ -277,7 +308,6 @@ is_adjacent(SourceObj, TargetObj) ->
 is_targetable(#obj{id = Id}) ->
     HasWall = effect:has_effect(Id, ?FORTIFIED),
     IsTargetable = not HasWall,
-    lager:info("is_targetable: ~p", [IsTargetable]),
     IsTargetable.
 
 is_combo_type(?QUICK) -> true;

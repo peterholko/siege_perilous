@@ -8,19 +8,18 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([create/3, create/4, create/5, update_state/2]).
--export([remove/1]).
--export([process_create/1, process_update_state/2, process_move/2]).
+-export([create/3, create/4, create/5, delete/1, update_state/2]).
+-export([process_create/1, process_update_state/2, process_move/2, process_delete/1]).
 -export([update_hp/2, update_stamina/2, update_dead/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
 -export([has_vision/1]).
--export([trigger_effects/1]).
+-export([trigger_effects/1, trigger_inspect/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
--export([get_nearby_corpses/1]).
--export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, name/1, image/1]).
+-export([get_nearby_corpses/1, get_by_player/1]).
+-export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, name/1, image/1, vision/1]).
 -export([rec_to_map/1]).
 
 create(Pos, PlayerId, Template) ->
@@ -104,7 +103,6 @@ process_create(ObjId) ->
     case Vision > 0 of
         true ->
             %Create init perception 
-            lager:info("Creating perception..."),
             perception:create(NewObj),
 
             map:add_explored(NewObj#obj.player, NewObj#obj.pos, NewObj#obj.vision),
@@ -123,7 +121,12 @@ update_state(Obj, State) when is_record(Obj, obj) ->
     game:add_obj_update(self(), Obj#obj.id, ?STATE, State);
 update_state(ObjId, State) ->
     [Obj] = db:read(obj, ObjId),
-    update_state(Obj, State).
+    case Obj#obj.state =/= State of
+        true ->
+            update_state(Obj, State);
+        false ->
+            nothing
+    end.
 
 process_move(Obj, Pos) when is_record(Obj, obj) ->
     %Check if move can be completed
@@ -281,6 +284,33 @@ trigger_effects(#obj{pos = Pos, name = Name, subclass = Subclass, state = State}
 
 trigger_effects(_) -> nothing.
 
+trigger_inspect(Obj) ->
+    %Only trigger on structures and poi
+    %TODO FIX the structure macros
+    Result = (Obj#obj.class =:= structure) orelse (Obj#obj.class =:= poi),
+    lager:info("Inspect Obj: ~p ~p", [Obj, Result]),
+    
+    case Result of
+        true ->
+            apply_trigger(Obj);
+        false ->
+            nothing
+    end.
+
+apply_trigger(#obj{player = Player, subclass = Subclass, 
+                   state = State}) when (Subclass =:= ?MONOLITH) and
+                                        (State =/= ?DISABLED) ->
+    lager:info("Applying Holy Light"),    
+    AllObjs = get_by_player(Player),
+
+    F = fun(Obj) ->
+            effect:add(Obj#obj.id, ?HOLY_LIGHT, none)
+        end,
+
+    lists:foreach(F, AllObjs);
+apply_trigger(Obj) ->    
+    obj_attr:set(Obj#obj.id, <<"inspected">>, true).
+
 is_empty(Pos) ->
     Objs = db:dirty_index_read(obj, Pos, #obj.pos),
     Units = filter_units(Objs),
@@ -306,7 +336,7 @@ is_empty(SourceId, Pos) ->
 item_transfer(#obj {id = Id, 
                     subclass = Subclass, 
                     state = State}, Item) when (Subclass =:= ?MONOLITH) and 
-                                               (State =:= disabled)  ->
+                                               (State =:= ?DISABLED)  ->
     Name = maps:get(<<"name">>, Item),
 
     case Name of
@@ -346,6 +376,9 @@ get_by_attr(Player, AttrList) ->
 
     lists:filter(F, Objs).
 
+get_by_player(PlayerId) ->
+    db:index_read(obj, PlayerId, #obj.player).
+
 process_attrlist(Obj, AttrList) ->
     F = fun({class, Value}, Acc) when is_list(Value) -> lists:member(class(Obj), Value) and Acc;
            ({class, Value}, Acc) -> (class(Obj) =:= Value) and Acc;
@@ -365,6 +398,7 @@ state(Obj = #obj{}) -> Obj#obj.state.
 pos(Obj = #obj{}) -> Obj#obj.pos.
 name(Obj = #obj{}) -> Obj#obj.name.
 image(Obj = #obj{}) -> Obj#obj.image.
+vision(Obj = #obj{}) -> Obj#obj.vision.
 
 %Get vital stats
 get_stats(Id) ->
@@ -419,7 +453,6 @@ get_capacity(ObjId) ->
 
 get_nearby_corpses(SourceObj) ->
     Corpses = db:index_read(obj, ?CORPSE, #obj.subclass),
-    lager:info("Corpses: ~p", [Corpses]),
 
     F = fun(Corpse) ->
             Distance = map:distance(SourceObj#obj.pos, Corpse#obj.pos),
@@ -500,8 +533,7 @@ process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subcl
     Hero = #hero{player = Player, obj = Id},
     db:write(Hero);
 process_subclass(#obj{id = Id, player = Player, subclass = Subclass, modtick = Tick}) when Subclass =:= ?NPC ->
-    combat:init_combos(Id),
-    npc:create(Id, Player, Tick);
+    combat:init_combos(Id);
 process_subclass(#obj{id = Id, player = Player, subclass = Subclass, modtick = Tick}) when Subclass =:= ?VILLAGER ->
     villager:create(Id, Player, Tick); 
 process_subclass(#obj{pos = Pos, name = Name, subclass = Subclass}) when Subclass =:= ?MONOLITH ->
@@ -521,9 +553,22 @@ movement_cost(_Obj, NextPos) ->
     lager:debug("NextPos: ~p", [NextPos]),
     map:movement_cost(NextPos) * 8.
 
-remove(Id) ->
-    db:delete(villager, Id),
-    db:delete(npc, Id).
+delete(Id) ->
+    [Obj] = db:read(obj, Id),
+
+    case Obj#obj.subclass of
+        ?VILLAGER ->
+            villager:remove(Id);
+        ?NPC -> 
+            npc:remove(Id);
+        _ ->
+            nothing
+    end,
+
+    game:add_obj_delete(self(), Id, 1).
+
+process_delete(Id) ->
+    db:delete(obj, Id).
 
 filter_units(Objs) ->
     F = fun(Obj) -> Obj#obj.class =:= unit end,
@@ -585,6 +630,7 @@ info(Id) ->
     Info4 = maps:put(<<"items">>, Items, Info3),
     Info5 = maps:put(<<"skills">>, Skills, Info4),
     Info6 = maps:put(<<"effects">>, Effects, Info5),
+    lager:info("Info6: ~p", [Info6]),
 
     %Check if any subclass specific info should be added
     AllInfo = info_subclass(Obj#obj.subclass, Obj, Info6),

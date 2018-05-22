@@ -18,11 +18,7 @@
 	"base_vision": 2,
 	"aggression": "high",
 	"kill_xp": 100,
-	"orders": [
-		"guard",
-		"10",
-		"10"
-	]
+	"order": "wander"
 },
 {
 	"name": "Elite Zombie",
@@ -440,9 +436,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "5584539795960a150d4be6dd"
-	},
 	"name": "Warehouse",
 	"base_hp": 250,
 	"base_dmg": 0,
@@ -463,9 +456,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "55858b14408f73ff06e4a0c5"
-	},
 	"name": "Wolf",
 	"base_hp": 10,
 	"base_dmg": 2,
@@ -481,12 +471,9 @@
 	"base_vision": 3,
 	"base_stamina": 10000,
 	"kill_xp": 5,
-	"orders": [],
+	"orders": []
 },
 {
-	"_id": {
-		"$oid": "55c5980d5c1c1e641b6d2025"
-	},
 	"name": "Burned House",
 	"base_hp": 0,
 	"base_dmg": 0,
@@ -497,9 +484,6 @@
     "subtemplate": ""
 },
 {
-	"_id": {
-		"$oid": "55c598375c1c1e641b6d2026"
-	},
 	"name": "Haunted Mine",
 	"base_hp": 0,
 	"base_dmg": 0,
@@ -510,45 +494,33 @@
     "subtemplate": ""
 },
 {
-	"_id": {
-		"$oid": "55c5985b5c1c1e641b6d2027"
-	},
 	"name": "Graveyard",
 	"base_hp": 0,
 	"base_dmg": 0,
 	"base_def": 0,
 	"class": "poi",
 	"subclass": "poi",
-    "template": "Graveyard",
+    "template": "Graveyard"
 },
 {
-	"_id": {
-		"$oid": "55c598695c1c1e641b6d2028"
-	},
 	"name": "Sealed Cavern",
 	"base_hp": 0,
 	"base_dmg": 0,
 	"base_def": 0,
 	"class": "poi",
 	"subclass": "poi",
-    "template": "Sealed Cavern",
+    "template": "Sealed Cavern"
 },
 {
-	"_id": {
-		"$oid": "55c598775c1c1e641b6d2029"
-	},
 	"name": "Mausoleum",
 	"base_hp": 0,
 	"base_dmg": 0,
 	"base_def": 0,
 	"class": "poi",
 	"subclass": "poi",
-    "template": "Mausoleum",
+    "template": "Mausoleum"
 },
 {
-	"_id": {
-		"$oid": "55e62680a339c95c26af2c28"
-	},
 	"name": "Fire Dragon",
 	"base_hp": 500,
 	"base_stamina": 10000,
@@ -566,9 +538,6 @@
 	"npc_template": "Dragons"
 },
 {
-	"_id": {
-		"$oid": "5654bdc797d56a3098db61a6"
-	},
 	"name": "Monolith",
 	"mana": 10,
 	"class": "structure",
@@ -638,9 +607,6 @@
 	"npc_template": "Animals"
 },
 {
-	"_id": {
-		"$oid": "56aab1a997d56a3098db61ad"
-	},
 	"name": "Skeleton",
 	"base_hp": 10,
 	"base_stamina": 10000,
@@ -664,9 +630,6 @@
 	"npc_template": "Undead"
 },
 {
-	"_id": {
-		"$oid": "56aab1b297d56a3098db61ae"
-	},
 	"name": "Spider",
 	"base_hp": 10,
 	"base_stamina": 10000,
@@ -689,9 +652,6 @@
 	"npc_template": "Animals"
 },
 {
-	"_id": {
-		"$oid": "56aab1b997d56a3098db61af"
-	},
 	"name": "Wose",
 	"base_hp": 10,
 	"base_stamina": 10000,
@@ -788,7 +748,7 @@
 	]
 },
 {
-	"name": "Rakar The Resurrector",
+	"name": "Necromancer",
 	"base_hp": 1500,
 	"base_stamina": 10000,
 	"base_dmg": 4,
@@ -798,15 +758,12 @@
 	"class": "unit",
 	"subclass": "npc",
     "template": "Necromancer",
-	"int": "high",
+    "family": "Undead",
+	"int": "mindless",
 	"base_vision": 3,
 	"aggression": "high",
 	"kill_xp": 100,
-	"orders": [
-		"guard",
-		"10",
-		"10"
-	]
+	"order": "necro_event"
 },
 {
     "name": "Human Corpse", 

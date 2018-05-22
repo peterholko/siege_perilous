@@ -428,7 +428,7 @@ prepare(event_failure, {Event, Error}) ->
      {<<"error">>, atom_to_binary(Error, latin1)}];
 
 prepare(MessageType, Message) ->
-    lager:info("Message Type: ~p ~p", [MessageType, Message]),
+    lager:debug("Message Type: ~p ~p", [MessageType, Message]),
     Message.
 
 json_decode(Data) ->

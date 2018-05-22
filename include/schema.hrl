@@ -74,6 +74,10 @@
 -record(obj_delete, {obj,
                      source_pos}).
 
+-record(obj_hide, {obj}).
+
+-record(obj_reveal, {obj}).
+
 -record(map, {index,
               tile,
               layers}).
@@ -171,21 +175,6 @@
               type,
               task = none}).
 
--record(npc, {id,
-              player,
-              target = none,
-              order = wander,
-              order_data = none,
-              plan = [],
-              new_plan = false,
-              task_state = none,
-              task_index = 0,
-              path = none,
-              dest = none,
-              combo = [],
-              attacks = [],
-              data = #{}}).
-
 -record(state, {id, 
                 state,
                 data,
@@ -227,3 +216,20 @@
                   added,
                   removed,
                   updated}).
+
+-record(npc, {id,              
+              player, 
+              order,
+              target,
+              dest = none,
+              plan = [],
+              task_state = none,
+              task_index = 0,
+              path = none,
+              last_plan = 0,
+              last_run = 0, 
+              phase = 1,
+              attacks = [],
+              combo = [],
+              data = #{}}).
+

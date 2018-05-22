@@ -16,6 +16,7 @@
 -export([get_craftable_recipe/1]).
 -export([can_craft/1, can_refine/1]).
 -export([recipe_name/1]).
+-export([get_nearby_bones/1]).
 
 recipe_name(Recipe) -> maps:get(<<"item">>, Recipe).
 
@@ -241,4 +242,26 @@ process_upkeep_item(Structure, Subclass, UpkeepQuantity) ->
         [] ->
             true
     end.
+
+get_nearby_bones(SourceObj) ->
+    AllAdjPos = map:range(obj:pos(SourceObj), obj:vision(SourceObj)),
+    
+    F = fun(Pos, Acc) ->
+            ObjsOnPos = obj:get_by_pos(Pos),
+            lager:info("ObjsOnPos: ~p", [ObjsOnPos]),
+
+            G = fun(ObjOnPos, Acc2) ->
+                    case item:get_by_subclass(obj:id(ObjOnPos), ?BONES) of
+                        [] -> Acc2;
+                        [Bones | _] -> [Bones | Acc2]
+                    end
+                end,
+
+            Bones = lists:foldl(G, [], ObjsOnPos),
+
+            Bones ++ Acc
+        end,
+
+    [Bones | _] = lists:foldl(F, [], AllAdjPos),
+    Bones.
 

@@ -1,6 +1,12 @@
 -define(MAX_TIME, 2147483647).
 -define(MAX_INT, 2147483647).
 
+-ifdef(TEST).
+-define(FAST_EVENTS, true).
+-else.
+-define(FAST_EVENTS, false).
+-endif.
+
 -define(ERR_UNKNOWN, 0).
 -define(ERR_BAD_LOGIN, 1).
 -define(ERR_ACCOUNT_DISABLED, 2).
@@ -47,6 +53,7 @@
 -define(STATE, <<"state">>).
 -define(NONE, none).
 -define(DEAD, dead).
+-define(DELETING, deleting).
 -define(FOUNDED, founded).
 -define(PROGRESSING, progressing).
 -define(PROSPECTING, prospecting).
@@ -55,11 +62,14 @@
 -define(MOVING, moving).
 -define(BUILDING, building).
 -define(CASTING, casting).
+-define(HIDING, hiding).
+-define(DISABLED, disabled).
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
 -define(ANIMAL, 100).
 -define(EMPIRE, 101).
+-define(GUARDIANS, 102).
 -define(MAX_ZOMBIES, 100).
 
 -define(FOOD, <<"Food">>).
@@ -95,6 +105,8 @@
 -define(PARRY, <<"parry">>).
 -define(BRACE, <<"brace">>).
 
+%EFFECTS
+
 -define(DEEP_WOUND, <<"deep wound">>).
 -define(BLEED, <<"bleed">>).
 -define(CONCUSS, <<"concuss">>).
@@ -104,6 +116,8 @@
 -define(DISARM, <<"disarm">>).
 -define(DEMORALIZING_SHOUT, <<"demoralizing shout">>).
 -define(EXPOSE_ARMOR, <<"expose armor">>).
+
+-define(HOLY_LIGHT, <<"holy light">>).
 
 -define(DAMAGE, <<"damage">>).
 -define(ATTACK_SPEED, <<"attack_speed">>).
@@ -179,10 +193,11 @@
 -define(NECRO_PHASE1, 1).
 -define(NECRO_PHASE2, 2).
 -define(NECRO_RAISE_MANA, 10).
--define(NECRO_NUM_MINIONS, 10).
+-define(NECRO_NUM_MINIONS, 5).
 
 %MAGIC
 -define(RAISE_DEAD, <<"Raise Dead">>).
+-define(SHADOW_BOLT, <<"Shadow Bolt">>).
 
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).

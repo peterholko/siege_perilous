@@ -227,5 +227,12 @@
 	"class": "Resource",
 	"subclass": "Coins",
 	"weight": 1
-}]
+},
+{
+    "name": "bones",
+    "class": "Raw",
+    "subclass": "bones",
+    "weight": 10
+}    
+]
 

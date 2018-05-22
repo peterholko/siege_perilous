@@ -120,7 +120,14 @@ convert_event(#obj_create{obj = Obj}) ->
     ObjMap = obj:rec_to_map(Obj),
     #{<<"event">> => <<"obj_create">>,
       <<"obj">> => ObjMap};
+convert_event(#obj_reveal{obj = Obj}) ->
+    ObjMap = obj:rec_to_map(Obj),
+    #{<<"event">> => <<"obj_create">>,
+      <<"obj">> => ObjMap};
 convert_event(#obj_delete{obj = Obj}) ->
+    #{<<"event">> => <<"obj_delete">>,
+      <<"obj_id">> => obj:id(Obj)};
+convert_event(#obj_hide{obj = Obj}) ->
     #{<<"event">> => <<"obj_delete">>,
       <<"obj_id">> => obj:id(Obj)};
 convert_event(#obj_update{obj = Obj, attr = Attr, value = Value}) ->
@@ -168,7 +175,6 @@ add_observed_event(Observer = #obj{id = ObserverId},
         end,
 
     DiffEvents = lists:foldl(F, [], EntityDiff),
-    lager:info("DiffEvents: ~p", [DiffEvents]),   
     
     perception:clear_diff(Observer), 
 
@@ -192,6 +198,19 @@ add_observed_event(Observer, Event = #obj_create{obj = Obj, source_pos = SourceP
 
             [NewPerceptionEvent | AllEvents]
     end;
+add_observed_event(Observer, Event = #obj_reveal{obj = Obj}, AllEvents) ->
+    % Is visible by observer is not needed as the object initiated the hide
+    
+    case check_distance(Observer, obj:pos(Obj)) of
+        true ->
+            perception:update(Observer, Obj),
+
+            NewPerceptionEvent = {Observer, Event},
+
+            [NewPerceptionEvent | AllEvents];
+        false ->
+            AllEvents
+    end;
 
 add_observed_event(Observer, Event = #obj_delete{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     Result = {is_visible_by_observer(Observer, Obj),
@@ -209,6 +228,20 @@ add_observed_event(Observer, Event = #obj_delete{obj = Obj, source_pos = SourceP
             NewPerceptionEvent = {Observer, Event},
 
             [NewPerceptionEvent | AllEvents]
+    end;
+
+add_observed_event(Observer, Event = #obj_hide{obj = Obj}, AllEvents) ->
+    % Is visible by observer is not needed as the object initiated the hide
+    
+    case check_distance(Observer, obj:pos(Obj)) of
+        true ->
+            perception:remove(Observer, Obj),
+
+            NewPerceptionEvent = {Observer, Event},
+
+            [NewPerceptionEvent | AllEvents];
+        false ->
+            AllEvents
     end;
 
 add_observed_event(Observer, Event = #obj_update{obj = Obj, source_pos = SourcePos}, AllEvents) ->
@@ -276,7 +309,6 @@ add_observed_event(Observer, ObjMove = #obj_move{obj = Obj, source_pos = SourceP
     end.
 
 check_distance(Observer, Pos) ->
-    lager:debug("check_distance observer: ~p pos: ~p", [Observer, Pos]),
     Distance = map:distance(Observer#obj.pos, Pos),
     Distance =< Observer#obj.vision.
 
@@ -339,7 +371,6 @@ handle_cast({create, Obj}, Data) ->
                              data = PerceptionData},
 
     db:write(Perception),
-    lager:info("Inserted new perception: ~p", [Perception]),
 
     {noreply, Data};
 
@@ -379,7 +410,6 @@ handle_cast({recalculate, ObserverId}, Data) ->
 
     PrevDiff = Perception#perception.diff,
 
-    lager:info("Old: ~p New: ~p", [OldPerceptionData, NewPerceptionData]),
     DiffObjs = NewPerceptionData -- OldPerceptionData,
 
     NewPerception = Perception#perception{data = NewPerceptionData,
@@ -387,7 +417,6 @@ handle_cast({recalculate, ObserverId}, Data) ->
 
     db:write(NewPerception),
 
-    lager:info("NewPerception: ~p", [NewPerception]),
 
     {noreply, Data};
 
@@ -401,7 +430,6 @@ handle_cast({clear_diff, ObserverObj}, Data) ->
 
 handle_cast({broadcast, SourcePos, Range, MessageData}, Data) ->
     VisionObjs = get_nearby_objs(SourcePos, Range),
-    lager:info("VisionObjs: ~p", [VisionObjs]),
     broadcast_to_objs(VisionObjs, MessageData),
 
     {noreply, Data};    
@@ -411,7 +439,6 @@ handle_cast({broadcast, SourcePos, TargetPos, Range, MessageData}, Data) ->
     TargetObjs = get_nearby_objs(TargetPos, Range),
     VisionObjs = util:unique_list(SourceObjs ++ TargetObjs),
 
-    lager:info("VisionObjs: ~p", [VisionObjs]),
     broadcast_to_objs(VisionObjs, MessageData),
 
     {noreply, Data};    
@@ -432,7 +459,6 @@ handle_call({get_player, PlayerId}, _From, Data) ->
         end,
 
     PlayerPerception = util:unique_list(lists:foldl(F, [], AllPerception)),
-    lager:info("PlayerPerception: ~p", [PlayerPerception]),
 
     {reply, PlayerPerception, Data};
 
@@ -467,89 +493,11 @@ terminate(_Reason, _) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 
-notify_obj(Obj) ->
-    case obj:subclass(Obj) of
-        ?NPC ->
-            Process = global:whereis_name(npc),
-            send_to_process(Process, obj:id(Obj));
-        ?VILLAGER ->
-            Process = global:whereis_name(villager),
-            send_to_process(Process, obj:id(Obj));
-        _ -> 
-            nothing
-    end.
-
 player_entities(AllObj, Player) ->
     F = fun(Obj) -> (Obj#obj.vision > 0) and (Obj#obj.player =:= Player) end,
     lists:filter(F, AllObj).
 
-do_recalculate() ->
-    lager:debug("Perception recalculate"),
-    %Erase process dict
-    erase(),
-
-    %Get all entities
-    AllObj = ets:tab2list(obj),
-    Entities = filter_objs(AllObj),
-
-    lager:debug("Calculate perceptions ~p", [Entities]),
-    %Calculate each player entity perception
-    entity_perception(Entities, AllObj).
-
-filter_objs(AllObj) ->
-    F = fun(Obj) -> Obj#obj.vision > 0 end,
-    lists:filter(F, AllObj).
-
-entity_perception([], _AllObj) ->
-    done;
-
-entity_perception([Entity | Rest], AllObj) ->
-    lager:debug("Entity perception: ~p", [Entity]),    
-    NearbyObjs = visible_objs(AllObj, Entity),
-    lager:debug("NearbyObjs: ~p", [NearbyObjs]), 
-
-    %Compare previous perception to new perception
-    PreviousObjs = db:dirty_read(perception, Entity#obj.id),
-
-    %Compare old perception to new
-    Result = compare_perception(NearbyObjs, PreviousObjs),
-
-    store_perception(Result, Entity, NearbyObjs),
-
-    %Check if new perception must be sent
-    send_perception(Result, Entity, NearbyObjs),
-
-    entity_perception(Rest, AllObj).
-
-compare_perception(_New, []) -> false;
-compare_perception(New, [Old]) -> New =:= Old#perception.data.
-
-store_perception(false, Entity, NewPerception) ->
-    db:dirty_write(#perception {entity=Entity#obj.id, player=Entity#obj.player, data=NewPerception});
-store_perception(_Result, _EntityId, _NewPerception) ->
-    nothing.
-
-send_perception(true, _, _) -> nothing;
-send_perception(false, Entity, NewPerception) ->
-    case Entity#obj.subclass of
-        ?VILLAGER -> 
-            Process = global:whereis_name(villager),
-            send_to_process(Process, {Entity#obj.id, NewPerception});
-        _ -> 
-            nothing
-    end,
-
-    [Conn] = db:read(connection, Entity#obj.player),
-    send_to_process(Conn#connection.process, {Entity#obj.id, NewPerception}).
-
-send_to_process(Process, MessageData) when is_pid(Process) ->
-    lager:debug("Sending ~p to ~p", [MessageData, Process]),
-    Process ! {perception, MessageData};
-send_to_process(_Process, _MessageData) ->
-    none.
-
 broadcast_to_objs(Objs, Message) ->
-    lager:info("broadcast Message: ~p", [Message]),
     F = fun(Obj) ->
             case Obj#obj.player > ?NPC_ID of
                 true ->
@@ -560,7 +508,6 @@ broadcast_to_objs(Objs, Message) ->
                             Process ! {broadcast, NewMessage};
                         ?HERO -> 
                             [Conn] = db:read(connection, Obj#obj.player),
-                            lager:info("Broadcasting message: ~p", [NewMessage]),
                             Conn#connection.process ! {broadcast, NewMessage};
                         _ -> 
                             %No other subclasses require broadcasts
@@ -616,6 +563,7 @@ visible_objs(AllObjs, #obj {id = Id, pos = Pos, vision = Vision}) ->
                 maps:put(Target#obj.id, Target, PerceptionData); %Include self
            (Target, PerceptionData) ->
             Result = Target#obj.state =/= hiding andalso %Not hiding
+                     Target#obj.state =/= ?DELETING andalso %Not being deleted
                      Target#obj.vision >= 0 andalso %Obj being created
                      map:distance(Pos, Target#obj.pos) =< Vision,
 
@@ -642,9 +590,3 @@ get_nearby_objs(SourcePos, Range) ->
 
     lists:filter(F, AllObj).
 
-
-get_observers(PlayerId) ->
-    Objs = db:dirty_index_read(obj, PlayerId, #obj.player),
-
-    F = fun(Obj) -> Obj#obj.vision =:= 0 end,
-    lists:filter(F, Objs).

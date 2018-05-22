@@ -13,24 +13,21 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--record(ndata, {id, 
-                plan = [],
-                plan_data = none,
-                task_state = none,
-                task_index = 0,
-                path = none,
-                last_plan,
-                last_run,
-                plan_start_time}).
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([create/3, process/1, get_nearest/3]).
--export([hp_normal/1, hp_very_low/1, target_visible/1, target_adjacent/1, max_guard_dist/1]).
--export([set_pos_flee/1, move_random_pos/1, move_to_target/1, attack/1, move_to_pos/1]).
--export([get_player_id/1, remove/1, set_order/3, set_event/2, generate/2, generate/3]).
+-export([create/2, create/3, create/4, state/1, remove/1, process/1, create_plan/1, run_plan/1,
+         set_order/2, set_order/3, set_data/2, get_nearest/3]).
+-export([hp_normal/1, hp_very_low/1, target_visible/1, target_adjacent/1, max_guard_dist/1, is_state/2]).
+-export([is_not_structure_inspected/1]).
+-export([set_pos_flee/1, set_pos_guard/1, set_pos_order/1,
+         move_random_pos/1, move_to_target/1, attack/1, move_to_pos/1]).
+-export([get_player_id/1]).
 -export([has_mana/2, phase_id/2, corpses_nearby/1, move_in_range/1, cast_raise_dead/1, 
-         cast_shadow_bolt/1, set_pos_mausoleum/1, hide_by_mausoleum/1, next_phase/1]). 
+         cast_shadow_bolt/1, set_pos_mausoleum/1, hide/1, reveal/1, next_phase/1]).
+-export([mausoleum_corpses_nearby/1, mausoleum_guardian_dead/1, has_minions/3, are_minions_dead/1, swarm_attack/1]).
+-export([say_guard_text/1]).
+-export([idle/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -38,8 +35,17 @@
 start() ->
     gen_server:start({global, npc}, npc, [], []).
 
-create(Id, Player, Tick) ->
-    gen_server:cast({global, npc}, {create, Id, Player, Tick}).
+create(Pos, Template) ->
+    gen_server:call({global, npc}, {create, Pos, Template}).
+
+create(Pos, Player, Template) ->
+    gen_server:call({global, npc}, {create, Pos, Player, Template}).
+
+create(Pos, Player, Template, State) ->
+    gen_server:call({global, npc}, {create, Pos, Player, Template, State}).
+
+state(Id) ->
+    gen_server:call({global, npc}, {state, Id}).
 
 remove(Id) ->
     gen_server:cast({global, npc}, {remove, Id}).
@@ -47,52 +53,40 @@ remove(Id) ->
 process(Tick) ->
     gen_server:cast({global, npc}, {process, Tick}).
 
+create_plan(Tick) ->
+    gen_server:cast({global, npc}, {create_plan, Tick}).
+
+run_plan(Tick) ->
+    gen_server:cast({global, npc}, {run_plan, Tick}).
+
+set_order(Id, Order) ->
+    gen_server:cast({global, npc}, {set_order, Id, Order}).
+
+set_order(Id, Order, Data) ->
+    gen_server:cast({global, npc}, {set_order, Id, Order, Data}).
+
+set_data(Id, Data) ->
+    gen_server:cast({global, npc}, {set_data, Id, Data}).
+
+
 get_player_id(NPCType) ->
     [NPCPlayer] = db:index_read(player, NPCType, #player.name),
     NPCPlayer#player.id.
 
-set_order(Id, Orders, OrdersData) ->
-    [NPC] = db:read(npc, Id),
-
-    NewNPC = NPC#npc {order = Orders, 
-                      order_data = OrdersData},
-    db:write(NewNPC).
-
-set_event(Id, Event) ->
-    [NPC] = db:read(npc, Id),
-    Data = #{phase => 1},
-
-    NewNPC = NPC#npc{order = Event,
-                     data = Data},
-    db:write(NewNPC).
-
-generate(Pos, Template) ->
-    Family = obj_template:value(Template, <<"family">>),
-    PlayerId = get_player_id(Family),
-    Id = obj:create(Pos, PlayerId, Template),
-    Id.
-
-generate(Pos, PlayerId, Template) ->
-    Id = obj:create(Pos, PlayerId, Template),
-    Id.
-
 %% HTN Conditions %%%
 
-target_visible(Id) ->
-    [NPC] = db:read(npc, Id),
+target_visible(NPC) ->
     NPC#npc.target =/= none.
 
-max_guard_dist(Id) ->
-    [NPC] = db:read(npc, Id),
+max_guard_dist(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
 
-    GuardPos = NPC#npc.order_data,
+    GuardPos = maps:get(guard_pos, NPC#npc.data),
     NPCPos = NPCObj#obj.pos,
 
     map:distance(GuardPos, NPCPos) > 3. 
 
-target_adjacent(Id) ->
-    [NPC] = db:read(npc, Id),
+target_adjacent(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
 
     case NPC#npc.target =/= none of
@@ -103,16 +97,14 @@ target_adjacent(Id) ->
             false
     end.
 
-hp_normal(Id) ->
-    [NPC] = db:read(npc, Id),
+hp_normal(NPC) ->
     NPCHp = obj_attr:value(NPC#npc.id, <<"hp">>),
     NPCBaseHp = obj_attr:value(NPC#npc.id, <<"base_hp">>),
     
     HpNormal = (NPCHp / NPCBaseHp) > 0.20,
     HpNormal.
 
-hp_very_low(Id) ->
-    [NPC] = db:read(npc, Id),
+hp_very_low(NPC) ->
     NPCHp = obj_attr:value(NPC#npc.id, <<"hp">>),
     NPCBaseHp = obj_attr:value(NPC#npc.id, <<"base_hp">>),
     
@@ -122,18 +114,78 @@ hp_very_low(Id) ->
 has_mana(_Id, _ManaValue) ->
     true.
 
+is_state(NPC, State) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
+    obj:state(NPCObj) =:= State.
+
 %%% Event Conditions %%%
-phase_id(Id, EventPhase) ->
-    [NPC] = db:read(npc, Id),
+phase_id(NPC, EventPhase) ->
+    NPC#npc.phase =:= EventPhase.
 
-    NPCPhase = maps:get(phase, NPC#npc.data),
-    NPCPhase =:= EventPhase.
+corpses_nearby(NPC) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
+    Result = obj:get_nearby_corpses(NPCObj) =/= [],
+    Result.
 
-corpses_nearby(Id) ->
-    [NPCObj] = db:read(obj, Id),
-    obj:get_nearby_corpses(NPCObj) =/= [].
+mausoleum_corpses_nearby(NPC) ->
+    MausoleumId = maps:get(mausoleum, NPC#npc.data),
+    ListOfBones = item:get_by_subclass(MausoleumId, ?BONES),
+    ListOfBones =/= [].
+
+mausoleum_guardian_dead(NPC) ->
+    GuardianId = maps:get(mausoleum_guard, NPC#npc.data),
+
+    Result = case obj:get(GuardianId) of
+        invalid -> true;
+        GuardianObj -> obj:state(GuardianObj) =:= ?DEAD
+    end,
+    Result.
+
+has_minions(NPC, Operator, Value) ->
+    AllPlayerObjs = obj:get_by_player(NPC#npc.player),
+
+    F = fun(Obj) ->
+            obj:id(Obj) =/= NPC#npc.id
+        end,
+
+    Minions = lists:filter(F, AllPlayerObjs),
+    NumMinions = length(Minions),
+
+    Result = case Operator of
+        less -> NumMinions < Value;
+        moreorequal -> NumMinions >= Value
+    end,
+    Result.
+
+are_minions_dead(NPC) ->
+    AllPlayerObjs = obj:get_by_player(NPC#npc.player),
+
+    Result = case AllPlayerObjs of
+                 [] -> 
+                     false;
+                 _ ->
+                     F = fun(Obj) ->
+                            obj:state(Obj) =:= ?DEAD
+                         end,
+
+                     lists:all(F, AllPlayerObjs)
+             end,
+    Result.
+
+is_not_structure_inspected(NPC) ->
+    GuardingStructureId = maps:get(guarding_structure, NPC#npc.data),
+    Inspected = obj_attr:value(GuardingStructureId, <<"inspected">>, false),
+    not Inspected.
 
 %%% HTN Primitives %%%
+
+set_pos_guard(NPC) ->
+    GuardPos = maps:get(guard_pos, NPC#npc.data),
+    NPC#npc {dest = GuardPos, task_state = completed}.
+
+set_pos_order(NPC) ->
+    Pos = maps:get(order_pos, NPC#npc.data),
+    NPC#npc {dest = Pos, task_state = completed}.
 
 set_pos_flee(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
@@ -141,8 +193,9 @@ set_pos_flee(NPC) ->
     Radius = 5,
     RandomPos = map:random_location_from(NPCObj#obj.player, NPCObj#obj.pos, Radius),
 
-    NewNPC = NPC#npc {order_data = RandomPos},
-    db:write(NewNPC).
+    NewData = maps:put(<<"flee_pos">>, RandomPos, NPC#npc.data),
+
+    NPC#npc {data = NewData, task_state = completed}.
 
 move_random_pos(NPC) ->
     [NPCObj] = db:dirty_read(obj, NPC#npc.id),
@@ -175,6 +228,7 @@ move_to_target(NPC) ->
                     NPC#npc {task_state = running,
                              path = Path};
                 true ->
+                    obj:update_state(NPC#npc.id, none),
                     NPC#npc {task_state = completed}
             end
     end.
@@ -206,7 +260,9 @@ attack(NPC) ->
              combat:attack(NextAttack, NPC#npc.id, NPC#npc.target),
 
              EventData = NPC#npc.id,
-             game:add_event(self(), attack, EventData, NPC#npc.id, util:rand(16) + 6),
+             EventTicks = event_ticks(util:rand(16) + 6),
+
+             game:add_event(self(), attack, EventData, NPC#npc.id, EventTicks),
 
              NPC#npc {task_state = running,
                       combo = Combo,                      
@@ -221,94 +277,250 @@ move_to_pos(NPC) ->
     Dest = NPC#npc.dest,
 
     %If dest is set and dest does not equal villager current pos
-    NewVillager = case (Dest =/= none) and (Dest =/= NPCObj#obj.pos) of
-                      true ->
-                         Path = astar:astar(NPCObj#obj.pos, Dest, NPCObj),
+    NewNPC = case (Dest =/= none) and (Dest =/= NPCObj#obj.pos) of
+                  true ->
+                     Path = astar:astar(NPCObj#obj.pos, Dest, NPCObj),
 
-                         case Path of
-                             [] -> 
-                                 %No path, move task completed
-                                 NPC#npc {task_state = completed};
-                             _ -> 
-                                 %Move to next path location
-                                 move_unit(NPCObj, lists:nth(2, Path)),
-                                 NPC#npc {task_state = running, path = Path}
-                         end;
-                      false ->
-                         NPC#npc {task_state = completed}
-                 end,
-    NewVillager.
+                     case Path of
+                         [] -> 
+                             %No path, move task completed
+                             NPC#npc {task_state = completed};
+                         _ -> 
+                             %Move to next path location
+                             move_unit(NPCObj, lists:nth(2, Path)),
+                             NPC#npc {task_state = running, path = Path}
+                     end;
+                  false ->
+                     obj:update_state(NPC#npc.id, none),
+                     NPC#npc {task_state = completed}
+            end,
+    NewNPC.
 
 move_in_range(NPC) ->
-    NPC#npc{task_state = completed}.
+    [NPCObj] = db:read(obj, NPC#npc.id),
+
+    case NPC#npc.target of
+        none ->
+            %Invalid target due to either moving out of range or dying
+            NPC#npc {task_state = completed};
+        _ -> 
+            [TargetObj] = db:read(obj, NPC#npc.target),
+
+            Distance = map:distance(NPCObj#obj.pos, TargetObj#obj.pos),
+            Range = 2, %TODO fix hardcoded 2
+
+            Compare = compare_dist_range(Distance, Range),
+
+            case compare_dist_range(Distance, Range) of
+                out_of_range ->
+                    OptimalRing = map:ring(TargetObj#obj.pos, Range),
+                        
+                    case map:get_closest(NPCObj#obj.pos, OptimalRing) of
+                        none ->
+                            obj:update_state(NPC#npc.id, none),
+                            NPC#npc {task_state = completed};
+                        ClosestPos ->                          
+                            Path = astar:astar(NPCObj#obj.pos, ClosestPos, NPCObj),
+                            move_next_path(NPCObj, Path),
+            
+                            NPC#npc {task_state = running, path = Path}
+                    end;
+                optimal_range ->
+                    obj:update_state(NPC#npc.id, none),
+                    NPC#npc {task_state = completed}
+            end
+    end.
 
 cast_raise_dead(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
     
-    [Corpse | _] = obj:get_nearby_corpses(NPCObj),
+    EventData = case obj:get_nearby_corpses(NPCObj) of
+                    [Corpse | _] ->
+                        {NPC#npc.id, {obj, obj:id(Corpse)}, ?RAISE_DEAD};
+                    [] ->
+                        Bones = structure:get_nearby_bones(NPCObj),
+                        {NPC#npc.id, {item, item:id(Bones)}, ?RAISE_DEAD}
+                end,
 
-    EventData = {NPC#npc.id, obj:id(Corpse), ?RAISE_DEAD},
+    EventTicks = event_ticks(?TICKS_SEC * 10),
     
-    game:add_event(self(), cast, EventData, NPC#npc.id, ?TICKS_SEC * 10),
-    game:add_obj_update(self(), NPC#npc.id, ?STATE, ?CASTING, 0),
+    game:add_event(self(), cast, EventData, NPC#npc.id, EventTicks),
+    game:add_obj_update(self(), NPC#npc.id, ?STATE, ?CASTING, 1),
 
-    sound:talk(NPC#npc.id, "Raise from the dead my minions!"),
+    sound:talk(NPC#npc.id, "Rise from the dead, Uus Corp!"),
 
-    NPC#npc{task_state = completed}.
+    NPC#npc{task_state = running}.
 
 cast_shadow_bolt(NPC) ->
+    [_NPCObj] = db:read(obj, NPC#npc.id),
+
+    EventData = {NPC#npc.id, NPC#npc.target, ?SHADOW_BOLT},
+    EventTicks = event_ticks(?TICKS_SEC * 10),
+
+    game:add_event(self(), cast, EventData, NPC#npc.id, EventTicks),
+    game:add_obj_update(self(), NPC#npc.id, ?STATE, ?CASTING, 1),
+
+    sound:talk(NPC#npc.id, "Wis An Ben!"),
+
     NPC#npc{task_state = completed}.
 
 set_pos_mausoleum(NPC) ->
-    MausoleumPos = maps:get(mausoleum_pos, NPC#npc.data),
-    NPC#npc{dest = MausoleumPos, task_state = completed}.
+    MausoleumId = maps:get(mausoleum, NPC#npc.data),
+    Mausoleum = obj:get(MausoleumId),
+        
+    NPC#npc{dest = obj:pos(Mausoleum), task_state = completed}.
 
-hide_by_mausoleum(NPC) ->
-    obj:update_state(NPC#npc.id, hiding), 
-    NPC#npc{task_state = compelted}.
+hide(NPC) ->
+    game:add_obj_hide(self(), NPC#npc.id, 1),
+    NPC#npc{task_state = completed}.
+
+reveal(NPC) ->
+    lager:info("NPC Reveal!"),
+    game:add_obj_reveal(self(), NPC#npc.id, 1),
+    NPC#npc{task_state = completed}.
 
 next_phase(NPC) ->
-    Phase = maps:get(phase, NPC#npc.data),
+    Phase = NPC#npc.phase,
     NextPhase = Phase + 1,
-    NewData = maps:put(phase, NextPhase, NPC#npc.data),
-    NPC#npc{data = NewData}.
+    NPC#npc{phase = NextPhase}.
+
+swarm_attack(NPC) ->
+    Minions = obj:get_by_player(NPC#npc.player),
+
+    %TODO FIX this
+    MonolithPos = #{order_pos => {18,35}},
+
+    F = fun(Minion) ->
+            Result = (obj:class(Minion) =:= unit) and 
+                     (obj:id(Minion) =/= NPC#npc.id),
+
+            case Result of
+                true ->
+                    set_order(obj:id(Minion), move_to_pos, MonolithPos);
+                _ ->
+                    nothing
+            end
+        end,
+
+    lists:foreach(F, Minions),
+    NPC#npc{task_state = completed}.
+
+idle(NPC) ->
+    NPC.
+
+say_guard_text(NPC) ->
+    Text = maps:get(guard_text, NPC#npc.data, "Thou shall not pass!"),
+    sound:talk(NPC#npc.id, Text),
+
+    NPC#npc{task_state = completed}.
+
 
 %% ====================================================================
 %% Server functions
 %% ====================================================================
 
 init([]) ->
-    NPCData = [],
-
-    {ok, NPCData}.
-
-handle_cast({create, NPCId, Player, _Tick}, Data) ->   
-    lager:info("Create NPC ~p", [NPCId]),
-    NPC = #npc{id = NPCId,
-               player = Player},
-    db:write(NPC),
-
-    NData = #ndata{id = NPCId,
-                   last_plan = 0,
-                   last_run = 0},
-
-    NewData = [NData | Data],
-
-    {noreply, NewData};
+    Data = #{},
+    {ok, Data}.
 
 handle_cast({process, Tick}, Data) ->
     NewData = create_new_plans(Tick, Data),
     NewData2 = run_new_plans(Tick, NewData),
-
     {noreply, NewData2};
 
+handle_cast({create_plan, Tick}, Data) ->
+    NewData = create_new_plans(Tick, Data),
+    {noreply, NewData};
+
+handle_cast({run_plan, Tick}, Data) ->
+    NewData = run_new_plans(Tick, Data),
+    {noreply, NewData};
+
 handle_cast({remove, NPCId}, Data) ->
-    NewData = lists:keydelete(NPCId, #ndata.id, Data),
+    NewData = maps:remove(NPCId, Data),
+    {noreply, NewData};
+
+handle_cast({set_order, NPCId, Order}, Data) ->
+    NPC = maps:get(NPCId, Data),
+    NewNPC = NPC#npc {order = Order},
+    NewData = maps:update(NPCId, NewNPC, Data),
+
+    {noreply, NewData};
+
+handle_cast({set_order, NPCId, Order, NPCData}, Data) ->
+    NPC = maps:get(NPCId, Data),
+    
+    NewNPCData = maps:merge(NPC#npc.data, NPCData),
+
+    NewNPC = NPC#npc {order = Order,
+                      data = NewNPCData},
+
+    NewData = maps:update(NPCId, NewNPC, Data),
+
+    {noreply, NewData};
+
+handle_cast({set_data, NPCId, NPCData}, Data) ->
+    NPC = maps:get(NPCId, Data),
+    
+    NewNPCData = maps:merge(NPC#npc.data, NPCData),
+
+    NewNPC = NPC#npc {data = NewNPCData},
+
+    NewData = maps:update(NPCId, NewNPC, Data),
 
     {noreply, NewData};
 
 handle_cast(stop, Data) ->
     {stop, normal, Data}.
+
+%TODO CLEAN UP CREATE HERE
+handle_call({create, Pos, Template}, _From, Data) ->
+    lager:info("Creating NPC: ~p", [Template]),
+    Family = obj_template:value(Template, <<"family">>),
+    PlayerId = get_player_id(Family),
+    NPCId = obj:create(Pos, PlayerId, Template),
+
+    NPC = #npc{id = NPCId,
+               player = PlayerId,
+               order = get_order(NPCId),
+               last_plan = ?MAX_INT,
+               last_run = ?MAX_INT},
+
+    NewData = maps:put(NPCId, NPC, Data),
+
+    {reply, NPCId, NewData};
+
+handle_call({create, Pos, PlayerId, Template}, _From, Data) ->
+    lager:info("Creating NPC: ~p", [Template]),
+    NPCId = obj:create(Pos, PlayerId, Template),
+
+    NPC = #npc{id = NPCId,
+               player = PlayerId,
+               order = get_order(NPCId),
+               last_plan = ?MAX_INT,
+               last_run = ?MAX_INT},
+
+    NewData = maps:put(NPCId, NPC, Data),
+
+    {reply, NPCId, NewData};
+
+handle_call({create, Pos, PlayerId, Template, State}, _From, Data) ->
+    lager:info("Creating NPC: ~p", [Template]),
+    NPCId = obj:create(Pos, PlayerId, Template, State),
+
+    NPC = #npc{id = NPCId,
+               player = PlayerId,
+               order = get_order(NPCId),
+               last_plan = ?MAX_INT,
+               last_run = ?MAX_INT},
+
+    NewData = maps:put(NPCId, NPC, Data),
+
+    {reply, NPCId, NewData};
+
+handle_call({state, Id}, _From, Data) ->
+    State = maps:get(Id, Data, none),
+    {reply, State, Data};
 
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 
@@ -319,21 +531,27 @@ handle_call(Event, From, Data) ->
                              ]),
     {noreply, Data}.
 
-handle_info({perception, _NPCId}, Data) ->
-    lager:debug("Perception received."),
-    lager:debug("Perception processing end."),
+handle_info({event_complete, {obj_create, NPCId}}, Data) ->
+
+    NPC = maps:get(NPCId, Data),
+    NewNPC = NPC#npc {last_plan = 0,
+                      last_run = 0},
+    NewData = maps:update(NPCId, NewNPC, Data),
+
+    {noreply, NewData};
+
+handle_info({event_complete, {obj_update, _NPCId}}, Data) ->
+    %Do not want process_complete to run for obj_update, TODO rework
     {noreply, Data};
 
 handle_info({event_complete, {_Event, Id}}, Data) ->
-    lager:debug("NPC received event_complete"),
-    NPC = db:read(npc, Id),
 
-    %Determine next task or if NPC is dead do nothing
-    process_event_complete(NPC),
+    NPC = maps:get(Id, Data, false),
+    NewData = process_complete(NPC, Data),
 
-    {noreply, Data};
+    {noreply, NewData};
+
 handle_info({event_cancel, {EventId, Id}}, Data) ->
-    lager:debug("NPC Event cancelled ~p ~p", [EventId, Id]),
     {noreply, Data};
 handle_info(_Info, Data) ->
     {noreply, Data}.
@@ -347,39 +565,31 @@ terminate(_Reason, _) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-
 create_new_plans(Tick, Data) ->
-    F = fun(NData, Acc) ->
-            case Tick >= (NData#ndata.last_plan + (2 * ?TICKS_SEC)) of
+    F = fun(NPCId, NPC, Acc) ->
+            case Tick >= (NPC#npc.last_plan + (2 * ?TICKS_SEC)) of
                 true ->
-                    [NPC] = db:dirty_read(npc, NData#ndata.id),
-                    process_plan(NPC),
-
-                    NewNData = NData#ndata{last_plan = Tick},
-                    [NewNData | Acc];
+                    NewNPC = process_plan(NPC, Tick),
+                    maps:put(NPCId, NewNPC, Acc);
                 false ->
-                    [NData | Acc]
+                    maps:put(NPCId, NPC, Acc)
             end
         end,
 
-    lists:foldl(F, [], Data). 
+    maps:fold(F, #{}, Data). 
 
 run_new_plans(Tick, Data) ->
-    F = fun(NData, Acc) ->
-            case Tick >= (NData#ndata.last_run + (2 * ?TICKS_SEC) + 2) of
+    F = fun(NPCId, NPC, Acc) ->
+            case Tick >= (NPC#npc.last_run + (2 * ?TICKS_SEC)) of
                 true ->
-                    [NPC] = db:dirty_read(npc, NData#ndata.id),
-                    process_run_plan(NPC),
-
-                    NewNData = NData#ndata{last_run = Tick},
-                    [NewNData | Acc];
+                    NewNPC = process_run_plan(NPC, Tick),
+                    maps:put(NPCId, NewNPC, Acc);
                 false ->
-                    [NData | Acc]
+                    maps:put(NPCId, NPC, Acc)
             end
         end,
 
-    lists:foldl(F, [], Data).
-
+    maps:fold(F, #{}, Data).
 
 filter_targets(PlayerId, AllPerception) ->
     F = fun(TargetId, Targets) ->
@@ -401,38 +611,37 @@ valid_target(SrcPlayer, TargetPlayer) when SrcPlayer =:= TargetPlayer -> false; 
 valid_target(_SrcPlayer, TargetPlayer) when TargetPlayer < ?NPC_ID -> false; %Ignore other npc
 valid_target(_, _) -> true.
 
-process_plan(NPC) ->
-    process_perception(NPC#npc.id),
+process_plan(NPC, Tick) ->
+    NewNPC = process_perception(NPC),
 
-    CurrentPlan = NPC#npc.plan,    
-    {_PlanLabel, NewPlan} = htn:plan(NPC#npc.order, NPC#npc.id, npc),
+    CurrentPlan = NewNPC#npc.plan,    
+    {_PlanLabel, NewPlan} = htn:plan(NewNPC#npc.order, NewNPC, npc),    
 
     case NewPlan =:= CurrentPlan of
         false ->
             %New plan cancel current event
-            game:cancel_event(NPC#npc.id),
+            game:cancel_event(NewNPC#npc.id),
 
             %Reset NPC variables
-            NewNPC = NPC#npc {plan = NewPlan,
-                              task_state = init,
-                              task_index = 1},
-
-            db:write(NewNPC);
+            NewNPC#npc {plan = NewPlan,
+                        task_state = init,
+                        task_index = 1, 
+                        last_plan = Tick};
         true ->
-            nothing
+            NewNPC#npc {last_plan = Tick}
     end.
 
-process_run_plan(NPC) ->
+process_run_plan(NPC, Tick) ->
     case NPC#npc.plan of
-        [] -> nothing;
-        _ -> %Process npc task state
+        [] -> 
+            NPC#npc{last_run = Tick};
+        _ ->
             NewNPC = process_task_state(NPC#npc.task_state, NPC),
-            db:write(NewNPC)
+            NewNPC#npc{last_run = Tick}
     end.
 
 process_task_state(init, NPC) ->
     TaskToRun = lists:nth(1, NPC#npc.plan),
-    lager:debug("NPC: ~p Running task: ~p", [NPC#npc.id, TaskToRun]),
     NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
     NewNPC;
 process_task_state(completed, NPC) ->
@@ -440,13 +649,11 @@ process_task_state(completed, NPC) ->
     PlanLength = length(NPC#npc.plan),
 
     NextTask = get_next_task(TaskIndex, PlanLength),
-    lager:debug("NPC: ~p NextTask: ~p ", [NPC#npc.id, NextTask]),
 
     case NextTask of
         {next_task, NextTaskIndex} ->
             TaskToRun = lists:nth(NextTaskIndex, NPC#npc.plan),
             NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
-            lager:debug("NewNPC: ~p", [NewNPC]),
             NewNPC#npc{task_index = NextTaskIndex};
         plan_completed -> 
             NPC#npc{task_state = init, task_index = 1}
@@ -454,48 +661,10 @@ process_task_state(completed, NPC) ->
 process_task_state(running, NPC) ->
     NPC.
 
-process_event_complete([NPC]) ->
-    Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
-
+complete_task(NPC) ->
     obj:update_state(NPC#npc.id, none),
 
-    case Task of
-        move_random_pos ->
-            complete_task(NPC);
-        move_to_target ->
-            process_move_to_target_complete(NPC);
-        move_to_pos ->
-            move_to_pos(NPC#npc.id);
-        attack ->
-            complete_task(NPC);
-        _ ->
-            nothing
-    end;
-process_event_complete(_) -> 
-    nothing.
-
-process_move_to_target_complete(NPC) ->
-    [NPCObj] = db:read(obj, NPC#npc.id),
-
-    case NPC#npc.target of
-        none -> 
-            NewNPC = NPC#npc{task_state = completed},
-            db:write(NewNPC);
-        TargetId ->
-            [TargetObj] = db:read(obj, TargetId),
-
-            case map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos) of
-                false ->
-                    move_to_target(NPC);
-                true ->
-                    NewNPC = NPC#npc{task_state = completed},
-                    db:write(NewNPC)
-            end
-    end.
-
-complete_task(NPC) ->
-    NewNPC = NPC#npc{task_state = completed},
-    db:write(NewNPC).
+    NPC#npc{task_state = completed}.
 
 get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
     NewTaskIndex = TaskIndex + 1,
@@ -509,7 +678,7 @@ move_next_path(NPCObj, Path) -> move_unit(NPCObj, lists:nth(2, Path)).
 move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) when is_tuple(NewPos) ->
     SourcePos = Pos,
     DestPos = NewPos,
-    MoveTicks = obj:movement_cost(Obj, DestPos),
+    MoveTicks = event_ticks(obj:movement_cost(Obj, DestPos)),
 
     %Add obj update state to change to moving state on next tick
     game:add_obj_update(self(), Id, ?STATE, ?MOVING, 0),
@@ -627,20 +796,46 @@ combo({<<"Undead">>, <<"Shadow">>}, Num) when Num < 50 -> [?QUICK, ?PRECISE, ?FI
 combo({<<"Undead">>, <<"Shadow">>}, _) -> [?PRECISE, ?FIERCE, ?PRECISE, ?PRECISE];
 combo(_, _) -> [?QUICK, ?QUICK, ?QUICK, ?FIERCE].
 
-process_perception(NPCId) ->
-    [NPCObj] = db:read(obj, NPCId),
-    [NPC] = db:read(npc, NPCId),
+process_perception(NPC) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
 
     Perception = perception:get_entity(NPCObj),
 
     %Remove from same player and non targetable objs
-    FilteredTargets = filter_targets(obj:player(NPCObj), Perception),
-    lager:debug("NPC: ~p FilteredTargets: ~p", [NPCId, FilteredTargets]),
+    FilteredTargets = filter_targets(NPC#npc.player, Perception),
 
     %Find target
     Target = find_target(NPCObj, FilteredTargets),
-    lager:debug("NPC: ~p Target: ~p", [NPCId, Target]),
 
-    NewNPC = NPC#npc {target = Target},
-    db:write(NewNPC).
+    %New NPC
+    NPC#npc {target = Target}.
 
+process_complete(false, Data) -> Data;
+process_complete(NPC, Data) ->
+    Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
+
+
+    NewNPC = case Task of
+                 move_random_pos -> complete_task(NPC);
+                 move_to_target -> move_to_target(NPC);
+                 move_to_pos -> move_to_pos(NPC);
+                 move_in_range -> move_in_range(NPC);
+                 attack -> complete_task(NPC);
+                 cast_raise_dead -> complete_task(NPC);
+                 cast_shadow_bolt -> complete_task(NPC);
+                 _ -> NPC
+             end,
+
+    maps:update(NPC#npc.id, NewNPC, Data).
+
+get_order(Id) -> 
+    binary_to_atom(obj_attr:value(Id, <<"order">>, <<"wander">>), latin1).
+
+compare_dist_range(Dist, Range) when Dist =:= Range -> optimal_range;
+compare_dist_range(Dist, Range) when Dist =/= Range -> out_of_range.
+
+event_ticks(Ticks) ->
+    case ?FAST_EVENTS of
+        true -> 1;
+        false -> Ticks
+    end.

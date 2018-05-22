@@ -63,7 +63,6 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(hero, [{ram_copies, [node()]}, {attributes, record_info(fields, hero)}]),    
     {atomic, ok} = mnesia:create_table(villager, [{ram_copies, [node()]}, {attributes, record_info(fields, villager)}]),    
     {atomic, ok} = mnesia:create_table(htn, [{ram_copies, [node()]}, {attributes, record_info(fields, htn)}]),    
-    {atomic, ok} = mnesia:create_table(npc, [{ram_copies, [node()]}, {attributes, record_info(fields, npc)}]),    
     {atomic, ok} = mnesia:create_table(state, [{ram_copies, [node()]}, {attributes, record_info(fields, state)}]),    
     {atomic, ok} = mnesia:create_table(effect, [{ram_copies, [node()]}, {attributes, record_info(fields, effect)}]),    
     {atomic, ok} = mnesia:create_table(world, [{ram_copies, [node()]}, {attributes, record_info(fields, world)}]),  
@@ -95,8 +94,6 @@ create_schema() ->
     mnesia:add_table_index(villager, storage),
     mnesia:add_table_index(villager, next_plan),
     mnesia:add_table_index(villager, next_run),
-    mnesia:add_table_index(npc, next_plan),
-    mnesia:add_table_index(npc, next_run),
 
     mnesia:stop().
 

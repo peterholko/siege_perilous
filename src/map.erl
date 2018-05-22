@@ -16,9 +16,9 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([get_tile/1, get_tile/2, get_explored/2, get_nearby_objs/2]).
--export([get_nearby_objs/3, get_ford_pos/2]).
+-export([get_nearby_objs/3, get_ford_pos/2, get_closest/2]).
 -export([add_explored/3]).
--export([neighbours/1, neighbours/2, get_random_neighbour/1]).
+-export([neighbours/1, neighbours/2, get_random_neighbour/1, get_random_from_list/1]).
 -export([cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
 -export([movement_cost/1, is_passable/1, is_not_blocked/2, is_river/1, random_location/0, random_location_from/3]).
 -export([check_distance/4, distance/2]).
@@ -157,6 +157,22 @@ get_random_neighbour(Pos) ->
             none
     end.
 
+get_random_from_list(ListOfPos) ->
+    F = fun(Pos) ->
+            obj:is_empty(Pos) and is_passable(Pos)
+        end,
+
+    ValidListOfPos = lists:filter(F, ListOfPos),
+    NumPos = length(ValidListOfPos),
+
+    case NumPos > 0 of
+        true ->
+            Rand = util:rand(NumPos),
+            lists:nth(Rand, ValidListOfPos);
+        false ->
+            none
+    end.
+
 get_ford_pos(Pos, RiverPos) ->
     Neighbours = sets:from_list([Pos | neighbours(Pos)]),
     RiverNeighbours = sets:from_list(neighbours(RiverPos)),
@@ -176,7 +192,35 @@ get_ford_pos(Pos, RiverPos) ->
             lists:nth(Rand, FordList);
         false ->
             none
-    end.    
+    end.
+
+get_closest(SourcePos, ListOfPos) ->
+    InvalidPos = {-1, -1},
+    MaxDist = 1000000,
+
+    F = fun(Pos, {PrevPos, PrevDist}) ->
+            case obj:is_empty(Pos) and is_passable(Pos) of
+                true ->
+                    Dist = map:distance(SourcePos, Pos),
+
+                    case Dist < PrevDist of
+                        true ->
+                            {Pos, Dist};
+                        false ->
+                            {PrevPos, PrevDist}
+                    end;
+                false ->
+                    {PrevPos, PrevDist}
+            end
+        end,
+
+    {ClosestPos, _Dist} = lists:foldl(F, {InvalidPos, MaxDist}, ListOfPos),
+    
+    Return = case ClosestPos of
+                 InvalidPos -> none;
+                 _ -> ClosestPos
+             end,
+    Return.
 
 num_tiles(TerrainType) ->
     case TerrainType of

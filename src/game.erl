@@ -14,7 +14,8 @@
 %%
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([add_obj_create/3, add_obj_update/4, add_obj_update/5, add_obj_move/5]).
+-export([add_obj_create/3, add_obj_delete/3, add_obj_update/4, add_obj_update/5, add_obj_move/5,
+        add_obj_hide/3, add_obj_reveal/3]).
 -export([add_event/5, has_pre_events/1, has_post_events/1, cancel_event/1]).
 -export([trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
@@ -92,7 +93,6 @@ new_player(PlayerId) ->
     MonolithPos = {18,35},
     ShipwreckPos = {15,36},
 
-
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
     HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),   
@@ -123,7 +123,24 @@ new_player(PlayerId) ->
 
 
     F1 = fun() ->
-            NPCId = npc:generate({15,35}, ?UNDEAD, <<"Shadow">>)
+            MausoleumPos = {16,32},
+
+            MausoleumId = obj:create(MausoleumPos, ?UNDEAD, <<"Mausoleum">>),
+            NPCId = npc:create({15,35}, ?UNDEAD, <<"Necromancer">>),
+            GuardianId = npc:create({17,32}, ?GUARDIANS, <<"Wose">>, ?HIDING),
+
+            GuardianData = #{guard_pos => MausoleumPos,
+                             guarding_structure => MausoleumId,
+                             guard_text => "You fool! Do you know what you have unleashed!?"},
+            npc:set_order(GuardianId, guard_structure, GuardianData),
+
+            item:create(MausoleumId, ?BONES, 10),
+
+            NPCData = #{mausoleum => MausoleumId,
+                        mausoleum_guard => GuardianId,
+                        order_pos => {17,31}},
+
+            npc:set_data(NPCId, NPCData)
          end,
 
     F2 = fun() ->
@@ -138,10 +155,10 @@ new_player(PlayerId) ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
          end,
 
-    game:add_event(none, event, F1, none, 20),
+    game:add_event(none, event, F1, none, 20).
     %game:add_event(none, event, F2, none, 28),
     %game:add_event(none, event, F3, none, 36),
-    game:add_event(none, event, F4, none, 40).
+    %game:add_event(none, event, F4, none, 40).
 
 login(PlayerId) ->
     %Log player in
@@ -181,7 +198,20 @@ add_obj_create(Process, Obj, EventTick) ->
                           pid = Process,
                           event = obj_create,
                           data = Data,
-                          tick = CurrentTick + EventTick},
+                          tick = CurrentTick + event_ticks(EventTick)},
+
+    db:write(ObjEvent).
+
+add_obj_delete(Process, Obj, EventTick) ->
+    [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+
+    Data = Obj,
+
+    ObjEvent = #obj_event{id = counter:increment(obj_event),
+                          pid = Process,
+                          event = obj_delete,
+                          data = Data,
+                          tick = CurrentTick + event_ticks(EventTick)},
 
     db:write(ObjEvent).
 
@@ -190,7 +220,7 @@ add_obj_update(Process, ObjId, Attr, Value) ->
 
 add_obj_update(Process, ObjId, Attr, Value, EventTick) ->
     [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
-    lager:info("add_obj_update - ~p ~p ~p ~p ~p", [ObjId, Attr, Value, EventTick, CurrentTick]),
+    lager:debug("add_obj_update - ~p ~p ~p ~p ~p", [ObjId, Attr, Value, EventTick, CurrentTick]),
 
     Data = {ObjId, Attr, Value},
 
@@ -198,7 +228,7 @@ add_obj_update(Process, ObjId, Attr, Value, EventTick) ->
                           pid = Process,
                           event = obj_update,
                           data = Data,
-                          tick = CurrentTick + EventTick},
+                          tick = CurrentTick + event_ticks(EventTick)},
 
     db:write(ObjEvent).
 
@@ -211,10 +241,31 @@ add_obj_move(Process, ObjId, SourcePos, DestPos, EventTick) ->
                           pid = Process,
                           event = obj_move,
                           data = Data,
-                          tick = CurrentTick + EventTick},
+                          tick = CurrentTick + event_ticks(EventTick)},
 
     db:write(ObjEvent).
 
+add_obj_hide(Process, ObjId, EventTick) ->
+    [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+
+    ObjEvent = #obj_event{id = counter:increment(obj_event),
+                          pid = Process,
+                          event = obj_hide,
+                          data = ObjId,
+                          tick = CurrentTick + event_ticks(EventTick)},
+
+    db:write(ObjEvent).
+
+add_obj_reveal(Process, ObjId, EventTick) ->
+    [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+
+    ObjEvent = #obj_event{id = counter:increment(obj_event),
+                          pid = Process,
+                          event = obj_reveal,
+                          data = ObjId,
+                          tick = CurrentTick + event_ticks(EventTick)},
+
+    db:write(ObjEvent).
 
 add_event(Process, EventType, EventData, EventSource, EventTick) ->
     [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
@@ -224,7 +275,7 @@ add_event(Process, EventType, EventData, EventSource, EventTick) ->
                      type = EventType,
                      data = EventData,
                      source = EventSource,
-                     tick = CurrentTick + EventTick,
+                     tick = CurrentTick + event_ticks(EventTick),
                      class = event_class(EventType)},
 
     db:write(Event).
@@ -345,3 +396,8 @@ event_class(move) -> pre;
 event_class(ford) -> pre;
 event_class(_) -> post.
 
+event_ticks(Ticks) ->
+    case ?FAST_EVENTS of
+        true -> 1;
+        false -> Ticks
+    end.

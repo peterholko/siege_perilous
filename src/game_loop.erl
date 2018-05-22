@@ -14,6 +14,7 @@
 %% Exported Functions
 %%
 -export([loop/3]).
+-export([npc_process/1]).
 
 %%
 %% API Functions
@@ -62,7 +63,7 @@ loop(NumTick, LastTime, GamePID) ->
     npc_process(NumTick),
 
     %Clean up
-    clean_up(NumTick),
+    %clean_up(NumTick),
 
     %Toggle off perception and explored
     game:reset(),
@@ -103,7 +104,7 @@ process_obj_events(CurrentTick) ->
 check_obj_events([], _Observers, PerceptionEvents) ->
     PerceptionEvents;
 check_obj_events([ObjEvent | Rest], Observers, All) ->
-    lager:info("*** Processing ObjEvent: ~p ", [ObjEvent]),
+    lager:debug("*** Processing ObjEvent: ~p ", [ObjEvent]),
     ProcessedEvent  = do_obj_event(ObjEvent#obj_event.event,
                                    ObjEvent#obj_event.pid,
                                    ObjEvent#obj_event.data),
@@ -111,7 +112,16 @@ check_obj_events([ObjEvent | Rest], Observers, All) ->
     %Check if new observer created
     NewObservers = check_new_observer(ProcessedEvent, Observers),
 
+    %Update and send perceptions
     ObservedEvents = perception:check_event_visible(ProcessedEvent, NewObservers),
+
+    %Send completion event to calling process
+    ObjId = obj_id(ObjEvent#obj_event.event, ObjEvent#obj_event.data),
+
+    message:send_to_process(ObjEvent#obj_event.pid,
+                            event_complete, 
+                            {ObjEvent#obj_event.event, ObjId}),
+
 
     check_obj_events(Rest, NewObservers, ObservedEvents ++ All).
 
@@ -125,8 +135,15 @@ check_new_observer(#obj_create{obj = Obj}, Observers) ->
 check_new_observer(_, Observers) -> 
     Observers.
 
+obj_id(obj_create, Id) -> Id;
+obj_id(obj_update, {Id, _Attr, _Value}) -> Id;
+obj_id(obj_move, {Id, _SourcePos, _DestPos}) -> Id;
+obj_id(obj_delete, Id) -> Id;
+obj_id(obj_hide, Id) -> Id;
+obj_id(obj_reveal, Id) -> Id.
+
 do_obj_event(obj_create, _Process, Id) ->
-    lager:info("obj_create: ~p", [Id]),
+    lager:debug("obj_create: ~p", [Id]),
 
     NewObj = obj:process_create(Id),
 
@@ -136,7 +153,7 @@ do_obj_event(obj_create, _Process, Id) ->
     ObjCreate;
 
 do_obj_event(obj_update, _Process, {ObjId, _Attr, Value}) ->
-    lager:info("obj_update: ~p ~p", [ObjId, Value]),
+    lager:debug("obj_update: ~p ~p", [ObjId, Value]),
 
     NewObj = obj:process_update_state(ObjId, Value),
 
@@ -147,7 +164,7 @@ do_obj_event(obj_update, _Process, {ObjId, _Attr, Value}) ->
     ObjUpdate;
 
 do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
-    lager:info("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
+    lager:debug("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
 
     NewObj = obj:process_move(ObjId, DestPos),
 
@@ -162,7 +179,7 @@ do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
                       %Recalculate perception for obj that moved
                       %perception:recalculate(NewObj),
 
-                      lager:info("Moved Obj: ~p",[NewObj]),
+                      lager:debug("Moved Obj: ~p",[NewObj]),
                       #obj_move {obj = NewObj,
                                  source_pos = SourcePos,
                                  dest_pos = NewObj#obj.pos}
@@ -170,17 +187,31 @@ do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
               end,
 
     %Send event complete to source of event
-    message:send_to_process(Process, 
-                            event_complete, 
-                            {obj_move, ObjId}),
 
     ObjMove;
 
 do_obj_event(obj_delete, _Process, Id) ->
     Obj = obj:get(Id),
-    ObjDelete = #obj_delete{obj = Obj},
     
-    ObjDelete.
+    obj:process_delete(Id),
+
+    ObjDelete = #obj_delete{obj = Obj,
+                            source_pos = obj:pos(Obj)},
+    
+    ObjDelete;
+
+do_obj_event(obj_hide, _Process, Id) ->
+    NewObj = obj:process_update_state(Id, ?HIDING),
+    ObjHide = #obj_hide{obj = NewObj},
+
+    ObjHide;
+
+do_obj_event(obj_reveal, _Process, Id) ->
+    lager:info("Processing REVEAL!"),
+    NewObj = obj:process_update_state(Id, ?NONE),
+    ObjReveal = #obj_reveal{obj = NewObj},
+
+    ObjReveal.
 
 process_events(CurrentTick) ->
     Events = db:dirty_index_read(event, CurrentTick, #event.tick),
@@ -210,16 +241,14 @@ do_event(defend, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {defend, EventData}),
     false;
 
-do_event(cast, EventData, _PlayerPid) ->
+do_event(cast, EventData, PlayerPid) ->
     lager:info("Processing cast event: ~p", [EventData]),
 
-    {SourceId, TargetId, Spell} = EventData,
+    {SourceId, Target, Spell} = EventData,
     
-    SourceObj = obj:get(SourceId),
-    TargetObj = obj:get(TargetId),
+    magic:cast(SourceId, Target, Spell),
 
-    magic:cast(SourceObj, TargetObj, Spell),
-
+    message:send_to_process(PlayerPid, event_complete, {cast, SourceId}),
     false;
 
 do_event(ford, EventData, PlayerPid) ->

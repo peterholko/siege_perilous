@@ -41,6 +41,9 @@ start() ->
     lager:info("Starting game loop"),
     spawn(fun() -> game_loop:loop(0, util:get_time(), global:whereis_name(game_pid)) end),
 
+    lager:info("Starting perception"),
+    perception:start(),
+
     lager:info("Starting map process"),
     map:start(),
 
@@ -48,10 +51,7 @@ start() ->
     map:spawn_resources(),
 
     lager:info("Generating resource bonuses..."),
-    resource:generate_effects(),
-    
-    lager:info("Starting perception"),
-    perception:start().
+    resource:generate_effects().
 
 
 login(Username, Password, Socket) ->
