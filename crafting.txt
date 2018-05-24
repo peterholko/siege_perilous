@@ -95,6 +95,8 @@ Heavensong Granite
 
 Food:
 Crimson Root (Farming)
+Fletcher's Wheat (Farming)
+Husk Rice (Farming)
 
 Cragroot Berries (Plant Gathering)
 
