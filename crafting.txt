@@ -97,10 +97,7 @@ Food:
 Crimson Root (Farming)
 
 Cragroot Berries (Plant Gathering)
-
 Wrapwood Bison Meat (Hunting)
-
-
 Wrapwood Bison Fur (Hunting)
 
 

@@ -304,7 +304,7 @@ apply_trigger(#obj{player = Player, subclass = Subclass,
     AllObjs = get_by_player(Player),
 
     F = fun(Obj) ->
-            effect:add(Obj#obj.id, ?HOLY_LIGHT, none)
+            effect:add(Obj#obj.id, ?HOLY_LIGHT, none, ?TICKS_SEC * 5)
         end,
 
     lists:foreach(F, AllObjs);

@@ -6,14 +6,38 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([add/3, remove/2, has_effect/2, get_effect_data/2, get_effects/1, all/1]).
+-export([add/2, add/3, add/4, add/5, remove/2, has_effect/2, get_effect_data/2, get_effects/1, all/1]).
 
-add(Id, EffectType, EffectData) ->
+add(Id, EffectType) ->
+    add(Id, EffectType, none, -1, -1).
+
+add(Id, EffectType, EffectData) ->    
+    add(Id, EffectType, EffectData, -1, -1).
+
+add(Id, EffectType, EffectData, Expiry) ->    
+    add(Id, EffectType, EffectData, Expiry, -1).
+
+add(Id, EffectType, EffectData, TicksUntilExpiry, Interval) ->
+    CurrentTick = counter:value(tick),
+
+    ExpiryTick = case TicksUntilExpiry =:= -1 of
+                     true -> -1;
+                     false -> TicksUntilExpiry + CurrentTick
+                 end,
+
+    NextTick = case Interval =:= -1 of
+                   true -> -1;
+                   false -> Interval + CurrentTick
+               end,
+
+    lager:info("Added Expiry ~p ~p ~p", [EffectType, ExpiryTick, CurrentTick]),
+
     Effect = #effect {key = {Id, EffectType},
                       id = Id,
                       type = EffectType,
                       data = EffectData,
-                      modtick = counter:value(tick)},
+                      expiry = ExpiryTick,
+                      next_tick = NextTick},
     db:write(Effect).
 
 remove(Id, EffectType) ->

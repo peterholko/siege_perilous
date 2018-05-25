@@ -33,8 +33,6 @@ loop(NumTick, LastTime, GamePID) ->
     %Process rest
     process_rest(NumTick),
 
-    %Process effects
-    process_effects(NumTick),
 
     %Process Obj events
     ObservedEvents = process_obj_events(CurrentTick),
@@ -46,6 +44,9 @@ loop(NumTick, LastTime, GamePID) ->
         false ->
             nothing
     end,
+
+    %Process effects
+    process_effects(CurrentTick),
 
     %Process events
     process_events(CurrentTick),
@@ -445,11 +446,6 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 10)) =:= 0) and (NumTick 
     process_rest_state(NumTick);
 process_rest(_) -> nothing.
 
-process_effects(NumTick) when (NumTick rem ?TICKS_SEC * 1) =:= 0 ->
-    lager:debug("Processing effects"),
-    effects(NumTick);
-process_effects(NumTick) -> nothing.
-
 clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
     lager:debug("Cleaning up dead objs"),
     Objs = ets:tab2list(obj),
@@ -685,14 +681,35 @@ spawn_mana(N, NearbyList) ->
     NewNearbyList = lists:delete(RandomPos, NearbyList),
     spawn_mana(N + 1, NewNearbyList).
 
-effects(NumTick) ->
-    nothing.
-%    Effects = ets:tab2list(effects),
-%
-%    F = fun(Effect) ->
-%            effect(Effect, NumTick)
-%        end,    
-%
-%    lists:foreach(F, Effects).
+process_effects(CurrentTick) ->
+    %Process effects with intervals
 
-%effect(#effect{type = ?BLEED, modtick = Tick}, NumTick) -> 
+    process_interval_effects(CurrentTick),
+    process_expiry_effects(CurrentTick).
+
+process_interval_effects(CurrentTick) ->
+    IntervalEffects = db:dirty_index_read(effect, CurrentTick, #effect.next_tick),
+
+    F = fun(IntervalEffect) ->
+            interval_effect(IntervalEffect)            
+        end,
+
+    lists:foreach(F, IntervalEffects).
+
+process_expiry_effects(CurrentTick) ->
+    Effects = db:dirty_index_read(effect, CurrentTick, #effect.expiry),
+    
+    F = fun(Effect) ->
+            lager:info("Effect ~p expiring", [Effect#effect.type]),
+            expire_effect(Effect) 
+        end,
+
+    lists:foreach(F, Effects).
+
+interval_effect(_) -> nothing.
+
+expire_effect(#effect{id = Id, type = ?HOLY_LIGHT}) ->
+    effect:remove(Id, ?HOLY_LIGHT);
+expire_effect(_) ->
+    lager:info("No matching expiry effect").
+

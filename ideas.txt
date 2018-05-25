@@ -61,6 +61,29 @@ https://archeage.gamepedia.com/ArcheAge_Wiki
 
 
 
+***** Player Start *****
+
+1. Rakar resses two zombies
+2. Player kills the two zombies
+3. Player advised to:
+
+    a) food - Gathering action => retrieves berries, nuts, tubers
+    b) water - Gathering action => retrieves water
+    c) shelter - Build a tent using material from shipwreck
+
+4. Wolves attack at first night 
+5. Player advised to:
+       
+    a) gather wood - Gather wood
+    b) fortify - Build walls around shelter / monolith
+    c) storage - Build burrow for storage
+    b) weapon/armor - Build mine/blacksmith
+
+6. Survivors found? 
+7. Player advised to start farming?
+
+***** Priorities *****
+
 
 
 

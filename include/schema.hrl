@@ -183,8 +183,9 @@
 -record(effect, {key,
                  id,
                  type,
-                 data,
-                 modtick}).
+                 data = #{},
+                 expiry = -1,
+                 next_tick = -1}).
 
 
 -record(encounter, {pos, 
