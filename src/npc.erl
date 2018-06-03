@@ -336,10 +336,10 @@ cast_raise_dead(NPC) ->
     
     EventData = case obj:get_nearby_corpses(NPCObj) of
                     [Corpse | _] ->
-                        {NPC#npc.id, {obj, obj:id(Corpse)}, ?RAISE_DEAD};
+                        {NPC#npc.id, obj:id(Corpse), obj, ?RAISE_DEAD};
                     [] ->
                         Bones = structure:get_nearby_bones(NPCObj),
-                        {NPC#npc.id, {item, item:id(Bones)}, ?RAISE_DEAD}
+                        {NPC#npc.id, item:id(Bones), item, ?RAISE_DEAD}
                 end,
 
     EventTicks = event_ticks(?TICKS_SEC * 10),
@@ -354,7 +354,7 @@ cast_raise_dead(NPC) ->
 cast_shadow_bolt(NPC) ->
     [_NPCObj] = db:read(obj, NPC#npc.id),
 
-    EventData = {NPC#npc.id, NPC#npc.target, ?SHADOW_BOLT},
+    EventData = {NPC#npc.id, NPC#npc.target, obj, ?SHADOW_BOLT},
     EventTicks = event_ticks(?TICKS_SEC * 10),
 
     game:add_event(self(), cast, EventData, NPC#npc.id, EventTicks),

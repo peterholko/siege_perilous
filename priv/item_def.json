@@ -36,6 +36,24 @@
 	"weight": 1
 },
 {
+	"class": "Raw",
+	"name": "Honeybell Berries",
+	"subclass": "Food",
+	"weight": 1
+},
+{
+	"class": "Raw",
+	"name": "Amitanian Grape",
+	"subclass": "Food",
+	"weight": 1
+},
+{
+	"class": "Raw",
+	"name": "Chisotan Tuber",
+	"subclass": "Food",
+	"weight": 1
+},
+{
 	"name": "Valleyrun Copper Ore",
 	"class": "Raw",
 	"subclass": "Ore",

@@ -49,7 +49,7 @@
 		"$oid": "54dbe40d0f4c2ae71f72630c"
 	},
 	"name": "Hero Mage",
-	"base_hp": 500,
+	"base_hp": 12,
 	"base_stamina": 10000,
 	"base_dmg": 3,
 	"dmg_range": 8,

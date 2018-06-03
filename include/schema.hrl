@@ -19,6 +19,9 @@
 -record(game, {perception,
                explored}).
 
+-record(game_attr, {key, 
+                    value}).
+
 -record(world, {attr,
                 value}).
 
@@ -146,22 +149,25 @@
 -record(hero, {player,
                obj}).
 
--record(villager, {id,
+-record(villager, {id,                   
                    player,
-                   target = none,
+                   behavior = none,
                    order = none,
-                   activity = none,
+                   enemies = [],
+                   target = none,                   
+                   dest = none,
+                   path = [],
+                   plan = [],
+                   last_plan = 0,
+                   last_run = 0,
+                   task_state = none,
+                   task_index = 0,
                    structure = none,
                    shelter = none,
                    storage = none,
-                   morale = 60,
-                   enemies = [],
-                   dest = none,
-                   plan = [],
-                   plan_data = none,
-                   task_state = none,
-                   task_index = 0,
-                   path = none
+                   morale = none,
+                   activity = none,
+                   data = #{}
                    }).
 
 -record(test, {attr,

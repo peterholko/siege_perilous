@@ -1,3 +1,28 @@
+*** Primary Stats ***:
+HP,
+Stamina,
+Hunger,
+Thirst,
+Focus, (or Tiredness)
+Sanity ???
+
+
+*** Attributes ***:
+Strength: Physical Damage, Carry Weight
+Toughness: HP, Brace 
+Endurance: Stamina, Thirst, Hunger
+Dexterity: Dodge, Hiding 
+Intellect: Magic, Crafting
+Creativity: Crafting only?
+Focus: Parry, Critical Strike
+Spirit: Magic / Prayers
+Creativity
+
+Willpower?
+Perception?
+Agility?
+
+
 *** Skills ***
 Mining
 -> Weaponsmithing, Armorsmithing
@@ -21,20 +46,6 @@ Level
 Skill Def Table
 Skill Attr Table
 
-Attributes:
-Strength: Physical Damage, Carry Weight
-Toughness: HP, Brace 
-Endurance: Stamina, Thirst, Hunger
-Dexterity: Dodge, Hiding 
-Intellect: Magic, Crafting
-Creativity: Crafting only?
-Focus: Parry, Critical Strike
-Spirit: Magic / Prayers
-Creativity
-
-Willpower?
-Perception?
-Agility?
 
 Gathering:
 Mining - Strength/Toughness

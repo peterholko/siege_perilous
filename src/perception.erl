@@ -527,6 +527,7 @@ visible_objs(AllObjs, #obj {id = Id, player = Player, pos = Pos, vision = Vision
                 maps:put(Target#obj.id, Target, PerceptionData); %Include self
            (Target, PerceptionData) ->
             Result = Target#obj.state =/= hiding andalso %Not hiding
+                     Target#obj.class =/= ?DELETING andalso %Not being deleted
                      Target#obj.vision >= 0 andalso %Obj being created
                      not effect:has_effect(Target#obj.id, ?SANCTUARY) andalso %Cannot see Sanctuary
                      map:distance(Pos, Target#obj.pos) =< Vision,
@@ -563,7 +564,7 @@ visible_objs(AllObjs, #obj {id = Id, pos = Pos, vision = Vision}) ->
                 maps:put(Target#obj.id, Target, PerceptionData); %Include self
            (Target, PerceptionData) ->
             Result = Target#obj.state =/= hiding andalso %Not hiding
-                     Target#obj.state =/= ?DELETING andalso %Not being deleted
+                     Target#obj.class =/= ?DELETING andalso %Not being deleted
                      Target#obj.vision >= 0 andalso %Obj being created
                      map:distance(Pos, Target#obj.pos) =< Vision,
 

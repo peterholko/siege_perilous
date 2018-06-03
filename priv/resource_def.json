@@ -62,5 +62,31 @@
     "quantity_rate": [60, 15, 10, 8, 4, 2, 1],
     "quantity": [0, 1, 1, 2, 10, 50, 200],
     "skill_req": 50
+},
+{
+    "name": "Honeybell Berries",
+    "type": "Food",
+    "terrain": ["Deciduous Forest", "Pine Forest"],
+    "quantity_rate": [25, 25, 20, 15, 8, 5, 2],
+    "quantity": [0, 10, 25, 100, 200, 500, 1000],
+    "skill_req": 0
+},
+{
+    "name": "Amitanian Grape",
+    "type": "Food",
+    "terrain": ["Grasslands", "Plains", "Hills Plains", "Hills Grasslands"],
+    "quantity_rate": [25, 25, 20, 15, 8, 5, 2],
+    "quantity": [0, 10, 25, 100, 200, 500, 1000],
+    "skill_req": 0
+},
+{
+    "name": "Chisotan Tuber",
+    "type": "Food",
+    "terrain": ["Grasslands", "Plains", "Hills Plains", "Hills Grasslands"],
+    "quantity_rate": [25, 25, 20, 15, 8, 5, 2],
+    "quantity": [0, 10, 25, 100, 200, 500, 1000],
+    "skill_req": 0
 } 
+
+
 ]

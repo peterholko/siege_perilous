@@ -298,7 +298,7 @@ message_handle(<<"clear">>, Message) ->
     lager:info("message: clear"),
     SourceId = map_get(<<"sourceid">>, Message),
 
-    Return = player:clear_order(SourceId),
+    Return = player:clear(SourceId),
     FinalReturn = maps:put(<<"packet">>, <<"clear">>, Return),
     jsx:encode(FinalReturn);
 

@@ -8,9 +8,9 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([create/3, create/4, create/5, delete/1, update_state/2]).
--export([process_create/1, process_update_state/2, process_move/2, process_delete/1]).
--export([update_hp/2, update_stamina/2, update_dead/1]).
+-export([create/3, create/4, create/5, update_state/2, remove/1]).
+-export([process_create/1, process_update_state/2, process_move/2, process_deleting/1]).
+-export([update_hp/2, update_stamina/2, update_dead/1, update_deleting/1]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
@@ -19,7 +19,8 @@
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
 -export([get_nearby_corpses/1, get_by_player/1]).
--export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, name/1, image/1, vision/1]).
+-export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, 
+         name/1, image/1, vision/1, modtick/1]).
 -export([rec_to_map/1]).
 
 create(Pos, PlayerId, Template) ->
@@ -182,7 +183,10 @@ process_update_state(ObjId, State) ->
 process_update_state(Obj, State, StateData) when is_record(Obj, obj) ->
     NewObj = Obj#obj {state = State},
 
-    save(NewObj, StateData).
+    save(NewObj, StateData),
+
+    %Return new obj
+    NewObj.
 
 update_hp(Id, Value) ->
     Hp = obj_attr:value(Id, <<"hp">>),
@@ -214,8 +218,8 @@ update_dead(Id) ->
                          _ -> nothing
                      end, 
 
-                     Obj#obj {class = corpse,
-                              state = dead,
+                     Obj#obj {class = ?CORPSE,
+                              state = ?DEAD,
                               vision = 0};
                 structure ->
                      %Remove structure reference from villagers
@@ -231,8 +235,14 @@ update_dead(Id) ->
     %Save object
     save(NewObj),
 
+    %Return new obj
     NewObj.
 
+update_deleting(Obj) ->
+    subclass_delete(Obj),
+    game:add_obj_delete(self(), Obj#obj.id, 1).
+
+trigger_effects(#obj{state = State}) when (State =:= ?DELETING) -> nothing;
 trigger_effects(#obj{id = WallId, pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
                                                                                        (State =/= dead) ->
     Objs = get_by_pos(Pos),
@@ -399,6 +409,7 @@ pos(Obj = #obj{}) -> Obj#obj.pos.
 name(Obj = #obj{}) -> Obj#obj.name.
 image(Obj = #obj{}) -> Obj#obj.image.
 vision(Obj = #obj{}) -> Obj#obj.vision.
+modtick(Obj = #obj{}) -> Obj#obj.modtick.
 
 %Get vital stats
 get_stats(Id) ->
@@ -534,8 +545,6 @@ process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subcl
     db:write(Hero);
 process_subclass(#obj{id = Id, player = Player, subclass = Subclass, modtick = Tick}) when Subclass =:= ?NPC ->
     combat:init_combos(Id);
-process_subclass(#obj{id = Id, player = Player, subclass = Subclass, modtick = Tick}) when Subclass =:= ?VILLAGER ->
-    villager:create(Id, Player, Tick); 
 process_subclass(#obj{pos = Pos, name = Name, subclass = Subclass}) when Subclass =:= ?MONOLITH ->
     Radius = get_monolith_radius(Name),
     NearbyPosList = map:range(Pos, Radius), 
@@ -553,23 +562,57 @@ movement_cost(_Obj, NextPos) ->
     lager:debug("NextPos: ~p", [NextPos]),
     map:movement_cost(NextPos) * 8.
 
-delete(Id) ->
+subclass_delete(Id) when is_integer(Id) ->
     [Obj] = db:read(obj, Id),
+    subclass_delete(Obj);
+subclass_delete(Obj) ->
 
     case Obj#obj.subclass of
         ?VILLAGER ->
-            villager:remove(Id);
+            villager:remove(Obj#obj.id);
         ?NPC -> 
-            npc:remove(Id);
+            npc:remove(Obj#obj.id);
+        ?HERO ->
+            process_hero_delete(Obj),
+            %TODO probably shouldn't go into the login module
+            login:remove(Obj#obj.player);
         _ ->
             nothing
-    end,
+    end.
 
-    game:add_obj_delete(self(), Id, 1).
+process_deleting(Obj) ->
+    lager:info("processing_deleting obj: ~p", [Obj]),
+    NewObj = Obj#obj {class = ?DELETING,
+                      subclass = ?DELETING,
+                      state = ?DELETING},
+    save(NewObj).
 
-process_delete(Id) ->
+remove(Id) ->
+    lager:info("Removing obj ~p", [Id]),
     db:delete(obj, Id).
 
+process_hero_delete(HeroObj) ->
+    PlayerObjs = db:index_read(obj, HeroObj#obj.player, #obj.player),
+
+    F = fun(Obj) ->
+            case HeroObj#obj.id =/= Obj#obj.id of
+                true ->
+                    case Obj#obj.subclass =:= ?VILLAGER of
+                        true ->
+                            villager:set_behavior(Obj#obj.id, lost_villager);
+                        false ->
+                            nothing
+                    end, 
+
+                    NewObj = Obj#obj {player = ?THE_LOST},
+                    save(NewObj);
+                false ->
+                    nothing
+            end
+        end,
+
+    lists:foreach(F, PlayerObjs).
+    
 filter_units(Objs) ->
     F = fun(Obj) -> Obj#obj.class =:= unit end,
     lists:filter(F, Objs).
@@ -658,7 +701,7 @@ info_other(Id) ->
     end.
 
 info_subclass(<<"villager">>, Obj, Info) ->
-    [Villager] = db:read(villager, Obj#obj.id),
+    Villager = villager:info(Obj#obj.id),
     
     TotalWeight = item:get_total_weight(Obj#obj.id),
     Capacity = obj:get_capacity(Obj#obj.id),
@@ -756,30 +799,25 @@ rec_to_map(Obj) ->
       <<"state">> => Obj#obj.state,
       <<"image">> => Obj#obj.image,
       <<"hsl">> => Obj#obj.hsl}.
-       
-save(NewObj) ->
-    save(NewObj, none).
 
-save(NewObj, StateData) when is_record(NewObj, obj) ->
+save(Obj) ->
+    save(Obj, none).
+
+save(Obj, StateData) when is_record(Obj, obj) ->
     F = fun() ->
             %Update state table
-            NewState = #state {id = NewObj#obj.id, 
-                               state = NewObj#obj.state, 
-                               data = StateData,
-                               modtick = counter:value(tick)},            
-            mnesia:write(NewState),
+            State = #state {id = Obj#obj.id, 
+                            state = Obj#obj.state, 
+                            data = StateData,
+                            modtick = counter:value(tick)},            
+            mnesia:write(State),
 
             %Write obj
-            mnesia:write(NewObj),
+            mnesia:write(Obj)
 
-            %Return new obj
-            NewObj   
         end,
 
-    {atomic, NewObj} = mnesia:transaction(F),
+    mnesia:transaction(F),
 
     %Trigger any new effects
-    obj:trigger_effects(NewObj),
-
-    %Return new obj
-    NewObj.
+    obj:trigger_effects(Obj).

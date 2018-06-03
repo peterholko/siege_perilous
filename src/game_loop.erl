@@ -24,6 +24,10 @@ loop(NumTick, LastTime, GamePID) ->
     %StartLoopTime = util:get_time(), 
     CurrentTick = counter:increment(tick),	
 
+    %Process dead and deleting objs
+    process_deleting_objs(NumTick),
+    process_dead_objs(NumTick),
+
     %Check day/night transition
     %process_transition(NumTick),
 
@@ -63,8 +67,6 @@ loop(NumTick, LastTime, GamePID) ->
     %NPC create plan and run it
     npc_process(NumTick),
 
-    %Clean up
-    %clean_up(NumTick),
 
     %Toggle off perception and explored
     game:reset(),
@@ -194,7 +196,8 @@ do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
 do_obj_event(obj_delete, _Process, Id) ->
     Obj = obj:get(Id),
     
-    obj:process_delete(Id),
+    %Set the state of the object to deleting
+    obj:process_deleting(Obj),
 
     ObjDelete = #obj_delete{obj = Obj,
                             source_pos = obj:pos(Obj)},
@@ -245,9 +248,16 @@ do_event(defend, EventData, PlayerPid) ->
 do_event(cast, EventData, PlayerPid) ->
     lager:info("Processing cast event: ~p", [EventData]),
 
-    {SourceId, Target, Spell} = EventData,
+    {SourceId, TargetId, TargetType, Spell} = EventData,
     
-    magic:cast(SourceId, Target, Spell),
+    Source = obj:get(SourceId),
+
+    Target = case TargetType of
+                 obj -> obj:get(TargetId);
+                 item -> item:get_rec(TargetId)
+             end,
+
+    magic:cast(Source, Target, TargetType, Spell),
 
     message:send_to_process(PlayerPid, event_complete, {cast, SourceId}),
     false;
@@ -446,32 +456,16 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 10)) =:= 0) and (NumTick 
     process_rest_state(NumTick);
 process_rest(_) -> nothing.
 
-clean_up(NumTick) when (NumTick rem (?TICKS_MIN * 3)) =:= 0 ->
-    lager:debug("Cleaning up dead objs"),
-    Objs = ets:tab2list(obj),
-
-    F = fun(Obj) ->
-            case (NumTick - Obj#obj.modtick) > (?TICKS_MIN * 3) of
-                true ->
-                    case Obj#obj.subclass =:= <<"hero">> of
-                        false ->
-                            case Obj#obj.state of
-                                ?DEAD -> obj:remove(Obj#obj.id);
-                                ?FOUNDED -> obj:remove(Obj#obj.id);
-                                _ -> nothing
-                            end;
-                        true ->
-                            nothing
-                    end;
-                false ->
-                    nothing
-            end
-        end,
-
-    lists:foreach(F, Objs);    
-
-clean_up(_) ->
+process_dead_objs(NumTick) when (NumTick rem (?TICKS_MIN * 1)) =:= 0 ->
+    game:process_dead_objs(NumTick);
+process_dead_objs(_) ->
     nothing. 
+
+process_deleting_objs(NumTick) when (NumTick rem (?TICKS_MIN * 1)) =:= 0 ->
+    game:process_deleting_objs(NumTick);
+process_deleting_objs(_) ->
+    nothing.
+
 villager_process(0) -> nothing;
 villager_process(NumTick) ->
     villager:process(NumTick).

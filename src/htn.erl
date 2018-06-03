@@ -20,7 +20,8 @@ load() ->
     wander_flee(),
     necro_event(),
     idle(),
-    villager().
+    villager(),
+    lost_villager().
 
 wander() ->
     new(wander),
@@ -180,6 +181,11 @@ villager() ->
         add_primitive(do_forage, process_forage, [], [], do_forage),
     add_select_one(process_abandon, villager, [morale_very_low], []),
         add_primitive(do_abandon, process_abandon, [], [], do_abandon).
+
+lost_villager() ->
+    new(lost_villager),
+    add_select_all(do_wander, lost_villager, [], []),
+        add_primitive(move_random_pos, do_wander, [], [], move_random_pos).
 
 plan(PlanName, Id, Module) ->
     [Parent] = db:dirty_read(htn, {PlanName, PlanName}),

@@ -562,7 +562,7 @@ refine(Structure) when is_record(Structure, obj) ->
         true ->
             lager:info("Process resource process_checks success"),
             VillagerId = villager:get_by_structure(Structure#obj.id),
-            villager:set_order_refine(VillagerId),
+            villager:set_order(VillagerId, ?ORDER_REFINE),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             lager:info("Refine failed: ~p", [Error]),
@@ -586,7 +586,7 @@ craft(StructureId, Recipe) ->
         true ->
             lager:info("Craft process_checks success"),
             VillagerId = villager:get_by_structure(StructureId),
-            villager:set_order_craft(VillagerId, Recipe),
+            villager:set_order(VillagerId, ?ORDER_CRAFT, #{recipe => Recipe}),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
@@ -691,7 +691,7 @@ assign(SourceId, TargetId) ->
         true ->
             lager:info("Assigning villager"),
             villager:assign(SourceId, TargetId),
-            villager:set_order_harvest(SourceId),
+            villager:set_order(SourceId, ?ORDER_HARVEST),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
@@ -708,7 +708,7 @@ follow(VillagerId) ->
     case process_checks(Checks) of
         true ->
             lager:info("Villager following"),
-            villager:set_order_follow(VillagerId),
+            villager:set_order(VillagerId, ?ORDER_FOLLOW),
 
             #{<<"result">> => <<"success">>};
         {false, Error} ->
@@ -733,7 +733,7 @@ order_harvest(VillagerId) ->
         true ->
             lager:info("Villager harvest"),
             villager:assign(VillagerId, StructureObj#obj.id),
-            villager:set_order_harvest(VillagerId),
+            villager:set_order(VillagerId, ?ORDER_HARVEST),
 
             #{<<"result">> => <<"success">>};
         {false, Error} ->
@@ -755,7 +755,7 @@ order_attack(VillagerId, TargetId) ->
     case process_checks(Checks) of
         true ->
             lager:info("Villager attack"),
-            villager:set_order_attack(VillagerId),
+            villager:set_order(VillagerId, ?ORDER_ATTACK),
             villager:set_target(VillagerId, TargetId),
 
             #{<<"result">> => <<"success">>};
@@ -765,10 +765,9 @@ order_attack(VillagerId, TargetId) ->
     
 
 clear(VillagerId) ->
-    PlayerId = get(player_id),
-    Villager = db:read(villager, VillagerId),
-    NewVillager = Villager#villager {order = none},
-    db:write(NewVillager).
+    %_PlayerId = get(player_id),
+    %TODO check if villager is owned by player
+    villager:set_order(VillagerId, none).
     
 cancel(SourceId) ->
     PlayerId = get(player_id),

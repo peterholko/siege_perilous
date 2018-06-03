@@ -17,6 +17,7 @@
 -export([add_obj_create/3, add_obj_delete/3, add_obj_update/4, add_obj_update/5, add_obj_move/5,
         add_obj_hide/3, add_obj_reveal/3]).
 -export([add_event/5, has_pre_events/1, has_post_events/1, cancel_event/1]).
+-export([process_dead_objs/1, process_deleting_objs/1]).
 -export([trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
 -export([send_update_items/3, send_update_stats/2, send_revent/2]).
@@ -105,7 +106,7 @@ new_player(PlayerId) ->
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 
-    VillagerId = villager:generate(0, PlayerId, VillagerPos),
+    VillagerId = villager:create(0, PlayerId, VillagerPos),
 
     item:create(HeroId, <<"Crimson Root">>, 100),
     item:create(MonolithId, <<"Mana">>, 2500),
@@ -153,9 +154,9 @@ new_player(PlayerId) ->
 
     F4 = fun() ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
-         end,
+         end.
 
-    game:add_event(none, event, F1, none, ?TICKS_SEC * 10).
+    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10).
     %game:add_event(none, event, F2, none, 28),
     %game:add_event(none, event, F3, none, 36),
     %game:add_event(none, event, F4, none, 40).
@@ -181,7 +182,40 @@ spawn_wolf() ->
     NPCId = npc:create(NPCPos, <<"Wolf">>),
 
     npc:set_order(NPCId, wander_flee, none).
-   
+
+process_dead_objs(CurrentTick) ->
+    DeadObjs = db:index_read(obj, ?DEAD, #obj.state),
+    lager:info("Dead Objs: ~p", [DeadObjs]),
+
+    F = fun(Obj) ->
+            case (CurrentTick - obj:modtick(Obj)) > (?TICKS_MIN * 1) of
+                true ->
+                    lager:info("Update deleting ~p", [Obj]),
+                    obj:update_deleting(Obj);
+                false ->
+                    nothing
+            end                
+        end,
+
+    lists:foreach(F, DeadObjs).
+
+process_deleting_objs(CurrentTick) ->
+    DeletingObjs = db:index_read(obj, ?DELETING, #obj.class),
+    lager:info("Deleting Objs: ~p", [DeletingObjs]),
+    
+    F = fun(Obj) ->
+             case (CurrentTick - obj:modtick(Obj)) > ?TICKS_MIN of
+                true ->
+                    obj:remove(obj:id(Obj));
+                false ->
+                    nothing
+            end                
+        end,
+
+    lists:foreach(F, DeletingObjs).
+
+
+
 %%
 %% API Functions
 %%

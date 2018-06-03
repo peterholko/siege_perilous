@@ -70,6 +70,8 @@
 -define(ANIMAL, 100).
 -define(EMPIRE, 101).
 -define(GUARDIANS, 102).
+-define(THE_LOST, 200).
+
 -define(MAX_ZOMBIES, 100).
 
 -define(FOOD, <<"Food">>).
@@ -164,6 +166,7 @@
 -define(ORDER_FOLLOW, <<"Follow">>).
 -define(ORDER_HARVEST, <<"Harvest">>).
 -define(ORDER_REFINE, <<"Refine">>).
+-define(ORDER_CRAFT, <<"Craft">>).
 
 
 %STATS

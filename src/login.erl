@@ -13,7 +13,7 @@
 %%
 %% Exported Functions
 %%
--export([login/3]).
+-export([login/3, remove/1]).
 
 %% 
 %% API Functions
@@ -26,6 +26,11 @@ login(Name, Pass, Socket)
     
     PlayerInfo = db:index_read(player, Name, #player.name),
     login(PlayerInfo, [Name, Pass, Socket]).
+
+remove(PlayerId) ->
+    db:delete(player, PlayerId),
+    db:delete(connection, PlayerId),
+    db:delete(explored_map, PlayerId).
 
 %%
 %% Local Functions
@@ -52,6 +57,8 @@ login([], [Name, Pass, Socket]) ->
     db:write(ExploredMap),
    
     {firstlogin, PlayerId};
+
+
 
 login([PlayerInfo], [_Name, Pass,_] = Args)
   when is_record(PlayerInfo, player) ->

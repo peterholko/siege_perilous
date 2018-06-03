@@ -6,28 +6,26 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([cast/3]).
+-export([cast/4]).
 
+cast(invalid, _, _, _) -> nothing;
+cast(_, invalid, _, _) -> nothing;
+cast(SourceObj, Target, TargetType, ?RAISE_DEAD) ->
 
-cast(SourceId, {Type, TargetId}, ?RAISE_DEAD) ->
-
-    %TODO check source obj
-    SourceObj = obj:get(SourceId),
-
-    {TargetPos, TargetType} = case Type of
+    {TargetPos, CorpseOrBones} = case TargetType of
                                   obj -> 
-                                      TargetObj = obj:get(TargetId),
-                                      obj:delete(obj:id(TargetObj)),
-                                      {obj:pos(TargetObj), obj:subclass(TargetObj)};
+                                      %Initiate deletion of the object
+                                      obj:update_deleting(Target),
+                                      {obj:pos(Target), obj:subclass(Target)};
                                   item ->
-                                      Item = item:get_rec(TargetId),
+                                      Item = Target,
                                       OwnerId = Item#item.owner,
                                       OwnerObj = obj:get(OwnerId),
-                                      item:update(TargetId, Item#item.quantity - 1),
+                                      item:update(Item#item.id, Item#item.quantity - 1),
                                       {obj:pos(OwnerObj), Item#item.subclass}
                               end,
 
-    case TargetType of
+    case CorpseOrBones of
         ?CORPSE ->
             npc:create(TargetPos, obj:player(SourceObj), <<"Zombie">>);
         ?BONES -> 
@@ -37,11 +35,7 @@ cast(SourceId, {Type, TargetId}, ?RAISE_DEAD) ->
             lager:info("Raise dead failed, invalid target type")
     end;
 
-cast(SourceId, TargetId, ?SHADOW_BOLT) ->
+cast(SourceObj, TargetObj, _, ?SHADOW_BOLT) ->
     lager:info("Shadow Bolt"),
-
-    %TODO check source obj and target for invalid
-    SourceObj = obj:get(SourceId),
-    TargetObj = obj:get(TargetId),
 
     combat:spell(?SHADOW_BOLT, obj:id(SourceObj), obj:id(TargetObj)).
