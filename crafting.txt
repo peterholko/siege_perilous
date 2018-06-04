@@ -7,6 +7,11 @@ Higher prospecting skill level required for higher level resources
 No random element in initial prospecting version
 Explore adding a random level into prospecting
 
+*** Explore ***
+Explore action reveals resources on tile
+Tile Info will display the number of unknown resources
+Explore skill and specific resource skill will determine chance to reveal unknown resource 
+
  XXX Allow Enhancing of current find
  XXX Gain prospecting points by prospecting
  XXX Spend the points on enhancing existing finds
@@ -31,6 +36,7 @@ Generated Resources:
 * Stronghold Mithril Ore / Poor
 * Smoldering Opal / Poor
 
+
 Mining will grant chance to return all ore types at the same time on the tile.
 
 1st Prospect with Novice Skill
@@ -48,6 +54,7 @@ Legendary: 50
 
 --- Valleyrun Copper Ore ---
 Base Skill required: 0
+Level: 1
 Depleted: 0
 Insignificant: 10
 Poor: 25
@@ -58,6 +65,7 @@ Legendary: 1000
 
 -- Quickforge Iron Ore ---
 Base Skill required: 25
+Level: 2
 Depleted: 0
 Insignificant: 5
 Poor: 10
@@ -68,6 +76,7 @@ Legendary: 500
 
 -- Stronghold Mithril Ore ---
 Base Skill required: 50
+Level: 3
 Depleted: 0
 Insignificant: 1
 Poor: 1
@@ -373,5 +382,8 @@ Axe:
 Sword:
 +5 damage               <<"dmg">> => 5
 +25% precise speed      <<"precise_spd_p">> => 0.25
+
+
+
 
 
