@@ -131,7 +131,7 @@ villager() ->
             add_primitive(set_pos_hero, flee_to_hero, [], [], set_pos_hero),
             add_primitive(move_to_hero, flee_to_hero, [], [], move_to_pos),
         add_select_all(flee_randomly, nearby_enemy, [], []),
-            add_primitive(move_randomly, flee_randomly, [], [], move_randomly),
+            add_primitive(move_randomly, flee_randomly, [], [], move_random_pos),
     add_select_one(process_dwelling, villager, [morale_normal, shelter_needed, free_shelter], []),
         add_select_all(dwelling, process_dwelling, [], []),
             add_primitive(find_dwelling, dwelling, [], [], find_shelter),

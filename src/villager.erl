@@ -18,7 +18,7 @@
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([has_assigned/1, assign/2, remove_structure/1, get_by_structure/1]).
 -export([process/1, set_behavior/2]).
--export([enemy_visible/1, move_to_pos/1, move_randomly/1, hero_nearby/1]).
+-export([enemy_visible/1, move_to_pos/1, move_random_pos/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1]).
 -export([morale_normal/1, morale_low/1, morale_very_low/1]).
 -export([set_order/2, set_order/3, set_target/2]).
@@ -308,7 +308,7 @@ move_to_pos(Villager) ->
                  end,
     NewVillager.
 
-move_randomly(Villager) ->
+move_random_pos(Villager) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
 
     NewVillager = case game:get_valid_tiles(VillagerObj#obj.pos) of
@@ -316,6 +316,7 @@ move_randomly(Villager) ->
                           Villager;
                       Tiles -> 
                           Random = util:rand(length(Tiles)),
+                          lager:info("Move randomly: ~p", [Random]),
                           TilePos = lists:nth(Random, Tiles),
                           
                           move_unit(VillagerObj, TilePos),
@@ -646,7 +647,21 @@ handle_info({broadcast, Message}, Data) ->
     end,
 
     {noreply, Data};
-handle_info({event_complete, {_Event, VillagerId}}, Data) ->
+
+handle_info({event_complete, {obj_create, VillagerId}}, Data) ->
+    Villager = maps:get(VillagerId, Data),
+    NewVillager = Villager#villager{last_plan = 0,
+                                    last_run = 0},
+    NewData = maps:update(VillagerId, NewVillager, Data),
+
+    {noreply, NewData};
+
+handle_info({event_complete, {obj_update, _VillagerId}}, Data) ->
+    %Do not want to process_complete to execute for obj_update
+    {noreply, Data};
+
+handle_info({event_complete, {Event, VillagerId}}, Data) ->
+    lager:info("Event Complete: ~p ~p", [Event, VillagerId]),
     Villager = maps:get(VillagerId, Data, invalid),
     process_event_complete(Villager),
     {noreply, Data};
@@ -707,6 +722,8 @@ generate(Level, PlayerId, Pos) ->
     Skill3 = lists:nth(util:rand(length(RemainingSkills2)), RemainingSkills2),
 
     lager:info("Skills1: ~p", [Skill1]),
+    lager:info("Skills2: ~p", [Skill2]),
+    lager:info("Skills3: ~p", [Skill3]),
     skill:update(Id, maps:get(<<"name">>, Skill1), util:rand(26) - 1),
     skill:update(Id, maps:get(<<"name">>, Skill2), util:rand(26) - 1),
     skill:update(Id, maps:get(<<"name">>, Skill3), util:rand(26) - 1),
@@ -741,7 +758,7 @@ run_new_plans(Tick, Data) ->
     maps:fold(F, #{}, Data).
 
 process_plan(Villager, Tick) ->
-    NewVillager = process_perception(Villager#villager.id),
+    NewVillager = process_perception(Villager),
 
     CurrentPlan = NewVillager#villager.plan,
     {PlanLabel, NewPlan} = htn:plan(NewVillager#villager.behavior, 
@@ -788,6 +805,7 @@ process_task_state(completed, Villager) ->
 
     case NextTask of
         {next_task, NextTaskIndex} ->
+            lager:info("NextTaskIndex: ~p", [NextTaskIndex]),
             TaskToRun = lists:nth(NextTaskIndex, Villager#villager.plan),
             NewVillager = erlang:apply(villager, TaskToRun, [Villager]),
             NewVillager#villager{task_index = NextTaskIndex};
@@ -800,7 +818,7 @@ process_task_state(running, Villager) ->
 process_event_complete(Villager) ->
     Id = Villager#villager.id,
 
-    lager:debug("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
+    lager:info("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
     Task = lists:nth(Villager#villager.task_index, Villager#villager.plan),
     obj:update_state(Id, none),
 
@@ -814,8 +832,7 @@ process_event_complete(Villager) ->
         craft -> process_craft_complete(Villager);
         melee_attack -> complete_task(Villager);
         _ -> nothing
-    end;
-process_event_complete(invalid) -> nothing.
+    end.
 
 process_move_complete(Villager) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),

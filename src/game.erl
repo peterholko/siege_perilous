@@ -154,9 +154,9 @@ new_player(PlayerId) ->
 
     F4 = fun() ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
-         end.
+         end,
 
-    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10).
+    game:add_event(none, event, F1, none, ?TICKS_SEC * 10).
     %game:add_event(none, event, F2, none, 28),
     %game:add_event(none, event, F3, none, 36),
     %game:add_event(none, event, F4, none, 40).

@@ -12,6 +12,42 @@ Explore action reveals resources on tile
 Tile Info will display the number of unknown resources
 Explore skill and specific resource skill will determine chance to reveal unknown resource 
 
+
+*** Examples ***
+Terrain: Hills Plains
+Potential Resources: All Ore, All Stone, All Gems
+Requires: Picks + Time
+Generated Resources / Amount / Skill: 
+
+* Valleyrun Copper Ore / Abundant / 0
+* Stronghold Mithril Ore / Poor / 50
+* Amitanian Grape / Abundant / 0
+* Chisotan Tuber / Poor / 25
+
+Exploring skill: 0
+Exploring action time: 30 seconds
+Odds for 0 req skill: 1/4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  XXX Allow Enhancing of current find
  XXX Gain prospecting points by prospecting
  XXX Spend the points on enhancing existing finds
