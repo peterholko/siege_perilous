@@ -1,11 +1,24 @@
 Villagers Design
 ----------------
+Hero must be within 3 tiles to give a villager order.
 
 Allow players to assign villager to follow.  If ends up over 3 tiles way, cancel follow.
+
+*** Starting tasks ***
+1. Exploring
+2. Gathering
+3. Wood-cutting (if forest nearby)
+4. Stone-cutting (lack of forests?)
+
+
 
 ** Required Improvements **:
 Displaying current tasks
 Displaying needs
+
+
+
+
 
 
 Villagers/Heros Have:
