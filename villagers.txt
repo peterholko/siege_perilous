@@ -1,9 +1,6 @@
 Villagers Design
 ----------------
 
-** Current **:
-Player must assign villagers to building - Cannot assign if hero doesn't have LOS of building and villager
-
 Allow players to assign villager to follow.  If ends up over 3 tiles way, cancel follow.
 
 ** Required Improvements **:
