@@ -17,9 +17,21 @@ start phase:
 
 
 Sleep/Rest:
-Day to Night Ratio 20:2
-Villagers/Heros require 60 secs of sleep per day
+Day to Night Ratio 10:2
+Villagers require 60 secs of sleep per day
 Villagers will take rest breaks throughout the day
+
+10 mins / 2 mins
+2400 ticks per day / 480 ticks per night
+
+12 min days:
+*1 min sleeping
+*3 min eating/drinking
+*2 min resting
+*6 min task
+
+1min eating : 3min task : 1min eating : 1 resting : 3 min task : 1 eating : 1 resting : 1 sleeping
+
 
 
 Water:
