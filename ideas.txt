@@ -31,13 +31,18 @@ Villagers will take rest breaks throughout the day
 *8 min task
 
 
+Hunger 6 min ticks -> hungry
+       24 min ticks -> starvation
 
+Thirst 4 min ticks -> thirty
+       12 min ticks -> dehydration
 
+Focus  10 min ticks -> tired
+       20 min ticks -> exhausted
 
-New day:
-4min task : 1 resting : 4 min task : 1 eating : 1 sleeping
-
-
+Stress 2400 -> stressed
+       5000 -> unstable 
+       10000 -> insane 
 
 Water:
 Water will be required, “survey” for water and build wells, contaminated water, salt water, etc...
