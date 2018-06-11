@@ -30,8 +30,12 @@ Villagers will take rest breaks throughout the day
 *1 min resting
 *8 min task
 
+
+
+
+
 New day:
-4min task : 1min eating : 1 resting : 4 min task : 1 eating : 1 sleeping
+4min task : 1 resting : 4 min task : 1 eating : 1 sleeping
 
 
 
