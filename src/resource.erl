@@ -6,7 +6,8 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([harvest/3, prospect/2, survey/1, is_valid/2, is_auto/2, quantity/1]).
+-export([harvest/3, explore/2, survey/1, is_valid/2, is_auto/2, quantity/1]).
+-export([get_num_unrevealed/1]).
 -export([create/4, generate_effects/0]).
 
 harvest(ObjId, ResourceName, Pos) ->
@@ -38,6 +39,16 @@ harvest(ObjId, Resource) ->
     end.
 
 
+get_num_unrevealed(Pos) ->
+    Resources = db:read(resource, Pos),
+
+    F = fun(Resource) ->
+            Resource#resource.revealed =:= false
+        end,
+
+    UnrevealedList = lists:filter(F, Resources),
+    length(UnrevealedList).
+
 survey(Pos) ->
     lager:info("Survey ~p", [Pos]),
     Resources = db:read(resource, Pos),
@@ -55,10 +66,10 @@ survey(Pos) ->
 
     lists:foldl(F, [], Resources).
 
-prospect(ObjId, Pos) ->
-    lager:info("Prospect ~p ~p", [ObjId, Pos]),
+explore(ObjId, Pos) ->
+    lager:info("Explore ~p ~p", [ObjId, Pos]),
 
-    ProspectSkill = 50,
+    ExploreSkill = 50,
     Resources = db:read(resource, Pos),
 
     F = fun(Resource, NewResourceList) ->
@@ -67,9 +78,11 @@ prospect(ObjId, Pos) ->
             QuantityList = maps:get(<<"quantity">>, ResourceDef),
             QuantitySkillReq = quantity_skill_req(Resource#resource.max, QuantityList),
             
-            case ProspectSkill >= (ResourceSkillReq + QuantitySkillReq) of
+            case ExploreSkill >= (ResourceSkillReq + QuantitySkillReq) of
                 true ->
-                    NewResource = Resource#resource {revealed = true},                  
+                    %TODO MAKE TRANSACTION
+                    mnesia:dirty_delete_object(Resource),
+                    NewResource = Resource#resource {revealed = true}, 
                     db:write(NewResource),
 
                     [#{<<"name">> => Resource#resource.name,
@@ -219,4 +232,32 @@ quantity_skill_req(4) -> 20;
 quantity_skill_req(5) -> 30;
 quantity_skill_req(6) -> 40;
 quantity_skill_req(7) -> 50.
+
+
+
+
+%{Explore Skill, Resource Req Skill}
+explore_resource({0,0}) -> 0.1;
+explore_resource({1,0}) -> 0.2;
+explore_resource({2,0}) -> 0.3;
+explore_resource({3,0}) -> 0.4;
+explore_resource({4,0}) -> 0.5;
+explore_resource({5,0}) -> 0.6;
+
+explore_resource({0,25}) -> 0.00016;
+explore_resource({1,25}) -> 0.00032;
+explore_resource({2,25}) -> 0.00048;
+explore_resource({3,25}) -> 0.00064;
+explore_resource({4,25}) -> 0.0008;
+explore_resource({5,25}) -> 0.00096;
+
+explore_resource({0,50}) -> 0.00004;
+explore_resource({1,50}) -> 0.00008;
+explore_resource({2,50}) -> 0.00012;
+explore_resource({3,50}) -> 0.00016;
+explore_resource({4,50}) -> 0.0002;
+explore_resource({5,50}) -> 0.00024.
+
+
+
 

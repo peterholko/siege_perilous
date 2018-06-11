@@ -63,16 +63,21 @@ get_info_tile(Pos) ->
     WildnessLevel = encounter:get_wildness(Pos), 
     HasSanctuary = map:has_sanctuary(Pos),
 
+    NumUnrevealed = resource:get_num_unrevealed(Pos),
+    Resources = resource:survey(Pos),
+
     Info0 = maps:put(<<"x">>, X , #{}),
     Info1 = maps:put(<<"y">>, Y , Info0),
     Info2 = maps:put(<<"name">>, TileName, Info1),
     Info3 = maps:put(<<"mc">>, MovementCost, Info2),
     Info4 = maps:put(<<"def">>, DefenseBonus, Info3),
-    Info5 = maps:put(<<"sanctuary">>, HasSanctuary, Info4),
+    Info4a = maps:put(<<"unrevealed">>, NumUnrevealed, Info4),
+    Info5 = maps:put(<<"sanctuary">>, HasSanctuary, Info4a),
     Info6 = maps:put(<<"passable">>, Passable, Info5),
     Info7 = maps:put(<<"wildness">>, WildnessLevel, Info6),
+    Info8 = maps:put(<<"resources">>, Resources, Info7),
 
-    Info7.
+    Info8.
 
 get_valid_tiles({X, Y}) ->
     Neighbours = map:neighbours(X, Y),
@@ -154,9 +159,9 @@ new_player(PlayerId) ->
 
     F4 = fun() ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
-         end,
+         end.
 
-    game:add_event(none, event, F1, none, ?TICKS_SEC * 10).
+    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10).
     %game:add_event(none, event, F2, none, 28),
     %game:add_event(none, event, F3, none, 36),
     %game:add_event(none, event, F4, none, 40).

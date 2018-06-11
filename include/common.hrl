@@ -56,13 +56,15 @@
 -define(DELETING, deleting).
 -define(FOUNDED, founded).
 -define(PROGRESSING, progressing).
--define(PROSPECTING, prospecting).
+-define(EXPLORING, exploring).
 -define(HARVESTING, harvesting).
 -define(UPGRADING, upgrading).
 -define(MOVING, moving).
 -define(BUILDING, building).
 -define(CASTING, casting).
 -define(HIDING, hiding).
+-define(SLEEPING, sleeping).
+-define(RESTING, resting).
 -define(DISABLED, disabled).
 
 -define(NATIVES, 98).
@@ -120,6 +122,7 @@
 -define(EXPOSE_ARMOR, <<"expose armor">>).
 
 -define(HOLY_LIGHT, <<"holy light">>).
+-define(HUNGRY, <<"hungry">>).
 
 -define(DAMAGE, <<"damage">>).
 -define(ATTACK_SPEED, <<"attack_speed">>).

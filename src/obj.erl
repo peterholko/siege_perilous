@@ -188,6 +188,57 @@ process_update_state(Obj, State, StateData) when is_record(Obj, obj) ->
     %Return new obj
     NewObj.
 
+process_obj_stats() ->
+    F = fun() ->
+            mnesia:lock(obj, write),
+
+            [Villagers] = db:dirty_index_read(obj, ?VILLAGER, #obj.subclass),
+            [Heros] = db:dirty_index_read(obj, ?HERO, #obj.subclass),
+
+            G = fun(Obj) ->
+                    NewObj = process_obj_stat(Obj),
+                   
+                    mnesia:dirty_write(NewObj)
+                end,
+
+            lists:foreach(G, Villagers ++ Heros) 
+        end,
+
+    mnesia:transaction(F).
+
+process_obj_stat(Obj) ->
+    case Obj#obj.hunger > (?TICKS_MIN * 5) of
+        true -> 
+            effect:add_effect(Obj#obj.id, ?HUNGRY);
+        false ->
+            none
+    end,
+
+    case Obj#obj.thirst > (?TICKS_MIN * 5) of
+        true ->
+            effect:add_effect
+
+
+
+    NewFocus = case obj:state(Obj) =/= ?SLEEPING of
+                   false ->
+                       Obj#obj.focus + 1;
+                   true ->
+                       0
+               end,
+    
+    NewHunger = Obj#obj.hunger + 1,
+    NewThirst = Obj#obj.thirst + 1,
+    NewObj = Obj#obj{hunger = NewHunger,
+                     thirst = NewThirst,
+                     focus = NewFocus},
+
+
+
+
+
+
+
 update_hp(Id, Value) ->
     Hp = obj_attr:value(Id, <<"hp">>),
     BaseHp = obj_attr:value(Id, <<"base_hp">>),

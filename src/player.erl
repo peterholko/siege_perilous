@@ -19,7 +19,7 @@
          attack/3,
          defend/2,
          survey/1,
-         prospect/1,
+         explore/1,
          harvest/2,
          loot/2,
          item_transfer/2,
@@ -313,29 +313,27 @@ survey(ObjId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
-prospect(ObjId) ->
-    lager:info("Prospect: ~p", [ObjId]),
+explore(ObjId) ->
+    lager:info("Explore: ~p", [ObjId]),
     PlayerId = get(player_id),
     [Obj] = db:read(obj, ObjId),
     
-    lager:info("Prospecting validating..."),
     Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
-              {is_hero(Obj), "Can only survey with your hero"},
               {not game:has_pre_events(ObjId), "Unit is busy"}],
 
     case process_checks(Checks) of
         true ->
-            game:add_obj_update(self(), ObjId, ?STATE, ?PROSPECTING),
+            game:add_obj_update(self(), ObjId, ?STATE, ?EXPLORING),
 
-            NumTicks = 8,
+            NumTicks = 12,
 
-            lager:info("Adding Prospect event"),
+            lager:info("Adding explore event"),
             EventData = {ObjId, Obj#obj.pos},
-            game:add_event(self(), prospect, EventData, ObjId, NumTicks),
+            game:add_event(self(), explore, EventData, ObjId, NumTicks),
             
-            #{<<"prospect_time">> => NumTicks * ?TICKS_SEC};
+            #{<<"explore_time">> => NumTicks * ?TICKS_SEC};
         {false, Error} ->
-            lager:info("Prospecting error: ~p", [Error]),
+            lager:info("Exploring error: ~p", [Error]),
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 

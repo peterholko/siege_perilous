@@ -93,12 +93,12 @@ message_handle(<<"survey">>, Message) ->
     jsx:encode(#{<<"packet">> => <<"survey">>,
                  <<"data">> => Data});    
 
-message_handle(<<"prospect">>, Message) ->
-    lager:info("message: prospect"),
+message_handle(<<"explore">>, Message) ->
+    lager:info("message: explore"),
 
     SourceId = map_get(<<"sourceid">>, Message),    
-    Result = player:prospect(SourceId),
-    jsx:encode([{<<"packet">>, <<"prospect">>},
+    Result = player:explore(SourceId),
+    jsx:encode([{<<"packet">>, <<"explore">>},
                 {<<"result">>, Result}]);    
 
 message_handle(<<"harvest">>, Message) ->

@@ -15,6 +15,7 @@
 %%
 -export([loop/3]).
 -export([npc_process/1]).
+-export([process_objs/0]).
 
 %%
 %% API Functions
@@ -23,6 +24,8 @@
 loop(NumTick, LastTime, GamePID) ->
     %StartLoopTime = util:get_time(), 
     CurrentTick = counter:increment(tick),	
+
+    process_objs(),
 
     %Process dead and deleting objs
     process_deleting_objs(NumTick),
@@ -274,17 +277,17 @@ do_event(ford, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {move, Id}),
     true;
 
-do_event(prospect, EventData, PlayerPid) ->
-    lager:info("Processing prospect event: ~p", [EventData]),
+do_event(explore, EventData, PlayerPid) ->
+    lager:info("Processing explore event: ~p", [EventData]),
     {ObjId, Pos} = EventData,
 
-    Result = resource:prospect(ObjId, Pos),
-    lager:info("Prospect Result: ~p", [Result]),
+    Result = resource:explore(ObjId, Pos),
+    lager:info("Explore Result: ~p", [Result]),
 
     obj:update_state(ObjId, none),
 
     message:send_to_process(PlayerPid, survey, Result),
-    message:send_to_process(PlayerPid, event_complete, {prospect, ObjId}),
+    message:send_to_process(PlayerPid, event_complete, {explore, ObjId}),
 
     false;
 
@@ -706,4 +709,6 @@ expire_effect(#effect{id = Id, type = ?HOLY_LIGHT}) ->
     effect:remove(Id, ?HOLY_LIGHT);
 expire_effect(_) ->
     lager:info("No matching expiry effect").
+
+
 

@@ -33,21 +33,6 @@ Odds for 0 req skill: 1/4
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  XXX Allow Enhancing of current find
  XXX Gain prospecting points by prospecting
  XXX Spend the points on enhancing existing finds
