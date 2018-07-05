@@ -5,16 +5,24 @@
 
 -include("schema.hrl").
 
--export([id/1]).
 -export([get_rec/1, get_map/1, get_all_attr/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1,
          get_weapon_range/1]).
 -export([transfer/2, transfer/3, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
+-export([has_by_subclass/2]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
 -export([get_total_weight/1, weight/2]).
+-export([id/1, owner/1, quantity/1]).
 -export([match_req/3]).
 
-id(Item) -> maps:get(<<"id">>, Item).
+id(Item) when is_map(Item) -> maps:get(<<"id">>, Item);
+id(Item) -> Item#item.id.
+
+owner(Item) when is_map(Item) -> maps:get(<<"owner">>, Item);
+owner(Item) -> Item#item.owner.
+
+quantity(Item) when is_map(Item) -> maps:get(<<"quantity">>, Item);
+quantity(Item) -> Item#item.quantity.
 
 get_rec(Id) ->
     case db:read(item, Id) of
@@ -96,6 +104,10 @@ get_total_weight(ObjId) ->
     TotalWeight = lists:foldl(F, 0, AllItems),
     TotalWeight.   
 
+has_by_subclass(OwnerId, Subclass) ->
+    Items = get_by_subclass(OwnerId, Subclass),
+    Items =/= [].
+
 is_subclass(ItemName, Subclass) ->
     item_def:value(ItemName, <<"subclass">>) =:= Subclass.
 
@@ -131,9 +143,15 @@ is_valid_split(Player, ItemId, Quantity) when Quantity > 0 ->
     end;
 is_valid_split(_, _, _) -> false.
 
+
+
 weight(ItemName, ItemQuantity) ->
     ItemWeight = item_def:value(ItemName, <<"weight">>),
     ItemWeight * ItemQuantity.
+
+
+
+
 
 can_merge(ItemClass) ->
     case ItemClass of

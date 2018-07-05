@@ -64,6 +64,8 @@
 -define(CASTING, casting).
 -define(HIDING, hiding).
 -define(SLEEPING, sleeping).
+-define(EATING, eating).
+-define(DRINKING, drinking).
 -define(RESTING, resting).
 -define(DISABLED, disabled).
 
@@ -123,6 +125,11 @@
 
 -define(HOLY_LIGHT, <<"holy light">>).
 -define(HUNGRY, <<"hungry">>).
+-define(STARVATION, <<"starvation">>).
+-define(THIRSTY, <<"thirsty">>).
+-define(DEHYDRATION, <<"dehydration">>).
+-define(TIRED, <<"tired">>).
+-define(EXHAUSTED, <<"exhausted">>).
 
 -define(DAMAGE, <<"damage">>).
 -define(ATTACK_SPEED, <<"attack_speed">>).
@@ -167,6 +174,7 @@
 -define(ORDER_ATTACK, <<"Attack">>).
 -define(ORDER_GUARD, <<"Guard">>).
 -define(ORDER_FOLLOW, <<"Follow">>).
+-define(ORDER_EXPLORE, <<"Explore">>).
 -define(ORDER_HARVEST, <<"Harvest">>).
 -define(ORDER_REFINE, <<"Refine">>).
 -define(ORDER_CRAFT, <<"Craft">>).

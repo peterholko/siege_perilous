@@ -108,6 +108,10 @@ var followActive = new Image();
 var followRest = new Image();
 var followRoll = new Image();
 
+var exploreActive = new Image();
+var exploreRest = new Image();
+var exploreRoll = new Image();
+
 var quick = new Image();
 var precise = new Image();
 var fierce = new Image();
@@ -136,6 +140,7 @@ var buildButton = new createjs.Container();
 var moveButton = new createjs.Container();
 var hideButton = new createjs.Container();
 var followButton = new createjs.Container();
+var exploreButton = new createjs.Container();
 
 var quickButton = new createjs.Container();
 var preciseButton = new createjs.Container();
@@ -214,6 +219,9 @@ hideRoll.src = "/static/art/ab_move_roll.png";
 followActive.src = "/static/art/ab_follow_active.png";
 followRest.src = "/static/art/ab_follow_active.png";
 followRoll.src = "/static/art/ab_follow_active.png";
+
+exploreActive.src = "/static/art/ab_details_active.png";
+exploreRest.src = "/static/art/ab_details_rest.png";
 
 reventBg.src = "/static/art/revent_bg.png";
 quick.src = "/static/art/quick_rest.png"; 
@@ -635,7 +643,12 @@ function sendAssign(sourceid, targetid) {
 };
 
 function sendFollow(sourceid) {
-    var e = '{"cmd": "follow", "sourceid": ' + selectedPortrait + '}';
+    var e = '{"cmd": "order_follow", "sourceid": ' + selectedPortrait + '}';
+    websocket.send(e);
+};
+
+function sendOrderExplore(sourceid) {
+    var e = '{"cmd": "order_explore", "sourceid": ' + selectedPortrait + '}';
     websocket.send(e);
 };
 
@@ -2197,7 +2210,7 @@ function drawInfoTile(jsonData) {
     statsText.x = 10;
     statsText.y = 125;    
     
-    addChildInfoPanel(statsText);
+    addChildInfoPanel(statsText); 
 
     for(var i = 0; i < jsonData.resources.length; i++) {
         var resource = jsonData.resources[i];
@@ -2208,7 +2221,7 @@ function drawInfoTile(jsonData) {
         icon.resourceName = resource.name;
 
         icon.x = 25;
-        icon.y = 80 + i * 60;
+        icon.y = 250 + i * 60;
 
         addChildInfoPanel(icon);
         addImage({id: resourceImage, path: imagePath, x: 0, y: 0, target: icon});
@@ -2702,6 +2715,7 @@ function drawActionBar(objId) {
     moveButton.visible = false;
     hideButton.visible = false;
     followButton.visible = false;
+    exploreButton.visible = false;
 
     if(obj.subclass == "hero") {
         gatherButton.visible = true;
@@ -2711,6 +2725,7 @@ function drawActionBar(objId) {
 
     } else if(obj.subclass == "villager") {
         followButton.visible = true;
+        exploreButton.visible = true;
     }
 };
 
@@ -2848,6 +2863,11 @@ function initUI() {
     followButton.mouseChildren = false;
     followButton.addChild(new createjs.Bitmap(followRest));
 
+    exploreButton.x = 48;
+    exploreButton.y = 150;
+    exploreButton.mouseChildren = false;
+    exploreButton.addChild(new createjs.Bitmap(exploreRest));
+
     quickCooldown = new createjs.Shape();
     preciseCooldown = new createjs.Shape();
     fierceCooldown = new createjs.Shape();
@@ -2972,6 +2992,10 @@ function initUI() {
         sendFollow();
     });
 
+    exploreButton.on("mousedown", function(evt) {
+        sendOrderExplore();
+    });
+
     quickButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {
             sendAttack("quick");
@@ -3077,6 +3101,7 @@ function initUI() {
     actionBar.addChild(moveButton);
     //actionBar.addChild(hideButton);
     actionBar.addChild(followButton);
+    actionBar.addChild(exploreButton);
     actionBar.addChild(quickButton);
     actionBar.addChild(preciseButton);
     actionBar.addChild(fierceButton);

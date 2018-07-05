@@ -9,8 +9,10 @@
 -include("common.hrl").
 
 -export([create/3, create/4, create/5, update_state/2, remove/1]).
--export([process_create/1, process_update_state/2, process_move/2, process_deleting/1]).
--export([update_hp/2, update_stamina/2, update_dead/1, update_deleting/1]).
+-export([process_create/1, process_update_state/2, process_move/2, process_deleting/1,
+         process_obj_stats/0]).
+-export([update_hp/2, update_stamina/2, update_hunger/2, update_focus/2, update_dead/1, update_deleting/1]).
+-export([set_hunger/2]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
@@ -190,14 +192,12 @@ process_update_state(Obj, State, StateData) when is_record(Obj, obj) ->
 
 process_obj_stats() ->
     F = fun() ->
-            mnesia:lock(obj, write),
-
-            [Villagers] = db:dirty_index_read(obj, ?VILLAGER, #obj.subclass),
-            [Heros] = db:dirty_index_read(obj, ?HERO, #obj.subclass),
+            mnesia:write_lock_table(obj),
+            Villagers = mnesia:dirty_index_read(obj, ?VILLAGER, #obj.subclass),
+            Heros = mnesia:dirty_index_read(obj, ?HERO, #obj.subclass),
 
             G = fun(Obj) ->
                     NewObj = process_obj_stat(Obj),
-                   
                     mnesia:dirty_write(NewObj)
                 end,
 
@@ -207,37 +207,76 @@ process_obj_stats() ->
     mnesia:transaction(F).
 
 process_obj_stat(Obj) ->
-    case Obj#obj.hunger > (?TICKS_MIN * 5) of
-        true -> 
-            effect:add_effect(Obj#obj.id, ?HUNGRY);
-        false ->
+    case Obj#obj.hunger of
+        Hunger when Hunger > (?TICKS_SEC * 30) -> 
+            case effect:has_effect(Obj#obj.id, ?HUNGRY) of
+                false -> effect:add(Obj#obj.id, ?HUNGRY);
+                true -> none
+            end;
+        Hunger when Hunger > (?TICKS_MIN * 24) ->
+            case effect:has_effect(Obj#obj.id, ?STARVATION) of
+                false -> effect:add(Obj#obj.id, ?STARVATION);
+                true -> none
+            end;
+        _ ->
             none
     end,
 
-    case Obj#obj.thirst > (?TICKS_MIN * 5) of
-        true ->
-            effect:add_effect
+    case Obj#obj.thirst of
+        Thirst when Thirst > (?TICKS_MIN * 4) ->
+            case effect:has_effect(Obj#obj.id, ?THIRSTY) of
+                false -> effect:add(Obj#obj.id, ?THIRSTY);
+                true -> none
+            end;
+        Thirst when Thirst > (?TICKS_MIN * 12) ->
+            case effect:has_effect(Obj#obj.id, ?DEHYDRATION) of
+                false -> effect:add(Obj#obj.id, ?DEHYDRATION);
+                true -> none
+            end;
+        _ ->
+            none
+    end,
 
+    case Obj#obj.focus of
+        Focus when Focus > (?TICKS_MIN * 10) ->
+            case effect:has_effect(Obj#obj.id, ?TIRED) of
+                false -> effect:add(Obj#obj.id, ?TIRED);
+                true -> none
+            end;
+        Focus when Focus > (?TICKS_MIN * 20) ->
+            case effect:has_effect(Obj#obj.id, ?EXHAUSTED) of
+                false -> effect:add(Obj#obj.id, ?EXHAUSTED);
+                true -> none
+            end;
+        _ -> 
+            none
+    end,
 
+    NewHunger = case obj:state(Obj) =:= ?EATING of
+                    true ->
+                        Obj#obj.hunger;
+                    false ->
+                        Obj#obj.hunger + 1
+                end,
 
-    NewFocus = case obj:state(Obj) =/= ?SLEEPING of
-                   false ->
-                       Obj#obj.focus + 1;
+    NewThirst = case obj:state(Obj) =:= ?DRINKING of
+                    true ->
+                        Obj#obj.thirst;
+                    false ->
+                        Obj#obj.thirst + 1
+                end,
+
+    NewFocus = case obj:state(Obj) =:= ?SLEEPING of
                    true ->
-                       0
+                       Obj#obj.focus;
+                   false ->
+                       Obj#obj.focus + 1
                end,
-    
-    NewHunger = Obj#obj.hunger + 1,
-    NewThirst = Obj#obj.thirst + 1,
+
     NewObj = Obj#obj{hunger = NewHunger,
                      thirst = NewThirst,
                      focus = NewFocus},
-
-
-
-
-
-
+    NewObj.
 
 update_hp(Id, Value) ->
     Hp = obj_attr:value(Id, <<"hp">>),
@@ -257,6 +296,29 @@ update_stamina(Id, Value) ->
     NewStamina = set_attr(Stamina, BaseStamina, Value),
 
     obj_attr:set(Id, <<"stamina">>, NewStamina).
+
+update_hunger(Id, ModValue) ->
+    [Obj] = db:read(obj, Id),
+    NewHunger = Obj#obj.hunger + ModValue,
+    NewObj = Obj#obj{hunger = NewHunger},
+
+    %TODO replace db:write with save
+    db:write(NewObj).
+
+set_hunger(Id, Value) ->
+    [Obj] = db:read(obj, Id),
+    NewObj = Obj#obj{hunger = Value},
+
+    %TODO replace db:write with save
+    db:write(NewObj).
+
+update_focus(Id, ModValue) ->
+    [Obj] = db:read(obj, Id),
+    NewFocus = Obj#obj.focus + ModValue,
+    NewObj = Obj#obj{focus = NewFocus},
+
+    %TODO replace db:write with save
+    db:write(NewObj).
 
 update_dead(Id) ->
     [Obj] = db:read(obj, Id),
@@ -594,7 +656,7 @@ process_subclass(#obj{id = Id, player = Player, subclass = Subclass}) when Subcl
     combat:init_combos(Id),
     Hero = #hero{player = Player, obj = Id},
     db:write(Hero);
-process_subclass(#obj{id = Id, player = Player, subclass = Subclass, modtick = Tick}) when Subclass =:= ?NPC ->
+process_subclass(#obj{id = Id, subclass = Subclass}) when Subclass =:= ?NPC ->
     combat:init_combos(Id);
 process_subclass(#obj{pos = Pos, name = Name, subclass = Subclass}) when Subclass =:= ?MONOLITH ->
     Radius = get_monolith_radius(Name),

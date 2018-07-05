@@ -28,12 +28,13 @@
 -export([find_shelter/1, find_harvester/1, find_craft/1, find_storage/1]).
 -export([structure_not_full/1, load_resources/1, unload_resources/1]).
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
--export([has_resources/1]).
--export([idle/1, refine/1, craft/1]).
+-export([has_resources/1, has_food/1, has_food_storage/1, find_food_storage/1, transfer_food/1]).
+-export([idle/1, explore/1, refine/1, craft/1, eat/1, drink/1, sleep/1]).
 -export([move_to_target/1, melee_attack/1]).
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
 -export([has_order/2, has_effect/2, has_not_effect/2]).
+-export([tile_has_unrevealed/1]).
 -export([create/1, create/3, remove/1, assign_list/1, info/1]).
 
 %% ====================================================================
@@ -149,7 +150,9 @@ has_order(Villager, OrderType) ->
 
 has_effect(Villager, EffectType) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
-    effect:has_effect(VillagerObj#obj.id, EffectType).
+    Result = effect:has_effect(VillagerObj#obj.id, EffectType),
+    lager:info("Villager: ~p, Has ~p: ~p", [Villager#villager.id, EffectType, Result]),
+    Result.
 
 has_not_effect(Villager, EffectType) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
@@ -229,7 +232,18 @@ has_resources(Villager) ->
         true -> true;
         false -> false
     end.
-    
+
+has_food(Villager) ->
+    item:has_by_subclass(Villager#villager.id, ?FOOD).
+
+has_food_storage(Villager) ->
+    find_items_by_subclass(Villager, ?FOOD) =/= [].
+
+tile_has_unrevealed(Villager) ->
+    VillagerObj = obj:get(Villager#villager.id),
+    NumUnrevealed = resource:get_num_unrevealed(obj:pos(VillagerObj)),
+    NumUnrevealed =/= 0.
+
 %%% 
 %%% HTN Primitive Tasks
 %%%
@@ -257,6 +271,15 @@ find_storage(Villager) ->
     Villager#villager {storage = Storage#obj.id,
                        dest = Storage#obj.pos,
                        task_state = completed}.
+
+find_food_storage(Villager) ->
+    [Food | _Rest] = find_items_by_subclass(Villager, ?FOOD),
+    OwnerObj = obj:get(item:owner(Food)),
+    OwnerPos = obj:pos(OwnerObj),
+
+    Villager#villager{storage = obj:id(OwnerObj),
+                      dest = OwnerPos,
+                      task_state = completed}.
 
 set_pos_shelter(Villager) ->
     [Dwelling] = db:read(obj, Villager#villager.shelter),
@@ -461,8 +484,31 @@ unload_resources(Villager) ->
 
     Villager#villager {task_state = completed}.
 
+transfer_food(Villager) ->
+    %TODO check weight and capacity
+    case item:get_by_subclass(Villager#villager.storage, ?FOOD) of
+        [Food | _Rest] -> 
+            item:transfer(item:id(Food), Villager#villager.id);
+        _ -> 
+            none
+    end,
+
+    Villager#villager {task_state = completed}.
+    
+
 idle(Villager) ->
     Villager#villager {task_state = completed}.
+
+explore(Villager) ->
+    lager:info("Villager explore"),
+    EventData = Villager#villager.id,
+
+    obj:update_state(Villager#villager.id, ?EXPLORING),
+    game:add_event(self(), explore, EventData, Villager#villager.id, ?TICKS_SEC * 3),
+
+    Villager#villager {task_state = running}.
+
+
 
 refine(Villager) ->
     lager:info("Villager refine"),
@@ -490,6 +536,30 @@ craft(Villager) ->
 
     Villager#villager {task_state = running}.
 
+eat(Villager) ->
+    lager:info("Villager eating"),
+    
+    % Assume food exists as check or transfer was completely immediately before
+    [Food | _Rest] = item:get_by_subclass(Villager#villager.id, ?FOOD),
+
+    item:update(item:id(Food), item:quantity(Food) - 1),
+
+    obj:update_state(Villager#villager.id, ?EATING),
+    game:add_event(self(), ?EATING, Villager#villager.id, Villager#villager.id, ?TICKS_SEC * 10),
+
+    Villager#villager {task_state = running}.
+
+drink(Villager) ->
+    lager:info("Villager drinking"),
+
+    obj:update_state(Villager#villager.id, ?DRINKING),
+    game:add_event(self(), ?DRINKING, Villager#villager.id, Villager#villager.id, ?TICKS_SEC * 10).
+
+sleep(Villager) ->
+    lager:info("Villager sleeping"),
+
+    obj:update_state(Villager#villager.id, ?SLEEPING),
+    game:add_event(self(), ?SLEEPING, Villager#villager.id, Villager#villager.id, ?TICKS_SEC * 120).
 
 %%% End of HTN functions %%%
 
@@ -536,6 +606,9 @@ handle_cast({set_order, VillagerId, Order, OrderData}, Data) ->
                                     data = maps:merge(VillagerData, OrderData)},
 
     NewData = maps:update(VillagerId, NewVillager, Data),
+
+    %Send talk message confirming order
+    sound:talk(NewVillager#villager.id, order_speech(Order)),
 
     {noreply, NewData};
 
@@ -770,10 +843,10 @@ process_plan(Villager, Tick) ->
             %New plan cancel current event
             game:cancel_event(NewVillager#villager.id),
 
-            PlanLabelTalk = convert_plan_label(PlanLabel),
-
-            %Broadcast new plan
-            sound:talk(NewVillager#villager.id, PlanLabelTalk),
+            case convert_plan_label(PlanLabel) of
+                none -> nothing;
+                PlanLabelSpeech -> sound:talk(NewVillager#villager.id, PlanLabelSpeech)
+            end,
 
             %Reset Villager statistics
             NewVillager#villager{plan = NewPlan,
@@ -828,9 +901,11 @@ process_event_complete(Villager) ->
         move_to_pos -> process_move_complete(Villager);
         claim_shelter -> complete_task(Villager);
         harvest -> complete_task(Villager);
+        explore -> complete_task(Villager);
         refine -> complete_task(Villager);
         craft -> process_craft_complete(Villager);
         melee_attack -> complete_task(Villager);
+        eating -> complete_task(Villager);
         _ -> nothing
     end.
 
@@ -886,6 +961,9 @@ find_structure(Villager, Type) ->
 
     [First | _Rest] = lists:foldl(F, [], Structures),
     First.
+
+get_storages(Player) ->
+    obj:get_by_attr(Player, [{subclass, <<"storage">>}]).
 
 get_next_task(TaskIndex, PlanLength) when TaskIndex < PlanLength ->
         NewTaskIndex = TaskIndex + 1,
@@ -984,20 +1062,25 @@ generate_name() ->
 
     lists:nth(util:rand(length(Names)), Names).
 
+find_items_by_subclass(Villager, ItemSubclass) ->
+    Storages = get_storages(Villager#villager.player),
+
+    F = fun(Storage, Acc) ->
+            Items = item:get_by_subclass(obj:id(Storage, ItemSubclass)),
+            Items ++ Acc
+        end,
+
+    lists:foldl(F, [], Storages).
+
 convert_plan_label({villager, flee_to_hero}) -> "I need protection!";
 convert_plan_label({villager, flee_randomly}) -> "Run away!";
-convert_plan_label({villager, do_follow}) -> "Yes sir, following!";
-convert_plan_label({villager, do_idle}) -> "Nothing to do...";
-convert_plan_label({villager, process_harvest}) -> "Yes sir, harvesting!";
-convert_plan_label({villager, process_refine}) -> "Yes sir, refining!";
-convert_plan_label({villager, process_crafting}) -> "Yes sir, crafting!";
+convert_plan_label({villager, has_food}) -> "Time to eat!";
+convert_plan_label({villager, has_food_storage}) -> "Time to find some food!";
 convert_plan_label({villager, harvest_idle}) -> "We are out of storage for all these resources";
-convert_plan_label(_) -> "Not sure what to say".
+convert_plan_label(_) -> none.
 
-
-
-
-
-
-
+order_speech(?ORDER_FOLLOW) -> "Yes sir, following!";
+order_speech(?ORDER_EXPLORE) -> "Yes sir, exploring this area!";
+order_speech(?ORDER_HARVEST) -> "Yes sir, harvesting resources!";
+order_speech(_) -> "Not sure what to say for this order".
 

@@ -37,7 +37,8 @@
          hide/1,
          assign_list/0,
          assign/2,
-         follow/1,
+         order_follow/1,
+         order_explore/1,
          order_harvest/1,
          order_attack/2,
          clear/1,
@@ -695,7 +696,7 @@ assign(SourceId, TargetId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
-follow(VillagerId) ->
+order_follow(VillagerId) ->
     Player = get(player_id),
     VillagerObj = obj:get(VillagerId),
 
@@ -707,6 +708,24 @@ follow(VillagerId) ->
         true ->
             lager:info("Villager following"),
             villager:set_order(VillagerId, ?ORDER_FOLLOW),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+order_explore(VillagerId) ->
+    Player = get(player_id),
+    VillagerObj = obj:get(VillagerId),
+    
+    Checks = [{is_player_owned(VillagerObj, Player), "Villager is not owned by player"},
+              {obj:is_hero_nearby(VillagerObj, Player), "Villager is not near Hero"},
+              {obj:is_subclass(?VILLAGER, VillagerObj), "Not a villager"}],
+
+    case process_checks(Checks) of
+         true ->
+            lager:info("Villager explore"),
+            villager:set_order(VillagerId, ?ORDER_EXPLORE),
 
             #{<<"result">> => <<"success">>};
         {false, Error} ->

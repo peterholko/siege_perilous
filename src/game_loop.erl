@@ -15,7 +15,6 @@
 %%
 -export([loop/3]).
 -export([npc_process/1]).
--export([process_objs/0]).
 
 %%
 %% API Functions
@@ -25,7 +24,7 @@ loop(NumTick, LastTime, GamePID) ->
     %StartLoopTime = util:get_time(), 
     CurrentTick = counter:increment(tick),	
 
-    process_objs(),
+    obj:process_obj_stats(),
 
     %Process dead and deleting objs
     process_deleting_objs(NumTick),
@@ -35,7 +34,7 @@ loop(NumTick, LastTime, GamePID) ->
     %process_transition(NumTick),
 
     %Process resource upkeep
-    process_upkeep(NumTick),
+    %process_upkeep(NumTick),
 
     %Process rest
     process_rest(NumTick),
@@ -69,7 +68,6 @@ loop(NumTick, LastTime, GamePID) ->
 
     %NPC create plan and run it
     npc_process(NumTick),
-
 
     %Toggle off perception and explored
     game:reset(),
@@ -279,9 +277,10 @@ do_event(ford, EventData, PlayerPid) ->
 
 do_event(explore, EventData, PlayerPid) ->
     lager:info("Processing explore event: ~p", [EventData]),
-    {ObjId, Pos} = EventData,
+    ObjId = EventData,
+    Obj = obj:get(ObjId),
 
-    Result = resource:explore(ObjId, Pos),
+    Result = resource:explore(ObjId, obj:pos(Obj)),
     lager:info("Explore Result: ~p", [Result]),
 
     obj:update_state(ObjId, none),
@@ -385,9 +384,31 @@ do_event(craft, EventData, PlayerPid) ->
             nothing
     end,
 
-    obj:update_state(UnitId, none),
+    obj:update_state(UnitId, none);
 
-    false;
+do_event(?EATING, EventData, _PlayerPid) ->
+    lager:info("Processing eat event: ~p", [EventData]),
+    VillagerId = EventData,
+
+    %TODO add different values for different foods
+    obj:update_hunger(VillagerId, -480),
+
+    effect:remove(VillagerId, ?HUNGRY),
+
+    message:send_to_process(global:whereis_name(villager), event_complete, {eat, VillagerId}),
+
+    obj:update_state(VillagerId, none);
+
+do_event(?SLEEPING, EventData, _PlayerPid) ->
+    lager:info("Processing sleeping event: ~p", [EventData]),
+
+    VillagerId = EventData,
+
+    obj:update_focus(VillagerId, -500),
+
+    message:send_to_process(global:whereis_name(villager), event_complete, {sleeping, VillagerId}),
+
+    obj:update_state(VillagerId, none);
 
 do_event(login, EventData, Pid) ->
     lager:info("Processing login event: ~p", [EventData]),

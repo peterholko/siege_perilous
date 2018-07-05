@@ -266,13 +266,22 @@ message_handle(<<"assign">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"assign">>, Return),
     jsx:encode(FinalReturn);
 
-message_handle(<<"follow">>, Message) ->
-    lager:info("message: follow"),
+message_handle(<<"order_follow">>, Message) ->
+    lager:info("message: order_follow"),
     
     SourceId = map_get(<<"sourceid">>, Message),
 
-    Return = player:follow(SourceId),
-    FinalReturn = maps:put(<<"packet">>, <<"follow">>, Return),
+    Return = player:order_follow(SourceId),
+    FinalReturn = maps:put(<<"packet">>, <<"order_follow">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"order_explore">>, Message) ->
+    lager:info("message: order_explore"),
+    
+    SourceId = map_get(<<"sourceid">>, Message),
+
+    Return = player:order_explore(SourceId),
+    FinalReturn = maps:put(<<"packet">>, <<"order_explore">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(<<"order_harvest">>, Message) ->
