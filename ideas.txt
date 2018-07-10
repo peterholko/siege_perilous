@@ -86,9 +86,11 @@ https://archeage.gamepedia.com/ArcheAge_Wiki
 
 1. Action available under Tile Info Panel
 2. Reveals resources on the tile (ore, wood, food, water, etc...) based off exploring skill
-3. Harvest action will display discovered resoures
+3. Gather action will display discovered resoures
 
-
+*** Gather Action (Villager)***
+1. Pop-up list of gather resources on the tile
+2. Continues to gather until told otherwise 
 
 ***** Player Start *****
 
