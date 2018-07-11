@@ -117,7 +117,12 @@ https://archeage.gamepedia.com/ArcheAge_Wiki
 
 
 
-
+Gather Water
+Gather Food
+Gather Ore
+Gather Wood
+Gather Stone
+Gather Herbs/Plant
 
 
 
