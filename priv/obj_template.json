@@ -122,7 +122,7 @@
     "template": "Human Villager",
     "images": ["humanvillager1", "humanvillager2", "humanvillager3", "humanvillager4"],
     "hsl": [90,50,0], 
-	"capacity": 121
+	"capacity": 150
 },
 {
 	"_id": {

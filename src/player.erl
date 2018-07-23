@@ -40,7 +40,9 @@
          order_follow/1,
          order_explore/1,
          order_harvest/1,
+         order_gather/2,
          order_attack/2,
+         order_build/2,
          clear/1,
          cancel/1,
          revent_response/1,
@@ -483,7 +485,6 @@ finish_build(SourceId, StructureId) ->
 
 finish_build(PlayerId, SourceId, Structure = #obj {state = ?FOUNDED}) -> 
     [Source] = db:read(obj, SourceId),
-    NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
     
     Checks = [{Source#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
               {Structure#obj.player =:= PlayerId, "Structure not owned by player"},
@@ -494,6 +495,7 @@ finish_build(PlayerId, SourceId, Structure = #obj {state = ?FOUNDED}) ->
             lager:info("Finishing structure"),
             game:cancel_event(SourceId),
 
+            NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
             EventData = {SourceId, Structure#obj.id},
 
             %Add obj update state to change to moving state on next tick
@@ -509,7 +511,6 @@ finish_build(PlayerId, SourceId, Structure = #obj {state = ?FOUNDED}) ->
 
 finish_build(PlayerId, SourceId, Structure = #obj {state = ?PROGRESSING}) ->
     [Source] = db:read(obj, SourceId),
-    NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
     
     Checks = [{Source#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
               {Structure#obj.player =:= PlayerId, "Structure not owned by player"}],
@@ -519,6 +520,7 @@ finish_build(PlayerId, SourceId, Structure = #obj {state = ?PROGRESSING}) ->
             lager:info("Finishing structure"),
             game:cancel_event(SourceId),
 
+            NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
             EventData = {SourceId, Structure#obj.id},
 
             obj:update_state(SourceId, building),
@@ -757,6 +759,27 @@ order_harvest(VillagerId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end. 
 
+order_gather(VillagerId, ResourceType) ->
+    Player = get(player_id),
+    VillagerObj = obj:get(VillagerId),
+
+    Checks = [{is_player_owned(VillagerObj, Player), "Villager is not owned by player"},
+              {obj:is_hero_nearby(VillagerObj, Player), "Villager is not near Hero"},
+              {obj:is_subclass(?VILLAGER, VillagerObj), "Not a villager"},
+              {resource:is_valid_type(ResourceType, obj:pos(VillagerObj)), "Not valid resource type"}],
+ 
+    case process_checks(Checks) of
+        true ->
+            lager:info("Villager gather"),
+            OrderData = #{gatherpos => obj:pos(VillagerObj),
+                          restype => ResourceType},           
+            villager:set_order(VillagerId, ?ORDER_GATHER, OrderData),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
 order_attack(VillagerId, TargetId) ->
     Player = get(player_id),
     VillagerObj = obj:get(VillagerId),
@@ -780,11 +803,41 @@ order_attack(VillagerId, TargetId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
     
+order_build(VillagerId, StructureId) ->
+    Player = get(player_id),
+    VillagerObj = obj:get(VillagerId),
+    StructureObj = obj:get(StructureId),
+
+    Checks = [{StructureObj =:= invalid, "Invalid structure"},
+              {obj:pos(VillagerObj) =:= obj:pos(StructureObj), "Builder must be on the structure"},
+              {obj:player(StructureObj) =:= Player, "Structure not owned by player"},
+              {structure:has_req(obj:id(StructureObj)), "Structure is missing required items"}],
+
+    case process_checks(Checks) of
+        true ->
+            OrderData = #{structure => StructureId},           
+            villager:set_order(VillagerId, ?ORDER_BUILD, OrderData),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
 
 clear(VillagerId) ->
-    %_PlayerId = get(player_id),
-    %TODO check if villager is owned by player
-    villager:set_order(VillagerId, none).
+    PlayerId = get(player_id),
+    VillagerObj = obj:get(VillagerId),
+
+
+    Checks = [{VillagerObj =:= invalid, "Invalid villager"},
+              {obj:player(VillagerObj) =:= PlayerId, "Villager not owned by player"}],
+
+    case process_checks(Checks) of
+        true ->
+            villager:set_order(VillagerId, none),
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
     
 cancel(SourceId) ->
     PlayerId = get(player_id),

@@ -782,6 +782,8 @@ info(Id) ->
     Info0 = maps:put(<<"id">>, Id, Attrs1),
     Info1 = maps:put(<<"name">>, Obj#obj.name, Info0),
     Info2 = maps:put(<<"image">>, Obj#obj.image, Info1),
+
+    %TODO Decide on binary string vs atom, skills are bianry strings right now
     Info3 = maps:put(<<"state">>, atom_to_binary(Obj#obj.state, latin1), Info2), 
     Info4 = maps:put(<<"items">>, Items, Info3),
     Info5 = maps:put(<<"skills">>, Skills, Info4),

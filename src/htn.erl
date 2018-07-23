@@ -153,6 +153,9 @@ villager() ->
         add_select_all(dwelling, process_dwelling, [], []),
             add_primitive(find_dwelling, dwelling, [], [], find_shelter),
             add_primitive(move_to_dwelling, dwelling, [], [], move_to_pos),
+    add_select_one(process_build, villager, [morale_normal, {has_order, ?ORDER_BUILD}], []),
+        add_select_all(do_build, process_build, [], []),
+            add_primitive(build, do_build, [], [], build),
     add_select_one(process_explore, villager, [morale_normal, tile_has_unrevealed, {has_order, ?ORDER_EXPLORE}], []),
         add_select_all(do_explore, process_explore, [], []),
             add_primitive(explore, do_explore, [], [], explore),
@@ -163,7 +166,23 @@ villager() ->
     add_select_one(process_guard, villager, [morale_normal, {has_order, ?ORDER_GUARD}], []),
         add_select_all(do_guard, process_guard, [], []),
             add_primitive(set_pos_hero, do_guard, [], [], set_pos_hero),
-            add_primitive(move_to_hero, do_guard, [], [], move_to_pos),
+            add_primitive(move_to_hero, do_guard, [], [], move_to_pos),           
+    add_select_one(process_gather, villager, [morale_normal, {has_order, ?ORDER_GATHER}], []),
+        add_select_one(process_haul_gather, process_gather, [is_full], []),
+            add_select_all(do_haul, process_haul_gather, [has_storage, storage_not_full], []),
+                add_primitive(set_activity, do_haul, [], [], set_hauling),
+                add_primitive(set_pos_storage, do_haul, [], [], set_pos_storage),
+                add_primitive(move_to_storage, do_haul, [], [], move_to_pos),
+                add_primitive(transfer_item, do_haul, [], [], unload_resources),            
+                add_primitive(set_activity, do_haul, [], [], set_none),
+            add_select_all(do_find_storage, process_haul_gather, [storage_needed, free_storage], []),
+                add_primitive(find_storage, do_find_storage, [], [], find_storage),
+            add_select_all(gather_idle, process_haul_gather, [], []),
+                add_primitive(idle, gather_idle, [], [], idle),
+        add_select_all(do_gather, process_gather, [], []),   
+            add_primitive(set_to_gather, do_gather, [], [], set_pos_gather),
+            add_primitive(move_to_gather, do_gather, [], [], move_to_pos),
+            add_primitive(gather, do_gather, [], [], gather),
     add_select_one(process_harvester, villager, [morale_normal, {has_order, ?ORDER_HARVEST}], []),
         add_select_all(process_harvest, process_harvester, [not_hauling, structure_not_full], []),
             add_primitive(set_pos_structure, process_harvest, [], [], set_pos_structure),
@@ -223,7 +242,7 @@ plan(PlanName, Id, Module) ->
 
     {PlanLabel, Plan}.
 
-process_child([], primitive_task, _NPC) ->
+process_child([], primitive, _NPC) ->
     done;
 process_child(Children, select_one, NPC) ->
     NextChild = process_child_selectone(Children, {false, none}, NPC),

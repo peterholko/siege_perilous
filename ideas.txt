@@ -117,7 +117,27 @@ https://archeage.gamepedia.com/ArcheAge_Wiki
 
 
 
+*** Gathering/Harvesting ***
 
+Idea #1:
+
+Order Gather "Mine Ore"
+Order Gather "Cut Wood"
+Order Gather "Cut Stone"
+
+Pros:
+
+
+Cons:
+-Creates ore from all 
+
+
+Idea #2:
+
+Order Gather "Valleyrun Copper Ore"
+Order Gather "FlowState Copper Ore" 
+
+etc...
 
 
 

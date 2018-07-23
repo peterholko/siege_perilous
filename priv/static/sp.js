@@ -134,6 +134,12 @@ var btnAssignRestImg = new Image();
 var btnSplitRestImg = new Image();
 var btnEquipRestImg = new Image();
 
+var oreIcon = new Image();
+var woodIcon = new Image();
+var stoneIcon = new Image();
+var foodIcon = new Image();
+var waterIcon = new Image();
+
 var detailsButton = new createjs.Container();
 var gatherButton = new createjs.Container();
 var buildButton = new createjs.Container();
@@ -241,6 +247,12 @@ btnCraftRestImg.src = "/static/art/btn_craft_rest.png";
 btnSplitRestImg.src = "/static/art/btn_split_rest.png";
 btnAssignRestImg.src = "/static/art/btn_assign_rest.png";
 btnEquipRestImg.src = "/static/art/btn_equip_rest.png";
+
+oreIcon.src = "/static/art/ab_gather_active.png";
+woodIcon.src = "/static/art/ab_gather_active.png";
+stoneIcon.src = "/static/art/ab_gather_active.png";
+waterIcon.src = "/static/art/ab_gather_active.png";
+foodIcon.src = "/static/art/ab_gather_active.png";
 
 gravestone.src = "/static/art/gravestone.png";
 
@@ -649,6 +661,11 @@ function sendFollow(sourceid) {
 
 function sendOrderExplore(sourceid) {
     var e = '{"cmd": "order_explore", "sourceid": ' + selectedPortrait + '}';
+    websocket.send(e);
+};
+
+function sendOrderGather(sourceid, restype) {
+    var e = '{"cmd": "order_gather", "sourceid": ' + selectedPortrait + ', "restype": "' + restype + '"}';
     websocket.send(e);
 };
 
@@ -1979,6 +1996,74 @@ function drawSurveyDialog(resources) {
     });
 };
 
+function drawResourceTypeDialog() {
+    showSmallDialogPanel();
+
+    var title = new createjs.Text("Resource Types", h1Font, textColor);
+    title.x = Math.floor(smallDialogPanelBg.width / 2);
+    title.y = 5;
+    title.textAlign = "center";
+
+    addChildSmallDialogPanel(title);
+
+    var oreButton = new createjs.Container();
+    var woodButton = new createjs.Container();
+    var stoneButton = new createjs.Container();
+    var waterButton = new createjs.Container();
+    var foodButton = new createjs.Container();
+
+    oreButton.x = 25;
+    oreButton.y = 40;
+    oreButton.addChild(new createjs.Bitmap(oreIcon));
+
+    oreButton.on("mousedown", function(evt) {
+        sendOrderGather(selectedPortrait, "Ore");
+        smallDialogPanel.visible = false;
+    });
+ 
+    woodButton.x = 85;
+    woodButton.y = 40;
+    woodButton.addChild(new createjs.Bitmap(woodIcon));
+
+    woodButton.on("mousedown", function(evt) {
+        sendOrderGather(selectedPortrait, "Wood");
+        smallDialogPanel.visible = false;
+    });
+
+    stoneButton.x = 145;
+    stoneButton.y = 40;
+    stoneButton.addChild(new createjs.Bitmap(stoneIcon));
+
+    stoneButton.on("mousedown", function(evt) {
+        sendOrderGather(selectedPortrait, "Stone");
+        smallDialogPanel.visible = false;
+    });
+ 
+    waterButton.x = 205;
+    waterButton.y = 40;
+    waterButton.addChild(new createjs.Bitmap(waterIcon));
+
+    waterButton.on("mousedown", function(evt) {
+        sendOrderGather(selectedPortrait, "Water");
+        smallDialogPanel.visible = false;
+    });
+ 
+    foodButton.x = 265;
+    foodButton.y = 40;
+    foodButton.addChild(new createjs.Bitmap(foodIcon));
+
+    foodButton.on("mousedown", function(evt) {
+        sendOrderGather(selectedPortrait, "Food");
+        smallDialogPanel.visible = false;
+    });
+
+    addChildSmallDialogPanel(oreButton); 
+    addChildSmallDialogPanel(woodButton); 
+    addChildSmallDialogPanel(stoneButton); 
+    addChildSmallDialogPanel(waterButton); 
+    addChildSmallDialogPanel(foodButton); 
+}
+
 function drawStructureListDialog(jsonData) {
     showDialogPanel();
 
@@ -2724,6 +2809,7 @@ function drawActionBar(objId) {
         hideButton.visible = true;
 
     } else if(obj.subclass == "villager") {
+        gatherButton.visible = true;
         followButton.visible = true;
         exploreButton.visible = true;
     }
@@ -2951,6 +3037,10 @@ function initUI() {
     fourComboButton.mouseChildren = false;
     fourComboButton.addChild(new createjs.Bitmap(fierce));
 
+
+
+
+
     /*detailsButton.on("mouseover", function(evt) {
         this.removeAllChildren();
         this.addChild(new createjs.Bitmap(detailsRoll));
@@ -2972,7 +3062,7 @@ function initUI() {
 
     gatherButton.on("mousedown", function(evt) {
         if(selectedPortrait != false) {
-            sendSurvey(selectedPortrait);
+            drawResourceTypeDialog();                                    
         }
     });
 

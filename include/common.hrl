@@ -57,6 +57,7 @@
 -define(FOUNDED, founded).
 -define(PROGRESSING, progressing).
 -define(EXPLORING, exploring).
+-define(GATHERING, gathering).
 -define(HARVESTING, harvesting).
 -define(UPGRADING, upgrading).
 -define(MOVING, moving).
@@ -78,8 +79,6 @@
 
 -define(MAX_ZOMBIES, 100).
 
--define(FOOD, <<"Food">>).
--define(MANA, <<"Mana">>).
 
 -define(STARVING, <<"Starving">>).
 -define(SANCTUARY, <<"Sanctuary">>).
@@ -175,9 +174,11 @@
 -define(ORDER_GUARD, <<"Guard">>).
 -define(ORDER_FOLLOW, <<"Follow">>).
 -define(ORDER_EXPLORE, <<"Explore">>).
+-define(ORDER_GATHER, <<"Gather">>).
 -define(ORDER_HARVEST, <<"Harvest">>).
 -define(ORDER_REFINE, <<"Refine">>).
 -define(ORDER_CRAFT, <<"Craft">>).
+-define(ORDER_BUILD, <<"Build">>).
 
 
 %STATS
@@ -189,6 +190,20 @@
 -define(FOCUS, <<"Focus">>).
 -define(SPIRIT, <<"Spirit">>).
 -define(CREATIVITY, <<"Creativity">>).
+
+%RESOURCE TYPES
+-define(ORE, <<"Ore">>).
+-define(WOOD, <<"Wood">>).
+-define(STONE, <<"Stone">>).
+-define(FOOD, <<"Food">>).
+-define(WATER, <<"Water">>).
+-define(MANA, <<"Mana">>).
+
+%SKILLS
+-define(MINING, <<"Mining">>).
+-define(WOODCUTTING, <<"Woodcutting">>).
+-define(STONECUTTING, <<"Stonecutting">>).
+-define(FARMING, <<"Farming">>).
 
 %RESOURCE TRAITS
 -define(AXE_DMG_P, <<"Axe Damage %">>).

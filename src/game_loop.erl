@@ -286,9 +286,23 @@ do_event(explore, EventData, PlayerPid) ->
     obj:update_state(ObjId, none),
 
     message:send_to_process(PlayerPid, survey, Result),
-    message:send_to_process(PlayerPid, event_complete, {explore, ObjId}),
+    message:send_to_process(PlayerPid, event_complete, {explore, ObjId});
 
-    false;
+do_event(gather, EventData, PlayerPid) ->
+    lager:debug("Processing gather event: ~p", [EventData]),
+
+    {ObjId, ResourceType, Pos} = EventData,
+
+    case resource:is_valid_type(ResourceType, Pos) of
+        true ->
+            lager:info("Gathering resource by type"),
+            
+            resource:gather_by_type(ObjId, ResourceType, Pos),
+            message:send_to_process(PlayerPid, event_complete, {gather, ObjId}),
+            obj:update_state(ObjId, none);
+        false ->
+            nothing
+    end;
 
 do_event(harvest, EventData, PlayerPid) ->
     lager:debug("Processing harvest event: ~p", [EventData]),

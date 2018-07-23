@@ -80,13 +80,11 @@
     "skill_req": 0
 },
 {
-    "name": "Chisotan Tuber",
-    "type": "Food",
+    "name": "Spring Water",
+    "type": "Water",
     "terrain": ["Grasslands", "Plains", "Hills Plains", "Hills Grasslands"],
     "quantity_rate": [25, 25, 20, 15, 8, 5, 2],
     "quantity": [0, 10, 25, 100, 200, 500, 1000],
     "skill_req": 0
 } 
-
-
 ]

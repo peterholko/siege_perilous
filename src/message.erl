@@ -293,6 +293,16 @@ message_handle(<<"order_harvest">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"order_harvest">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"order_gather">>, Message) ->
+    lager:info("message: order_gather"),
+    
+    SourceId = map_get(<<"sourceid">>, Message),
+    ResourceType = map_get(<<"restype">>, Message),
+
+    Return = player:order_gather(SourceId, ResourceType),
+    FinalReturn = maps:put(<<"packet">>, <<"order_gather">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"order_attack">>, Message) ->
     lager:info("message: order_attack"),
     
@@ -301,6 +311,16 @@ message_handle(<<"order_attack">>, Message) ->
 
     Return = player:order_attack(SourceId, TargetId),
     FinalReturn = maps:put(<<"packet">>, <<"order_attack">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"order_build">>, Message) ->
+    lager:info("message: order_build"),
+
+    SourceId = map_get(<<"sourceid">>, Message),
+    TargetId = map_get(<<"targetid">>, Message),
+
+    Return = player:order_build(SourceId, TargetId),
+    FinalReturn = maps:put(<<"packet">>, <<"order_build">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(<<"clear">>, Message) ->

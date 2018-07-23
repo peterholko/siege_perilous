@@ -6,19 +6,40 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([harvest/3, explore/2, survey/1, is_valid/2, is_auto/2, quantity/1]).
--export([get_num_unrevealed/1]).
+-export([gather_by_type/3, harvest/3, explore/2, survey/1, type_to_skill/1]).
+-export([is_valid/2, is_valid_type/2, is_auto/2, quantity/1]).
+-export([get_by_type/2, get_num_unrevealed/1]).
 -export([create/4, generate_effects/0]).
 
-harvest(ObjId, ResourceName, Pos) ->
-    lager:info("Harvesting resource: ~p", [ResourceName]),
-    Resource = get_resource(ResourceName, Pos),
-    harvest(ObjId, Resource).
 
-harvest(_ObjId, false) -> 
-    {error, <<"Invalid resource">>};
-harvest(ObjId, Resource) ->
-    HarvestQuantity = 1, 
+gather_by_type(ObjId, ResourceType, Pos) ->
+    Resources = get_by_type(Pos, ResourceType),
+
+    F = fun(Resource) ->
+            ResourceDef = resource_def:all_to_map(Resource#resource.name),
+            ResourceSkillReq = maps:get(<<"skill_req">>, ResourceDef),
+               
+            SkillTypeReq = type_to_skill(ResourceType),
+            SkillValue = skill:get_by_name(ObjId, SkillTypeReq),
+            lager:info("Skill ~p Value: ~p", [SkillTypeReq, SkillValue]),
+            
+            GatherChance = gather_chance({SkillValue, ResourceSkillReq}), 
+
+            Random = util:rand(),
+            lager:info("Resource: ~p Gather Chance ~p", [Resource#resource.name, Random]),
+
+            case Random < GatherChance of
+                true ->
+                    harvest(ObjId, Resource, 1);
+                false ->
+                    nothing
+            end
+                    
+        end, 
+
+    lists:foreach(F, Resources).
+
+harvest(ObjId, Resource, HarvestQuantity) ->
     ItemWeight = item:weight(name(Resource), HarvestQuantity),
 
     case obj:has_space(ObjId, ItemWeight) of
@@ -27,17 +48,28 @@ harvest(ObjId, Resource) ->
             update_resource(Resource, HarvestQuantity),
 
             %Create new item
-            NewItem = item:create(ObjId, name(Resource), 1),
+            NewItem = item:create(ObjId, name(Resource), HarvestQuantity),
             lager:info("Creating Item ~p", [NewItem]),
         
             %Set quantity to 1, as the returns of this function 
             %should be only the new quantity not combined quantity 
-            NewItemOnly = maps:update(<<"quantity">>, 1, NewItem),
+            NewItemOnly = maps:update(<<"quantity">>, HarvestQuantity, NewItem),
             [NewItemOnly];
         false ->
             {error, <<"Not enough capacity">>}
     end.
 
+get_by_type(Pos, Type) ->
+    Resources = db:read(resource, Pos),
+
+    F = fun(Resource) ->
+            ResourceDef = resource_def:all_to_map(Resource#resource.name),
+            ResourceType = maps:get(<<"type">>, ResourceDef, none),
+
+            (Resource#resource.revealed =:= true) and (ResourceType =:= Type)             
+        end,
+
+    lists:filter(F, Resources).
 
 get_num_unrevealed(Pos) ->
     Resources = db:read(resource, Pos),
@@ -102,6 +134,19 @@ is_valid(ResourceName, Pos) ->
             (Resource#resource.revealed =:= true)
         end,
     lists:any(F, Resources).
+
+is_valid_type(Type, Pos) ->
+    Resources = db:read(resource, Pos),
+    F = fun(Resource) -> 
+            ResourceDef = resource_def:all_to_map(Resource#resource.name),
+            ResourceType = maps:get(<<"type">>, ResourceDef, none),
+
+            (ResourceType =:= Type) and 
+            (Resource#resource.quantity > 0) and
+            (Resource#resource.revealed =:= true)
+        end,
+    lists:any(F, Resources).
+
 
 is_auto(Objs, _Resource) ->
     
@@ -257,6 +302,41 @@ explore_resource({2,50}) -> 0.00012;
 explore_resource({3,50}) -> 0.00016;
 explore_resource({4,50}) -> 0.0002;
 explore_resource({5,50}) -> 0.00024.
+
+
+%{Explore Skill, Resource Req Skill}
+gather_chance({0,0}) -> 0.5;
+gather_chance({1,0}) -> 0.2;
+gather_chance({2,0}) -> 0.3;
+gather_chance({3,0}) -> 0.4;
+gather_chance({4,0}) -> 0.5;
+gather_chance({5,0}) -> 0.6;
+gather_chance({_,0}) -> 1.0;
+
+gather_chance({0,25}) -> 0.00016;
+gather_chance({1,25}) -> 0.00032;
+gather_chance({2,25}) -> 0.00048;
+gather_chance({3,25}) -> 0.00064;
+gather_chance({4,25}) -> 0.0008;
+gather_chance({5,25}) -> 0.00096;
+
+gather_chance({0,50}) -> 0.00004;
+gather_chance({1,50}) -> 0.00008;
+gather_chance({2,50}) -> 0.00012;
+gather_chance({3,50}) -> 0.00016;
+gather_chance({4,50}) -> 0.0002;
+gather_chance({5,50}) -> 0.00024;
+gather_chance({_,_}) -> 1.0.
+
+
+
+
+
+type_to_skill(?ORE) -> ?MINING;
+type_to_skill(?WOOD) -> ?WOODCUTTING;
+type_to_skill(?STONE) -> ?STONECUTTING;
+type_to_skill(?WATER) -> ?GATHERING;
+type_to_skill(?FOOD) -> ?FARMING.
 
 
 

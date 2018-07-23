@@ -6,7 +6,7 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([get_by_owner/1, update/3]).
+-export([get_by_owner/1, get_by_name/2, update/3]).
 
 get_by_owner(Id) ->
     All = db:match_object({skill, {Id, '_'}, '_'}),
@@ -19,11 +19,14 @@ get_by_owner(Id) ->
 
     lists:foldl(F, #{}, All).
 
+get_by_name(Id, Name) ->
+    case db:read(skill, {Id, Name}) of
+        [] -> 0;
+        [Skill] -> Skill#skill.value
+    end.
 
 update(Id, SkillName, Value) ->
     lager:info("skill:update id ~p skillname ~p value ~p", [Id, SkillName, Value]),
-    [Obj] = db:read(obj, Id),    
-
     NewSkill = case db:read(skill, {Id, SkillName}) of
                   [] ->
                       #skill {key = {Id, SkillName},

@@ -14,7 +14,7 @@
 -export([process_upkeep/1, process_upkeep_item/3]).
 -export([get_harvesters/1, harvest/2]).
 -export([get_craftable_recipe/1]).
--export([can_craft/1, can_refine/1]).
+-export([can_craft/1, can_refine/1, consume_req/1]).
 -export([recipe_name/1]).
 -export([get_nearby_bones/1]).
 
@@ -55,6 +55,64 @@ start_build(PlayerId, Pos, Name) ->
 
 upgrade(_StructureId) ->
     lager:info("Upgrade"). 
+
+consume_req(StructureId) ->
+    ReqList = obj_attr:value(StructureId, <<"req">>),
+    Items = item:get_by_owner(StructureId),
+
+    MatchReq = find_match_req(ReqList, Items),
+    lager:info("MatchReq: ~p", [MatchReq]),
+
+    consume_req(ReqList, MatchReq).
+
+find_match_req(Reqs, Items) ->
+    find_match_req(Reqs, Items, []).
+
+find_match_req([], _Items, ReqMatchItems) ->
+    ReqMatchItems;
+find_match_req([#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest], Items, ReqMatchItems) ->
+    F = fun(Item) ->
+                item:match_req(Item, ReqType, ReqQuantity)
+        end,
+
+    AllReqMatchItems = lists:filter(F, Items),
+    NewReqMatchItems = add_req_match(AllReqMatchItems, ReqMatchItems),
+
+    find_match_req(Rest, Items, NewReqMatchItems).
+
+add_req_match([], ReqMatchItems) -> ReqMatchItems;
+add_req_match([Head | _Rest], ReqMatchItems) -> [Head | ReqMatchItems].
+
+consume_req([], _Items) ->
+    lager:info("Completed consuming items");
+consume_req([#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest], Items) ->
+    F = fun(Item) ->
+            ItemId = maps:get(<<"id">>, Item),
+            ItemName = maps:get(<<"name">>, Item),
+            ItemSubClass = maps:get(<<"subclass">>, Item),
+            ItemQuantity = maps:get(<<"quantity">>, Item),
+
+            QuantityMatch = ReqQuantity =< ItemQuantity,
+            ItemNameMatch = ReqType =:= ItemName,
+            ItemSubClassMatch = ReqType =:= ItemSubClass,  
+
+            ItemMatch = ItemNameMatch or ItemSubClassMatch,
+            Match = ItemMatch and QuantityMatch,
+            NewQuantity = ItemQuantity - ReqQuantity,
+
+            consume_item(Match, ItemId, NewQuantity)
+        end,
+
+    lists:foreach(F, Items),
+
+    consume_req(Rest, Items).
+
+
+consume_item(false, _ItemId, _Quantity) ->
+    nothing;
+consume_item(true, ItemId, Quantity) ->
+    lager:info("Updating item ~p quantity ~p", [ItemId, Quantity]),
+    item:update(ItemId, Quantity).
 
 has_req(StructureId) ->
     ReqList = obj_attr:value(StructureId, <<"req">>),
