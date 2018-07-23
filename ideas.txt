@@ -138,6 +138,13 @@ Order Gather "Valleyrun Copper Ore"
 Order Gather "FlowState Copper Ore" 
 
 etc...
+=======
+Gather Water
+Gather Food
+Gather Ore
+Gather Wood
+Gather Stone
+Gather Herbs/Plant
 
 
 
