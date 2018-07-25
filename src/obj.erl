@@ -11,8 +11,9 @@
 -export([create/3, create/4, create/5, update_state/2, remove/1]).
 -export([process_create/1, process_update_state/2, process_move/2, process_deleting/1,
          process_obj_stats/0]).
--export([update_hp/2, update_stamina/2, update_hunger/2, update_focus/2, update_dead/1, update_deleting/1]).
--export([set_hunger/2]).
+-export([update_hp/2, update_stamina/2, update_thirst/2, update_hunger/2, update_focus/2, 
+         update_dead/1, update_deleting/1]).
+-export([set_thirst/2, set_hunger/2]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
@@ -296,6 +297,21 @@ update_stamina(Id, Value) ->
     NewStamina = set_attr(Stamina, BaseStamina, Value),
 
     obj_attr:set(Id, <<"stamina">>, NewStamina).
+
+update_thirst(Id, ModValue) ->
+    [Obj] = db:read(obj, Id),
+    NewHunger = Obj#obj.thirst + ModValue,
+    NewObj = Obj#obj{thirst = NewHunger},
+
+    %TODO replace db:write with save
+    db:write(NewObj).
+
+set_thirst(Id, Value) ->
+    [Obj] = db:read(obj, Id),
+    NewObj = Obj#obj{thirst = Value},
+
+    %TODO replace db:write with save
+    db:write(NewObj).
 
 update_hunger(Id, ModValue) ->
     [Obj] = db:read(obj, Id),

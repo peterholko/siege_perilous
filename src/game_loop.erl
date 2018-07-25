@@ -400,6 +400,20 @@ do_event(craft, EventData, PlayerPid) ->
 
     obj:update_state(UnitId, none);
 
+do_event(?DRINKING, EventData, _PlayerPid) ->
+    lager:info("Processing drink event: ~p", [EventData]),
+    VillagerId = EventData,
+
+    %TODO add different values for different foods
+    obj:update_thirst(VillagerId, -480),
+
+    effect:remove(VillagerId, ?THIRSTY),
+
+    message:send_to_process(global:whereis_name(villager), event_complete, {drink, VillagerId}),
+
+    obj:update_state(VillagerId, none);
+
+
 do_event(?EATING, EventData, _PlayerPid) ->
     lager:info("Processing eat event: ~p", [EventData]),
     VillagerId = EventData,

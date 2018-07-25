@@ -117,28 +117,31 @@ https://archeage.gamepedia.com/ArcheAge_Wiki
 
 
 
-*** Gathering/Harvesting ***
+*** Gathering ***
 
-Idea #1:
+Mine Ore -> Ore (requires: Pick Axe - Mining)
+Cut Wood -> Wood (requires: Chopping Axe - Woodcutting)
+Cut Stone -> Stone (requires: Metal Chisel - Stonecutting)
+Hunt Animals -> Meat/Leather (requires: Hunting Knife - Hunting)
+Farm Plot -> Plant / Fibers (requires: Seeds/Plow - Farming)
+
+Gather Water -> Water (requires: Water Flask/Barrel - Foraging???)
+Gather Plants -> Berries/Tubers/Fibers (requires: Gathering Bag - Foraging ???)
+Gather Herbs -> Herbs (requires: Herb Bag - Herbalism)
+
+*** OR ***
+
+Gather Plants -> (Berries / Fibers / Herbs) -> Berries/Tubers/Fibers/Herbs (requires: Gathering Bag/Pouch) 
+
+
+
+
+
 
 Order Gather "Mine Ore"
 Order Gather "Cut Wood"
 Order Gather "Cut Stone"
 
-Pros:
-
-
-Cons:
--Creates ore from all 
-
-
-Idea #2:
-
-Order Gather "Valleyrun Copper Ore"
-Order Gather "FlowState Copper Ore" 
-
-etc...
-=======
 Gather Water
 Gather Food
 Gather Ore
@@ -146,6 +149,8 @@ Gather Wood
 Gather Stone
 Gather Herbs/Plant
 
+
+*** Tools required ***
 
 
 

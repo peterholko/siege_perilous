@@ -28,7 +28,8 @@
 -export([find_shelter/1, find_harvester/1, find_craft/1, find_storage/1]).
 -export([structure_not_full/1, storage_not_full/1, load_resources/1, unload_resources/1]).
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
--export([has_resources/1, has_food/1, has_food_storage/1, find_food_storage/1, transfer_food/1]).
+-export([has_resources/1, has_food/1, has_food_storage/1, find_food_storage/1, transfer_food/1,
+         has_water/1, has_water_storage/1, find_water_storage/1, transfer_water/1]).
 -export([idle/1, explore/1, gather/1, build/1, refine/1, craft/1, eat/1, drink/1, sleep/1]).
 -export([move_to_target/1, melee_attack/1, is_full/1]).
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
@@ -249,6 +250,12 @@ has_food(Villager) ->
 has_food_storage(Villager) ->
     find_items_by_subclass(Villager, ?FOOD) =/= [].
 
+has_water(Villager) ->
+    item:has_by_subclass(Villager#villager.id, ?WATER).
+
+has_water_storage(Villager) ->
+    find_items_by_subclass(Villager, ?WATER) =/= [].
+
 is_full(Villager) ->
     Capacity = obj:get_capacity(Villager#villager.id),
     
@@ -293,14 +300,19 @@ find_storage(Villager) ->
                        dest = Storage#obj.pos,
                        task_state = completed}.
 
-find_food_storage(Villager) ->
-    [Food | _Rest] = find_items_by_subclass(Villager, ?FOOD),
-    OwnerObj = obj:get(item:owner(Food)),
+find_water_storage(Villager) -> find_subclass_storage(Villager, ?WATER).
+find_food_storage(Villager) -> find_subclass_storage(Villager, ?FOOD).
+
+find_subclass_storage(Villager, Subclass) ->
+    [Item | _Rest] = find_items_by_subclass(Villager, Subclass),
+    OwnerObj = obj:get(item:owner(Item)),
     OwnerPos = obj:pos(OwnerObj),
 
     Villager#villager{storage = obj:id(OwnerObj),
                       dest = OwnerPos,
                       task_state = completed}.
+
+
 
 set_pos_shelter(Villager) ->
     [Dwelling] = db:read(obj, Villager#villager.shelter),
@@ -509,11 +521,14 @@ unload_resources(Villager) ->
 
     Villager#villager {task_state = completed}.
 
-transfer_food(Villager) ->
+transfer_water(Villager) -> transfer_item_subclass(Villager, ?WATER).
+transfer_food(Villager) -> transfer_item_subclass(Villager, ?FOOD).
+
+transfer_item_subclass(Villager, ItemSubclass) ->
     %TODO check weight and capacity
-    case item:get_by_subclass(Villager#villager.storage, ?FOOD) of
-        [Food | _Rest] -> 
-            item:transfer(item:id(Food), Villager#villager.id);
+    case item:get_by_subclass(Villager#villager.storage, ItemSubclass) of
+        [Item | _Rest] -> 
+            item:transfer(item:id(Item), Villager#villager.id);
         _ -> 
             none
     end,
@@ -610,6 +625,10 @@ eat(Villager) ->
 
 drink(Villager) ->
     lager:info("Villager drinking"),
+    
+    [Water | _Rest] = item:get_by_subclass(Villager#villager.id, ?WATER),
+
+    item:update(item:id(Water), item:quantity(Water) - 1),
 
     obj:update_state(Villager#villager.id, ?DRINKING),
     game:add_event(self(), ?DRINKING, Villager#villager.id, Villager#villager.id, ?TICKS_SEC * 10).
