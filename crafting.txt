@@ -413,7 +413,73 @@ Sword:
 +25% precise speed      <<"precise_spd_p">> => 0.25
 
 
-Potential Resource attributes:
+#### Weapon Types ####
+
+* Axes:
+  
+    Hand Axe
+    Broad Axe
+    Heavy Axe
+    Marauder Axe
+
+
+* Swords:
+
+    Primitive Sword
+    Broad Sword
+    Claymore
+    Rune Sword
+
+* Hammers:
+
+    Club
+    Maul
+    Battle Maul
+    War Hammer
+    
+* Daggers:
+
+    Simple Dagger
+    Kris
+    Dirk
+    Darkblade
+
+* Spears:
+
+    Basic Spear
+    Lance
+    War Pike
+    Ghost Spear
+
+* Bow:
+
+    Plain Bow
+    Hunter's Bow
+    War Bow
+    Gothic Bow
+
+* Crossbow
+
+    Basic Crossbow
+
+         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Potential Resource attributes:
+(*** CANCELLEDED ***)
 
 Malleability
 Resilience
