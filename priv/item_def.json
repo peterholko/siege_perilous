@@ -251,6 +251,12 @@
     "class": "Raw",
     "subclass": "bones",
     "weight": 10
-}    
+},
+{
+    "name": "Pick Axe",
+    "class": "Gathering",
+    "subclass": "Pick Axe",
+    "weight": 5
+}
 ]
 

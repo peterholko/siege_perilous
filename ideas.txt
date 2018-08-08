@@ -124,8 +124,10 @@ Cut Wood -> Wood (requires: Chopping Axe - Woodcutting)
 Cut Stone -> Stone (requires: Metal Chisel - Stonecutting)
 Hunt Animals -> Meat/Leather (requires: Hunting Knife - Hunting)
 Farm Plot -> Plant / Fibers (requires: Seeds/Plow - Farming)
-
 Gather Water -> Water (requires: Water Flask/Barrel - Foraging???)
+Gather Plants -> Berries/Tubers/Fibers/Herbs (require: Gathering Tools - Foraging/Gathering/Herbalism???)
+
+
 Gather Plants -> Berries/Tubers/Fibers (requires: Gathering Bag - Foraging ???)
 Gather Herbs -> Herbs (requires: Herb Bag - Herbalism)
 

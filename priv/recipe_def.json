@@ -34,7 +34,7 @@
 {
 	"name": "Refine Ore",
 	"item": "Refine Ore",
-	"class": "refine",
+	"class": "Refine",
 	"structure": "Blacksmith",
     "req": []
 },
@@ -108,5 +108,100 @@
 			"quantity": 1
 		}
 	]
-}]
+},
+{   
+    "name": "Pick Axe",
+    "item": "Pick Axe",
+    "structure": "Blacksmith",
+    "class": "Resource",
+    "subclass": "Pick Axe",
+    "slot": "Main Hand",
+    "req": [
+        {
+            "type": "Ingot",
+            "quantity": 5
+        },
+        {
+            "type": "Wood",
+            "quantity": 2
+        }
+    ]
+},
+{   
+    "name": "Chopping Axe",
+    "item": "Chopping Axe",
+    "structure": "Blacksmith",
+    "class": "Resource",
+    "subclass": "Chopping Axe",
+    "slot": "Main Hand",
+    "req": [
+        {
+            "type": "Ingot",
+            "quantity": 5
+        },
+        {
+            "type": "Wood",
+            "quantity": 2
+        }
+    ]
+},
+
+{   
+    "name": "Hunting Knife",
+    "item": "Hunting Knife",
+    "structure": "Blacksmith",
+    "class": "Resource",
+    "subclass": "Hunting Knife",
+    "slot": "Main Hand",
+    "req": [
+        {
+            "type": "Ingot",
+            "quantity": 5
+        },
+        {
+            "type": "Wood",
+            "quantity": 2
+        }
+    ]
+},
+{   
+    "name": "Water Flask",
+    "item": "Water Flask",
+    "structure": "Tailor",
+    "class": "Resource",
+    "subclass": "Water Flask",
+    "slot": "Main Hand",
+    "req": [
+        {
+            "type": "Leather",
+            "quantity": 3
+        },
+        {
+            "type": "Thread",
+            "quantity": 2
+        }
+    ]
+},
+{   
+    "name": "Gathering Kit",
+    "item": "Gathering Kit",
+    "structure": "Tailor",
+    "class": "Resource",
+    "subclass": "Gathering Kit",
+    "slot": "Main Hand",
+    "req": [
+        {
+            "type": "Leather",
+            "quantity": 5
+        },
+        {
+            "type": "Thread",
+            "quantity": 2
+        }
+    ]
+}
+
+
+
+]
 

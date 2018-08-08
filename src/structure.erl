@@ -127,7 +127,7 @@ has_upgrade_req(StructureId) ->
     has_req(ReqList, Items).
 
 has_refine_resources(StructureId) ->
-    case obj_attr:value(StructureId, <<"refine">>, none) of
+    case obj_attr:value(StructureId, <<"Refine">>, none) of
         none -> false;
         Process -> 
             Items = item:get_by_subclass(StructureId, Process),
@@ -151,7 +151,7 @@ recipe_list(Obj) ->
     Recipes.
 
 refine(StructureId) ->
-    RefineSubclass = obj_attr:value(StructureId, <<"refine">>),
+    RefineSubclass = obj_attr:value(StructureId, <<"Refine">>),
     
     [Item | _Rest] = item:get_by_subclass(StructureId, RefineSubclass),
     Id = maps:get(<<"id">>, Item),
@@ -177,7 +177,7 @@ refine(StructureId) ->
     NewItems.
 
 can_refine(StructureId) ->
-    RefineSubclass = obj_attr:value(StructureId, <<"refine">>),
+    RefineSubclass = obj_attr:value(StructureId, <<"Refine">>),
     item:get_by_subclass(StructureId, RefineSubclass) =/= [].
 
 can_craft(StructureId) ->
@@ -210,7 +210,7 @@ get_craftable_recipe(StructureId) ->
 
 filter_refine(Recipes) ->
     F = fun(Recipe) ->
-            maps:get(<<"class">>, Recipe) =/= <<"refine">>
+            maps:get(<<"class">>, Recipe) =/= <<"Refine">>
         end,
 
     lists:filter(F, Recipes).

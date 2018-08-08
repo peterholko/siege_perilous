@@ -148,11 +148,6 @@
 -define(MASSIVE_PUMMEL, <<"Massive Pummel">>).
 -define(NIGHTMARE_STRIKE, <<"Nightmare Strike">>).
 
--define(AXE, <<"Axe">>).
--define(DAGGER, <<"Dagger">>).
--define(SWORD, <<"Sword">>).
--define(HAMMER, <<"Hammer">>).
--define(SPEAR, <<"Spear">>).
 
 -define(DEEP_WOUND_CHANCE, 90).
 -define(BLEED_CHANCE, 90).
@@ -195,15 +190,35 @@
 -define(ORE, <<"Ore">>).
 -define(WOOD, <<"Wood">>).
 -define(STONE, <<"Stone">>).
--define(FOOD, <<"Food">>).
+-define(GAME, <<"Game">>).
 -define(WATER, <<"Water">>).
+-define(PLANT, <<"Plants">>).
 -define(MANA, <<"Mana">>).
+-define(FOOD, <<"Food">>).
 
 %SKILLS
 -define(MINING, <<"Mining">>).
 -define(WOODCUTTING, <<"Woodcutting">>).
 -define(STONECUTTING, <<"Stonecutting">>).
+-define(HUNTING, <<"Hunting">>).
+-define(FORAGING, <<"Foraging">>).
 -define(FARMING, <<"Farming">>).
+
+%ITEM SUBCLASSES
+-define(PICK_AXE, <<"Pick Axe">>).
+-define(CHOPPING_AXE, <<"Chopping Axe">>).
+-define(CHISEL, <<"Chisel">>).
+-define(HUNTING_KNIFE, <<"Hunting Knife">>).
+-define(WATER_FLASK, <<"Water Flask">>).
+-define(GATHERING_KIT, <<"Gathering Kit">>).
+-define(CONTAINER, <<"Container">>).
+
+-define(AXE, <<"Axe">>).
+-define(DAGGER, <<"Dagger">>).
+-define(SWORD, <<"Sword">>).
+-define(HAMMER, <<"Hammer">>).
+-define(SPEAR, <<"Spear">>).
+
 
 %RESOURCE TRAITS
 -define(AXE_DMG_P, <<"Axe Damage %">>).

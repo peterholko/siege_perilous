@@ -127,6 +127,9 @@ new_player(PlayerId) ->
     ItemId = maps:get(<<"id">>, ItemMap),
     item:equip(ItemId),
 
+    ItemMap2 = item:create(VillagerId, <<"Pick Axe">>, 2),
+    ItemId2 = maps:get(<<"id">>, ItemMap2),
+    item:equip(ItemId2),
 
     F1 = fun() ->
             MausoleumPos = {16,32},

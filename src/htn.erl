@@ -177,7 +177,7 @@ villager() ->
         add_select_all(do_guard, process_guard, [], []),
             add_primitive(set_pos_hero, do_guard, [], [], set_pos_hero),
             add_primitive(move_to_hero, do_guard, [], [], move_to_pos),           
-    add_select_one(process_gather, villager, [morale_normal, {has_order, ?ORDER_GATHER}], []),
+    add_select_one(process_gather, villager, [{has_order, ?ORDER_GATHER}, has_tools], []),
         add_select_one(process_haul_gather, process_gather, [is_full], []),
             add_select_all(do_haul, process_haul_gather, [has_storage, storage_not_full], []),
                 add_primitive(set_activity, do_haul, [], [], set_hauling),

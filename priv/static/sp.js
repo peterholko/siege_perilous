@@ -137,8 +137,9 @@ var btnEquipRestImg = new Image();
 var oreIcon = new Image();
 var woodIcon = new Image();
 var stoneIcon = new Image();
-var foodIcon = new Image();
+var gameIcon = new Image();
 var waterIcon = new Image();
+var plantIcon = new Image();
 
 var detailsButton = new createjs.Container();
 var gatherButton = new createjs.Container();
@@ -248,11 +249,12 @@ btnSplitRestImg.src = "/static/art/btn_split_rest.png";
 btnAssignRestImg.src = "/static/art/btn_assign_rest.png";
 btnEquipRestImg.src = "/static/art/btn_equip_rest.png";
 
-oreIcon.src = "/static/art/ab_gather_active.png";
-woodIcon.src = "/static/art/ab_gather_active.png";
-stoneIcon.src = "/static/art/ab_gather_active.png";
-waterIcon.src = "/static/art/ab_gather_active.png";
-foodIcon.src = "/static/art/ab_gather_active.png";
+oreIcon.src = "/static/art/icons/ore.png";
+woodIcon.src = "/static/art/icons/wood.png";
+stoneIcon.src = "/static/art/icons/stone.png";
+waterIcon.src = "/static/art/icons/water.png";
+gameIcon.src = "/static/art/icons/game.png";
+plantIcon.src = "/static/art/icons/plant.png";
 
 gravestone.src = "/static/art/gravestone.png";
 
@@ -2010,7 +2012,8 @@ function drawResourceTypeDialog() {
     var woodButton = new createjs.Container();
     var stoneButton = new createjs.Container();
     var waterButton = new createjs.Container();
-    var foodButton = new createjs.Container();
+    var gameButton = new createjs.Container();
+    var plantButton = new createjs.Container();
 
     oreButton.x = 25;
     oreButton.y = 40;
@@ -2048,12 +2051,21 @@ function drawResourceTypeDialog() {
         smallDialogPanel.visible = false;
     });
  
-    foodButton.x = 265;
-    foodButton.y = 40;
-    foodButton.addChild(new createjs.Bitmap(foodIcon));
+    gameButton.x = 265;
+    gameButton.y = 40;
+    gameButton.addChild(new createjs.Bitmap(gameIcon));
 
-    foodButton.on("mousedown", function(evt) {
-        sendOrderGather(selectedPortrait, "Food");
+    gameButton.on("mousedown", function(evt) {
+        sendOrderGather(selectedPortrait, "Game");
+        smallDialogPanel.visible = false;
+    });
+
+    plantButton.x = 325;
+    plantButton.y = 40;
+    plantButton.addChild(new createjs.Bitmap(plantIcon));
+
+    plantButton.on("mousedown", function(evt) {
+        sendOrderGather(selectedPortrait, "Plant");
         smallDialogPanel.visible = false;
     });
 
@@ -2061,7 +2073,8 @@ function drawResourceTypeDialog() {
     addChildSmallDialogPanel(woodButton); 
     addChildSmallDialogPanel(stoneButton); 
     addChildSmallDialogPanel(waterButton); 
-    addChildSmallDialogPanel(foodButton); 
+    addChildSmallDialogPanel(gameButton); 
+    addChildSmallDialogPanel(plantButton); 
 }
 
 function drawStructureListDialog(jsonData) {
@@ -3832,5 +3845,4 @@ function reventButton(response)
 
     return button;
 };
-
 

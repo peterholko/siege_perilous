@@ -29,7 +29,7 @@
 -export([structure_not_full/1, storage_not_full/1, load_resources/1, unload_resources/1]).
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
 -export([has_resources/1, has_food/1, has_food_storage/1, find_food_storage/1, transfer_food/1,
-         has_water/1, has_water_storage/1, find_water_storage/1, transfer_water/1]).
+         has_water/1, has_water_storage/1, find_water_storage/1, transfer_water/1, has_tools/1]).
 -export([idle/1, explore/1, gather/1, build/1, refine/1, craft/1, eat/1, drink/1, sleep/1]).
 -export([move_to_target/1, melee_attack/1, is_full/1]).
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
@@ -271,6 +271,21 @@ tile_has_unrevealed(Villager) ->
     VillagerObj = obj:get(Villager#villager.id),
     NumUnrevealed = resource:get_num_unrevealed(obj:pos(VillagerObj)),
     NumUnrevealed =/= 0.
+
+has_tools(Villager) ->
+    %Assume order gather for now, TODO expand to other orders
+    
+    ResType = maps:get(restype, Villager#villager.data),
+
+    case ResType of
+        ?ORE -> item:has_by_subclass(Villager#villager.id, ?PICK_AXE);
+        ?WOOD -> item:has_by_subclass(Villager#villager.id, ?CHOPPING_AXE);
+        ?STONE -> item:has_by_subclass(Villager#villager.id, ?CHISEL);
+        ?GAME -> item:has_by_subclass(Villager#villager.id, ?HUNTING_KNIFE);
+        ?WATER -> item:has_by_subclass(Villager#villager.id, ?WATER_FLASK);
+        ?PLANT -> item:has_by_subclass(Villager#villager.id, ?GATHERING_KIT);
+        _ -> false
+   end. 
 
 %%% 
 %%% HTN Primitive Tasks

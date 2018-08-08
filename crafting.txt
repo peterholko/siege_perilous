@@ -405,6 +405,28 @@ Sword:
 +25% precise speed      <<"precise_spd_p">> => 0.25
 
 
+Potential Resource attributes:
+
+Malleability
+Resilience
+Density
+Hardness
+Toughness
+Brittleness < - > Ductile
+Strength
+Strain
+Efficiency
+Ease of Use
+
+
+Malleability -> Axe++ 
+                Plate Armor++
+                Spear--
+
+Hardness -> Spear++
+
+
+
 
 
 
