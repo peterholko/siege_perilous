@@ -422,7 +422,6 @@ Sword:
     Heavy Axe
     Marauder Axe
 
-
 * Swords:
 
     Primitive Sword
@@ -433,7 +432,7 @@ Sword:
 * Hammers:
 
     Club
-    Maul
+    Mace
     Battle Maul
     War Hammer
     
@@ -453,14 +452,17 @@ Sword:
 
 * Bow:
 
-    Plain Bow
+    Short Bow
     Hunter's Bow
     War Bow
     Gothic Bow
 
 * Crossbow
 
-    Basic Crossbow
+    Apprentice Crossbow
+    Light Crossbow
+    Repeating Crossbow
+    Siege Crossbow
 
          
 
