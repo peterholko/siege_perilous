@@ -416,43 +416,61 @@ Sword:
 #### Weapon Types ####
 
 * Axes:
-  
-    Hand Axe
-    Broad Axe
+    % Axes are heavy than swords/daggers should be slower
+    % Axes deal more damage than swords/daggers/hammers/spears
+    % Should have penalty against plate    
+
+    Training Axe -> 10 dmg / 5 sec / 10 sta     :: 5 ingot / 2 sanded wood
+    Broad Axe -> 30 dmg / 5 sec / 12 sta    :: 50 ingot / 20 sanded wood
     Heavy Axe
     Marauder Axe
 
 * Swords:
+    % Bonus to parry 
+    % Good Speed/Dmg
+    % Penalty vs leather/plate for quick/fierce attacks
 
-    Primitive Sword
+    Training Sword -> 7 dmg / 4 sec / 7 sta
     Broad Sword
     Claymore
     Rune Sword
 
 * Hammers:
-
-    Club
+    % Slower than swords/daggers/spears
+    % Less damage than axes
+    % Should have bonus against plate
+    % Should have penalty against leather
+    % Should have penalty to dodge
+ 
+    Training Club -> 8 dmg / 5 sec / 10 sta
     Mace
     Battle Maul
     War Hammer
     
 * Daggers:
+    % Should have bonus vs plate when using precise attack
+    % Should have penalty vs leather
+    % Should have penalty to brace
 
-    Simple Dagger
+    Training Dagger -> 5 dmg / 3 sec / 5 sta
     Kris
     Dirk
     Darkblade
 
 * Spears:
+    % Should have bonus vs plate when using precise attack
+    % Increased stamina use
+    % Should have penalty to dodge/parry
+    % Can be thrown
 
-    Basic Spear
+    Training Spear -> 8 dmg / 4.5 sec / 8 sta
     Lance
     War Pike
     Ghost Spear
 
 * Bow:
 
-    Short Bow
+    Training Bow
     Hunter's Bow
     War Bow
     Gothic Bow
@@ -466,40 +484,6 @@ Sword:
 
          
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Potential Resource attributes:
-(*** CANCELLEDED ***)
-
-Malleability
-Resilience
-Density
-Hardness
-Toughness
-Brittleness < - > Ductile
-Strength
-Strain
-Efficiency
-Ease of Use
-
-
-Malleability -> Axe++ 
-                Plate Armor++
-                Spear--
-
-Hardness -> Spear++
 
 
 

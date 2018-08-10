@@ -199,6 +199,26 @@
             "quantity": 2
         }
     ]
+},
+{   
+    "name": "Hand Axe",
+    "item": "Hand Axe",
+    "structure": "Blacksmith",
+    "class": "Weapon",
+    "subclass": "Sword",
+    "slot": "Main Hand",
+    "damage": 10,
+    "
+    "req": [
+        {
+            "type": "Ingot",
+            "quantity": 5
+        },
+        {
+            "type": "Sanded Wood",
+            "quantity": 2
+        }
+    ]
 }
 
 
