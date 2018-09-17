@@ -164,6 +164,13 @@ Gather Herbs/Plant
 *** Tools required ***
 
 
+Ranger ideas:
+From hidden state, first precise attack stuns, followed by quick or fierce attacks
+
+Chance to detect hidden units much greater if moving across LOS instead of entering LOS
+
+
+
 
 *** Night time structure ***
 
