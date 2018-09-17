@@ -127,10 +127,10 @@ has_upgrade_req(StructureId) ->
     has_req(ReqList, Items).
 
 has_refine_resources(StructureId) ->
-    case obj_attr:value(StructureId, <<"Refine">>, none) of
+    case obj_attr:value(StructureId, <<"refine">>, none) of
         none -> false;
         Process -> 
-            Items = item:get_by_subclass(StructureId, Process),
+            Items = item:get_by_class(StructureId, Process),
             Items =/= []
     end.
 
@@ -151,9 +151,9 @@ recipe_list(Obj) ->
     Recipes.
 
 refine(StructureId) ->
-    RefineSubclass = obj_attr:value(StructureId, <<"Refine">>),
+    RefineClass = obj_attr:value(StructureId, <<"refine">>),
     
-    [Item | _Rest] = item:get_by_subclass(StructureId, RefineSubclass),
+    [Item | _Rest] = item:get_by_class(StructureId, RefineClass),
     Id = maps:get(<<"id">>, Item),
     Quantity = maps:get(<<"quantity">>, Item),
     Produces = maps:get(<<"produces">>, Item),
@@ -177,8 +177,8 @@ refine(StructureId) ->
     NewItems.
 
 can_refine(StructureId) ->
-    RefineSubclass = obj_attr:value(StructureId, <<"Refine">>),
-    item:get_by_subclass(StructureId, RefineSubclass) =/= [].
+    RefineSubclass = obj_attr:value(StructureId, <<"refine">>),
+    item:get_by_class(StructureId, RefineSubclass) =/= [].
 
 can_craft(StructureId) ->
     [Structure] = db:read(obj, StructureId),
@@ -277,6 +277,7 @@ has_req(Result, [#{<<"type">> := ReqType, <<"quantity">> := ReqQuantity} | Rest]
         end,
 
     ReqMatch = lists:any(F, Items),
+    lager:info("Structure ReqMatch: ~p", [ReqMatch]),
     NewResult = Result and ReqMatch,
 
     has_req(NewResult, Rest, Items).

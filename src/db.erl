@@ -72,6 +72,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(combo_def, [{ram_copies, [node()]}, {attributes, record_info(fields, combo_def)}]),  
     {atomic, ok} = mnesia:create_table(attack, [{ram_copies, [node()]}, {attributes, record_info(fields, attack)}]),  
     {atomic, ok} = mnesia:create_table(game_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, game_attr)}]),  
+    {atomic, ok} = mnesia:create_table(active_info, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, active_info)}]),  
 
     mnesia:add_table_index(perception, player),
     mnesia:add_table_index(player, name),
@@ -97,6 +98,8 @@ create_schema() ->
     mnesia:add_table_index(villager, storage),
     mnesia:add_table_index(villager, next_plan),
     mnesia:add_table_index(villager, next_run),
+    mnesia:add_table_index(active_info, player),
+    mnesia:add_table_index(active_info, id),
 
     mnesia:stop().
 

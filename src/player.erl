@@ -130,20 +130,23 @@ get_info_tile(Pos) ->
 
 get_info_unit(Id) ->
     [Unit] = db:read(obj, Id),
-    case Unit#obj.player =:= get(player_id) of
+    Player = get(player_id),
+
+    Info = case Unit#obj.player =:= Player of
         true -> 
             obj:trigger_inspect(Unit),
-            Info = obj:get_info(Id),           
-            lager:info("Info Unit: ~p", [Info]),
-            Info;
+            obj:get_info(Id);
         false ->
-            Info = obj:get_info_other(Id),
-
-            %Trigger inspected flag
             obj:trigger_inspect(Unit),
-            lager:info("Info Unit: ~p", [Info]),
-            Info
-    end.
+            obj:get_info_other(Id)
+    end,
+
+    ActiveInfo = #active_info{index = {Player, obj, Id},
+                              player = Player,
+                              id = Id},
+    db:write(ActiveInfo),
+
+    Info.
 
 get_info_item(ItemId) ->
     lager:info("get_info_item ~p", [ItemId]),
@@ -864,12 +867,15 @@ revent_response(ResponseNum) ->
 %Internal functions
 %
 
+%TODO move to some other module
 process_item_transfer(Item, TargetObj = #obj{id = Id, class = Class, state = State}) when Class =:= structure, State =/= none ->
     ReqList = obj_attr:value(Id, <<"req">>),
     
     F = fun(Req) ->
             ReqType = maps:get(<<"type">>, Req),
-            ReqType =:= Item#item.subclass
+            MatchSubClass = ReqType =:= Item#item.subclass,
+            MatchClass = ReqType =:= Item#item.class,
+            MatchSubClass or MatchClass
         end,
 
     [First | _] = lists:filter(F, ReqList),
@@ -924,12 +930,15 @@ is_event_locked(SourceId) ->
              end,
     Result.
 
+%TODO move to structure module
 is_structure_req(Item, #obj{id = Id, class = Class, state = State}) when Class =:= structure, State =/= none ->
     ReqList = obj_attr:value(Id, <<"req">>),
 
     F = fun(Req) ->
             ReqType = maps:get(<<"type">>, Req),
-            ReqType =:= Item#item.subclass
+            MatchSubClass = ReqType =:= Item#item.subclass,
+            MatchClass = ReqType =:= Item#item.class,
+            MatchSubClass or MatchClass
         end,
 
     lists:any(F, ReqList);

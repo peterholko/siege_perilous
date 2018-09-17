@@ -1,8 +1,5 @@
 [
 {
-	"_id": {
-		"$oid": "54b43dcb03c27178c3ebd976"
-	},
 	"name": "Zombie",
 	"base_hp": 50,
 	"base_stamina": 10000,
@@ -45,9 +42,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "54dbe40d0f4c2ae71f72630c"
-	},
 	"name": "Hero Mage",
 	"base_hp": 12,
 	"base_stamina": 10000,
@@ -411,9 +405,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "5584537495960a150d4be6dc"
-	},
 	"name": "Burrow",
 	"base_hp": 50,
 	"base_dmg": 0,
@@ -427,7 +418,7 @@
 	"profession": "",
 	"build_time": 10,
 	"level": 0,
-	"capacity": 101,
+	"capacity": 500,
 	"req": [
 		{
 			"type": "Wood",

@@ -26,7 +26,7 @@ gather_by_type(ObjId, ResourceType, Pos) ->
             GatherChance = gather_chance({SkillValue, ResourceSkillReq}), 
 
             Random = util:rand(),
-            lager:info("Resource: ~p Gather Chance ~p", [Resource#resource.name, Random]),
+            lager:info("Resource: ~p Gather Chance ~p Random: ~p", [Resource#resource.name, GatherChance, Random]),
 
             case Random < GatherChance of
                 true ->
@@ -252,6 +252,7 @@ update_resource(Resource, HarvestQuantity) ->
     Quantity = Resource#resource.quantity,
     case (Quantity - HarvestQuantity) > 0 of
         true ->          
+            mnesia:dirty_delete_object(Resource),
             NewResource = Resource#resource {quantity = Quantity - HarvestQuantity},
             db:write(NewResource);
         false ->
@@ -305,6 +306,7 @@ explore_resource({5,50}) -> 0.00024.
 
 
 %{Explore Skill, Resource Req Skill}
+%TODO needs more values 
 gather_chance({0,0}) -> 0.5;
 gather_chance({1,0}) -> 0.2;
 gather_chance({2,0}) -> 0.3;

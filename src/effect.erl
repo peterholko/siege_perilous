@@ -38,10 +38,14 @@ add(Id, EffectType, EffectData, TicksUntilExpiry, Interval) ->
                       data = EffectData,
                       expiry = ExpiryTick,
                       next_tick = NextTick},
-    db:write(Effect).
+    db:write(Effect),
+
+    game:send_effect_change(Id, EffectType, add, EffectData).
 
 remove(Id, EffectType) ->
-    db:delete(effect, {Id, EffectType}).
+    db:delete(effect, {Id, EffectType}),
+
+    game:send_effect_change(Id, EffectType, remove).
 
 has_effect(Id, EffectTypeList) when is_list(EffectTypeList) ->
     F = fun(EffectType, Acc) ->

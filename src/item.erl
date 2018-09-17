@@ -7,10 +7,11 @@
 
 -export([get_rec/1, get_map/1, get_all_attr/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1,
-         get_weapon_range/1]).
--export([transfer/2, transfer/3, split/2, update/2, create/1, create/3, equip/1, unequip/1]).
--export([has_by_subclass/2]).
--export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, is_subclass/2]).
+         get_weapon_range/1, get_by_class/2]).
+-export([transfer/2, transfer/3, split/2, update/2, create/1, create/3, create/4, equip/1, unequip/1]).
+-export([has_by_class/2, has_by_subclass/2]).
+-export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, 
+         is_class/2, is_subclass/2]).
 -export([get_total_weight/1, weight/2]).
 -export([id/1, owner/1, quantity/1]).
 -export([match_req/3]).
@@ -56,6 +57,11 @@ get_by_owner_rec(OwnerId) ->
     Items = db:index_read(item, OwnerId, #item.owner),
     Items.
 
+get_by_class(OwnerId, Class) ->
+    AllItems = get_by_owner(OwnerId),
+    F = fun(ItemMap) -> maps:get(<<"class">>, ItemMap) =:= Class end,
+    lists:filter(F, AllItems).
+
 get_by_subclass(OwnerId, SubClass) ->
     AllItems = get_by_owner(OwnerId),
     F = fun(ItemMap) -> maps:get(<<"subclass">>, ItemMap) =:= SubClass end,
@@ -93,6 +99,7 @@ get_weapon_range(OwnerId) ->
 
     %maps:get(<<"range">>, Weapon).
 
+%TODO explore adding weight to obj instead of calculating
 get_total_weight(ObjId) ->
     AllItems = db:dirty_index_read(item, ObjId, #item.owner),
 
@@ -104,9 +111,16 @@ get_total_weight(ObjId) ->
     TotalWeight = lists:foldl(F, 0, AllItems),
     TotalWeight.   
 
+has_by_class(OwnerId, Class) ->
+    Items = get_by_class(OwnerId, Class),
+    Items =/= [].
+
 has_by_subclass(OwnerId, Subclass) ->
     Items = get_by_subclass(OwnerId, Subclass),
     Items =/= [].
+
+is_class(ItemName, Class) ->
+    item_def:value(ItemName, <<"class">>) =:= Class.
 
 is_subclass(ItemName, Subclass) ->
     item_def:value(ItemName, <<"subclass">>) =:= Subclass.
@@ -223,7 +237,11 @@ update(ItemId, NewQuantity) ->
     NewItem = Item#item{quantity = NewQuantity},
     db:write(NewItem).
 
+%TODO revisit true/false binary string
 create(Owner, Name, Quantity) ->
+    create(Owner, Name, Quantity, <<"false">>).
+
+create(Owner, Name, Quantity, Equip) ->
     lager:info("Owner: ~p Name: ~p Quantity: ~p", [Owner, Name, Quantity]),
     AllItems = db:dirty_index_read(item, Owner, #item.owner),
 
@@ -242,7 +260,8 @@ create(Owner, Name, Quantity) ->
                              owner = Owner,
                              class = Class,
                              subclass = Subclass,
-                             weight = Weight};
+                             weight = Weight,
+                             equip = Equip};
 
                   [Item | _Rest] -> 
                       NewQuantity = Item#item.quantity + Quantity,
@@ -293,17 +312,20 @@ create(ItemMap) ->
 
 match_req(Item, ReqType, ReqQuantity) ->
     ItemName = maps:get(<<"name">>, Item),
+    ItemClass = maps:get(<<"class">>, Item),
     ItemSubClass = maps:get(<<"subclass">>, Item),
     ItemQuantity = maps:get(<<"quantity">>, Item),
 
     QuantityMatch = ReqQuantity =< ItemQuantity,            
     ItemNameMatch = ReqType =:= ItemName,
+    ItemClassMatch = ReqType =:= ItemClass, 
     ItemSubClassMatch = ReqType =:= ItemSubClass,
+    
 
     lager:info("NameMatch ~p ~p ~p", [ReqType, ItemName, ItemSubClass]),
     lager:info("QuantityMatch ~p ~p", [ReqQuantity, ItemQuantity]),
 
-    ItemMatch = ItemNameMatch or ItemSubClassMatch,
+    ItemMatch = ItemNameMatch or ItemClassMatch or ItemSubClassMatch,
     lager:info("ItemMatch: ~p", [ItemMatch]),
     ItemMatch and QuantityMatch.
 

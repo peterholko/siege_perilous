@@ -868,6 +868,9 @@ function onMessage(evt) {
         else if(jsonData.packet == "info_item") {
             drawInfoItem(jsonData);
         }
+        else if(jsonData.packet == "villager_change") {
+            updateTextLog(jsonData.action);
+        }
         else if(jsonData.packet == "survey") {
             drawSurveyDialog(jsonData.data);
         }
@@ -2193,7 +2196,7 @@ function drawCraftListDialog(jsonData) {
         icon.name = recipe.item;
         icon.class = recipe.class;
 
-        icon.x = 25 + i * 75;
+        icon.x = 25 + i * 150;
         icon.y = 50;
 
         var hitArea  = new createjs.Shape();
@@ -2203,7 +2206,7 @@ function drawCraftListDialog(jsonData) {
         icon.on("mousedown", function(evt) {
             console.log("Class: " + this.class);
 
-            if(this.class == "refine") {
+            if(this.class == "Refine") {
                 sendRefine(selectedUnit);
             }
             else {

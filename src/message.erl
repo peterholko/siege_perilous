@@ -398,6 +398,9 @@ message_handle(_Cmd, Message) ->
     lager:info("~p: ~p~n", [Error, Message]),
     list_to_binary(Error).
 
+prepare(new_obj_info, Message) ->
+    maps:put(<<"packet">>, <<"info_unit">>, Message);
+
 prepare(map_perception, Message) ->
     [ExploredTuple, {<<"objs">>, Objs}] = Message,
     [{<<"packet">>, <<"map_perception">>},
@@ -425,6 +428,12 @@ prepare(new_items, Message) ->
 prepare(stats, Message) ->
     #{<<"packet">> => <<"stats">>,
       <<"data">> => Message};
+
+prepare(effect, Message) ->
+    maps:put(<<"packet">>, <<"effect">>, Message);
+
+prepare(villager_change, Message) ->
+    maps:put(<<"packet">>, <<"villager_change">>, Message);
 
 prepare(survey, Message) ->
     #{<<"packet">> => <<"survey">>,

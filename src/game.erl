@@ -20,11 +20,15 @@
 -export([process_dead_objs/1, process_deleting_objs/1]).
 -export([trigger_explored/1]).
 -export([get_perception/0, get_explored/0, reset/0]).
--export([send_update_items/3, send_update_stats/2, send_revent/2]).
 -export([get_info_tile/1, get_valid_tiles/1]).
 -export([hero_dead/2]).
 -export([spawn_shadow/1, spawn_wolf/0]).
 -export([new_player/1, login/1]).
+-export([send_update_items/3, 
+         send_update_stats/2, 
+         send_villager_change/1,
+         send_effect_change/3, send_effect_change/4,
+         send_revent/2]).
 
 
 %% Common functions
@@ -47,6 +51,53 @@ send_update_stats(PlayerId, ObjId) when PlayerId > ?NPC_ID ->
     message:send_to_process(Conn#connection.process, stats, Stats);
 send_update_stats(_, _) -> 
     nothing.
+
+send_villager_change(Villager) ->
+    %Check if being villager is observed
+    Index = {villager:player(Villager), obj, villager:id(Villager)},
+    
+    case db:read(active_info, Index) of
+        [] -> nothing;
+        _ -> 
+            %TODO potentially look to add message aggregation 
+            Message = #{<<"id">> => villager:id(Villager),
+                        <<"order">> => villager:order(Villager),
+                        <<"action">> => villager:action(Villager),
+                        <<"morale">> => villager:morale(Villager),
+                        <<"shelter">> => villager:shelter(Villager),
+                        <<"structure">> => villager:structure(Villager)},
+
+            lager:info("Sending villager_change: ~p", [Message]),
+
+            [Conn] = db:read(connection, villager:player(Villager)),
+            message:send_to_process(Conn#connection.process, villager_change, Message)
+    end.
+
+send_effect_change(ObjId, Effect, EffectOp) ->
+    send_effect_change(ObjId, Effect, EffectOp, none).
+
+send_effect_change({tile, _}, _, _, _) -> nothing; %TODO send only to observers of tile
+send_effect_change(ObjId, Effect, EffectOp, EffectData) ->
+    Obj = obj:get(ObjId),
+
+    case player:is_player(obj:player(Obj)) of
+        true ->
+            EffectOpBin = atom_to_binary(EffectOp, latin1),
+
+            Message = #{<<"id">> => obj:id(Obj),
+                        <<"effect">> => Effect,
+                        <<"op">> => EffectOpBin},
+
+            FinalMessage = case EffectData of
+                               none -> maps:put(<<"data">>, EffectData, Message);
+                               _ -> Message
+                           end,
+                        
+            [Conn] = db:read(connection, obj:player(Obj)),
+            message:send_to_process(Conn#connection.process, effect, FinalMessage);
+        false ->
+            nothing
+    end.
 
 send_revent(PlayerId, REvent) ->
     [Conn] = db:read(connection, PlayerId),
@@ -113,9 +164,12 @@ new_player(PlayerId) ->
 
     VillagerId = villager:create(0, PlayerId, VillagerPos),
 
-    item:create(HeroId, <<"Crimson Root">>, 100),
+    item:create(HeroId, <<"Honeybell Berries">>, 25),
+    item:create(HeroId, <<"Spring Water">>, 25),
     item:create(MonolithId, <<"Mana">>, 2500),
-    item:create(ShipwreckId, <<"Cragroot Popular">>, 100),
+    item:create(ShipwreckId, <<"Cragroot Maple Wood">>, 100),
+    item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 25),
+    item:create(ShipwreckId, <<"Valleyrun Copper Ore">>, 100),
 
     map:add_explored(PlayerId, HeroPos, 2),
 
@@ -123,13 +177,9 @@ new_player(PlayerId) ->
     game:add_event(self(), login, PlayerId, none, 2),
    
     % Equip food so it isn't dumped
-    ItemMap = item:create(VillagerId, <<"Crimson Root">>, 100),
-    ItemId = maps:get(<<"id">>, ItemMap),
-    item:equip(ItemId),
-
-    ItemMap2 = item:create(VillagerId, <<"Pick Axe">>, 2),
-    ItemId2 = maps:get(<<"id">>, ItemMap2),
-    item:equip(ItemId2),
+    item:create(VillagerId, <<"Honeybell Berries">>, 25, <<"true">>),
+    item:create(VillagerId, <<"Spring Water">>, 25, <<"true">>),
+    item:create(VillagerId, <<"Pick Axe">>, 2, <<"true">>),
 
     F1 = fun() ->
             MausoleumPos = {16,32},

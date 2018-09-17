@@ -247,3 +247,7 @@
               combo = [],
               data = #{}}).
 
+-record(active_info, {index, %{player, type, id}
+                      player,
+                      id}).
+

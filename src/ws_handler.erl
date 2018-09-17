@@ -14,10 +14,6 @@ websocket_handle({text, Msg}, Req, State) ->
 websocket_handle(_Data, Req, State) ->
 	{ok, Req, State}.
 
-websocket_info({battle_perception, Message}, Req, State) ->
-    PrepMessage = message:prepare(battle_perception, Message),
-    Encoded = jsx:encode(PrepMessage),
-	{reply, {text, Encoded}, Req, State};
 websocket_info({map_perception, Message}, Req, State) ->
     PrepMessage = message:prepare(map_perception, Message),
     Encoded = jsx:encode(PrepMessage),

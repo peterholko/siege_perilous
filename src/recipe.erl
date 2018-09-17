@@ -22,7 +22,7 @@ craft(ObjId, RecipeName) ->
     lager:info("MatchReq: ~p", [MatchReq]),
 
     consume_req(ReqList, MatchReq),
-    craft_item(ObjId, RecipeItem, Class, lists:reverse(MatchReq)).
+    craft_item(ObjId, Recipe, Class, lists:reverse(MatchReq)).
 
 get_recipes(Structure) ->
     recipe_def:select(<<"structure">>, Structure).
@@ -78,38 +78,33 @@ consume_item(true, ItemId, Quantity) ->
     item:update(ItemId, Quantity).
 
 
-craft_item(OwnerId, RecipeName, <<"Weapon">>, MatchReqList) ->
+craft_item(OwnerId, Recipe, <<"Weapon">>, MatchReqList) ->
+    RecipeName = maps:get(<<"name">>, Recipe),
     lager:debug("Crafting ~p", [RecipeName]),
 
-    F = fun(MatchReq, ItemStats) ->
-            Stats = [{<<"damage">>, maps:get(<<"damage">>, MatchReq, 0)},
-                     {<<"durability">>, maps:get(<<"durability">>, MatchReq, 0)},
-                     {<<"speed">>, maps:get(<<"speed">>, MatchReq, 0)}],
-
-            combine_stats(Stats, ItemStats)
-        end,
-
-    ItemStats = lists:foldl(F, #{}, MatchReqList),
-
-    G = fun(MatchReq, AllEffects) ->
+    F = fun(MatchReq, AllEffects) ->
             Effects = maps:get(<<"effects">>, MatchReq, []),
             lists:merge(Effects, AllEffects)
         end,
 
-    ItemEffects =  lists:foldl(G, [], MatchReqList),
+    ItemEffects =  lists:foldl(F, [], MatchReqList),
 
-    AllItemStats = maps:put(<<"effects">>, ItemEffects, ItemStats),
-    
-    ItemName = craft_item_name(RecipeName, MatchReqList),
+    %TODO enhance the item name
+    ItemName = RecipeName,
 
     BaseStats = #{<<"owner">> => OwnerId, 
                   <<"class">> => <<"Weapon">>,
                   <<"subclass">> => RecipeName,
                   <<"name">> => ItemName,
-                  <<"quantity">> => 1},
+                  <<"quantity">> => 1,
+                  <<"damage">> => maps:get(<<"damage">>, Recipe, 0),
+                  <<"speed">> => maps:get(<<"speed">>, Recipe, 0),
+                  <<"stamina_req">> => maps:get(<<"stamina_req">>, Recipe, 0),
+                  <<"skill_req">> => maps:get(<<"skill_req">>, Recipe, 0),
+                  <<"effects">> => ItemEffects
+                 },
     
-    FinalItem = maps:merge(BaseStats, AllItemStats),
-    CraftedItem = item:create(FinalItem),
+    CraftedItem = item:create(BaseStats),
 
     [CraftedItem];
 craft_item(OwnerId, RecipeName, <<"Armor">>, MatchReqList) ->

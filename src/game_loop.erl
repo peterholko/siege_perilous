@@ -71,7 +71,7 @@ loop(NumTick, LastTime, GamePID) ->
 
     %Toggle off perception and explored
     game:reset(),
- 
+
     {NextTime, SleepTime} = calculate_sleep(LastTime),
 
     timer:sleep(SleepTime),
@@ -427,17 +427,18 @@ do_event(?EATING, EventData, _PlayerPid) ->
 
     obj:update_state(VillagerId, none);
 
-do_event(?SLEEPING, EventData, _PlayerPid) ->
+do_event(?SLEEPING, EventData, PlayerPid) ->
     lager:info("Processing sleeping event: ~p", [EventData]),
 
     VillagerId = EventData,
 
-    obj:update_focus(VillagerId, -500),
-
-    message:send_to_process(global:whereis_name(villager), event_complete, {sleeping, VillagerId}),
-
-    obj:update_state(VillagerId, none);
-
+    case obj:process_sleep(VillagerId) of
+        more_sleep ->
+            game:add_event(PlayerPid, ?SLEEPING, VillagerId, VillagerId, ?TICKS_SEC * 30);
+        rested ->
+            message:send_to_process(global:whereis_name(villager), event_complete, {?SLEEPING, VillagerId})
+    end;
+    
 do_event(login, EventData, Pid) ->
     lager:info("Processing login event: ~p", [EventData]),
     PlayerId = EventData,
@@ -602,7 +603,7 @@ food_upkeep() ->
     Units = db:index_read(obj, unit, #obj.class),
 
     F = fun(Unit = #obj{player = Player}) when Player =/= ?UNDEAD ->
-            case item:get_by_subclass(Unit#obj.id, ?FOOD) of
+            case item:get_by_class(Unit#obj.id, ?FOOD) of
                 [] ->
                     effect:add(Unit#obj.id, ?STARVING, none),
                     obj:update_hp(Unit#obj.id, -1),
@@ -758,6 +759,4 @@ expire_effect(#effect{id = Id, type = ?HOLY_LIGHT}) ->
     effect:remove(Id, ?HOLY_LIGHT);
 expire_effect(_) ->
     lager:info("No matching expiry effect").
-
-
 

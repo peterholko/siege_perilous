@@ -40,7 +40,23 @@
     "skill_req": 50 
 },
 {
-    "name": "Cragroot Popular",
+    "name": "Cragroot Maple Wood",
+    "type": "Wood",
+    "terrain": ["Deciduous Forest", "Rainforest", "Jungle", "Frozen Forest", "Pine Forest", "Palm Forest"],
+    "quantity_rate": [25, 25, 20, 15, 8, 5, 2],
+    "quantity": [0, 10, 25, 100, 200, 500, 1000],
+    "skill_req": 0
+},
+{
+    "name": "Springbranch Maple Wood",
+    "type": "Wood",
+    "terrain": ["Deciduous Forest", "Rainforest", "Jungle", "Frozen Forest", "Pine Forest", "Palm Forest"],
+    "quantity_rate": [25, 25, 20, 15, 8, 5, 2],
+    "quantity": [0, 10, 25, 100, 200, 500, 1000],
+    "skill_req": 0
+}, 
+{
+    "name": "Redvale Maple Wood",
     "type": "Wood",
     "terrain": ["Deciduous Forest", "Rainforest", "Jungle", "Frozen Forest", "Pine Forest", "Palm Forest"],
     "quantity_rate": [25, 25, 20, 15, 8, 5, 2],

@@ -21,6 +21,12 @@ Day to Night Ratio 10:2
 Villagers require 60 secs of sleep per day
 Villagers will take rest breaks throughout the day
 
+Day -> Dusk -> Night -> Dawn -> Day 
+8   -> 1    -> 2     -> 1    
+
+
+
+
 10 mins / 2 mins
 2400 ticks per day / 480 ticks per night
 
@@ -43,6 +49,13 @@ Focus  10 min ticks -> tired
 Stress 2400 -> stressed
        5000 -> unstable 
        10000 -> insane 
+
+Needs - Staying Occupied            (Hard worker)
+      - Resting                     (Lazy)
+      - Learning                    (Curious)
+      - Craft Experimenting         (Craftmanship)
+      - Fighting                    (Violent)
+      
 
 Water:
 Water will be required, “survey” for water and build wells, contaminated water, salt water, etc...
@@ -136,10 +149,6 @@ Gather Herbs -> Herbs (requires: Herb Bag - Herbalism)
 Gather Plants -> (Berries / Fibers / Herbs) -> Berries/Tubers/Fibers/Herbs (requires: Gathering Bag/Pouch) 
 
 
-
-
-
-
 Order Gather "Mine Ore"
 Order Gather "Cut Wood"
 Order Gather "Cut Stone"
@@ -153,6 +162,61 @@ Gather Herbs/Plant
 
 
 *** Tools required ***
+
+
+
+*** Night time structure ***
+
+Day -> Twilight -> Night  -> Twilight
+
+Focus increases by 1 per tick during Day
+Focus increases by 2 per tick during Twilight
+Focus increases by 4 per tick during Night
+
+
+
+
+*** Push Obj Info ***
+
+Option A)
+1. a) Store obj:info call into cache table
+   b) Store / keep track of client side obj info panel open for player
+
+2. Add process to check every X seconds if new data must be pushed to client 
+
+3. Compare new obj:info data to cache table obj:info and push to client
+
+
+Option B)
+
+Changes to check for observers
+
+Obj being observed:
+1. Obj base changes except for hunger, thirst, focus
+2. Obj attrs changes
+3. Item base changes
+4. Skill changes
+5. Effect changes
+
+ - If villager:
+   6. Villager changes
+  
+ - If npc:
+   7. NPC changes
+
+Item being observed:
+1. Item base changes
+2. Item attrs changes
+
+
+Tile being observed:
+1. Map changes (none possible right now)
+2. Encounter wildness changes
+3. Effect changes (sanctuary, etc...)
+4. Resoure changes revealed number and list of resources
+
+
+
 
 
 

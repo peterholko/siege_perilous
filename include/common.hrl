@@ -49,6 +49,10 @@
 
 -define(NPC_ID, 1000).
 
+%SLEEP%
+-define(BASE_FOCUS_TIRED, 3000).
+-define(BASE_FOCUS_EXHAUSTED, 6000).
+
 %STATES
 -define(STATE, <<"state">>).
 -define(NONE, none).

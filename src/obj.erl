@@ -9,8 +9,8 @@
 -include("common.hrl").
 
 -export([create/3, create/4, create/5, update_state/2, remove/1]).
--export([process_create/1, process_update_state/2, process_move/2, process_deleting/1,
-         process_obj_stats/0]).
+-export([process_create/1, process_update_state/2, process_move/2, process_sleep/1, 
+         process_deleting/1, process_obj_stats/0]).
 -export([update_hp/2, update_stamina/2, update_thirst/2, update_hunger/2, update_focus/2, 
          update_dead/1, update_deleting/1]).
 -export([set_thirst/2, set_hunger/2]).
@@ -176,6 +176,28 @@ do_move(Obj, Pos) ->
     %Return new obj
     NewObj.
 
+process_sleep(ObjId) ->
+    [Obj] = db:read(obj, ObjId),
+
+    %TODO explore traits for faster sleep
+    ModValue = -750,
+
+    NewFocus = Obj#obj.focus + ModValue,
+    NewObj = Obj#obj{focus = NewFocus},
+
+    {FinalObj, MoreSleep} = case Obj#obj.focus > ?BASE_FOCUS_TIRED of
+                 true -> 
+                    {NewObj, more_sleep};
+                 false ->
+                     NewObj2 = NewObj#obj{state = none},
+                     {NewObj2, rested}
+             end,
+  
+    
+    db:write(FinalObj),
+
+    MoreSleep.
+
 process_update_state(Obj, State) when is_record(Obj, obj) ->
     process_update_state(Obj, State, none);
 
@@ -239,12 +261,12 @@ process_obj_stat(Obj) ->
     end,
 
     case Obj#obj.focus of
-        Focus when Focus > (?TICKS_MIN * 10) ->
+        Focus when Focus > ?BASE_FOCUS_TIRED ->
             case effect:has_effect(Obj#obj.id, ?TIRED) of
                 false -> effect:add(Obj#obj.id, ?TIRED);
                 true -> none
             end;
-        Focus when Focus > (?TICKS_MIN * 20) ->
+        Focus when Focus > ?BASE_FOCUS_EXHAUSTED ->
             case effect:has_effect(Obj#obj.id, ?EXHAUSTED) of
                 false -> effect:add(Obj#obj.id, ?EXHAUSTED);
                 true -> none
@@ -335,6 +357,9 @@ update_focus(Id, ModValue) ->
 
     %TODO replace db:write with save
     db:write(NewObj).
+
+
+
 
 update_dead(Id) ->
     [Obj] = db:read(obj, Id),
@@ -804,7 +829,6 @@ info(Id) ->
     Info4 = maps:put(<<"items">>, Items, Info3),
     Info5 = maps:put(<<"skills">>, Skills, Info4),
     Info6 = maps:put(<<"effects">>, Effects, Info5),
-    lager:info("Info6: ~p", [Info6]),
 
     %Check if any subclass specific info should be added
     AllInfo = info_subclass(Obj#obj.subclass, Obj, Info6),
@@ -841,13 +865,6 @@ info_subclass(<<"villager">>, Obj, Info) ->
     DwellingId = Villager#villager.shelter,
     StructureId = Villager#villager.structure,
 
-    CurrentTask = case Villager#villager.task_index > 0 of
-                      true ->
-                          atom_to_binary(lists:nth(Villager#villager.task_index, Villager#villager.plan), latin1);
-                      false ->
-                          <<"idle">>
-                  end,
-
     DwellingName = case db:read(obj, DwellingId) of
                        [Dwelling] -> Dwelling#obj.name;
                        [] -> <<"none">>
@@ -864,7 +881,7 @@ info_subclass(<<"villager">>, Obj, Info) ->
     Info3 = maps:put(<<"shelter">>, DwellingName, Info2),
     Info4 = maps:put(<<"structure">>, StructureName, Info3),
     Info5 = maps:put(<<"order">>, Order, Info4),
-    Info6 = maps:put(<<"action">>, CurrentTask, Info5),
+    Info6 = maps:put(<<"action">>, villager:action(Villager), Info5),
     Info6;
 info_subclass(<<"hero">>, Obj, Info) -> 
     TotalWeight = item:get_total_weight(Obj#obj.id),
