@@ -50,6 +50,7 @@ var hpBar;
 var staminaBar;
 
 var attackToggled = false;
+var moveToggled = false;
 
 var origX;
 var origY;
@@ -820,12 +821,13 @@ function onMessage(evt) {
         }        
         else if(jsonData.packet == "item_transfer") {
             if(jsonData.result == "success") {
-                for(var i = infoPanels.length - 1; i >= 0; i--) {
+                /* for(var i = infoPanels.length - 1; i >= 0; i--) {
                     if(infoPanels[i].hasOwnProperty("unitTemplate")) {
                         infoPanels[i].visible = false;
                         sendInfoUnit(infoPanels[i].id);
                     }
-                }
+                }*/
+
             }
         }
         else if(jsonData.packet == "new_items") {
@@ -868,8 +870,17 @@ function onMessage(evt) {
         else if(jsonData.packet == "info_item") {
             drawInfoItem(jsonData);
         }
+        else if(jsonData.packet == "info_effect_update") {
+            updateEffectsObjPanel(jsonData);
+        }
         else if(jsonData.packet == "villager_change") {
             updateTextLog(jsonData.action);
+        }        
+        else if(jsonData.packet == "info_item_update") {
+            updateItemObjPanel(jsonData);
+        }
+        else if(jsonData.packet == "info_item_transfer") {
+            transferItemObjPanel(jsonData);
         }
         else if(jsonData.packet == "survey") {
             drawSurveyDialog(jsonData.data);
@@ -964,10 +975,10 @@ function updateObjs(packetChanges) {
 
             if(attr == 'state') {
                 localObjs[obj_id].state = value;
+                updateAttrObjPanel(obj_id, 'state', value);
             }
 
             localObjs[obj_id].op = 'updated';
-
         } else if(eventType == "obj_move") {
             var obj = events[i].obj;
             var src_x = events[i].src_x;
@@ -985,6 +996,9 @@ function updateObjs(packetChanges) {
                 localObjs[obj.id].prev_y = src_y;
                 localObjs[obj.id].op = 'added';
             }            
+
+            updateAttrObjPanel(obj.id, 'state', obj.state);
+
         } else if(eventType =="obj_delete") {            
             var obj_id = events[i].obj_id;
 
@@ -1082,7 +1096,12 @@ function drawMap(tiles) {
                 selectHex.tileY = this.tileY;
                 selectHex.visible = true;
 
-                drawSelectPanel(this.tileX, this.tileY, this.tileImages);
+                if(moveToggled) {
+                    sendMove(this.tileX, this.tileY);
+                    moveToggled = false;
+                } else {
+                    drawSelectPanel(this.tileX, this.tileY, this.tileImages);
+                }
             }
         });
 
@@ -1631,9 +1650,9 @@ function drawSelectPanel(tileX, tileY) {
     icons.push(icon);
 
     //Select first icon by default
-    //selectedUnit = icons[0].id;
-    //drawSelectedPortrait();
-
+    selectedUnit = icons[0].id;
+    drawSelectedPortrait();
+    drawActionBar(selectedUnit);
 };
 
 function drawSelectedPortrait() {
@@ -2345,8 +2364,8 @@ function drawInfoTile(jsonData) {
 function drawInfoUnit(jsonData) {
     showInfoPanel();
     
-    activeInfoPanel.unitTemplate = jsonData.template;   
     activeInfoPanel.id = jsonData.id;
+    activeInfoPanel.obj = jsonData;
     console.log('activeInfoPanel: ' + activeInfoPanel.id); 
 
     var nameText = new createjs.Text(jsonData.name, h1Font, textColor);
@@ -2364,47 +2383,22 @@ function drawInfoUnit(jsonData) {
         image: jsonData.image}); 
 
     if(jsonData.class == "unit") {
-        var itemDamage = getItemDamage(jsonData.items);
-        var itemArmor = getItemArmor(jsonData.items);
 
-        var base_dmg = Number(jsonData.base_dmg) + itemDamage;
-        var dmg_range = Number(jsonData.dmg_range) + itemDamage;
-        var armor = Number(jsonData.base_def) + itemArmor;
-
-        if(jsonData.subclass == "villager") {
-            var stats = "--- Stats --- \n"
-                  + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
-                  + "Defense: " + armor + "\n"
-                  + "Speed: " + jsonData.base_speed + "\n"
-                  + "State: " + jsonData.state + "\n"
-                  + "Capacity: " + jsonData.total_weight + "/" + jsonData.capacity + "\n"
-                  + "Dwelling: " + jsonData.dwelling + "\n"
-                  + "Morale: " + jsonData.morale + "\n"
-                  + "Order: " + jsonData.order + "\n"
-                  + "Action: " + jsonData.action + "\n";
-        } else {
-            var stats = "--- Stats --- \n"
-                  + "Hp: " + jsonData.hp + " / " + jsonData.base_hp + "\n"
-                  + "Damage: " + base_dmg + " - " + dmg_range + "\n" 
-                  + "Defense: " + armor + "\n"
-                  + "Speed: " + jsonData.base_speed + "\n"
-                  + "State: " + jsonData.state + "\n"
-                  + "Capacity: " + jsonData.total_weight + "/" + jsonData.capacity + "\n"
-                  + "Xp: " + jsonData.xp + "\n";
-        }
+        var stats = setStats(jsonData);
 
         var statsText = new createjs.Text(stats, h1Font, textColor);
-
         statsText.lineHeight = 20;
         statsText.x = 10;
         statsText.y = 125;
-        
+        statsText.name = "stats";
+
         addChildInfoPanel(statsText);
 
         var effects = "--- Effects ---\n";
+        activeInfoPanel.effects = jsonData.effects;
 
         for(var i = 0; i < jsonData.effects.length; i++) {
-            var effectName = jsonData.effects[i].name;
+            var effectName = jsonData.effects[i];
 
             var text = effectName + "\n";
             effects += text;
@@ -2414,6 +2408,7 @@ function drawInfoUnit(jsonData) {
         effectsText.lineHeight = 20;
         effectsText.x = 200;
         effectsText.y = 125;
+        effectsText.name = "effects";
 
         addChildInfoPanel(effectsText);
 
@@ -2471,102 +2466,14 @@ function drawInfoUnit(jsonData) {
     
     addChildInfoPanel(itemText);
 
+    //Draw items
     if(jsonData.hasOwnProperty("items")) {	
+        activeInfoPanel.items = jsonData.items;
 
         for(var i = 0; i < jsonData.items.length; i++) {
-            var itemName = jsonData.items[i].name;
-            var itemSubclass = jsonData.items[i].subclass;
-
-            itemName = itemName.toLowerCase().replace(/ /g,'');
-
-            var imagePath = "/static/art/" + itemName + ".png";
-            var altImagePath = "/static/art/" + itemSubclass.toLowerCase() + ".png";
-
-            var icon = new createjs.Container();
-
-            icon.x = 10 + i * 50;
-            icon.y = 375;
-            icon.itemId = jsonData.items[i].id;
-            icon.owner = jsonData.items[i].owner;
-            icon.itemName = jsonData.items[i].name;
-            icon.quantity = jsonData.items[i].quantity;
-
-            var hitArea  = new createjs.Shape();
-            hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
-            icon.hitArea = hitArea;
-
-            icon.on("click", function(evt) {
-                if(!pressmove) {
-                    if(evt.nativeEvent.button == 2) {
-                        console.log("Right Click!");
-                        drawItemSplit(this.itemId, this.itemName, this.quantity);
-                    }
-                    else {
-                        sendInfoItem(this.itemId);
-                    }
-                }
-            });
-
-            icon.on("pressmove", function(evt) {
-                if(evt.nativeEvent.button != 2) {
-                    var cont = this.parent;
-
-                    if(!pressmove) {                            
-                        origX = evt.target.x;
-                        origY = evt.target.y;
-                    }
-
-                    pressmove = true;                    
-
-                    var p = cont.globalToLocal(evt.stageX, evt.stageY);
-
-                    evt.target.x = p.x - 25;
-                    evt.target.y = p.y - 25;
-                
-                    stage.setChildIndex(cont.parent, stage.numChildren - 1);
-                }
-            });
-            icon.on("pressup", function(evt) { 
-                pressmove = false;
-                
-                var transfer = false;
-
-                for(var i = 0; i < infoPanels.length; i++) {
-                    var pt = infoPanels[i].globalToLocal(evt.stageX, evt.stageY);
-                    if(infoPanels[i].hitTest(pt.x, pt.y)) {
-                        if(infoPanels[i].id != this.owner) {
-                            if(infoPanels[i].id != undefined) {
-                                console.log("Transfering item: " + infoPanels[i].id, this.itemId);
-                                transfer = true;
-                                sendItemTransfer(infoPanels[i].id, this.itemId);        
-                            }
-                        }
-                    }
-                }
-
-                if(!transfer) {
-                    evt.target.x = origX;
-                    evt.target.y = origY;
-                }
-        
-            });
-
-            addChildInfoPanel(icon);
-
-            var path = imagePath;
-
-            //Quick fix to be replaced by lookup table
-            if(imageExists(imagePath)) {
-                path = imagePath;
-            } 
-            else {
-                path = altImagePath;    
-            }
-
-            addImage({id: itemName, path: path, x: 0, y: 0, target: icon});
+            addItemImageObjPanel(activeInfoPanel, jsonData.items[i], i);
         }
     }
-
 
     if(jsonData.class == "structure") {
         if(jsonData.state == "founded" || 
@@ -2602,6 +2509,241 @@ function drawInfoUnit(jsonData) {
         }
     } 
 };
+
+function setStats(obj) {
+    var itemDamage = getItemDamage(obj.items);
+    var itemArmor = getItemArmor(obj.items);
+
+    var base_dmg = Number(obj.base_dmg) + itemDamage;
+    var dmg_range = Number(obj.dmg_range) + itemDamage;
+    var armor = Number(obj.base_def) + itemArmor;
+    var stats = ""
+
+    if(obj.subclass == "villager") {
+        stats = "--- Stats --- \n"
+              + "Hp: " + obj.hp + " / " + obj.base_hp + "\n"
+              + "Defense: " + armor + "\n"
+              + "Speed: " + obj.base_speed + "\n"
+              + "State: " + obj.state + "\n"
+              + "Capacity: " + obj.total_weight + "/" + obj.capacity + "\n"
+              + "Dwelling: " + obj.dwelling + "\n"
+              + "Morale: " + obj.morale + "\n"
+              + "Order: " + obj.order + "\n"
+              + "Action: " + obj.action + "\n";
+    } else {
+        stats = "--- Stats --- \n"
+              + "Hp: " + obj.hp + " / " + obj.base_hp + "\n"
+              + "Damage: " + base_dmg + " - " + dmg_range + "\n" 
+              + "Defense: " + armor + "\n"
+              + "Speed: " + obj.base_speed + "\n"
+              + "State: " + obj.state + "\n"
+              + "Capacity: " + obj.total_weight + "/" + obj.capacity + "\n"
+              + "Xp: " + obj.xp + "\n";
+    }
+
+    return stats;
+}
+
+function addItemImageObjPanel(panel, itemData, imageNum) {
+    var itemName = itemData.name;
+    var itemSubclass = itemData.subclass;
+
+    itemName = itemName.toLowerCase().replace(/ /g,'');
+
+    var imagePath = "/static/art/" + itemName + ".png";
+    var altImagePath = "/static/art/" + itemSubclass.toLowerCase() + ".png";
+
+    var icon = new createjs.Container();
+
+    icon.x = 10 + imageNum * 50;
+    icon.y = 375;
+    icon.name = 'item' + itemData.id
+    icon.itemId = itemData.id;
+    icon.owner = itemData.owner;
+    icon.itemName = itemData.name;
+    icon.quantity = itemData.quantity;
+
+    var hitArea  = new createjs.Shape();
+    hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
+    icon.hitArea = hitArea;
+
+    icon.on("click", function(evt) {
+        if(!pressmove) {
+            if(evt.nativeEvent.button == 2) {
+                console.log("Right Click!");
+                drawItemSplit(this.itemId, this.itemName, this.quantity);
+            }
+            else {
+                sendInfoItem(this.itemId);
+            }
+        }
+    });
+
+    icon.on("pressmove", function(evt) {
+        if(evt.nativeEvent.button != 2) {
+            var cont = this.parent;
+
+            if(!pressmove) {                            
+                origX = evt.target.x;
+                origY = evt.target.y;
+            }
+
+            pressmove = true;                    
+
+            var p = cont.globalToLocal(evt.stageX, evt.stageY);
+
+            evt.target.x = p.x - 25;
+            evt.target.y = p.y - 25;
+        
+            stage.setChildIndex(cont.parent, stage.numChildren - 1);
+        }
+    });
+    icon.on("pressup", function(evt) { 
+        pressmove = false;
+        
+        var transfer = false;
+
+        for(var i = 0; i < infoPanels.length; i++) {
+            var pt = infoPanels[i].globalToLocal(evt.stageX, evt.stageY);
+            if(infoPanels[i].hitTest(pt.x, pt.y)) {
+                if(infoPanels[i].id != this.owner) {
+                    if(infoPanels[i].id != undefined) {
+                        console.log("Transfering item: " + infoPanels[i].id, this.itemId);
+                        transfer = true;
+                        sendItemTransfer(infoPanels[i].id, this.itemId);        
+                    }
+                }
+            }
+        }
+
+        if(!transfer) {
+            evt.target.x = origX;
+            evt.target.y = origY;
+        }
+
+    });
+
+    addChildToPanel(panel, icon)
+
+    var path = imagePath;
+
+    //Quick fix to be replaced by lookup table
+    if(imageExists(imagePath)) {
+        path = imagePath;
+    } 
+    else {
+        path = altImagePath;    
+    }
+
+    addImage({id: itemName, path: path, x: 0, y: 0, target: icon});
+};
+
+function updateAttrObjPanel(objId, attr, value) {
+    var objInfoPanel = getInfoPanel(objId);
+
+    if(objInfoPanel != null) {
+        var objInfoPanelContent = objInfoPanel.getChildByName('content');        
+
+        if(attr == "state") {
+            objInfoPanel.obj.state = value;            
+            var stats = setStats(objInfoPanel.obj);
+
+            var statsText = objInfoPanelContent.getChildByName('stats');
+            statsText.text = stats;
+        }
+    }
+};
+
+function updateEffectsObjPanel(jsonData) {
+    var objInfoPanel = getInfoPanel(jsonData.id);
+
+    if(objInfoPanel != null) {            
+        var objInfoPanelContent = objInfoPanel.getChildByName('content');
+        var effects = objInfoPanel.effects;
+
+        if(jsonData.op == "add") {
+            effects.push(jsonData.effect);
+        } else {
+            var index = effects.indexOf(jsonData.effect);
+            effects.splice(index, 1);
+        }
+
+        var effectStrList = "--- Effects ---\n";
+
+        for(var i = 0; i < effects.length; i++) {
+            var effectName = effects[i];
+
+            effectStrList += effectName;
+            effectStrList += "\n";
+        }
+
+        var effectsText = objInfoPanelContent.getChildByName('effects');
+        effectsText.text = effectStrList;
+    }
+};
+
+function updateItemObjPanel(jsonData) {
+    var objInfoPanel = getInfoPanel(jsonData.id);
+    var objInfoPanelContent = objInfoPanel.getChildByName('content');
+
+    // Check if item was merged
+    if(!jsonData.merged) {
+        var numItems = 0;
+
+        if(objInfoPanel.items != null) {
+            numItems = objInfoPanel.items.length;
+        }
+
+        addItemImageObjPanel(objInfoPanel, jsonData.item, numItems);    
+        objInfoPanel.items.push(jsonData.item);
+
+    } else {
+        //Find item which was updated, either deleted or quantity updated
+
+        for(var i = 0; i < objInfoPanel.items.length; i++) {
+            if(objInfoPanel.items[i] == jsonData.id) {
+                if(jsonData.quantity > 0) {
+                    objInfoPanel.items[i] = jsonData.item;
+                } else {
+                    var itemIcon = objInfoPanelContent.getChildByName('item' + jsonData.item.id);
+                    objInfoPanel.removeChild(itemIcon);
+                    objInfoPanel.items.splice(i, 1);
+                }
+
+                break;
+            }
+        }
+    }
+};
+
+function transferItemObjPanel(jsonData) {
+    var sourceObjPanel = getInfoPanel(jsonData.sourceid);
+    var sourceObjPanelContent = sourceObjPanel.getChildByName('content');
+    var destObjPanel = getInfoPanel(jsonData.destid);
+
+    //Remove item from source obj panel items
+    for(var i = 0; i < sourceObjPanel.items.length; i++) {
+        if(sourceObjPanel.items[i].id == jsonData.sourceitemid) {
+            
+            var itemIcon = sourceObjPanelContent.getChildByName('item' + jsonData.sourceitemid);
+            sourceObjPanelContent.removeChild(itemIcon);
+            sourceObjPanel.items.splice(i, 1);                    
+            break;
+        }
+    }
+
+    //Check if the item was not merged on the dest obj panel
+    if(!jsonData.merged) {
+        var numItems = 0;
+
+        if(destObjPanel.items != null) {
+            numItems = destObjPanel.items.length;        
+        }
+
+        addItemImageObjPanel(destObjPanel, jsonData.item, numItems);    
+        destObjPanel.items.push(jsonData.item);
+    }
+}
 
 function drawInfoItem(jsonData) {
     showInfoPanel();
@@ -3087,7 +3229,8 @@ function initUI() {
     });
 
     moveButton.on("mousedown", function(evt) {
-        sendMove(selectHex.tileX, selectHex.tileY);
+        moveToggled = true;
+        //sendMove(selectHex.tileX, selectHex.tileY);
     });
 
     hideButton.on("mousedown", function(evt) {
@@ -3458,13 +3601,6 @@ function initUI() {
     stage.addChild(reventPanel);
 };
 
-function showBattlePanel() {
-    var content = battlePanel.getChildByName('content');
-    content.removeAllChildren();
-
-    battlePanel.visible = true;
-};
-
 function showLocalPanel() {
     localPanel.visible = true;
 };
@@ -3515,6 +3651,20 @@ function addChildInfoPanel(item) {
     content.addChild(item);
 };
 
+function addChildToPanel(panel, item) {
+    var content = panel.getChildByName('content');
+    content.addChild(item);
+}
+
+function getInfoPanel(id) {
+    for(var i = 0; i < infoPanels.length; i++) {
+        if(infoPanels[i].id == id) {
+            return infoPanels[i];
+        }
+    }
+
+    return null
+}
 function getInfoPanelContent() {
     return activeInfoPanel.getChildByName('content');
 };

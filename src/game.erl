@@ -27,6 +27,8 @@
 -export([send_update_items/3, 
          send_update_stats/2, 
          send_villager_change/1,
+         send_item_update/3,
+         send_item_transfer/5,
          send_effect_change/3, send_effect_change/4,
          send_revent/2]).
 
@@ -56,10 +58,8 @@ send_villager_change(Villager) ->
     %Check if being villager is observed
     Index = {villager:player(Villager), obj, villager:id(Villager)},
     
-    case db:read(active_info, Index) of
-        [] -> nothing;
-        _ -> 
-            %TODO potentially look to add message aggregation 
+    case db:read(active_info, Index) =/= [] of
+        true -> 
             Message = #{<<"id">> => villager:id(Villager),
                         <<"order">> => villager:order(Villager),
                         <<"action">> => villager:action(Villager),
@@ -70,7 +70,49 @@ send_villager_change(Villager) ->
             lager:info("Sending villager_change: ~p", [Message]),
 
             [Conn] = db:read(connection, villager:player(Villager)),
-            message:send_to_process(Conn#connection.process, villager_change, Message)
+            message:send_to_process(Conn#connection.process, villager_change, Message);
+        false ->
+            nothing
+    end.
+
+send_item_update(ObjId, Item, Merged) ->
+    Obj = obj:get(ObjId),
+    Index = {obj:player(Obj), obj, ObjId},
+
+    case db:read(active_info, Index) =/= [] of
+        true ->
+            Message = #{<<"id">> => ObjId,
+                        <<"item">> => Item,
+                        <<"merged">> => Merged},
+            lager:info("info_item_update: ~p", [Message]),
+            [Conn] = db:read(connection, obj:player(Obj)),
+            message:send_to_process(Conn#connection.process, info_item_update, Message);
+        false ->
+            nothing
+    end.
+
+send_item_transfer(SourceOwnerId, DestOwnerId, SourceItemId, Item, Merged) ->
+    SourceOwnerObj = obj:get(SourceOwnerId),
+    DestOwnerObj = obj:get(DestOwnerId),
+
+    SourceIndex = {obj:player(SourceOwnerObj), obj, SourceOwnerId},
+    DestIndex = {obj:player(DestOwnerObj), obj, DestOwnerId},
+
+    Result = db:read(active_info, SourceIndex) =/= [] orelse db:read(active_info, DestIndex) =/= [],
+    
+    case Result of
+        true ->
+            Message = #{<<"sourceid">> => SourceOwnerId,
+                        <<"destid">> => DestOwnerId,
+                        <<"sourceitemid">> => SourceItemId,
+                        <<"item">> => Item,
+                        <<"merged">> => Merged},
+
+            %TODO item transfer right now can only be between same player objs 
+            [Conn] = db:read(connection, obj:player(DestOwnerObj)),
+            message:send_to_process(Conn#connection.process, info_item_transfer, Message);
+        false ->
+            nothing
     end.
 
 send_effect_change(ObjId, Effect, EffectOp) ->
@@ -80,8 +122,10 @@ send_effect_change({tile, _}, _, _, _) -> nothing; %TODO send only to observers 
 send_effect_change(ObjId, Effect, EffectOp, EffectData) ->
     Obj = obj:get(ObjId),
 
-    case player:is_player(obj:player(Obj)) of
-        true ->
+    %TODO Expand to non-player owned objs
+    case player:is_online(obj:player(Obj)) of
+        false -> nothing;
+        Conn ->
             EffectOpBin = atom_to_binary(EffectOp, latin1),
 
             Message = #{<<"id">> => obj:id(Obj),
@@ -93,10 +137,7 @@ send_effect_change(ObjId, Effect, EffectOp, EffectData) ->
                                _ -> Message
                            end,
                         
-            [Conn] = db:read(connection, obj:player(Obj)),
-            message:send_to_process(Conn#connection.process, effect, FinalMessage);
-        false ->
-            nothing
+            message:send_to_process(Conn#connection.process, info_effect_update, FinalMessage)
     end.
 
 send_revent(PlayerId, REvent) ->

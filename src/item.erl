@@ -90,7 +90,7 @@ get_equiped_weapon(OwnerId) ->
         end,
     lists:filter(F, AllItems).
 
-get_weapon_range(OwnerId) ->
+get_weapon_range(_OwnerId) ->
     1.
     %Weapons = get_equiped_weapon(OwnerId),
 
@@ -163,10 +163,6 @@ weight(ItemName, ItemQuantity) ->
     ItemWeight = item_def:value(ItemName, <<"weight">>),
     ItemWeight * ItemQuantity.
 
-
-
-
-
 can_merge(ItemClass) ->
     case ItemClass of
         <<"Weapon">> -> false;
@@ -174,30 +170,41 @@ can_merge(ItemClass) ->
         _ -> true
     end.
 
-transfer(TransferItemId, TargetId) ->
+transfer(TransferItemId, TargetOwnerId) ->
     [TransferItem] = db:dirty_read(item, TransferItemId),
-    AllItems = db:dirty_index_read(item, TargetId, #item.owner),
-    
-    NewItem = case can_merge(TransferItem#item.class) of
-                  true ->
-                      case filter_by_name(AllItems, TransferItem#item.name) of
-                          [] -> 
-                              TransferItem#item{owner = TargetId};
-                          [Item | _Rest] -> 
-                              %Update new quantity,
-                              NewQuantity = Item#item.quantity + TransferItem#item.quantity,
-                                
-                              %Remove the transfer item
-                              db:delete(item, TransferItemId),
+    SourceOwnerId = TransferItem#item.owner,
 
-                              %Merge with existing item
-                              Item#item{owner = TargetId,
-                                        quantity = NewQuantity}
-                      end;
-                  false ->
-                      TransferItem#item{owner = TargetId}
-             end,
+    AllItems = db:dirty_index_read(item, TargetOwnerId, #item.owner),
+    
+    {Merged, NewItem} = case can_merge(TransferItem#item.class) of
+                              true ->
+                                  case filter_by_name(AllItems, TransferItem#item.name) of
+                                      [] -> 
+                                          {false, TransferItem#item{owner = TargetOwnerId}};
+                                      [Item | _Rest] -> 
+                                          %Update new quantity,
+                                          NewQuantity = Item#item.quantity + TransferItem#item.quantity,
+                                            
+                                          %Remove the transfer item
+                                          db:delete(item, TransferItemId),
+
+                                          %Merge with existing item
+                                          {true, Item#item{owner = TargetOwnerId,
+                                                           quantity = NewQuantity}}
+                                  end;
+                              false ->
+                                  {false, TransferItem#item{owner = TargetOwnerId}}
+                         end,
+
+    %Potentially send item change to player
+    game:send_item_transfer(SourceOwnerId, 
+                            TargetOwnerId, 
+                            TransferItemId, 
+                            all_attr_map(NewItem), 
+                            Merged),
+
     db:write(NewItem),
+
 
     %Return item map with all the attributes
     all_attr_map(NewItem).
@@ -231,10 +238,20 @@ unequip(ItemId) ->
     db:write(NewItem).
 
 update(ItemId, 0) ->
+    [Item] = db:read(item, ItemId),
+    NewItem = Item#item{quantity = 0},
+
+    %Potentially send item change to player
+    game:send_item_update(NewItem#item.owner, all_attr_map(NewItem), true),
+
     db:delete(item, ItemId);
 update(ItemId, NewQuantity) ->
     [Item] = db:read(item, ItemId),
     NewItem = Item#item{quantity = NewQuantity},
+
+    %Potentially send item change to player
+    game:send_item_update(Item#item.owner, all_attr_map(NewItem), true),
+
     db:write(NewItem).
 
 %TODO revisit true/false binary string
@@ -245,7 +262,7 @@ create(Owner, Name, Quantity, Equip) ->
     lager:info("Owner: ~p Name: ~p Quantity: ~p", [Owner, Name, Quantity]),
     AllItems = db:dirty_index_read(item, Owner, #item.owner),
 
-    NewItem = case filter_by_name(AllItems, Name) of
+    {Merged, NewItem} = case filter_by_name(AllItems, Name) of
                   [] -> 
                       Id = util:get_id(),
                       create_item_attr(Id, Name),
@@ -254,20 +271,22 @@ create(Owner, Name, Quantity, Equip) ->
                       Subclass = item_attr:value(Id, <<"subclass">>),
                       Weight = item_attr:value(Id, <<"weight">>),
 
-                      #item {id = Id,
-                             name = Name,
-                             quantity = Quantity,
-                             owner = Owner,
-                             class = Class,
-                             subclass = Subclass,
-                             weight = Weight,
-                             equip = Equip};
-
+                      {false, #item {id = Id,
+                                     name = Name,
+                                     quantity = Quantity,
+                                     owner = Owner,
+                                     class = Class,
+                                     subclass = Subclass,
+                                     weight = Weight,
+                                     equip = Equip}};
                   [Item | _Rest] -> 
                       NewQuantity = Item#item.quantity + Quantity,
-                      Item#item{quantity = NewQuantity}
+                      {true, Item#item{quantity = NewQuantity}}
               end,
     
+    %Potentially send item change to player
+    game:send_item_update(NewItem#item.owner, all_attr_map(NewItem), Merged),
+
     db:write(NewItem),
 
     %Return item_def map with quantity

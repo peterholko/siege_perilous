@@ -169,6 +169,7 @@
 
 -define(EXPOSE_ARMOR_DEF, -0.05).
 
+%ORDERS
 -define(ORDER_ATTACK, <<"Attack">>).
 -define(ORDER_GUARD, <<"Guard">>).
 -define(ORDER_FOLLOW, <<"Follow">>).
@@ -178,6 +179,33 @@
 -define(ORDER_REFINE, <<"Refine">>).
 -define(ORDER_CRAFT, <<"Craft">>).
 -define(ORDER_BUILD, <<"Build">>).
+
+%ACTIVITIES
+-define(ACTIVITY_ATTACK, <<"Attacking target">>).
+-define(ACTIVITY_EXPLORE, <<"Exploring">>).
+-define(ACTIVITY_GATHER, <<"Gathering">>).
+-define(ACTIVITY_FOLLOW, <<"Following">>).
+-define(ACTIVITY_HAUL, <<"Hauling">>).
+
+-define(ACTIVITY_FLEE_SHELTER, <<"Fleeing to shelter">>).
+-define(ACTIVITY_FLEE_HERO, <<"Fleeing to hero">>).
+-define(ACTIVITY_FLEE_RANDOM, <<"Fleeing">>).
+
+-define(ACTIVITY_FOOD_EAT, <<"Stopping for food">>).
+-define(ACTIVITY_FOOD_STORAGE, <<"Getting food from storage">>).
+-define(ACTIVITY_NO_FOOD, <<"Hungry...">>).
+
+-define(ACTIVITY_WATER_DRINK, <<"Drink time">>).
+-define(ACTIVITY_WATER_STORAGE, <<"Getting water from storage">>).
+-define(ACTIVITY_NO_WATER, <<"Thirsty...">>).
+
+-define(ACTIVITY_SLEEP_SHELTER, <<"Sleeping under a roof">>).
+-define(ACTIVITY_SLEEP, <<"Sleeping under the stars">>).
+
+-define(ACTIVITY_FIND_SHELTER, <<"Finding shelter">>).
+-define(ACTIVITY_FIND_STORAGE, <<"Finding storage">>).
+
+-define(ACTIVITY_STORAGE_FULL, <<"Cannot find any storage">>).
 
 
 %STATS

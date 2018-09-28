@@ -28,6 +28,7 @@
 -export([find_shelter/1, find_harvester/1, find_craft/1, find_storage/1]).
 -export([structure_not_full/1, storage_not_full/1, load_resources/1, unload_resources/1]).
 -export([set_pos_storage/1, set_hauling/1, set_none/1, not_hauling/1]).
+-export([set_activity/2]).
 -export([has_resources/1, has_food/1, has_food_storage/1, find_food_storage/1, transfer_food/1,
          has_water/1, has_water_storage/1, find_water_storage/1, transfer_water/1, has_tools/1]).
 -export([idle/1, explore/1, gather/1, build/1, refine/1, craft/1, eat/1, drink/1, sleep/1]).
@@ -113,12 +114,16 @@ storage(Villager = #villager{}) ->
         none -> <<"none">>;        
         {_Id, _Pos, Name} -> Name
     end. 
-action(#villager{task_index = TaskIndex, plan = Plan}) when TaskIndex > 0 ->
-    case lists:nth(TaskIndex, Plan) of
-        {move_to, pos_hero} -> <<"moving to hero">>;
-        Task -> atom_to_binary(Task, latin1)
-    end;
-action(_) -> <<"idle">>.
+
+action(#villager{activity = Activity}) ->
+    Activity.
+
+%action(#villager{task_index = TaskIndex, plan = Plan}) when TaskIndex > 0 ->
+%    case lists:nth(TaskIndex, Plan) of
+%        {move_to, pos_hero} -> <<"moving to hero">>;
+%        Task -> atom_to_binary(Task, latin1)
+%    end;
+%action(_) -> <<"idle">>.
         
 
 %%%
@@ -408,6 +413,18 @@ get_pos(Villager, pos_hero) ->
 get_pos(Villager, pos_gather) ->
     GatherPos = maps:get(gatherpos, Villager#villager.data),
     GatherPos.
+
+set_activity(Villager, NewActivity) ->
+    FinalVillager = case Villager#villager.activity =:= NewActivity of
+                      true -> 
+                            Villager#villager{task_state = completed};
+                      false ->
+                            NewVillager = Villager#villager{activity = NewActivity,
+                                                            task_state = completed},
+                            game:send_villager_change(NewVillager),
+                            NewVillager
+                  end,
+    FinalVillager.
 
 move_to(Villager, Pos) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
@@ -706,7 +723,7 @@ craft(Villager) ->
 eat(Villager) ->
     lager:info("Villager eating"),
     
-    % Assume food exists as check or transfer was completely immediately before
+    % Assume food exists as check or transfer was completed immediately before
     [Food | _Rest] = item:get_by_class(Villager#villager.id, ?FOOD),
 
     item:update(item:id(Food), item:quantity(Food) - 1),
@@ -1052,19 +1069,22 @@ process_run_plan(Villager, Tick) ->
             NewVillager#villager{last_run = Tick}
     end.
 
-task_data(Villager, {TaskName, TaskArgs}) -> {TaskName, [Villager, TaskArgs]};
-task_data(Villager, TaskName) -> {TaskName, [Villager]}.
+
+get_task_by_index(Villager, TaskIndex) -> 
+    TaskData = lists:nth(TaskIndex, Villager#villager.plan),
+    process_task_data(Villager, TaskData).
+
+process_task_data(Villager, {TaskName, TaskArgs}) -> {TaskName, [Villager, TaskArgs]};
+process_task_data(Villager, TaskName) -> {TaskName, [Villager]}.
 
 process_task_state(init, Villager) ->
     TaskData = lists:nth(1, Villager#villager.plan),
     lager:info("Running init task: ~p", [TaskData]),
 
-    {TaskName, TaskArgs} = task_data(Villager, TaskData),
+    {TaskName, TaskArgs} = get_task_by_index(Villager, 1),
 
     NewVillager = erlang:apply(villager, TaskName, TaskArgs),
 
-    %Potentially send villager change to player
-    game:send_villager_change(NewVillager),
 
     NewVillager;
 process_task_state(completed, Villager) ->
@@ -1075,10 +1095,7 @@ process_task_state(completed, Villager) ->
 
     NewerVillager = case NextTask of
                         {next_task, NextTaskIndex} ->
-                            TaskData = lists:nth(NextTaskIndex, Villager#villager.plan),
-                            lager:debug("Completed task, running next task: ~p", [TaskData]),
-
-                            {TaskName, TaskArgs} = task_data(Villager, TaskData),
+                            {TaskName, TaskArgs} = get_task_by_index(Villager, NextTaskIndex),
 
                             NewVillager = erlang:apply(villager, TaskName, TaskArgs),
                             NewVillager#villager{task_index = NextTaskIndex};
@@ -1086,8 +1103,6 @@ process_task_state(completed, Villager) ->
                             Villager#villager {task_state = init, task_index = 1}
                     end,
 
-    %Potentially send villager change to player
-    game:send_villager_change(NewerVillager),
 
     %Return modified villager
     NewerVillager;
@@ -1096,14 +1111,10 @@ process_task_state(skipped, Villager) ->
     PlanLength = length(Villager#villager.plan),
 
     NextTask = get_next_task(TaskIndex, PlanLength),
-    lager:info("NextTask: ~p", [NextTask]),
 
     NewerVillager = case NextTask of
                         {next_task, NextTaskIndex} ->
-                            TaskData = lists:nth(NextTaskIndex, Villager#villager.plan),
-                            lager:info("Completed task, running next task: ~p", [TaskData]),
-
-                            {TaskName, TaskArgs} = task_data(Villager, TaskData),
+                            {TaskName, TaskArgs} = get_task_by_index(Villager, NextTaskIndex),
 
                             NewVillager = erlang:apply(villager, TaskName, TaskArgs),
                             NewVillager#villager{task_index = NextTaskIndex};
@@ -1115,20 +1126,19 @@ process_task_state(running, Villager) ->
     Villager.
 
 process_event_complete(Villager) ->
-    Id = Villager#villager.id,
-
     lager:info("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
-    Task = lists:nth(Villager#villager.task_index, Villager#villager.plan),
-    obj:update_state(Id, none),
 
-    lager:info("Villager Task: ~p", [Task]),
+    {TaskName, TaskArgs} = get_task_by_index(Villager, Villager#villager.task_index),
 
-    case Task of
+    lager:info("Villager Task: ~p", [TaskName]),
+
+    case TaskName of
+        move_to -> process_move_to_complete(TaskArgs);
         move_to_pos -> process_move_complete(Villager);
         claim_shelter -> complete_task(Villager);
-        harvest -> complete_task(Villager);
-        explore -> complete_task(Villager);
-        gather -> complete_task(Villager);
+        harvest -> continue_task(Villager);
+        explore -> continue_task(Villager);
+        gather -> continue_task(Villager);
         refine -> complete_task(Villager);
         craft -> process_craft_complete(Villager);
         melee_attack -> complete_task(Villager);
@@ -1137,20 +1147,39 @@ process_event_complete(Villager) ->
         _ -> Villager
     end.
 
+process_move_to_complete([Villager, Pos]) ->
+    VillagerObj = obj:get(Villager#villager.id),
+
+    DestPos = get_pos(Villager, Pos),
+
+    case obj:pos(VillagerObj) =:= DestPos of
+        true -> 
+            obj:update_state(Villager#villager.id, none),            
+            Villager#villager {task_state = completed}; 
+        false ->
+            move_to(Villager, Pos)
+    end.
+
 process_move_complete(Villager) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
 
     case VillagerObj#obj.pos =:= Villager#villager.dest of
         true -> 
+            obj:update_state(Villager#villager.id, none),
             Villager#villager {task_state = completed}; 
         false ->
             move_to_pos(Villager)
     end.
 
 process_craft_complete(Villager) ->
+    obj:update_state(Villager#villager.id, none),
     Villager#villager {order = none, task_state = completed}.
 
+continue_task(Villager) ->
+    Villager#villager {task_state = completed}.
+
 complete_task(Villager) ->
+    obj:update_state(Villager#villager.id, none),            
     Villager#villager {task_state = completed}.
 
 find_enemies(_Villager, [], Enemies) ->
@@ -1204,7 +1233,7 @@ move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) ->
     MoveTicks = obj:movement_cost(Obj, DestPos),
 
     %Add obj update state to change to moving state on next tick
-    game:add_obj_update(self(), Id, ?STATE, ?MOVING, 0),
+    game:add_obj_update(self(), Id, ?STATE, ?MOVING, 1),
                 
     %Add obj move event to execute in MoveTicks
     game:add_obj_move(self(), Id, SourcePos, DestPos, MoveTicks).

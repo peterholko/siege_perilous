@@ -173,7 +173,7 @@
                    shelter = none,
                    storage = none,
                    morale = none,
-                   activity = none,
+                   activity = <<"none">>,
                    data = #{}
                    }).
 

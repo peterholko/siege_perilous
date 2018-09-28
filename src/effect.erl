@@ -68,8 +68,9 @@ get_effects(Id) ->
     Effects = db:index_read(effect, Id, #effect.id),
     
     F = fun(Effect, Acc) ->
-            EffectMap = #{<<"name">> => Effect#effect.type},
-            [EffectMap | Acc]
+            %EffectMap = #{<<"name">> => Effect#effect.type},
+
+            [Effect#effect.type | Acc]
         end,
 
     lists:foldl(F, [], Effects).
