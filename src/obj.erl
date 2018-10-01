@@ -21,7 +21,7 @@
 -export([trigger_effects/1, trigger_inspect/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
--export([get_nearby_corpses/1, get_by_player/1]).
+-export([get_nearby_corpses/1, get_by_player/1, get_name_by_id/1]).
 -export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, 
          name/1, image/1, vision/1, modtick/1]).
 -export([rec_to_map/1]).
@@ -543,6 +543,13 @@ get_by_attr(Player, AttrList) ->
 get_by_player(PlayerId) ->
     db:index_read(obj, PlayerId, #obj.player).
 
+get_name_by_id(ObjId) ->
+    Name = case db:read(obj, ObjId) of
+               [Obj] -> Obj#obj.name;
+               [] -> <<"none">>
+           end,
+    Name.
+
 process_attrlist(Obj, AttrList) ->
     F = fun({class, Value}, Acc) when is_list(Value) -> lists:member(class(Obj), Value) and Acc;
            ({class, Value}, Acc) -> (class(Obj) =:= Value) and Acc;
@@ -862,23 +869,16 @@ info_subclass(<<"villager">>, Obj, Info) ->
     Capacity = obj:get_capacity(Obj#obj.id),
     Morale = Villager#villager.morale,
     Order = Villager#villager.order,
-    DwellingId = Villager#villager.shelter,
+    ShelterId = Villager#villager.shelter,
     StructureId = Villager#villager.structure,
 
-    DwellingName = case db:read(obj, DwellingId) of
-                       [Dwelling] -> Dwelling#obj.name;
-                       [] -> <<"none">>
-                   end,
-
-    StructureName = case db:read(obj, StructureId) of
-                        [Structure] -> Structure#obj.name;
-                        [] -> <<"none">>
-                    end,
+    ShelterName = get_name_by_id(ShelterId),
+    StructureName = get_name_by_id(StructureId),
 
     Info0 = maps:put(<<"total_weight">>, TotalWeight, Info),
     Info1 = maps:put(<<"capacity">>, Capacity, Info0),
     Info2 = maps:put(<<"morale">>, Morale, Info1),
-    Info3 = maps:put(<<"shelter">>, DwellingName, Info2),
+    Info3 = maps:put(<<"shelter">>, ShelterName, Info2),
     Info4 = maps:put(<<"structure">>, StructureName, Info3),
     Info5 = maps:put(<<"order">>, Order, Info4),
     Info6 = maps:put(<<"action">>, villager:action(Villager), Info5),

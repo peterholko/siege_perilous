@@ -15,7 +15,6 @@ var map;
 var battlePanel;
 var localPanel;
 var infoPanels = [];
-var activeInfoPanel;
 var dialogPanel;
 var smallDialogPanel;
 var selectPanel;
@@ -864,7 +863,7 @@ function onMessage(evt) {
                 drawLootDialog(jsonData);
             }
             else {
-                drawInfoUnit(jsonData);
+                drawInfoObj(jsonData);
             }
         }
         else if(jsonData.packet == "info_item") {
@@ -874,7 +873,7 @@ function onMessage(evt) {
             updateEffectsObjPanel(jsonData);
         }
         else if(jsonData.packet == "villager_change") {
-            updateTextLog(jsonData.action);
+            updateVillagerObjPanel(jsonData);
         }        
         else if(jsonData.packet == "info_item_update") {
             updateItemObjPanel(jsonData);
@@ -2289,7 +2288,9 @@ function drawNewItemsDialog(items) {
                 sendInfoItemByName(this.itemName);
             }
             else {
-                sendInfoItem(this.itemId);
+                if(!isInfoPanelOpened(this.itemId, "item")) {
+                    sendInfoItem(this.itemId);
+                }
             }
         });
 
@@ -2303,7 +2304,9 @@ function drawNewItemsDialog(items) {
 };
 
 function drawInfoTile(jsonData) {
-    showInfoPanel();
+    var index = jsonData.x + "_" + jsonData.y;
+    var infoPanel = initInfoPanel(index, "tile");
+    var infoPanelContent = infoPanel.getChildByName('content');
 
     var tileName = jsonData.name + " (" + jsonData.x + ", " + jsonData.y + ")";   
     var sanctuary = jsonData.sanctuary ? "yes" : "no";
@@ -2315,7 +2318,7 @@ function drawInfoTile(jsonData) {
     nameText.y = 10;
     nameText.textAlign = "center";
   
-    addChildInfoPanel(nameText);
+    infoPanelContent.addChild(nameText);
 
     var stats = "Sanctuary: " + sanctuary + "\n" +
                 "Wildness: " + jsonData.wildness + "\n" +
@@ -2330,7 +2333,7 @@ function drawInfoTile(jsonData) {
     statsText.x = 10;
     statsText.y = 125;    
     
-    addChildInfoPanel(statsText); 
+    infoPanelContent.addChild(statsText);
 
     for(var i = 0; i < jsonData.resources.length; i++) {
         var resource = jsonData.resources[i];
@@ -2343,7 +2346,7 @@ function drawInfoTile(jsonData) {
         icon.x = 25;
         icon.y = 250 + i * 60;
 
-        addChildInfoPanel(icon);
+        infoPanelContent.addChild(icon);
         addImage({id: resourceImage, path: imagePath, x: 0, y: 0, target: icon});
 
         /*var name = new createjs.Text("Name: " + resource.name, h1Font, textColor);
@@ -2361,15 +2364,14 @@ function drawInfoTile(jsonData) {
    
 };
 
-function drawInfoUnit(jsonData) {
-    showInfoPanel();
-    
-    activeInfoPanel.id = jsonData.id;
-    activeInfoPanel.obj = jsonData;
-    console.log('activeInfoPanel: ' + activeInfoPanel.id); 
+function drawInfoObj(jsonData) {
+    var infoPanel = initInfoPanel(jsonData.id, "obj");
+    var infoPanelContent = infoPanel.getChildByName('content');
+
+    infoPanel.obj = jsonData;
 
     var nameText = new createjs.Text(jsonData.name, h1Font, textColor);
-    addChildInfoPanel(nameText);
+    infoPanelContent.addChild(nameText);
 
     var nameBounds = nameText.getBounds();
     nameText.x =  Math.floor(infoPanelBg.width / 2) - nameBounds.width / 2;
@@ -2378,7 +2380,7 @@ function drawInfoUnit(jsonData) {
     addSprite({id: jsonData.template, 
         x: Math.floor(infoPanelBg.width / 2) - 45, 
         y: 50, 
-        target: getInfoPanelContent(), 
+        target: infoPanelContent, 
         animation: "none", 
         image: jsonData.image}); 
 
@@ -2392,10 +2394,9 @@ function drawInfoUnit(jsonData) {
         statsText.y = 125;
         statsText.name = "stats";
 
-        addChildInfoPanel(statsText);
+        infoPanelContent.addChild(statsText);
 
         var effects = "--- Effects ---\n";
-        activeInfoPanel.effects = jsonData.effects;
 
         for(var i = 0; i < jsonData.effects.length; i++) {
             var effectName = jsonData.effects[i];
@@ -2410,7 +2411,7 @@ function drawInfoUnit(jsonData) {
         effectsText.y = 125;
         effectsText.name = "effects";
 
-        addChildInfoPanel(effectsText);
+        infoPanelContent.addChild(effectsText);
 
         var skills = "--- Skills ---\n";
 
@@ -2426,8 +2427,6 @@ function drawInfoUnit(jsonData) {
         skillsText.lineHeight = 20;
         skillsText.x = 200;
         skillsText.y = 150;
-
-        //addChildInfoPanel(skillsText);
     }
     else if(jsonData.class == "structure") {
         var stats = "--- Stats --- \n"
@@ -2441,7 +2440,7 @@ function drawInfoUnit(jsonData) {
         statsText.x = 10;
         statsText.y = 125;
         
-        addChildInfoPanel(statsText);
+        infoPanelContent.addChild(statsText);
 
         if(jsonData.state != "none") {
             var req = "--- Requirements ---\n";
@@ -2456,44 +2455,42 @@ function drawInfoUnit(jsonData) {
             reqText.x = 10;
             reqText.y = 225;
 
-            addChildInfoPanel(reqText);
+            infoPanelContent.addChild(reqText);
         }
     }
 
     var itemText = new createjs.Text("--- Items --- ", h1Font, textColor);
     itemText.x = 10;
     itemText.y = 350;
-    
-    addChildInfoPanel(itemText);
+   
+    infoPanelContent.addChild(itemText);
 
     //Draw items
     if(jsonData.hasOwnProperty("items")) {	
-        activeInfoPanel.items = jsonData.items;
 
         for(var i = 0; i < jsonData.items.length; i++) {
-            addItemImageObjPanel(activeInfoPanel, jsonData.items[i], i);
+            addItemImageObjPanel(infoPanel, jsonData.items[i], i);
         }
     }
 
     if(jsonData.class == "structure") {
         if(jsonData.state == "founded" || 
            jsonData.state == "under_construction") {
-            var btnBuild = activeInfoPanel.getChildByName("btnBuild");
+            var btnBuild = infoPanel.getChildByName("btnBuild");
             btnBuild.visible = true;
             
             console.log("Adding mousedown event handler");   
             btnBuild.on("mousedown", function(evt) {
-                console.log("drawInfoUnit btnBuild mousedown");
                 sendFinishBuild(evt.target.parent.parent.id);
             });
         }
         else if(jsonData.state == "none") {
             if(jsonData.subclass != "wall") {
-                var btnCraft = activeInfoPanel.getChildByName("btnCraft");
+                var btnCraft = infoPanel.getChildByName("btnCraft");
                 btnCraft.visible = true;
     
                 
-                var btnAssign = activeInfoPanel.getChildByName("btnAssign");
+                var btnAssign = infoPanel.getChildByName("btnAssign");
                 btnAssign.visible = true;
 
                 btnAssign.on("mousedown", function(evt) {
@@ -2526,7 +2523,7 @@ function setStats(obj) {
               + "Speed: " + obj.base_speed + "\n"
               + "State: " + obj.state + "\n"
               + "Capacity: " + obj.total_weight + "/" + obj.capacity + "\n"
-              + "Dwelling: " + obj.dwelling + "\n"
+              + "Shelter: " + obj.shelter + "\n"
               + "Morale: " + obj.morale + "\n"
               + "Order: " + obj.order + "\n"
               + "Action: " + obj.action + "\n";
@@ -2545,6 +2542,8 @@ function setStats(obj) {
 }
 
 function addItemImageObjPanel(panel, itemData, imageNum) {
+    var panelContent = panel.getChildByName('content');
+
     var itemName = itemData.name;
     var itemSubclass = itemData.subclass;
 
@@ -2623,7 +2622,7 @@ function addItemImageObjPanel(panel, itemData, imageNum) {
 
     });
 
-    addChildToPanel(panel, icon)
+    panelContent.addChild(icon);
 
     var path = imagePath;
 
@@ -2639,7 +2638,7 @@ function addItemImageObjPanel(panel, itemData, imageNum) {
 };
 
 function updateAttrObjPanel(objId, attr, value) {
-    var objInfoPanel = getInfoPanel(objId);
+    var objInfoPanel = getInfoPanel(objId, "obj");
 
     if(objInfoPanel != null) {
         var objInfoPanelContent = objInfoPanel.getChildByName('content');        
@@ -2654,36 +2653,59 @@ function updateAttrObjPanel(objId, attr, value) {
     }
 };
 
+function updateVillagerObjPanel(jsonData) {
+    var objInfoPanel = getInfoPanel(jsonData.id, "obj");
+
+    if(objInfoPanel != null) {
+        var objInfoPanelContent = objInfoPanel.getChildByName('content');        
+
+        objInfoPanel.obj.order = jsonData.order;
+        objInfoPanel.obj.action = jsonData.action;
+        objInfoPanel.obj.morale = jsonData.morale;
+        objInfoPanel.obj.shelter = jsonData.shelter;
+        objInfoPanel.obj.structure = jsonData.structure;
+
+        var stats = setStats(objInfoPanel.obj);
+
+        var statsText = objInfoPanelContent.getChildByName('stats');
+        statsText.text = stats;
+    }
+
+};
+
 function updateEffectsObjPanel(jsonData) {
-    var objInfoPanel = getInfoPanel(jsonData.id);
+    var objInfoPanel = getInfoPanel(jsonData.id, "obj");
 
     if(objInfoPanel != null) {            
         var objInfoPanelContent = objInfoPanel.getChildByName('content');
-        var effects = objInfoPanel.effects;
+        
+        if(objInfoPanel.obj.effects != null) {
+            var effects = objInfoPanel.obj.effects;
 
-        if(jsonData.op == "add") {
-            effects.push(jsonData.effect);
-        } else {
-            var index = effects.indexOf(jsonData.effect);
-            effects.splice(index, 1);
+            if(jsonData.op == "add") {
+                effects.push(jsonData.effect);
+            } else {
+                var index = effects.indexOf(jsonData.effect);
+                effects.splice(index, 1);
+            }
+
+            var effectStrList = "--- Effects ---\n";
+
+            for(var i = 0; i < effects.length; i++) {
+                var effectName = effects[i];
+
+                effectStrList += effectName;
+                effectStrList += "\n";
+            }
+
+            var effectsText = objInfoPanelContent.getChildByName('effects');
+            effectsText.text = effectStrList;
         }
-
-        var effectStrList = "--- Effects ---\n";
-
-        for(var i = 0; i < effects.length; i++) {
-            var effectName = effects[i];
-
-            effectStrList += effectName;
-            effectStrList += "\n";
-        }
-
-        var effectsText = objInfoPanelContent.getChildByName('effects');
-        effectsText.text = effectStrList;
     }
 };
 
 function updateItemObjPanel(jsonData) {
-    var objInfoPanel = getInfoPanel(jsonData.id);
+    var objInfoPanel = getInfoPanel(jsonData.id, "obj");
     var objInfoPanelContent = objInfoPanel.getChildByName('content');
 
     // Check if item was merged
@@ -2717,9 +2739,9 @@ function updateItemObjPanel(jsonData) {
 };
 
 function transferItemObjPanel(jsonData) {
-    var sourceObjPanel = getInfoPanel(jsonData.sourceid);
+    var sourceObjPanel = getInfoPanel(jsonData.sourceid, "obj");
     var sourceObjPanelContent = sourceObjPanel.getChildByName('content');
-    var destObjPanel = getInfoPanel(jsonData.destid);
+    var destObjPanel = getInfoPanel(jsonData.destid, "obj");
 
     //Remove item from source obj panel items
     for(var i = 0; i < sourceObjPanel.items.length; i++) {
@@ -2746,7 +2768,8 @@ function transferItemObjPanel(jsonData) {
 }
 
 function drawInfoItem(jsonData) {
-    showInfoPanel();
+    var infoPanel = initInfoPanel(jsonData.id, "item");
+    var infoPanelContent = infoPanel.getChildByName('content');
 
     var itemName = jsonData.name;
     var itemClass = jsonData.class;
@@ -2756,15 +2779,15 @@ function drawInfoItem(jsonData) {
     nameText.x = Math.floor(infoPanelBg.width / 2);
     nameText.y = 10;
     nameText.textAlign = "center";
-  
-    addChildInfoPanel(nameText);
+
+    infoPanelCotent.addChild(nameText);
 
     itemName = itemName.toLowerCase().replace(/ /g, '');
     var imagePath =  "/static/art/" + itemName + ".png";
 
     imagesQueue.push({id: itemName, 
                       x: Math.floor(infoPanelBg.width / 2) - 24, 
-                      y: 50, target: getInfoPanelContent()});
+                      y: 50, target: infoPanelContent});
     loaderQueue.loadFile({id: itemName, src: imagePath});
 
     var stats = "";
@@ -2793,11 +2816,11 @@ function drawInfoItem(jsonData) {
     statsText.x = 10;
     statsText.y = 125;
     
-    addChildInfoPanel(statsText);
+    infoPanelCotent.addChild(statsText);
 
     if(itemClass == "Weapon") {
         var statsHeight = statsText.getMeasuredHeight(); 
-        var btnEquip = activeInfoPanel.getChildByName("btnEquip");
+        var btnEquip = infoPanel.getChildByName("btnEquip");
 
         btnEquip.visible = true;
         btnEquip.x = 333 / 2 - 133 / 2;
@@ -3195,26 +3218,25 @@ function initUI() {
     fourComboButton.mouseChildren = false;
     fourComboButton.addChild(new createjs.Bitmap(fierce));
 
-
-
-
-
     /*detailsButton.on("mouseover", function(evt) {
         this.removeAllChildren();
         this.addChild(new createjs.Bitmap(detailsRoll));
     });*/
 
-
     detailsButton.on("mousedown", function(evt) {
         if(selectedUnit != -1) {
-            sendInfoUnit(selectedUnit);
+            if(!isInfoPanelOpened(selectedUnit, "obj")) {
+                sendInfoUnit(selectedUnit);
+            }
         } 
         else if(selectedTile != -1) {
-            sendInfoTile(selectedTile['x'], selectedTile['y']);
+            var index = selectedTile['x'] + "_" + selectedTile['y'];
+
+            if(!isInfoPanelOpened(index, "tile")) {
+                sendInfoTile(selectedTile['x'], selectedTile['y']);
+            }
         }
     
-        //this.removeAllChildren();
-        //this.addChild(new createjs.Bitmap(detailsActive));
         updateTextLog("detailsButton");
     });
 
@@ -3230,7 +3252,6 @@ function initUI() {
 
     moveButton.on("mousedown", function(evt) {
         moveToggled = true;
-        //sendMove(selectHex.tileX, selectHex.tileY);
     });
 
     hideButton.on("mousedown", function(evt) {
@@ -3485,6 +3506,9 @@ function initUI() {
 
         content.name = 'content';
 
+        panel.id = -1;
+        panel.panel_type = "none";
+
         panel.addChild(bg);
         panel.addChild(close);
         panel.addChild(content);
@@ -3605,31 +3629,46 @@ function showLocalPanel() {
     localPanel.visible = true;
 };
 
-function showInfoPanel() {
+function initInfoPanel(id, panel_type) {    
     var xCoords = [0, infoPanelBg.width, infoPanelBg.width * 2];
+    var infoPanel;
+    var alreadyOpen = false;
 
+    //Find free info panel
     for(var i = 0; i < infoPanels.length; i++) {
-        if(infoPanels[i].visible == false) {
-            activeInfoPanel = infoPanels[i]; 
+        if(infoPanels[i].visible == false) {            
+            infoPanel = infoPanels[i]; 
         }
         else {
-            var index = xCoords.indexOf(infoPanels[i].x);
-            xCoords.splice(index, 1);    
+            if(infoPanel.id == id && infoPanel == panel_type) {
+                alreadyOpen = true;
+            } else {                
+                var index = xCoords.indexOf(infoPanels[i].x);
+                xCoords.splice(index, 1);    
+            }
         }
     }
 
-    var content = activeInfoPanel.getChildByName('content');
-    content.removeAllChildren();
+    if(infoPanel != null && alreadyOpen == false) {        
+        //Set id and type of info panel
+        infoPanel.id = id;
+        infoPanel.panel_type = panel_type
 
-    if(xCoords.length > 0) {
-        activeInfoPanel.x = xCoords[0];
-    } 
-    else {
-        activeInfoPanel.x = 0;
+        var content = infoPanel.getChildByName('content');
+        content.removeAllChildren();
+
+        if(xCoords.length > 0) {
+            infoPanel.x = xCoords[0];
+        } 
+        else {
+            infoPanel.x = 0;
+        }
+
+        infoPanel.visible = true;    
+        hideButtons(infoPanel);
     }
 
-    activeInfoPanel.visible = true;    
-    hideButtons();
+    return infoPanel;
 };
 
 function showDialogPanel() {
@@ -3646,28 +3685,27 @@ function showSmallDialogPanel() {
     smallDialogPanel.visible = true;
 }
 
-function addChildInfoPanel(item) {
-    var content = activeInfoPanel.getChildByName('content');
-    content.addChild(item);
-};
-
-function addChildToPanel(panel, item) {
-    var content = panel.getChildByName('content');
-    content.addChild(item);
-}
-
-function getInfoPanel(id) {
+function getInfoPanel(id, type) {
     for(var i = 0; i < infoPanels.length; i++) {
-        if(infoPanels[i].id == id) {
+        if(infoPanels[i].id == id && infoPanels[i].panel_type == type) {
             return infoPanels[i];
         }
     }
 
     return null
 }
-function getInfoPanelContent() {
-    return activeInfoPanel.getChildByName('content');
-};
+
+function isInfoPanelOpened(id, type) {
+    for(var i = 0; i < infoPanels.length; i++) {
+        if(infoPanel[i].visible == true) {
+            if(infoPanels[i].id == id && infoPanels[i].panel_type == type) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 function addChildLocalMap(item, childName) {
     var localMapCont = localPanel.getChildByName('localMap');
@@ -3919,11 +3957,11 @@ function imageExists(image_url) {
     return result;
 };
 
-function hideButtons() {
-    var btnBuild = activeInfoPanel.getChildByName("btnBuild");
-    var btnCraft = activeInfoPanel.getChildByName("btnCraft");
-    var btnAssign = activeInfoPanel.getChildByName("btnAssign");
-    var btnEquip = activeInfoPanel.getChildByName("btnEquip");
+function hideButtons(infoPanel) {
+    var btnBuild = infoPanel.getChildByName("btnBuild");
+    var btnCraft = infoPanel.getChildByName("btnCraft");
+    var btnAssign = infoPanel.getChildByName("btnAssign");
+    var btnEquip = infoPanel.getChildByName("btnEquip");
 
     btnBuild.visible = false;
     btnCraft.visible = false;

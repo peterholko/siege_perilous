@@ -64,8 +64,8 @@ send_villager_change(Villager) ->
                         <<"order">> => villager:order(Villager),
                         <<"action">> => villager:action(Villager),
                         <<"morale">> => villager:morale(Villager),
-                        <<"shelter">> => villager:shelter(Villager),
-                        <<"structure">> => villager:structure(Villager)},
+                        <<"shelter">> => obj:get_name_by_id(villager:shelter(Villager)),
+                        <<"structure">> => obj:get_name_by_id(villager:structure(Villager))},
 
             lager:info("Sending villager_change: ~p", [Message]),
 
