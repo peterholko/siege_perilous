@@ -104,7 +104,7 @@ explore(ObjId, Pos) ->
     ExploreSkill = 50,
     Resources = db:read(resource, Pos),
 
-    F = fun(Resource, NewResourceList) ->
+    F = fun(Resource, {ResourceList, FoundResource}) ->
             ResourceDef = resource_def:all_to_map(Resource#resource.name),
             ResourceSkillReq = maps:get(<<"skill_req">>, ResourceDef),
             QuantityList = maps:get(<<"quantity">>, ResourceDef),
@@ -112,19 +112,41 @@ explore(ObjId, Pos) ->
             
             case ExploreSkill >= (ResourceSkillReq + QuantitySkillReq) of
                 true ->
-                    %TODO MAKE TRANSACTION
-                    mnesia:dirty_delete_object(Resource),
-                    NewResource = Resource#resource {revealed = true}, 
-                    db:write(NewResource),
-
-                    [#{<<"name">> => Resource#resource.name,
-                       <<"quantity">> => quantity(Resource#resource.quantity)} | NewResourceList];
+                    NewResource = reveal(Resource), 
+                        
+                    NewResourceList = [#{<<"name">> => NewResource#resource.name,
+                                         <<"quantity">> => quantity(NewResource#resource.quantity)} 
+                                       | ResourceList],
+                    {NewResourceList, true};
                 false ->
-                    NewResourceList
+                    {ResourceList, FoundResource}
             end
         end,
 
-    lists:foldl(F, [], Resources).
+    {FinalResourceList, RevealedResources} = lists:foldl(F, {[], false}, Resources),
+
+    case RevealedResources of
+       true ->
+           game:send_tile_update(Pos, <<"resource">>, FinalResourceList);
+       false -> 
+           nothing
+    end,
+
+    %Return resource list
+    FinalResourceList.
+
+reveal(Resource) ->
+    NewResource = Resource#resource {revealed = true},
+
+    F = fun() ->
+
+            mnesia:delete_object(Resource),
+            mnesia:write(NewResource)
+        end,
+
+    mnesia:transaction(F),
+
+    NewResource.
 
 is_valid(ResourceName, Pos) ->
     Resources = db:read(resource, Pos),

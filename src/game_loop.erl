@@ -167,7 +167,7 @@ do_obj_event(obj_update, _Process, {ObjId, _Attr, Value}) ->
                              value = Value},
     ObjUpdate;
 
-do_obj_event(obj_move, Process, {ObjId, SourcePos, DestPos}) ->
+do_obj_event(obj_move, _Process, {ObjId, SourcePos, DestPos}) ->
     lager:debug("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
 
     NewObj = obj:process_move(ObjId, DestPos),
@@ -233,7 +233,8 @@ process_events(CurrentTick) ->
 
 do_event(attack, EventData, PlayerPid) ->
     lager:debug("Processing action event: ~p", [EventData]),
-    message:send_to_process(PlayerPid, event_complete, {attack, EventData}),
+    ObjId = EventData,
+    message:send_to_process(PlayerPid, event_complete, {attack, ObjId}),
     false;
 
 do_event(defend, EventData, PlayerPid) ->
@@ -241,9 +242,9 @@ do_event(defend, EventData, PlayerPid) ->
     
     {ObjId, DefendType} = EventData,
 
-    effect:remove(ObjId, DefendType),
+    effect:remove(ObjId, DefendType),    
 
-    message:send_to_process(PlayerPid, event_complete, {defend, EventData}),
+    message:send_to_process(PlayerPid, event_complete, {defend, ObjId}),
     false;
 
 do_event(cast, EventData, PlayerPid) ->

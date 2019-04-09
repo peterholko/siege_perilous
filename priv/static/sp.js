@@ -295,7 +295,7 @@ function init() {
     initImages();
     initUI();
 
-    createjs.Ticker.timingMode = createjs.Ticker.RAF;
+    createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCH;
     createjs.Ticker.setFPS(60);
     createjs.Ticker.addEventListener("tick", stage);
     createjs.Ticker.addEventListener("tick", handleRender);
@@ -1658,6 +1658,9 @@ function drawSelectedPortrait() {
     if(selectedUnit != -1) {    
         var obj = localObjs[selectedUnit];
 
+        if(obj == null)
+            return;
+
         if(obj.player == playerId && obj.class == "unit") {
             var content = portraitPanel.getChildByName("content");
             content.removeAllChildren();
@@ -2706,30 +2709,34 @@ function updateEffectsObjPanel(jsonData) {
 
 function updateItemObjPanel(jsonData) {
     var objInfoPanel = getInfoPanel(jsonData.id, "obj");
+
+    if(objInfoPanel == null)
+        return;
+
     var objInfoPanelContent = objInfoPanel.getChildByName('content');
 
     // Check if item was merged
     if(!jsonData.merged) {
         var numItems = 0;
 
-        if(objInfoPanel.items != null) {
-            numItems = objInfoPanel.items.length;
+        if(objInfoPanel.obj.items != null) {
+            numItems = objInfoPanel.obj.items.length;
         }
 
         addItemImageObjPanel(objInfoPanel, jsonData.item, numItems);    
-        objInfoPanel.items.push(jsonData.item);
+        objInfoPanel.obj.items.push(jsonData.item);
 
     } else {
         //Find item which was updated, either deleted or quantity updated
 
-        for(var i = 0; i < objInfoPanel.items.length; i++) {
-            if(objInfoPanel.items[i] == jsonData.id) {
+        for(var i = 0; i < objInfoPanel.obj.items.length; i++) {
+            if(objInfoPanel.obj.items[i] == jsonData.id) {
                 if(jsonData.quantity > 0) {
-                    objInfoPanel.items[i] = jsonData.item;
+                    objInfoPanel.obj.items[i] = jsonData.item;
                 } else {
                     var itemIcon = objInfoPanelContent.getChildByName('item' + jsonData.item.id);
                     objInfoPanel.removeChild(itemIcon);
-                    objInfoPanel.items.splice(i, 1);
+                    objInfoPanel.obj.items.splice(i, 1);
                 }
 
                 break;
@@ -2744,12 +2751,12 @@ function transferItemObjPanel(jsonData) {
     var destObjPanel = getInfoPanel(jsonData.destid, "obj");
 
     //Remove item from source obj panel items
-    for(var i = 0; i < sourceObjPanel.items.length; i++) {
-        if(sourceObjPanel.items[i].id == jsonData.sourceitemid) {
+    for(var i = 0; i < sourceObjPanel.obj.items.length; i++) {
+        if(sourceObjPanel.obj.items[i].id == jsonData.sourceitemid) {
             
             var itemIcon = sourceObjPanelContent.getChildByName('item' + jsonData.sourceitemid);
             sourceObjPanelContent.removeChild(itemIcon);
-            sourceObjPanel.items.splice(i, 1);                    
+            sourceObjPanel.obj.items.splice(i, 1);                    
             break;
         }
     }
@@ -2758,12 +2765,12 @@ function transferItemObjPanel(jsonData) {
     if(!jsonData.merged) {
         var numItems = 0;
 
-        if(destObjPanel.items != null) {
-            numItems = destObjPanel.items.length;        
+        if(destObjPanel.obj.items != null) {
+            numItems = destObjPanel.obj.items.length;        
         }
 
         addItemImageObjPanel(destObjPanel, jsonData.item, numItems);    
-        destObjPanel.items.push(jsonData.item);
+        destObjPanel.obj.items.push(jsonData.item);
     }
 }
 
@@ -2780,7 +2787,7 @@ function drawInfoItem(jsonData) {
     nameText.y = 10;
     nameText.textAlign = "center";
 
-    infoPanelCotent.addChild(nameText);
+    infoPanelContent.addChild(nameText);
 
     itemName = itemName.toLowerCase().replace(/ /g, '');
     var imagePath =  "/static/art/" + itemName + ".png";
@@ -2816,7 +2823,7 @@ function drawInfoItem(jsonData) {
     statsText.x = 10;
     statsText.y = 125;
     
-    infoPanelCotent.addChild(statsText);
+    infoPanelContent.addChild(statsText);
 
     if(itemClass == "Weapon") {
         var statsHeight = statsText.getMeasuredHeight(); 
@@ -3483,6 +3490,7 @@ function initUI() {
         close.on("mousedown", function(evt) {
             console.log('Close mousedown')
             this.parent.visible = false;
+            this.parent.id = null;
 
             updateTextLog("closeButton");
         });
@@ -3697,7 +3705,7 @@ function getInfoPanel(id, type) {
 
 function isInfoPanelOpened(id, type) {
     for(var i = 0; i < infoPanels.length; i++) {
-        if(infoPanel[i].visible == true) {
+        if(infoPanels[i].visible == true) {
             if(infoPanels[i].id == id && infoPanels[i].panel_type == type) {
                 return true;
             }

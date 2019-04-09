@@ -432,6 +432,9 @@ prepare(stats, Message) ->
 prepare(effect, Message) ->
     maps:put(<<"packet">>, <<"effect">>, Message);
 
+prepare(info_tile_update, Message) ->
+    maps:put(<<"packet">>, <<"info_tile_update">>, Message);
+
 prepare(info_effect_update, Message) ->
     maps:put(<<"packet">>, <<"info_effect_update">>, Message);
 

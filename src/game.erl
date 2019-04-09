@@ -27,6 +27,7 @@
 -export([send_update_items/3, 
          send_update_stats/2, 
          send_villager_change/1,
+         send_tile_update/3,
          send_item_update/3,
          send_item_transfer/5,
          send_effect_change/3, send_effect_change/4,
@@ -73,6 +74,29 @@ send_villager_change(Villager) ->
             message:send_to_process(Conn#connection.process, villager_change, Message);
         false ->
             nothing
+    end.
+
+send_tile_update(Pos, Attr, Value) ->    
+
+    case db:index_read(active_info, Pos, #active_info.id) of
+        [] -> nothing;
+        ActiveInfoList ->
+            {X, Y} = Pos,
+
+            F = fun(ActiveInfo) ->
+                    
+                    Message = #{<<"x">> => X,
+                                <<"y">> => Y,
+                                <<"attr">> => Attr,
+                                <<"value">> => Value},            
+                    lager:info("Message: ~p", [Message]),
+                    [Conn] = db:read(connection, ActiveInfo#active_info.player),
+                    message:send_to_process(Conn#connection.process, 
+                                            info_tile_update, 
+                                            Message)                       
+                end,
+           
+            lists:foreach(F, ActiveInfoList)
     end.
 
 send_item_update(ObjId, Item, Merged) ->
@@ -218,8 +242,8 @@ new_player(PlayerId) ->
     game:add_event(self(), login, PlayerId, none, 2),
    
     % Equip food so it isn't dumped
-    item:create(VillagerId, <<"Honeybell Berries">>, 25, <<"true">>),
-    item:create(VillagerId, <<"Spring Water">>, 25, <<"true">>),
+    item:create(VillagerId, <<"Honeybell Berries">>, 50, <<"true">>),
+    item:create(VillagerId, <<"Spring Water">>, 50, <<"true">>),
     item:create(VillagerId, <<"Pick Axe">>, 2, <<"true">>),
 
     F1 = fun() ->

@@ -120,6 +120,9 @@ get_stats(Id) ->
 
 get_info_tile(Pos) ->
     lager:info("info_tile"),
+    Player = get(player_id),
+
+    add_active_info(Pos, Player, Pos),
 
     case is_visible(Pos) of
         true ->
@@ -132,6 +135,8 @@ get_info_unit(Id) ->
     [Unit] = db:read(obj, Id),
     Player = get(player_id),
 
+    add_active_info({Player, obj, Id}, Player, Id),
+
     Info = case Unit#obj.player =:= Player of
         true -> 
             obj:trigger_inspect(Unit),
@@ -140,11 +145,6 @@ get_info_unit(Id) ->
             obj:trigger_inspect(Unit),
             obj:get_info_other(Id)
     end,
-
-    ActiveInfo = #active_info{index = {Player, obj, Id},
-                              player = Player,
-                              id = Id},
-    db:write(ActiveInfo),
 
     Info.
 
@@ -968,3 +968,13 @@ to_reply(true) ->
     [{<<"result">>, <<"success">>}];
 to_reply({false, Error}) ->
     [{<<"result">>, <<"failed">>}, {<<"errmsg">>, list_to_binary(Error)}].
+
+add_active_info(Index, Player, Id) ->
+    ActiveInfo = #active_info{index = Index,
+                              player = Player,
+                              id = Id},
+    db:write(ActiveInfo).
+
+delete_active_info(Index) ->
+    db:delete(active_info, Index).
+
