@@ -19,10 +19,10 @@ decode(Message) ->
     Decoded = json_decode(Message),
     lager:info("Decoded: ~p~n", [Decoded]),
 
-    Cmd = map_get(<<"cmd">>, Decoded),
+    Cmd = m_get(<<"cmd">>, Decoded),
     message_handle(Cmd, Decoded).
 
-map_get(Key, Map) ->
+m_get(Key, Map) ->
     try maps:get(Key, Map)
     catch
         _:_ ->
@@ -32,8 +32,8 @@ map_get(Key, Map) ->
 
 message_handle(<<"login">>, Message) -> 
     lager:info("message: login"),
-    Username = map_get(<<"username">>, Message),
-    Password = map_get(<<"password">>, Message),
+    Username = m_get(<<"username">>, Message),
+    Password = m_get(<<"password">>, Message),
 
     lager:info("Username: ~p~n", [Username]),
     lager:info("Password: ~p~n", [Password]),
@@ -42,10 +42,10 @@ message_handle(<<"login">>, Message) ->
 
 message_handle(<<"move_unit">>, Message) ->
     lager:info("message: move_unit"),
-    Id = map_get(<<"id">>, Message),
+    Id = m_get(<<"id">>, Message),
     
-    X = map_get(<<"x">>, Message),
-    Y = map_get(<<"y">>, Message),
+    X = m_get(<<"x">>, Message),
+    Y = m_get(<<"y">>, Message),
 
     Return = player:move(Id, {X, Y}),
 
@@ -55,8 +55,8 @@ message_handle(<<"move_unit">>, Message) ->
 message_handle(<<"combo">>, Message) ->
     lager:info("message:combo"),
 
-    SourceId = map_get(<<"sourceid">>, Message),
-    ComboType = map_get(<<"combotype">>, Message),  
+    SourceId = m_get(<<"sourceid">>, Message),
+    ComboType = m_get(<<"combotype">>, Message),  
 
     Return = player:combo(SourceId, ComboType),
 
@@ -66,9 +66,9 @@ message_handle(<<"combo">>, Message) ->
 message_handle(<<"attack">>, Message) ->
     lager:info("message: attack"),
 
-    AttackType = map_get(<<"attacktype">>, Message),
-    SourceId = map_get(<<"sourceid">>, Message),
-    TargetId = map_get(<<"targetid">>, Message),
+    AttackType = m_get(<<"attacktype">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
 
     Return = player:attack(AttackType, SourceId, TargetId),
 
@@ -77,8 +77,8 @@ message_handle(<<"attack">>, Message) ->
 
 message_handle(<<"defend">>, Message) ->
     lager:info("message: defend"),
-    DefendType = map_get(<<"defendtype">>, Message),
-    SourceId = map_get(<<"sourceid">>, Message),
+    DefendType = m_get(<<"defendtype">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
 
     Return = player:defend(DefendType, SourceId),
 
@@ -88,7 +88,7 @@ message_handle(<<"defend">>, Message) ->
 message_handle(<<"survey">>, Message) ->
     lager:info("message: survey"),
 
-    SourceId = map_get(<<"sourceid">>, Message),    
+    SourceId = m_get(<<"sourceid">>, Message),    
     Data = player:survey(SourceId),
     jsx:encode(#{<<"packet">> => <<"survey">>,
                  <<"data">> => Data});    
@@ -96,7 +96,7 @@ message_handle(<<"survey">>, Message) ->
 message_handle(<<"explore">>, Message) ->
     lager:info("message: explore"),
 
-    SourceId = map_get(<<"sourceid">>, Message),    
+    SourceId = m_get(<<"sourceid">>, Message),    
     Result = player:explore(SourceId),
     jsx:encode([{<<"packet">>, <<"explore">>},
                 {<<"result">>, Result}]);    
@@ -104,8 +104,8 @@ message_handle(<<"explore">>, Message) ->
 message_handle(<<"harvest">>, Message) ->
     lager:info("message: harvest"),
 
-    SourceId = map_get(<<"sourceid">>, Message),
-    Resource = map_get(<<"resource">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    Resource = m_get(<<"resource">>, Message),
    
     Return = player:harvest(SourceId, Resource),
 
@@ -115,8 +115,8 @@ message_handle(<<"harvest">>, Message) ->
 message_handle(<<"loot">>, Message) ->
     lager:info("message: loot"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
-    ItemId = map_get(<<"item">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    ItemId = m_get(<<"item">>, Message),
 
     LootData = player:loot(SourceId, ItemId),
     LootPerception = prepare(loot_perception, LootData),
@@ -125,8 +125,8 @@ message_handle(<<"loot">>, Message) ->
 message_handle(<<"item_transfer">>, Message) ->
     lager:info("message: item_transfer ~p", [Message]),
     
-    TargetId = map_get(<<"targetid">>, Message),
-    ItemId = map_get(<<"item">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
+    ItemId = m_get(<<"item">>, Message),
 
     Return = player:item_transfer(TargetId, ItemId),
     FinalReturn = maps:put(<<"packet">>, <<"item_transfer">>, Return),
@@ -135,9 +135,9 @@ message_handle(<<"item_transfer">>, Message) ->
 message_handle(<<"item_split">>, Message) ->
     lager:info("message: item_split ~p", [Message]),
 
-    ItemId = map_get(<<"item">>, Message),
+    ItemId = m_get(<<"item">>, Message),
 
-    QuantityStr = map_get(<<"quantity">>, Message),
+    QuantityStr = m_get(<<"quantity">>, Message),
     Quantity = binary_to_integer(QuantityStr),
 
     Result = player:item_split(ItemId, Quantity),
@@ -156,8 +156,8 @@ message_handle(<<"structure_list">>, _Message) ->
 message_handle(<<"build">>, Message) ->
     lager:info("message: build"),
     
-    Id = map_get(<<"sourceid">>, Message),    
-    StructureId = map_get(<<"structure">>, Message),
+    Id = m_get(<<"sourceid">>, Message),    
+    StructureId = m_get(<<"structure">>, Message),
 
     Return = player:build(Id, StructureId),
 
@@ -167,7 +167,7 @@ message_handle(<<"build">>, Message) ->
 message_handle(<<"upgrade">>, Message) ->
     lager:info("message: upgrade"),
     
-    StructureId = map_get(<<"structure">>, Message),
+    StructureId = m_get(<<"structure">>, Message),
 
     Result = player:upgrade(StructureId),
 
@@ -177,8 +177,8 @@ message_handle(<<"upgrade">>, Message) ->
 message_handle(<<"finish_build">>, Message) ->
     lager:info("message: finish_build"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
-    StructureId = map_get(<<"structureid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    StructureId = m_get(<<"structureid">>, Message),
 
     Return = player:finish_build(SourceId, StructureId),
     lager:info("Finish build return: ~p", [Return]),
@@ -189,7 +189,7 @@ message_handle(<<"finish_build">>, Message) ->
 message_handle(<<"recipe_list">>, Message) ->
     lager:info("message: recipe_list"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
 
     RecipeList = player:recipe_list(SourceId),
 
@@ -198,7 +198,7 @@ message_handle(<<"recipe_list">>, Message) ->
 
 message_handle(<<"refine">>, Message) ->
     lager:info("message: refine"),
-    StructureId = map_get(<<"structureid">>, Message),
+    StructureId = m_get(<<"structureid">>, Message),
 
     Reply = player:refine(StructureId),
 
@@ -207,8 +207,8 @@ message_handle(<<"refine">>, Message) ->
 
 message_handle(<<"craft">>, Message) ->
     lager:info("message: craft"),
-    SourceId = map_get(<<"sourceid">>, Message),
-    Recipe = map_get(<<"recipe">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    Recipe = m_get(<<"recipe">>, Message),
 
     Result = player:craft(SourceId, Recipe),
 
@@ -217,7 +217,7 @@ message_handle(<<"craft">>, Message) ->
 
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
-    ItemId = map_get(<<"item">>, Message),
+    ItemId = m_get(<<"item">>, Message),
     Result = player:equip(ItemId),
 
     jsx:encode([{<<"packet">>, <<"equip">>},
@@ -225,7 +225,7 @@ message_handle(<<"equip">>, Message) ->
 
 message_handle(<<"unequip">>, Message) ->
     lager:info("message: unequip"),
-    ItemId = map_get(<<"item">>, Message),
+    ItemId = m_get(<<"item">>, Message),
     Result = player:unequip(ItemId),
 
     jsx:encode([{<<"packet">>, <<"unequip">>},
@@ -234,7 +234,7 @@ message_handle(<<"unequip">>, Message) ->
 message_handle(<<"rest">>, Message) ->
     lager:info("message: rest"),
 
-    SourceId = map_get(<<"sourceid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
 
     Return = player:rest(SourceId),
     FinalReturn = maps:put(<<"packet">>, <<"rest">>, Return),
@@ -243,7 +243,7 @@ message_handle(<<"rest">>, Message) ->
 message_handle(<<"hide">>, Message) ->
     lager:info("message: hide"),
 
-    SourceId = map_get(<<"sourceid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
 
     Return = player:hide(SourceId),
     FinalReturn = maps:put(<<"packet">>, <<"hide">>, Return),
@@ -259,8 +259,8 @@ message_handle(<<"assign_list">>, _Message) ->
 message_handle(<<"assign">>, Message) ->
     lager:info("message: assign"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
-    TargetId = map_get(<<"targetid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
 
     Return = player:assign(SourceId, TargetId),
     FinalReturn = maps:put(<<"packet">>, <<"assign">>, Return),
@@ -269,7 +269,7 @@ message_handle(<<"assign">>, Message) ->
 message_handle(<<"order_follow">>, Message) ->
     lager:info("message: order_follow"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
 
     Return = player:order_follow(SourceId),
     FinalReturn = maps:put(<<"packet">>, <<"order_follow">>, Return),
@@ -278,7 +278,7 @@ message_handle(<<"order_follow">>, Message) ->
 message_handle(<<"order_explore">>, Message) ->
     lager:info("message: order_explore"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
 
     Return = player:order_explore(SourceId),
     FinalReturn = maps:put(<<"packet">>, <<"order_explore">>, Return),
@@ -287,7 +287,7 @@ message_handle(<<"order_explore">>, Message) ->
 message_handle(<<"order_harvest">>, Message) ->
     lager:info("message: order_harvest"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
 
     Return = player:order_harvest(SourceId),
     FinalReturn = maps:put(<<"packet">>, <<"order_harvest">>, Return),
@@ -296,8 +296,8 @@ message_handle(<<"order_harvest">>, Message) ->
 message_handle(<<"order_gather">>, Message) ->
     lager:info("message: order_gather"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
-    ResourceType = map_get(<<"restype">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    ResourceType = m_get(<<"restype">>, Message),
 
     Return = player:order_gather(SourceId, ResourceType),
     FinalReturn = maps:put(<<"packet">>, <<"order_gather">>, Return),
@@ -306,8 +306,8 @@ message_handle(<<"order_gather">>, Message) ->
 message_handle(<<"order_attack">>, Message) ->
     lager:info("message: order_attack"),
     
-    SourceId = map_get(<<"sourceid">>, Message),
-    TargetId = map_get(<<"targetid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
 
     Return = player:order_attack(SourceId, TargetId),
     FinalReturn = maps:put(<<"packet">>, <<"order_attack">>, Return),
@@ -316,8 +316,8 @@ message_handle(<<"order_attack">>, Message) ->
 message_handle(<<"order_build">>, Message) ->
     lager:info("message: order_build"),
 
-    SourceId = map_get(<<"sourceid">>, Message),
-    TargetId = map_get(<<"targetid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
 
     Return = player:order_build(SourceId, TargetId),
     FinalReturn = maps:put(<<"packet">>, <<"order_build">>, Return),
@@ -325,7 +325,7 @@ message_handle(<<"order_build">>, Message) ->
 
 message_handle(<<"clear">>, Message) ->
     lager:info("message: clear"),
-    SourceId = map_get(<<"sourceid">>, Message),
+    SourceId = m_get(<<"sourceid">>, Message),
 
     Return = player:clear(SourceId),
     FinalReturn = maps:put(<<"packet">>, <<"clear">>, Return),
@@ -333,7 +333,7 @@ message_handle(<<"clear">>, Message) ->
 
 message_handle(<<"cancel">>, Message) ->
     lager:info("message: cancel"),
-    SrcId = map_get(<<"sourceid">>, Message),
+    SrcId = m_get(<<"sourceid">>, Message),
  
     Result = player:cancel(SrcId),
 
@@ -342,7 +342,7 @@ message_handle(<<"cancel">>, Message) ->
 
 message_handle(<<"get_stats">>, Message) ->
     lager:info("message: stats"),
-    Id = map_get(<<"id">>, Message),
+    Id = m_get(<<"id">>, Message),
     Stats = player:get_stats(Id),
     
     jsx:encode([{<<"packet">>, <<"stats">>},
@@ -350,45 +350,45 @@ message_handle(<<"get_stats">>, Message) ->
 
 message_handle(<<"info_tile">>, Message) ->
     lager:info("message: info_tile"),
-    X = map_get(<<"x">>, Message),
-    Y = map_get(<<"y">>, Message),
+    X = m_get(<<"x">>, Message),
+    Y = m_get(<<"y">>, Message),
     InfoMaps = player:get_info_tile({X, Y}),
     ReturnMsg = maps:put(<<"packet">>, <<"info_tile">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
 message_handle(<<"info_unit">>, Message) ->
     lager:info("message: info_unit"),
-    Id = map_get(<<"id">>, Message),
+    Id = m_get(<<"id">>, Message),
     InfoMaps = player:get_info_unit(Id),
     ReturnMsg = maps:put(<<"packet">>, <<"info_unit">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
 message_handle(<<"info_item">>, Message) ->
     lager:info("message: info_item"),
-    Id = map_get(<<"id">>, Message),
+    Id = m_get(<<"id">>, Message),
     InfoMaps = player:get_info_item(Id),
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
 message_handle(<<"info_item_by_name">>, Message) ->
     lager:info("message: info_item_by_name"),
-    ItemName = map_get(<<"name">>, Message),
+    ItemName = m_get(<<"name">>, Message),
     InfoMaps = player:get_info_item_name(ItemName),
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
 message_handle(<<"ford">>, Message) ->
     lager:info("message: ford"),
-    Id = map_get(<<"id">>, Message),
-    X = map_get(<<"x">>, Message),
-    Y = map_get(<<"y">>, Message),
+    Id = m_get(<<"id">>, Message),
+    X = m_get(<<"x">>, Message),
+    Y = m_get(<<"y">>, Message),
     Return = player:ford(Id, {X, Y}),
     FinalReturn = maps:put(<<"packet">>, <<"ford">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(<<"revent_response">>, Message) ->
     lager:info("message: revent"),
-    ResponseNum = map_get(<<"response_num">>, Message),
+    ResponseNum = m_get(<<"response_num">>, Message),
     Return = player:revent_response(ResponseNum),
     FinalReturn = maps:put(<<"packet">>, <<"revent_resolution">>, Return),
     jsx:encode(FinalReturn);

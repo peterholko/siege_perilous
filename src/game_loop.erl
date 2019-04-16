@@ -168,7 +168,7 @@ do_obj_event(obj_update, _Process, {ObjId, _Attr, Value}) ->
     ObjUpdate;
 
 do_obj_event(obj_move, _Process, {ObjId, SourcePos, DestPos}) ->
-    lager:debug("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
+    lager:info("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
 
     NewObj = obj:process_move(ObjId, DestPos),
 
