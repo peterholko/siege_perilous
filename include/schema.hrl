@@ -1,3 +1,8 @@
+-record(image, {name,
+                width,
+                height,
+                animations = []}).
+
 -record(counter, {type, 
                   value}).
 

@@ -2208,7 +2208,7 @@ function drawCraftListDialog(jsonData) {
 
     addChildSmallDialogPanel(title);
 
-    for(var i = 0; i < jsonData.result.length; i++) {
+    for(var i = 0; i < 3; i++) {
         var recipe = jsonData.result[i];
         var recipeImage = recipe.item.toLowerCase().replace(/ /g, '');
         var imagePath = "/static/art/" + recipeImage + ".png";
@@ -2217,8 +2217,8 @@ function drawCraftListDialog(jsonData) {
         icon.name = recipe.item;
         icon.class = recipe.class;
 
-        icon.x = 25 + i * 150;
-        icon.y = 50;
+        icon.x = 25;
+        icon.y = 50 + i * 75;
 
         var hitArea  = new createjs.Shape();
         hitArea.graphics.beginFill("#000").drawRect(0,0,72,72);
@@ -2242,8 +2242,8 @@ function drawCraftListDialog(jsonData) {
 
         var name = new createjs.Text(recipe.item, h1Font, textColor);
         
-        name.x = 25 + i * 75;
-        name.y = 130;
+        name.x = 75;
+        name.y = 50 + i * 75;
         
         addChildSmallDialogPanel(name);
 
@@ -2251,8 +2251,8 @@ function drawCraftListDialog(jsonData) {
             var req = recipe.req[j];
             var reqText = new createjs.Text(req.type + " (" + req.quantity + ")", h1Font, textColor);
 
-            reqText.x = 25 + i * 75;
-            reqText.y = 145 + j * 20;
+            reqText.x = 250;
+            reqText.y = 50 + j * 20 + i * 75;
 
             addChildSmallDialogPanel(reqText);
         }
