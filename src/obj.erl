@@ -64,7 +64,8 @@ create(Pos, PlayerId, Template, UniqueName, State) ->
                     Index = util:rand(NumImages),
                     lists:nth(Index, Images);
                 false ->
-                    Template
+                    %Strip out spaces and lowercase
+                    string:lowercase(re:replace(Template, <<" ">>, <<"">>, [{return, binary}]))                    
             end,
 
     %Add attributes from base

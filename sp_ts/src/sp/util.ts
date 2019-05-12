@@ -1,6 +1,6 @@
 export class Util {
 
-  static hexSize : integer = 32;
+  static hexSize : integer = 72;
 
   constructor() {}
 

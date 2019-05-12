@@ -1,14 +1,17 @@
 export class Tile extends Phaser.GameObjects.Image {
+
+    private tileImages;
+
     constructor(params) {
         super(params.scene, params.x, params.y, params.key);
 
-        this.initImage();
+        this.tileImages = params.tileImages;
 
-        this.scene.add.existing(this)
+        this.initImage();
     }
 
     private initImage(): void {
-        this.setOrigin(0.5);
+        this.setOrigin(0.0);
       }
 
 }

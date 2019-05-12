@@ -6,6 +6,8 @@
 -export([send_to_process/3]).
 -export([decode/1, prepare/2]).
 
+-include("schema.hrl").
+
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
     lager:debug("Sending ~p to ~p", [Message, Process]),
     Process ! {MessageType, Message};
@@ -39,6 +41,25 @@ message_handle(<<"login">>, Message) ->
     lager:info("Password: ~p~n", [Password]),
 
     setup:login(Username, Password, self());
+
+message_handle(<<"image_def">>, Message) ->
+    lager:info("Img"),
+    RawImageName = m_get(<<"name">>, Message),
+    ImageName = re:replace(RawImageName, "[0-9]+", "", [{return, binary}]),
+
+    Return = case db:read(image_def, ImageName) of 
+                [ImageDef] -> 
+                      Data1 = maps:put(<<"packet">>, <<"image_def">>, #{}),
+                      Data2 = maps:put(<<"name">>, RawImageName, Data1),
+                      Data3 = maps:put(<<"data">>, ImageDef#image_def.data, Data2),
+                      Data3;
+                _ -> 
+                    #{<<"packet">> => <<"image_def">>,
+                      <<"name">> => RawImageName,
+                      <<"result">> => <<"404">>}
+            end,
+
+    jsx:encode(Return);
 
 message_handle(<<"move_unit">>, Message) ->
     lager:info("message: move_unit"),
