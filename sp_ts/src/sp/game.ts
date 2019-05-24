@@ -5,20 +5,25 @@
 
 import "phaser";
 import { GameScene } from './scenes/gameScene';
+import { UIScene } from './scenes/uiScene';
 import { GlobalVars } from './globalvars';
 
 export function startGame() {
+  GlobalVars.gameEmitter = new Phaser.Events.EventEmitter();
   GlobalVars.game = new Game(config);
 }
 
-const config: GameConfig = {
+const config = {
   title: "Siege Perilous",
   version: "1.0",
   width: 666,
   height: 375,
   type: Phaser.AUTO,
   parent: "game",
-  scene: [GameScene],
+  scene: [GameScene, UIScene],
+  dom: {
+    createContainer: true
+  },
   input: {
     mouse: true
   },
@@ -26,7 +31,8 @@ const config: GameConfig = {
 };
 
 export class Game extends Phaser.Game {
-  constructor(config: GameConfig) {
+
+  constructor(config) {
     super(config);
   }
 }

@@ -35,6 +35,32 @@ export class Util {
     return {q: Q, r: R};
   }
 
+  static nextPosByDirection(Q, R, direction) {
+    var conversion = [ [1, -1, 0], [1, 0, -1], [0, 1, -1], [-1, 1, 0], [-1, 0, 1], [0, -1, 1] ];
+    var cube = Util.odd_q_to_cube(Q, R);
+    var offset;
+
+    if(direction == 'NE') {
+      offset = conversion[0];
+    } else if(direction == 'SE') {
+      offset = conversion[1];
+    } else if(direction == 'S') {
+      offset = conversion[2];
+    } else if(direction == 'SW') {
+      offset = conversion[3];
+    } else if(direction == 'NW') {
+      offset = conversion[4];
+    } else if(direction == 'N') {
+      offset = conversion[5];
+    }
+
+    cube.x = cube.x + offset[0];
+    cube.y = cube.y + offset[1];
+    cube.z = cube.z + offset[1];
+
+    return Util.cube_to_odd_q(cube.x, cube.y, cube.z);
+  }
+
   static getNeighbours(Q, R) {
     var conversion = [ [1, -1, 0], [1, 0, -1], [0, 1, -1], [-1, 1, 0], [-1, 0, 1], [0, -1, 1] ];
     var cube = Util.odd_q_to_cube(Q, R);
@@ -45,6 +71,7 @@ export class Util {
         var offset = conversion[i];
         var odd_q = Util.cube_to_odd_q(cube.x + offset[0], cube.y + offset[1], cube.z + offset[2]);
 
+        //Look into the upside down directions here...
         if(i == 0) 
             odd_q["d"] = "se";
         else if(i == 1)

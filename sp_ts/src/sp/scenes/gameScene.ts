@@ -7,18 +7,26 @@ import { Util } from '../util';
 import { GlobalVars } from '../globalvars';
 import { Tile } from '../objects/tile';
 import { GameSprite } from '../objects/gameSprite';
+import { GameEvent } from '../gameEvent';
+import { ObjectState } from '../objectState';
 
 export class GameScene extends Phaser.Scene {
   private map : Phaser.GameObjects.Container;
-  private ui : Phaser.GameObjects.Container;
   private imageDefList = [];
   private spriteTasks = [];
 
   private selectHex : Phaser.GameObjects.Image;
+  private selectedObjectId = "-1";
 
-  private selectedObjectId = -1;
+  private updateQueue = [];
+  private updateTrigger = false;
+  private updateTimer;
 
-  private objectStates = [];
+  public objectList = {};
+  public mapTiles = {};
+  
+  public objectStates : Record<string, ObjectState> = {};
+  public heroId = "-1";
 
   constructor() {
     super({
@@ -31,11 +39,10 @@ export class GameScene extends Phaser.Scene {
     this.load.once('filecomplete', this.tilesetComplete, this)
     this.load.json('tileset', './static/tileset.json');
 
-    this.load.image('playerframe', './static/art/ui/playerframe.png');
-    this.load.image('targetframe', './static/art/ui/targetframe.png');
     this.load.image('framemask', './static/art/ui/framemask.png');
     this.load.image('movecompass', './static/art/ui/movecompass.png');
     this.load.image('selecthex', './static/art/hover-hex.png');
+
   }
 
   tilesetComplete(): void {
@@ -51,59 +58,27 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     console.log('Create');
-
-    var playerFrame = new Phaser.GameObjects.Image(this, 10, 10, 'playerframe');
-    playerFrame.setOrigin(0); 
-
-    var targetFrame = new Phaser.GameObjects.Image(this, 420, 10, 'targetframe');
-    targetFrame.setOrigin(0); 
-
-    var moveCompass = new Phaser.GameObjects.Image(this, 10, 225, 'movecompass').setInteractive();
-    moveCompass.setOrigin(0);
-
-    moveCompass.on('pointerdown', function(pointer, localX, localY) {
-      console.log('MoveCompass Click');
-      console.log(pointer.x + ', ' + pointer.y);
-      console.log(localX + ', ' + localY);
-
-      var centerX = moveCompass.width / 2;
-      var centerY = moveCompass.height / 2;
-
-      var angleRads = Math.atan2(localX - centerX, localY - centerY)
-      var angleDegrees = ((angleRads * 180) / Math.PI) + 180;
-
-      console.log('Angle: ' + angleDegrees);
-
-      if(angleDegrees < 30 || angleDegrees >= 330) {
-        console.log('N');
-      } else if(angleDegrees < 90 && angleDegrees >= 30) {
-        console.log('NW');
-      } else if(angleDegrees < 150 && angleDegrees >= 90) {
-        console.log('SW');
-      } else if(angleDegrees < 210 && angleDegrees >= 150) {
-        console.log('S');
-      } else if(angleDegrees < 270 && angleDegrees >= 210) {
-        console.log('SE');
-      } else if(angleDegrees < 330 && angleDegrees >= 270) {
-        console.log('NE');
-      }
-      
-      /*if(this.selectedObjectId != -1) {
-        this.sendMove()
-      }*/
-    });
+    this.updateTimer = this.time.addEvent({ delay: 200, callback: this.processUpdate, callbackScope: this, loop: true });
 
     this.selectHex = new Phaser.GameObjects.Image(this, 0, 0, 'selecthex');
     this.selectHex.setOrigin(0);
 
     this.map = this.add.container(0, 0);
-    this.ui = this.add.container(0, 0);
-
-    this.ui.add(playerFrame);
-    this.ui.add(targetFrame);
-    this.ui.add(moveCompass);
-
     this.map.add(this.selectHex);
+
+    var _this = this;
+
+    this.input.on('gameobjectdown', function(pointer, gameObject) {
+      console.log(gameObject);
+       
+      _this.selectHex.x = gameObject.x;
+      _this.selectHex.y = gameObject.y;
+
+      GlobalVars.gameEmitter.emit(GameEvent.TILE_CLICK, gameObject);
+
+      _this.map.moveTo(_this.selectHex, _this.map.list.length - 1);
+    });
+
   }
 
   update() : void {
@@ -112,23 +87,54 @@ export class GameScene extends Phaser.Scene {
       //console.log(message);
       
       if(message.packet == 'perception') {
+        console.log('Perception')
+        console.log(message.data.objs);
         this.drawMap(message.data.map);
-        this.drawObjects(message.data.objs);
+
+        this.processInitObjStates(message.data.objs);
+        this.drawObjects();
       } else if (message.packet == 'changes') {
-        this.processChangeEvents(message);
+        console.log('process changes packet')
+        console.log(message.events);
+
+        this.updateQueue.push(message.events);
+        this.updateTrigger = true;
       } else if(message.packet == 'image_def') {
         this.processImageDefMessage(message);
       } 
     }
   }
 
-  processChangeEvents(message) {
-    console.log("updateObj");
-    var events = message.events;
+  processInitObjStates(objs) {
+    for(var i = 0; i < objs.length; i++) {
+      var objectState : ObjectState = {
+        id: objs[i].id,
+        player: objs[i].player,
+        name: objs[i].name,
+        class: objs[i].class,
+        subclass: objs[i].subclass,
+        template: objs[i].template,
+        state: objs[i].state,
+        hexX: objs[i].x,
+        hexY: objs[i].y,
+        vision: objs[i].vision,
+        image: objs[i].image,
+        op: 'added'
+      }
+
+      console.log(objectState);
+
+      this.objectStates[objectState.id] = objectState; 
+    }
+  }
+
+  processUpdateObjStates(events) {
+    console.log("processUpdateStates");
+    console.log(events);
 
     //Reset the operation
     for(var objectId in this.objectStates) {
-        var objectState = this.objectStates[objectId];
+        var objectState = this.objectStates[objectId] as ObjectState;
         objectState.op = 'none';
     }
 
@@ -158,14 +164,14 @@ export class GameScene extends Phaser.Scene {
 
             if(obj.id in this.objectStates) {
                 this.objectStates[obj.id].state = obj.state;
-                this.objectStates[obj.id].x = obj.x;
-                this.objectStates[obj.id].y = obj.y;
+                this.objectStates[obj.id].hexX = obj.x;
+                this.objectStates[obj.id].hexY = obj.y;
                 this.objectStates[obj.id].op = 'updated';
             } else {
                 this.objectStates[obj.id] = obj;
                 this.objectStates[obj.id].eventType = 'obj_move';
-                this.objectStates[obj.id].prev_x = src_x;
-                this.objectStates[obj.id].prev_y = src_y;
+                this.objectStates[obj.id].prevHexX = src_x;
+                this.objectStates[obj.id].prevHexY = src_y;
                 this.objectStates[obj.id].op = 'added';
             }            
         } else if(eventType =="obj_delete") {            
@@ -211,29 +217,18 @@ export class GameScene extends Phaser.Scene {
         scene: this,
         x: pixel.x,
         y: pixel.y,
-        key: 'tileset' + tile.t[0]
-      })
-
-      var _this = this;
+        key: 'tileset' + tile.t[0],
+        hexX: tile.x,
+        hexY: tile.y
+      });
 
       mapTile.setInteractive();
-      mapTile.on('pointerdown', function(pointer, localX, localY, event) {
-        console.log(this.x + ', ' + this.y);
-        console.log(this.depth);
-
-        _this.selectHex.x = this.x;
-        _this.selectHex.y = this.y;
-        
-        _this.map.moveTo(_this.selectHex, _this.map.list.length - 1);
-
-
-      });
 
       this.map.add(mapTile);
     }
   }
 
-  drawObjects(objects) : void {
+  /*drawObjects(objects) : void {
     console.log(objects);
     for(var key in objects) {
       var obj = objects[key];
@@ -249,38 +244,68 @@ export class GameScene extends Phaser.Scene {
         this.spriteTasks.push(obj);
       }
     }
+  }*/
+
+  drawObjects() : void {
+    for(var objectId in this.objectStates) {
+        var objectState = this.objectStates[objectId] as ObjectState;
+        
+        if(objectState.op == 'added') {
+          console.log('Object Added');
+
+          if(this.textures.exists(objectState.image)) {
+            this.addSprite(objectState);
+          } else {
+            var getImage = '{"cmd": "image_def", "name": "' + objectState.image + '"}';
+            GlobalVars.socket.sendMessage(getImage);
+            console.log(getImage);
+
+            this.spriteTasks.push(objectState);
+          }
+
+        }
+        else if(objectState.op == 'updated') {
+          console.log('Object Updated');
+          var sprite = this.objectList[objectState.id] as GameSprite;
+          var pixel = Util.hex_to_pixel(objectState.hexX, objectState.hexY);
+
+          sprite.x = pixel.x;
+          sprite.y = pixel.y;
+        }
+    }
   }
 
-  addSprite(obj) {
-    var pixel = Util.hex_to_pixel(obj.x, obj.y);
+  processUpdate() : void {
+    if(this.updateQueue.length > 0) {
+      console.log('Queue Length: ' + this.updateQueue.length);
+      this.processUpdateObjStates(this.updateQueue.shift());
+      this.drawObjects()
+    }
+  }
+
+  addSprite(objectState : ObjectState) {
+    var pixel = Util.hex_to_pixel(objectState.hexX, objectState.hexY);
 
     var sprite = new GameSprite({
       scene: this,
       x: pixel.x,
       y: pixel.y,
-      id: obj.id,
-      name: obj.name,
-      player: obj.player,
-      class: obj.class,
-      subclass: obj.subclass,
-      template: obj.template,
-      state: obj.state,
-      vision: obj.vision,
-      hsl: obj.hsl,
-      hexX: obj.x,
-      hexY: obj.y,
-      imageName: obj.image
+      id: objectState.id,
+      imageName: objectState.image
     });
 
-    var animName = sprite.imageName + '_' + sprite.state;
+    var animName = objectState.image + '_' + objectState.state;
 
     console.log(animName);
     sprite.anims.play(animName);
 
     this.map.add(sprite);
 
-    if(sprite.subclass.search('hero') != -1) {
-      this.selectedObjectId = obj.id;
+    this.objectList[sprite.id] = sprite;
+
+    if(objectState.subclass.search('hero') != -1) {
+      this.heroId = objectState.id;
+      this.selectedObjectId = objectState.id;
       
       console.log('hero x: ' + pixel.x + ', ' + pixel.y)
 
@@ -310,8 +335,6 @@ export class GameScene extends Phaser.Scene {
 
       for(var animName in animsData) {
         var anim = animsData[animName];
-        //console.log(animName);
-        //console.log(anim);
 
         if(Array.isArray(anim)) {
           if(anim.length > 1) {
@@ -366,13 +389,17 @@ export class GameScene extends Phaser.Scene {
     this.addLoadedSprites(imageName);
   }
 
-  sendMove(newX, newY) {
-    var move = '{"cmd": "move_unit", "id": ' + this.selectedObjectId + ', "x": ' + newX + ', "y": ' + newY + '}';
-    GlobalVars.socket.sendMessage(move);
-  }
+  public getObjsAt(hexX, hexY) : Array<Object> {
+    var objsAt = []
 
+    for(var objId in this.objectStates) {
+      var objectState = this.objectStates[objId];
 
-  createMoveCompass() : void {
-    
+      if(objectState.hexX == hexX && objectState.hexY == hexY) {
+        objsAt.push(this.objectList[objId]);
+      }
+    }
+
+    return objsAt;
   }
 }
