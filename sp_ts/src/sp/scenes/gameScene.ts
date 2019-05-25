@@ -58,6 +58,8 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     console.log('Create');
+    this.load.on('filecomplete', this.loadSpriteSheet, this);
+
     this.updateTimer = this.time.addEvent({ delay: 200, callback: this.processUpdate, callbackScope: this, loop: true });
 
     this.selectHex = new Phaser.GameObjects.Image(this, 0, 0, 'selecthex');
@@ -198,7 +200,6 @@ export class GameScene extends Phaser.Scene {
         this.load.spritesheet(message.name, './static/art/' + message.name + '.png',
                               {frameWidth: message.data.frames.width, 
                                 frameHeight: message.data.frames.height})
-                              .once('filecomplete', this.loadSpriteSheet, this);
         this.load.start();
       }
     }
@@ -227,24 +228,6 @@ export class GameScene extends Phaser.Scene {
       this.map.add(mapTile);
     }
   }
-
-  /*drawObjects(objects) : void {
-    console.log(objects);
-    for(var key in objects) {
-      var obj = objects[key];
-      console.log(obj);
-
-      if(this.textures.exists(obj.image)) {
-        this.addSprite(obj);
-      } else {
-        var getImage = '{"cmd": "image_def", "name": "' + obj.image + '"}';
-        GlobalVars.socket.sendMessage(getImage);
-        console.log(getImage);
-
-        this.spriteTasks.push(obj);
-      }
-    }
-  }*/
 
   drawObjects() : void {
     for(var objectId in this.objectStates) {
@@ -315,7 +298,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   addLoadedSprites(imageName) {
-    console.log(this.spriteTasks);
+    console.log('addLoadedSprites: ');
     var spritesToAdd = this.spriteTasks.filter(obj => obj.image === imageName);
 
 
@@ -326,8 +309,9 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  loadSpriteSheet(imageName) {
-    console.log('Loading spritesheet: ' + imageName);
+  loadSpriteSheet(key, type, raw) {
+    var imageName = key;
+    console.log('Loading spritesheet: ' + imageName + ', ' + type);
 
     if('animations' in this.imageDefList[imageName]) {
 

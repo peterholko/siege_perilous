@@ -16,7 +16,7 @@ export function startGame() {
 const config = {
   title: "Siege Perilous",
   version: "1.0",
-  width: 666,
+  width: 667,
   height: 375,
   type: Phaser.AUTO,
   parent: "game",
