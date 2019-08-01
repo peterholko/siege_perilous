@@ -1,5 +1,5 @@
 
-import {GlobalVars} from './globalvars';
+import {Global} from './global';
 import {Network} from './network';
 
 export function sendLogin() {
@@ -9,12 +9,12 @@ export function sendLogin() {
     var login = '{"cmd": "login", "username": "' + username + 
                 '", "password": "' + password + '"}';
   
-    GlobalVars.socket.sendMessage(login)
+    Global.socket.sendMessage(login)
   }
 
 // when the page is loaded, create our game instance
 window.addEventListener("load", () => {
     console.log('Opening websocket to server')
     
-    GlobalVars.socket = new Network();
+    Global.socket = new Network();
   });

@@ -26,7 +26,8 @@
     "webpack-dev-server": "3.3.1"
   },
   "dependencies": {
-    "phaser": "3.17"
+    "@types/knockout": "^3.4.66",
+    "phaser": "^3.18.1"
   },
   "scripts": {
     "dev": "webpack --mode development",

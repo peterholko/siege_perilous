@@ -4,13 +4,14 @@
  */
 
 import "phaser";
-import { GameScene } from './scenes/gameScene';
+import { ObjectScene } from './scenes/objectScene';
+import { MapScene } from './scenes/mapScene';
 import { UIScene } from './scenes/uiScene';
-import { GlobalVars } from './globalvars';
+import { Global } from './global';
 
 export function startGame() {
-  GlobalVars.gameEmitter = new Phaser.Events.EventEmitter();
-  GlobalVars.game = new Game(config);
+  Global.gameEmitter = new Phaser.Events.EventEmitter();
+  Global.game = new Game(config);
 }
 
 const config = {
@@ -20,19 +21,31 @@ const config = {
   height: 375,
   type: Phaser.AUTO,
   parent: "game",
-  scene: [GameScene, UIScene],
+  scene: [MapScene, ObjectScene, UIScene],
   dom: {
     createContainer: true
   },
   input: {
     mouse: true
   },
-  render: { pixelArt: true, antialias: false }
+  render: { pixelArt: true }
 };
 
 export class Game extends Phaser.Game {
 
   constructor(config) {
     super(config);
+  }
+}
+
+
+
+export function getTileAt(hexX, hexY) {
+  var key = hexX + '_' + hexY;
+
+  if(key in Global.tileStates) {
+    return Global.tileStates[key];
+  } else {
+    return false;
   }
 }

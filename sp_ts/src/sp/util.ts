@@ -1,3 +1,5 @@
+import { Global } from './global';
+
 export class Util {
 
   static hexSize : integer = 72;
@@ -90,4 +92,39 @@ export class Util {
 
     return neighbours; 
   }
+
+  static getObjsAt(hexX, hexY) : Array<Object> {
+    var objsAt = []
+
+    for(var objId in Global.objectStates) {
+      var objectState = Global.objectStates[objId];
+
+      if(objectState.hexX == hexX && objectState.hexY == hexY) {
+        objsAt.push(Global.objectStates[objId]);
+      }
+    }
+
+    return objsAt;
+  }
+
+  static getTileAt(hexX, hexY) {
+    var key = hexX + '_' + hexY;
+
+    if(key in Global.tileStates) {
+      return Global.tileStates[key];
+    } else {
+      return false;
+    }
+  }
+
+  static isSprite(imageName) : Boolean {
+    return 'animations' in Global.imageDefList[imageName];
+  }
+
+  static createImage(src : string) {
+    var image = document.createElement('img');
+    image.src = src;
+    return image;
+  } 
+
 }
