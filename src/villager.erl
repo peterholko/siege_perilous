@@ -461,7 +461,7 @@ move_to_pos(Villager) ->
     NewVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
                       true ->
                          Path = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
-                         lager:debug("Path: ~p", [Path]),
+                         lager:info("Path: ~p", [Path]),
 
                          case Path of
                              [] -> 
@@ -473,7 +473,7 @@ move_to_pos(Villager) ->
                                  Villager#villager {task_state = running, path = Path}
                          end;
                       false ->
-                         lager:debug("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
+                         lager:info("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
                          Villager#villager {task_state = completed}
                  end,
     NewVillager.
@@ -1035,7 +1035,7 @@ process_plan(Villager, Tick) ->
     {PlanLabel, NewPlan} = htn:plan(NewVillager#villager.behavior, 
                                     NewVillager, 
                                     villager),
-
+    lager:info("NewPlan: ~p CurrentPlan: ~p", [NewPlan, CurrentPlan]),
     case NewPlan =:= CurrentPlan of
         false ->
             %New plan cancel current event
@@ -1079,7 +1079,6 @@ process_task_data(Villager, TaskName) -> {TaskName, [Villager]}.
 
 process_task_state(init, Villager) ->
     TaskData = lists:nth(1, Villager#villager.plan),
-    lager:info("Running init task: ~p", [TaskData]),
 
     {TaskName, TaskArgs} = get_task_by_index(Villager, 1),
 
@@ -1162,7 +1161,6 @@ process_move_to_complete([Villager, Pos]) ->
 
 process_move_complete(Villager) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
-
     case VillagerObj#obj.pos =:= Villager#villager.dest of
         true -> 
             obj:update_state(Villager#villager.id, none),
@@ -1226,11 +1224,12 @@ get_next_task(_TaskIndex, _PlanLength) ->
         plan_completed.
 
 move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) ->
-    lager:debug("Pos: ~p NewPos: ~p", [Pos, NewPos]),
+    lager:info("Pos: ~p NewPos: ~p", [Pos, NewPos]),
 
     SourcePos = Pos,
     DestPos = NewPos,
     MoveTicks = obj:movement_cost(Obj, DestPos),
+    lager:info("Move ticks: ~p", [MoveTicks]),
 
     %Add obj update state to change to moving state on next tick
     game:add_obj_update(self(), Id, ?STATE, ?MOVING, 1),

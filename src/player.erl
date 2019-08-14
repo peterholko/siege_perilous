@@ -13,6 +13,10 @@
          get_info_unit/1,
          get_info_item/1,
          get_info_item_name/1,
+         get_info_inventory/1,
+         get_info_item_transfer/2,
+         get_info_attrs/1,
+         get_info_skills/1,
          move/2,
          ford/2,
          combo/2,
@@ -156,6 +160,56 @@ get_info_item(ItemId) ->
     end.
 get_info_item_name(ItemName) ->
     item:get_map_by_name(ItemName).
+
+get_info_inventory(Id) ->
+    [Obj] = db:read(obj, Id),
+    Player = get(player_id),
+
+    obj:trigger_inspect(Obj),
+    Info = obj:get_info_inventory(Player, Obj),
+
+    Info.
+
+get_info_item_transfer(SourceId, TargetId) ->
+    Player = get(player_id),
+    [SourceObj] = db:read(obj, SourceId),
+    [TargetObj] = db:read(obj, TargetId),
+
+    obj:trigger_inspect(SourceObj),
+    obj:trigger_inspect(TargetObj),
+
+    SourceItems = obj:get_info_inventory(Player, SourceObj),
+    TargetItems = obj:get_info_inventory(Player, TargetObj),
+
+    Info = #{<<"sourceid">> => SourceId,
+             <<"sourceitems">> => SourceItems,
+             <<"targetid">> => TargetId,
+             <<"targetitems">> => TargetItems},
+    Info.
+
+get_info_attrs(Id) ->
+    [Obj] = db:read(obj, Id),
+    Player = get(player_id),
+
+    Info = case Player =:= Obj#obj.player of
+                true ->
+                    obj:get_info_attrs(Obj);
+                false ->
+                    #{<<"errmsg">> => "Obj is not owned by player"}
+           end,
+    Info.
+
+get_info_skills(Id) ->
+    [Obj] = db:read(obj, Id),
+    Player = get(player_id),
+
+    Info = case Player =:= Obj#obj.player of
+                true ->
+                    obj:get_info_skills(Obj);
+                false ->
+                    #{<<"errmsg">> => "Obj is not owned by player"}
+           end,
+    Info.
 
 combo(SourceId, ComboType) ->
     PlayerId = get(player_id),
@@ -406,7 +460,15 @@ item_transfer(TargetId, ItemId) ->
             lager:info("Transfering item"),
 
             process_item_transfer(Item, TargetObj),
-            #{<<"result">> => <<"success">>};
+
+            SourceItems = obj:get_info_inventory(Player, OwnerObj),
+            TargetItems = obj:get_info_inventory(Player, TargetObj),
+
+            #{<<"result">> => <<"success">>,
+              <<"sourceid">> => Owner,
+              <<"sourceitems">> => SourceItems,
+              <<"targetid">> => TargetId,
+              <<"targetitems">> => TargetItems};
        {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.

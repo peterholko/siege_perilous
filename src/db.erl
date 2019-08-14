@@ -35,6 +35,7 @@ create_schema() ->
 
     ok = application:set_env( mnesia, dump_log_write_threshold, 10000 ), 
 
+    {atomic, ok} = mnesia:create_table(image_def, [{ram_copies, [node()]}, {attributes, record_info(fields, image_def)}]),    
     {atomic, ok} = mnesia:create_table(counter, [{ram_copies, [node()]}, {attributes, record_info(fields, counter)}]),    
     {atomic, ok} = mnesia:create_table(player, [{ram_copies, [node()]}, {attributes, record_info(fields, player)}]),
     {atomic, ok} = mnesia:create_table(connection, [{ram_copies, [node()]}, {attributes, record_info(fields, connection)}]),
@@ -120,7 +121,9 @@ import(DefFileName) ->
             import_entry(list_to_atom(DefFileName), DefName, DefList)
         end,
 
-    lists:foreach(F, DefListOfMap).
+    lists:foreach(F, DefListOfMap),
+
+    load_spritesheet_json().
 
 import_entry(Table, ObjName, ObjList) ->
     F = fun({<<"_id">>, _}) -> nothing;
@@ -234,3 +237,21 @@ reset_tables() ->
             lists:foreach(fun mnesia:write/1, test_tables())
         end,    
     mnesia:transaction(F).    
+
+load_spritesheet_json() ->
+    JSONFiles = filelib:wildcard(code:lib_dir(sp) ++ "/priv/static/art/*.json"),
+
+    F = fun(JSONFile) ->
+            FileName = filename:basename(JSONFile, ".json"),
+            lager:info("~p", [FileName]),
+            {ok, Bin} = file:read_file(JSONFile),
+            Decoded = jsx:decode(Bin, [return_maps]),
+            lager:info("Decoded: ~p", [Decoded]),
+            R = {image_def, list_to_binary(FileName), Decoded},
+
+            db:dirty_write(R)
+        end,
+
+    lists:foreach(F, JSONFiles).
+
+    

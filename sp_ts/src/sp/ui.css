@@ -1,0 +1,75 @@
+#heroring {
+  transform: translate(8px, 21px);
+  z-index: 2;
+  position: fixed;
+}
+
+#hpframe {
+  transform: translate(40px, 10px);
+  z-index: 1;
+  position: fixed;
+}
+
+#movecompass {
+  left: 5px;
+  bottom: 5px;
+  z-index: 1;
+  position: fixed;
+}
+
+#hero {
+  transform: translate(10px, 24px);
+  z-index: 3;
+  position: fixed;
+}
+
+#hpbg {
+  transform: translate(95px, 17px);
+  z-index: 3;
+  position: fixed;
+}
+
+#stabg {
+  transform: translate(95px, 35px);
+  z-index: 3;
+  position: fixed;
+}
+
+#manabg {
+  transform: translate(95px, 53px);
+  z-index: 3;
+  position: fixed;
+}
+
+#heroinventorybutton {
+  transform: translate(10px, 175px);
+  z-index: 1;
+  position: fixed;
+}
+
+#heroattrsbutton {
+  transform: translate(10px, 125px);
+  z-index: 1;
+  position: fixed;
+}
+
+#heroexplorebutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -150px;
+  position: fixed;
+}
+
+#herobuildbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -100px;
+  position: fixed;
+}
+
+#herogatherbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -50px;
+  position: fixed;
+}

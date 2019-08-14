@@ -53,7 +53,7 @@
     "damage": 35,
     "speed": 4.5,
     "stamina_req": 12,
-    "skill_req": 10,
+    "skill_req": 25,
     "req": [
         {
             "type": "Copper Ingot",
@@ -65,7 +65,83 @@
         }
     ]
 },
-   
+{
+    "name": "Gothic Axe",
+    "item": "Gothic Axe",
+    "structure": "Blacksmith",
+    "class": "Weapon",
+    "subclass": "Axe",
+    "slot": "Main Hand",
+    "damage": 35,
+    "speed": 4.5,
+    "stamina_req": 12,
+    "skill_req": 50,
+    "req": [
+        {
+            "type": "Copper Ingot",
+            "quantity": 100
+        },
+        {
+            "type": "Iron Ingot",
+            "quantity": 10
+        },    
+        {
+            "type": "Maple Timber",
+            "quantity": 25
+        },
+        {
+            "type": "Birch Timber",
+            "quantity": 3
+        }
+    ]
+},
+{
+    "name": "Iron Broad Axe",
+    "item": "Iron Broad Axe",
+    "structure": "Blacksmith",
+    "class": "Weapon",
+    "subclass": "Axe",
+    "slot": "Main Hand",
+    "damage": 40,
+    "speed": 4.3,
+    "stamina_req": 12,
+    "skill_req": 70,
+    "req": [
+        {
+            "type": "Iron Ingot",
+            "quantity": 25
+        },
+        {
+            "type": "Birch Timber",
+            "quantity": 10
+        }
+    ]
+},
+{
+    "name": "Copper Helm",
+    "item": "Copper Helm",
+    "structure": "Blacksmith",
+    "class": "Armor",
+    "subclass": "Helm",
+    "slot": "Head",
+    "armor": 2,
+    "durability": 5,
+    "weight": 10,
+    "skill_req": 70,
+    "req": [
+        {
+            "type": "Copper Ingot",
+            "quantity": 25
+        },
+        {
+            "type": "Maple Timber",
+            "quantity": 10
+        }
+    ]
+},
+
+
+
 {
 	"name": "Refine Ore",
 	"item": "Refine Ore",

@@ -1,3 +1,6 @@
+-record(image_def, {name,
+                    data}).
+
 -record(counter, {type, 
                   value}).
 

@@ -1,0 +1,37 @@
+Creativity: 1
+Dexterity: 10
+Endurance: 3
+Focus: 7
+Intellect: 10
+Spirit: 1
+Strength: 1
+Toughness: 8
+action: "Stopping for food"
+base_def: 0
+base_dmg: 0
+base_hp: 500
+base_speed: 0
+base_stamina: 10000
+base_vision: 1
+capacity: 150
+class: "unit"
+dmg_range: 0
+effects: []
+hp: 500
+hsl: (3) [90, 50, 0]
+id: 10
+image: "humanvillager3"
+items: (3) [{…}, {…}, {…}]
+morale: "none"
+name: "Geoffry Holte"
+order: "none"
+packet: "info_unit"
+shelter: "none"
+skills: {Mining: 25, Prospect: 23, Weaponsmithing: 15}
+stamina: 10000
+state: "none"
+structure: "none"
+subclass: "villager"
+template: "Human Villager"
+total_weight: 109
+__proto__: Object

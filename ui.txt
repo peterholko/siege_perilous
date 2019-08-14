@@ -1,0 +1,60 @@
+--- Structure Screen ---
+
+* 1 Structure display at a time.  Left/Right arrows to scroll through.  
+
+        Structure Name
+        Structure Icon
+
+Level
+Subclass: (Wall, Resource, Craft, Shelter, Storage)
+Hp
+Build Time
+Req ->
+  40 Wood
+  50 Stone
+
+--- Tile Info Screen ---
+
+        Tile Name (X, Y)
+        Tile Icon
+
+Sanctuary
+Wildness
+Movement Cost
+Passable
+Unrevealed Resources
+List of Resources
+
+--- Gather Screen ---
+
+List of Resources
+List of Resource Types
+
+--- Actions ---
+
+* Inspect / Info -> provides objects and tiles details  (Magnifying Glass)
+* Build -> Opens the Structure Screen to build (Hammer)
+* Explore -> Starts the exploring action on the tile ( ??? )
+* Gather -> Opens the Gather Screen ( Pick Axe / Shovel)
+ 
+Use Cases
+
+Targets:
+1. Click Tile -> Info
+2. Click Villager -> Inv, Stats, Transfer, Explore, Gather, Follow, Attack, Build
+3. Click Object -> Info/Stats?, Transfer
+
+Hero Actions:
+* Explore
+* Gather
+* Build
+* Attacks - Fierce / Precise / Quick
+* Defenses - Brace / Parry / Dodge
+
+
+667 x 375 - Game
+643 × 943 - Small Frame Orig
+1024 x 1024 - Big Frame Orig
+
+214 x 314 - Small Frame Shrink x3
+341 x 341 
