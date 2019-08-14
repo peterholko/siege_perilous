@@ -398,6 +398,35 @@ message_handle(<<"info_item_by_name">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_item">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_inventory">>, Message) ->
+    lager:info("message: info_inventory"),
+    Id = m_get(<<"id">>, Message),
+    InfoMaps = player:get_info_inventory(Id),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_inventory">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
+message_handle(<<"info_attrs">>, Message) ->
+    lager:info("message: info_attrs"),
+    Id = m_get(<<"id">>, Message),
+    InfoMaps = player:get_info_attrs(Id),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_attrs">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
+message_handle(<<"info_skills">>, Message) ->
+    lager:info("message: info_skills"),
+    Id = m_get(<<"id">>, Message),
+    InfoMaps = player:get_info_skills(Id),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_skills">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
+message_handle(<<"info_item_transfer">>, Message) ->
+    lager:info("message: info_item_transfer"),
+    SourceId = m_get(<<"sourceid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
+    InfoMaps = player:get_info_item_transfer(SourceId, TargetId),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_item_transfer">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
 message_handle(<<"ford">>, Message) ->
     lager:info("message: ford"),
     Id = m_get(<<"id">>, Message),

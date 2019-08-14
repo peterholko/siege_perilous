@@ -1,4 +1,4 @@
-import {startGame} from './game'
+//import {startGame} from './game'
 import {Global} from './global'
 import { NetworkEvent } from './networkEvent';
 import { ObjectState } from './objectState';
@@ -8,19 +8,54 @@ export class Network {
 
   private websocket;
 
+  public static sendLogin(username: string, password: string) {
+    var m = '{"cmd": "login", "username": "' + username + '", "password": "' + password + '"}';
+    Global.socket.sendMessage(m);
+  }
+
   public static sendMove(newX : integer, newY : integer) {
     console.log('')
     var m = '{"cmd": "move_unit", "id": ' + '7' + ', "x": ' + newX + ', "y": ' + newY + '}';
     Global.socket.sendMessage(m);
   }
 
-  public static sendInfoUnit(id) {
+  public static sendItemTransfer(targetId, item) {
+    var m = '{"cmd": "item_transfer", "targetid": ' + targetId + ', "item": ' + item + '}';
+    Global.socket.sendMessage(m);
+  }
+
+  public static sendInfoObj(id) {
     var m = '{"cmd": "info_unit", "id": ' + id + '}';
+    Global.socket.sendMessage(m);
+  }
+
+  public static sendInfoItem(id) {
+    var m = '{"cmd": "info_item", "id": ' + id + '}';
     Global.socket.sendMessage(m);
   }
 
   public static sendInfoTile(id) {
     var m = '{"cmd": "info_unit", "id": ' + id + '}';
+    Global.socket.sendMessage(m);
+  }
+
+  public static sendInfoInventory(id) {
+    var m = '{"cmd": "info_inventory", "id": ' + id + '}';
+    Global.socket.sendMessage(m);
+  }
+
+  public static sendInfoItemTransfer(sourceId, targetId) {
+    var m = '{"cmd": "info_item_transfer", "sourceid": ' + sourceId + ', "targetid": ' + targetId + '}';
+    Global.socket.sendMessage(m);
+  }
+
+  public static sendInfoAttrs(id) {
+    var m = '{"cmd": "info_attrs", "id": ' + id + '}';
+    Global.socket.sendMessage(m);
+  }
+
+  public static sendInfoSkills(id) {
+    var m = '{"cmd": "info_skills", "id": ' + id + '}';
     Global.socket.sendMessage(m);
   }
 
@@ -46,13 +81,9 @@ export class Network {
       var jsonData = JSON.parse(evt.data);
 
       if(jsonData.packet == "login") {
-        var login = (<HTMLInputElement>document.getElementById("login"));
-        var logo = (<HTMLInputElement>document.getElementById("logo"));
-
-        login.style.display = "none";
-        logo.style.display = "none";
-
-        startGame();
+        console.log("Login successful")
+        Global.playerId = jsonData.player;
+        Global.gameEmitter.emit(NetworkEvent.LOGGED_IN, {});
 
       } else if(jsonData.packet == 'perception') {
         console.log('Received Perception');
@@ -71,8 +102,25 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.MAP, jsonData);
       } else if(jsonData.packet == 'image_def') {
         Global.gameEmitter.emit(NetworkEvent.IMAGE_DEF, jsonData);
+      } else if(jsonData.packet == 'stats') {
+        console.log('Network stats received')
+        Global.gameEmitter.emit(NetworkEvent.STATS, jsonData.data);
+      } else if(jsonData.packet == "info_unit") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_OBJ, jsonData);
+      } else if(jsonData.packet == "info_item") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_ITEM, jsonData)
+      } else if(jsonData.packet == "info_inventory") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_INVENTORY, jsonData)
+      } else if(jsonData.packet == "info_item_transfer") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_TRANSFER, jsonData)
+      } else if(jsonData.packet == "item_transfer") {
+        Global.gameEmitter.emit(NetworkEvent.ITEM_TRANSFER, jsonData)
+      } else if(jsonData.packet == "info_attrs") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_ATTRS, jsonData)
+      } else if(jsonData.packet == "info_skills") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData)
       }
-    };
+    }
   }
 
   processInitObjStates(objs) {

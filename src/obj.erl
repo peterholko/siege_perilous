@@ -21,7 +21,8 @@
 -export([trigger_effects/1, trigger_inspect/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
--export([get_nearby_corpses/1, get_by_player/1, get_name_by_id/1]).
+-export([get_nearby_corpses/1, get_by_player/1, get_name_by_id/1, get_info_inventory/2,
+         get_info_attrs/1, get_info_skills/1]).
 -export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, 
          name/1, image/1, vision/1, modtick/1]).
 -export([rec_to_map/1]).
@@ -585,6 +586,15 @@ get_info(Id) ->
 get_info_other(Id) ->
     info_other(Id).
 
+get_info_inventory(Id, Obj) ->
+    info_inventory(Id, Obj).
+
+get_info_attrs(Obj) ->
+    info_attrs(Obj).
+
+get_info_skills(Obj) ->
+    info_skills(Obj).
+
 get_by_pos(Pos) ->
     db:index_read(obj, Pos, #obj.pos).
 
@@ -826,7 +836,6 @@ info(Id) ->
     Attrs0 = maps:remove(<<"name">>, AllAttrs),
     Attrs1 = maps:remove(<<"images">>, Attrs0),
 
-
     %State, items, skills, effects stats
     Info0 = maps:put(<<"id">>, Id, Attrs1),
     Info1 = maps:put(<<"name">>, Obj#obj.name, Info0),
@@ -906,6 +915,43 @@ info_subclass(<<"storage">>, Obj, Info) ->
     Info1 = maps:put(<<"capacity">>, Capacity, Info0),
     Info1;
 info_subclass(_, _Obj, Info) -> Info.
+
+info_inventory(PlayerId, Obj) ->
+    Items = case PlayerId =:= Obj#obj.player of
+                true ->
+                    item:get_by_owner(Obj#obj.id);
+                false ->
+                    case Obj#obj.state =:= ?DEAD of
+                        true ->
+                            item:get_by_owner(Obj#obj.id);
+                        false ->
+                            []
+                    end
+            end,
+    
+    Info = #{<<"id">> => Obj#obj.id,
+             <<"items">> => Items},
+    Info.
+
+info_attrs(Obj) ->
+    Attrs = #{?STRENGTH => obj_attr:value(Obj#obj.id, ?STRENGTH, 0),
+              ?TOUGHNESS => obj_attr:value(Obj#obj.id, ?TOUGHNESS, 0),
+              ?ENDURANCE => obj_attr:value(Obj#obj.id, ?ENDURANCE, 0),
+              ?DEXTERITY => obj_attr:value(Obj#obj.id, ?DEXTERITY, 0),
+              ?INTELLECT => obj_attr:value(Obj#obj.id, ?INTELLECT, 0),
+              ?FOCUS => obj_attr:value(Obj#obj.id, ?FOCUS, 0),
+              ?SPIRIT => obj_attr:value(Obj#obj.id, ?SPIRIT, 0),
+              ?CREATIVITY => obj_attr:value(Obj#obj.id, ?CREATIVITY, 0)},
+
+    #{<<"id">> => Obj#obj.id,
+      <<"attrs">> => Attrs}.
+
+info_skills(Obj) ->
+    Skills = skill:get_by_owner(Obj#obj.id),
+    Skills,
+    
+    #{<<"id">> => Obj#obj.id,
+      <<"skills">> => Skills}.
 
 create_obj_attr(Id, Name) ->
     AllObjTemplate = obj_template:all(Name),

@@ -1,24 +1,15 @@
 {
-  "name": "phaser3-typescript",
-  "version": "1.2.4",
-  "description": "Boilerplate, Game Examples, Cheat Sheets and Tutorials for Phaser 3 in TypeScript",
+  "name": "siege_perilous",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Siege Perilous",
   "keywords": [
-    "Phaser",
-    "Phaser 3",
-    "Phaser3",
-    "Html5-game",
-    "Phaser-boilerplate",
-    "TypeScript",
-    "Webpack",
-    "Tutorials",
-    "Phaser-tutorial",
-    "Game Examples",
-    "Phaser-game",
-    "Phaser-framework",
-    "Phaser3-example"
+    "MMO"
   ],
   "devDependencies": {
+    "css-loader": "^3.2.0",
     "expose-loader": "0.7.5",
+    "style-loader": "^1.0.0",
     "ts-loader": "6.0.0",
     "typescript": "3.4.5",
     "webpack": "4.31.0",
@@ -26,24 +17,30 @@
     "webpack-dev-server": "3.3.1"
   },
   "dependencies": {
-    "@types/knockout": "^3.4.66",
-    "phaser": "^3.18.1"
+    "@types/jest": "24.0.11",
+    "@types/node": "11.13.8",
+    "@types/react": "^16.9.1",
+    "@types/react-dom": "16.8.5",
+    "@types/react-redux": "^7.0.8",
+    "jest": "^24.8.0",
+    "phaser": "^3.18.1",
+    "react": "^16.9.0",
+    "react-css-modules": "^4.7.11",
+    "react-dom": "^16.9.0",
+    "react-redux": "^7.0.2",
+    "react-scripts": "^3.0.0",
+    "redux": "^4.0.1",
+    "typescript": "3.5.3"
   },
   "scripts": {
     "dev": "webpack --mode development",
     "build": "webpack --mode production && webpack-dev-server --mode production"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/digitsensitive/phaser3-typescript.git"
-  },
   "author": {
-    "name": "digitsensitive",
-    "email": "digit.sensitivee@gmail.com"
+    "name": "Peter Holko",
+    "email": "peter.holko@gmail.com"
   },
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/digitsensitive/phaser3-typescript/issues"
-  },
-  "homepage": "https://github.com/digitsensitive/phaser3-typescript#readme"
+  "eslintConfig": {
+    "extends": "react-app"
+  }
 }

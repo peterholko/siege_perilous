@@ -125,6 +125,17 @@ export class Util {
     var image = document.createElement('img');
     image.src = src;
     return image;
-  } 
+  }
+  
+  static isPlayerObj(objId : integer) : boolean {
+    return Global.objectStates[objId].player == Global.playerId
+  }
+  static isSubclass(objId : integer, subclass : string) : boolean {
+    return Global.objectStates[objId].subclass == subclass;
+  }
+
+  static isState(objId : integer, state : string) : boolean {
+    return Global.objectStates[objId].state == state;
+  }
 
 }

@@ -15,31 +15,11 @@
             }
         });
     </script>
-
-    <script src="/static/sp2.js"></script>
-    <style>
-        input[type='text'] { font-size: 36px; padding: 5px;}
-        input[type='password'] { font-size: 36px; padding: 5px;}
-    </style>
   </head>
 
-  <body style="display: block; border: 0; margin: 0;">
-    <div>
-      <div id="logo">
-        <img src="/static/art/perilous_logo.png" style="display: block; margin: auto; width: 50%: padding: 10px;">          
-      </div>
-      <div id="login" style="font-family: Alegreya; margin: auto; width: 50%; padding: 5px">
-        Username: <input type='text' id="username" value="" ></input><br>
-        Password: <input type='password' id="password" value=""></input><br>
-        <button type="button" onclick="window.SP.sendLogin();">Login</button>
-      </div>
-
-      <div id="connected">				
-      </div>
-
-      <div id="content">						
-      </div>
-
+  <body>
+    <div id="root">						
     </div>
   </body>
+  <script src="/static/sp2.js"></script>
 </html> 

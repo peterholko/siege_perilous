@@ -4,6 +4,15 @@
     "module": "CommonJS",
     "sourceMap": true,
     "noImplicitAny": false,
-    "strict": false
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "jsx": "react",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext",
+      "scripthost"
+    ]
   }
 }
