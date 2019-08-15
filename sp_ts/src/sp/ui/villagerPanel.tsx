@@ -32,11 +32,11 @@ export default class VillagerPanel extends React.Component<VillagerPanelProps, a
     var imageName = this.props.villagerData.image;
     imageName = imageName.replace(/ /g, '') + '_single.png';
 
-    var effects = '';
+    var effects = this.props.villagerData.effects.join();
 
-    for(var i = 0; i < this.props.villagerData.effects.length; i++) {
+    /*for(var i = 0; i < this.props.villagerData.effects.length; i++) {
       effects = effects + ', ' + this.props.villagerData.effects[i];
-    }
+    }*/
 
     const heroStyle = {
       transform: 'translate(-195px, 25px)',

@@ -81,7 +81,7 @@
 },
 {
     "name": "Honeybell Berries",
-    "type": "Food",
+    "type": "Plant",
     "terrain": ["Deciduous Forest", "Pine Forest"],
     "quantity_rate": [25, 25, 20, 15, 8, 5, 2],
     "quantity": [0, 10, 25, 100, 200, 500, 1000],
@@ -89,7 +89,7 @@
 },
 {
     "name": "Amitanian Grape",
-    "type": "Food",
+    "type": "Plant",
     "terrain": ["Grasslands", "Plains", "Hills Plains", "Hills Grasslands"],
     "quantity_rate": [25, 25, 20, 15, 8, 5, 2],
     "quantity": [0, 10, 25, 100, 200, 500, 1000],

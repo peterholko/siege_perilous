@@ -8,6 +8,10 @@ export class Network {
 
   private websocket;
 
+  public static sendPing() {
+    Global.socket.sendMessage("0");
+  }
+
   public static sendLogin(username: string, password: string) {
     var m = '{"cmd": "login", "username": "' + username + '", "password": "' + password + '"}';
     Global.socket.sendMessage(m);
@@ -34,8 +38,8 @@ export class Network {
     Global.socket.sendMessage(m);
   }
 
-  public static sendInfoTile(id) {
-    var m = '{"cmd": "info_unit", "id": ' + id + '}';
+  public static sendInfoTile(x, y) {
+    var m = '{"cmd": "info_tile", "x": ' + x + ', "y": ' + y + '}';
     Global.socket.sendMessage(m);
   }
 
@@ -64,10 +68,40 @@ export class Network {
     Global.socket.sendMessage(m);
   }
 
-  public static sendGetStructureList(id) {
-    var m = '{"cmd": "structure_list"}';
-    Global.socket.sendMessage(m);
+  public static sendFollow(id) {
+    var m = {
+      cmd: "order_follow",
+      sourceid: id
+    };
+    Global.socket.sendMessage(JSON.stringify(m));
   }
+
+  public static sendBuild(id, structureName) {
+    var m = {
+      cmd: "build",
+      sourceid: id,
+      structure: structureName
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendGetStructureList() {
+    var m = {
+      cmd: "structure_list"
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendOrderGather(id, resourceType) {
+    var m = {
+      cmd: "order_gather",
+      sourceid: id,
+      restype: resourceType
+    };
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+
 
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
@@ -75,7 +109,19 @@ export class Network {
 
     this.websocket.onopen = (evt) => {
       console.log('Opened websocket');
+      setInterval(function() {
+        console.log('Sending Ping');
+        Network.sendPing()
+      }, 50000);
     };
+
+    this.websocket.onclose = (evt) => {
+      console.log('Websocket Closing...');
+    }
+
+    this.websocket.onerror = (evt) => {
+      console.log('Websocket Error...');
+    }
 
     this.websocket.onmessage = (evt) => {
       var jsonData = JSON.parse(evt.data);
@@ -107,6 +153,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.STATS, jsonData.data);
       } else if(jsonData.packet == "info_unit") {
         Global.gameEmitter.emit(NetworkEvent.INFO_OBJ, jsonData);
+      } else if(jsonData.packet == "info_tile") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_TILE, jsonData);
       } else if(jsonData.packet == "info_item") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM, jsonData)
       } else if(jsonData.packet == "info_inventory") {
@@ -119,6 +167,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_ATTRS, jsonData)
       } else if(jsonData.packet == "info_skills") {
         Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData)
+      } else if(jsonData.packet == "structure_list") {
+        Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData)
       }
     }
   }

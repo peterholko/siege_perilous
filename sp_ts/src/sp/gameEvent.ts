@@ -6,4 +6,7 @@ export namespace GameEvent {
     export const ITEM_ITP_CLICK : string = 'ITEM_ITP_CLICK';
     export const ITEM_INV_CLICK : string = 'ITEM_INV_CLICK';
     export const VILLAGER_STATS_CLICK : string = 'VILLAGER_STATS_CLICK';
+    export const VILLAGER_GATHER_CLICK : string = 'VILLAGER_GATHER_CLICK';
+    export const RESOURCE_GATHER_CLICK : string = 'RESOURCE_GATHER_CLICK';
+    export const START_BUILD_CLICK : string = 'START_BUILD_CLICK';
 }

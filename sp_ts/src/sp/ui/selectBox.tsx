@@ -5,8 +5,10 @@ import { GameEvent } from "../gameEvent";
 import { TILE } from "../config";
 
 interface SelectedKey {
-  id : any,
-  type : string
+  type : string,
+  id? : integer,
+  x? : integer,
+  y? : integer
 }
 
 interface SelectBoxProps {

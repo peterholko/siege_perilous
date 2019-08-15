@@ -388,7 +388,7 @@ explore(ObjId) ->
             NumTicks = 12,
 
             lager:info("Adding explore event"),
-            EventData = {ObjId, Obj#obj.pos},
+            EventData = ObjId,
             game:add_event(self(), explore, EventData, ObjId, NumTicks),
             
             #{<<"explore_time">> => NumTicks * ?TICKS_SEC};

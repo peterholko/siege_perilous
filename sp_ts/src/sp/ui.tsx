@@ -37,11 +37,15 @@ import HeroPanel from './ui/heroPanel';
 import VillagerPanel from './ui/villagerPanel';
 import AttrsPanel from './ui/attrsPanel';
 import SkillsPanel from './ui/skillsPanel';
+import TilePanel from './ui/tilePanel';
+import GatherPanel from './ui/gatherPanel';
+import BuildPanel from './ui/buildPanel';
 
 interface UIState {
   selectBoxes : [],
   inventoryPanels : [],
   hideTargetActionPanel: boolean,
+  hideGatherPanel : boolean,
   hideInventoryPanel: boolean,
   hideItemTransferPanel: boolean,
   hideItemPanel: boolean,
@@ -49,6 +53,8 @@ interface UIState {
   hideVillagerPanel: boolean,
   hideAttrsPanel : boolean,
   hideSkillsPanel : boolean,
+  hideTilePanel : boolean,
+  hideBuildPanel : boolean,
   leftInventoryId : integer,
   leftInventoryData: [],
   rightInventoryId : integer,
@@ -58,6 +64,8 @@ interface UIState {
   villagerData : any,
   attrsData : any,
   skillsData : any,
+  tileData : any,
+  structuresData : any,
   selectedKey: {},
   hpBarWidth : integer,
   staBarWidth : integer,
@@ -74,6 +82,7 @@ export default class UI extends React.Component<any, UIState>{
       selectBoxes: [],
       inventoryPanels: [],
       hideTargetActionPanel: true,
+      hideGatherPanel: true,
       hideInventoryPanel: true,
       hideItemTransferPanel: true,
       hideItemPanel: true,
@@ -81,6 +90,8 @@ export default class UI extends React.Component<any, UIState>{
       hideVillagerPanel: true,
       hideAttrsPanel : true,
       hideSkillsPanel : true,
+      hideTilePanel : true,
+      hideBuildPanel : true,
       leftInventoryId: -1,
       leftInventoryData: [],
       rightInventoryId: -1,
@@ -90,6 +101,8 @@ export default class UI extends React.Component<any, UIState>{
       villagerData : {},
       attrsData : {},
       skillsData : {},
+      tileData : {},
+      structuresData : {},
       selectedKey: {},
       hpBarWidth: STAT_BAR_WIDTH,
       staBarWidth: STAT_BAR_WIDTH,
@@ -109,15 +122,20 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(GameEvent.SELECTBOX_CLICK, this.handleSelectBoxClick, this);
     Global.gameEmitter.on(GameEvent.EXIT_HALFPANEL_CLICK, this.handleExitHalfPanelClick, this);
     Global.gameEmitter.on(GameEvent.TAP_CLICK, this.handleTargetActionPanelClick, this);
+    Global.gameEmitter.on(GameEvent.VILLAGER_GATHER_CLICK, this.handleVillagerGatherClick, this);
+    Global.gameEmitter.on(GameEvent.RESOURCE_GATHER_CLICK, this.handleResourceGatherClick, this);
+    Global.gameEmitter.on(GameEvent.START_BUILD_CLICK, this.handleStartBuildClick, this);
 
     Global.gameEmitter.on(NetworkEvent.STATS, this.handleStats, this);
     Global.gameEmitter.on(NetworkEvent.INFO_OBJ, this.handleInfoObj, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_TILE, this.handleInfoTile, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM, this.handleInfoItem, this);
     Global.gameEmitter.on(NetworkEvent.INFO_INVENTORY, this.handleInfoInventory, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM_TRANSFER, this.handleInfoItemTransfer, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ATTRS, this.handleInfoAttrs, this);
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
     Global.gameEmitter.on(NetworkEvent.ITEM_TRANSFER, this.handleItemTransfer, this);
+    Global.gameEmitter.on(NetworkEvent.STRUCTURE_LIST, this.handleStructureList, this);
   }
 
   handleMoveClick(event : React.MouseEvent) {
@@ -176,8 +194,38 @@ export default class UI extends React.Component<any, UIState>{
     //Add terain tile first
     var tileIndex = tile.hexX + '_' + tile.hexY;
     var tileState = Global.tileStates[tileIndex];
-    var tileId = tileState.tiles.reverse()[0];
-    var imageName = Global.tileset[tileId].image; 
+    const tiles = [...tileState.tiles]; //Deep copy
+
+    //The default Grass was "above" forest, solved it via sort
+    var tileId = tiles.sort().reverse()[0];
+    var imageName = Global.tileset[tileId].image;
+    var imageStyle;    
+
+    //Manual adjustments
+    if(tileId == 19) { //Forest
+      imageStyle = {
+        top: '9px',
+        right: '6px',
+        width: '75px',
+        height: '75px',
+        position: 'fixed'    
+      } as React.CSSProperties;
+    } else if (tileId == 32) { //Mountain
+      imageStyle = {
+        top: '-5px',
+        right: '2px',
+        width: '90px',
+        position: 'fixed'    
+      } as React.CSSProperties
+    } else {
+      imageStyle = {
+        top: '24px',
+        right: '24px',
+        width: '45px',
+        height: '45px',
+        position: 'fixed'
+      } as React.CSSProperties
+    }
 
     var style = {
       top: '10px',
@@ -185,16 +233,8 @@ export default class UI extends React.Component<any, UIState>{
       position: 'fixed'
     } as React.CSSProperties
 
-    var imageStyle = {
-      top: '24px',
-      right: '24px',
-      width: '45px',
-      height: '45px',
-      position: 'fixed'
-    } as React.CSSProperties
-
-    boxes.push(<SelectBox key={-1} 
-                          selectedKey={{type: TILE, id: tileIndex}}
+     boxes.push(<SelectBox key={-1} 
+                          selectedKey={{type: TILE, x: tile.hexX, y: tile.hexY}}
                           imageName={imageName} 
                           style={style}
                           imageStyle={imageStyle} />)
@@ -250,11 +290,27 @@ export default class UI extends React.Component<any, UIState>{
       this.setState({hideAttrsPanel: true});
     } else if(event.panelType == 'skills') {
       this.setState({hideSkillsPanel: true});
-    }
+    } else if(event.panelType == 'tile') {
+      this.setState({hideTilePanel: true});
+    } else if(event.panelType == 'build') {
+      this.setState({hideBuildPanel: true});
+    }  
   }
 
   handleTargetActionPanelClick(event : React.MouseEvent) {
     this.setState({hideTargetActionPanel: true});
+  }
+
+  handleVillagerGatherClick(event : React.MouseEvent) {
+    this.setState({hideGatherPanel: false});
+  }
+
+  handleResourceGatherClick(event : React.MouseEvent) {
+    this.setState({hideGatherPanel: true});
+  }
+
+  handleStartBuildClick(event : React.MouseEvent) {
+    this.setState({hideBuildPanel: true});
   }
 
   handleHeroAttrsClick(event: React.MouseEvent) {
@@ -266,12 +322,15 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleHeroExploreClick(event: React.MouseEvent) {
+    Network.sendExpore(Global.heroId);
   }
  
   handleHeroBuildClick(event: React.MouseEvent) {
+    Network.sendGetStructureList()
   }
 
   handleHeroGatherClick(event: React.MouseEvent) {
+
   }
 
   handleStats(message) {
@@ -292,6 +351,11 @@ export default class UI extends React.Component<any, UIState>{
       }
     }
     //this.setState({hideHeroPanel: false, heroData: message});
+  }
+
+  handleInfoTile(message) {
+    console.log('UI handleInfoTile');
+    this.setState({hideTilePanel: false, tileData: message});
   }
 
   handleInfoItem(message) {
@@ -344,6 +408,11 @@ export default class UI extends React.Component<any, UIState>{
     this.setState({hideItemTransferPanel: false,
                    leftInventoryData: leftInventoryData,
                    rightInventoryData: rightInventoryData})
+  }
+
+  handleStructureList(message) {
+    //TODO look to fix the structures list packet
+    this.setState({hideBuildPanel: false, structuresData: message.result});
   }
 
   render() {
@@ -445,6 +514,15 @@ export default class UI extends React.Component<any, UIState>{
 
           {!this.state.hideSkillsPanel &&
             <SkillsPanel skillsData={this.state.skillsData}/> }
+          
+          {!this.state.hideTilePanel &&
+            <TilePanel tileData={this.state.tileData}/> }
+
+          {!this.state.hideGatherPanel &&
+            <GatherPanel selectedKey={this.state.selectedKey}/> }
+
+          {!this.state.hideBuildPanel &&
+            <BuildPanel structuresData={this.state.structuresData}/> }
       </div>
     );
   }

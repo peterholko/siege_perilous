@@ -161,7 +161,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   processRender() : void {
-    console.log('processRender' + this.renderToggle);
+    //console.log('processRender' + this.renderToggle);
     if(this.renderToggle) {
       this.drawMap();
       this.renderToggle = false;
@@ -173,7 +173,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   drawMap() : void {
-    console.log('drawMap');
+    //console.log('drawMap');
     this.base.removeAll();
     this.trans.removeAll();
     this.extra.removeAll();
@@ -192,19 +192,17 @@ export class MapScene extends Phaser.Scene {
       var tileState = tileArray[i];
       console.log(tileState);
 
-
       for(var j = 0; j < tileState.tiles.length; j++) {
         var tileTypeId = tileState.tiles[j];
         var imageName = 'tileset'  + tileTypeId;
-        console.log(imageName);
-
-        var offsetX = Global.tileset[tileTypeId].offsetx;
-        var offsetY = Global.tileset[tileTypeId].offsety;
 
         if(tileTypeId < 18) {
+          var offsetX = Global.tileset[tileTypeId].offsetx;
+          var offsetY = Global.tileset[tileTypeId].offsety;
           this.addToBase(tileState, 'tileset' + tileTypeId, offsetX, offsetY);
         } else if(this.forests.indexOf(tileTypeId) == -1) {
-          this.addToBase(tileState, 'tileset49', offsetX, offsetY);
+          //Default to grass as base tile
+          this.addToBase(tileState, 'tileset1', 0, 0);
         }
       }
     }
@@ -285,7 +283,6 @@ export class MapScene extends Phaser.Scene {
     //Extra layer
     for(var i = 0; i < tileArray.length; i++) {
       var tileState = tileArray[i];
-      var pixel = Util.hex_to_pixel(tileState.hexX, tileState.hexY);
 
       for(var j = 0; j < tileState.tiles.length; j++) {
         var tileTypeId = tileState.tiles[j];

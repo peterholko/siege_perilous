@@ -70,14 +70,14 @@ export class ObjectScene extends Phaser.Scene {
 
   processRender() : void {
     if(this.renderToggle) {
-      console.log('Draw Objects');
+      //console.log('Draw Objects');
       this.drawObjects()
       this.renderToggle = false;
     }
   }
 
   setRender() : void {
-    console.log('Object Scene Set Render')
+    //console.log('Object Scene Set Render')
     this.renderToggle = true;
   }
 

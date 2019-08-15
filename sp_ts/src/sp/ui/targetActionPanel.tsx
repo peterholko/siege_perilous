@@ -1,6 +1,6 @@
 
 import * as React from "react";
-import targetactionpanel from "ui_comp/hpframe.png"
+import targetactionpanel from "ui_comp/buttonsframe.png"
 import { Network } from "../network";
 import { Global } from "../global";
 
@@ -14,6 +14,8 @@ import infobutton from "ui_comp/infobutton.png";
 
 import { Util } from "../util";
 import { VILLAGER, DEAD, OBJ, TILE} from "../config";
+import { Game } from "phaser";
+import { GameEvent } from "../gameEvent";
 
 interface TAProps {
   selectedKey : any
@@ -37,31 +39,42 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
   handleInventoryClick(event : React.MouseEvent) {
     console.log('Inventory Click');
     Network.sendInfoInventory(this.props.selectedKey.id);
+    Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
   handleTransferClick(event : React.MouseEvent) {
     console.log('Transfer Click');
     Network.sendInfoItemTransfer(Global.heroId, this.props.selectedKey.id);
+    Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
   handleStatsClick(event : React.MouseEvent) {
+    Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
   handleExploreClick(event : React.MouseEvent) {
+    Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
   handleGatherClick(event : React.MouseEvent) {
+    Global.gameEmitter.emit(GameEvent.VILLAGER_GATHER_CLICK, this.props.selectedKey);
+    Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
   handleFollowClick(event : React.MouseEvent) {
+    Network.sendFollow(this.props.selectedKey.id);
+    Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
   
   handleInfoClick(event : React.MouseEvent) {
     if(this.props.selectedKey.type == OBJ) {
       Network.sendInfoObj(this.props.selectedKey.id);
     } else if(this.props.selectedKey.type == TILE) {
-      
+      Network.sendInfoTile(this.props.selectedKey.x, 
+                           this.props.selectedKey.y); 
     }
+
+    Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
   render() {
@@ -113,10 +126,10 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
     const targetActionPanelStyle = {
       top: '50%',
       left: '50%',
-      width: '250px',
+      width: '320px',
       height: '67px',
       marginTop: '-33px',
-      marginLeft: '-94px',
+      marginLeft: '-160px',
       position: 'fixed',
       zIndex: 6
     } as React.CSSProperties

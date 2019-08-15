@@ -58,3 +58,44 @@ Hero Actions:
 
 214 x 314 - Small Frame Shrink x3
 341 x 341 
+
+def: 0
+mc: 1
+name: "Grasslands"
+packet: "info_tile"
+passable: true
+resources: []
+sanctuary: false
+unrevealed: 2
+wildness: "Savage"
+x: 16
+y: 37
+
+base_def: 0
+base_dmg: 0
+base_hp: 50
+base_speed: 0
+build_time: 25
+class: "structure"
+dmg_range: 0
+level: 0
+name: "Tent"
+req: Array(1)
+0: {quantity: 1, type: "Wood"}
+length: 1
+__proto__: Array(0)
+subclass: "shelter"
+template: "Tent"
+__proto__: Object
+
+class: "Ore"
+effects: (2) [{…}, {…}]
+equip: "false"
+id: 16
+name: "Valleyrun Copper Ore"
+owner: 6
+packet: "info_item"
+produces: (2) ["Valleyrun Copper Ingot", "Valleyrun Copper Dust"]
+quantity: 100
+subclass: "Copper Ore"
+weight: 10

@@ -11,17 +11,15 @@ import { Global } from './global';
 import * as React from "react";
 import styles from "./app.css";
 
-
 import {GAME_HEIGHT, GAME_WIDTH} from "./config";
-
 
 export default class Game extends React.Component{
   componentDidMount() {
     const config : any = {
       title: "Siege Perilous",
       version: "0.0.1",
-      width: GAME_WIDTH,
-      height: GAME_HEIGHT,
+      width: window.innerWidth,
+      height: window.innerHeight,
       type: Phaser.AUTO,
       parent: "game",
       scene: [MapScene, ObjectScene],
