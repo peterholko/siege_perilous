@@ -6,6 +6,8 @@ export const STAT_BAR_HEIGHT = 14;
 
 export const HERO = 'hero';
 export const VILLAGER = 'villager';
+export const STRUCTURE = 'structure';
 export const DEAD = 'dead';
+export const FOUNDED = 'founded';
 export const OBJ = 'obj';
 export const TILE = 'tile';

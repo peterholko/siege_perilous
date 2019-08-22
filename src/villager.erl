@@ -692,7 +692,7 @@ build(Villager) ->
     game:add_obj_update(self(), Villager#villager.id, ?STATE, ?BUILDING, 0),
     game:add_obj_update(self(), StructureId, ?STATE, ?PROGRESSING, 0),
 
-    game:add_event(self(), finish_build, EventData, Villager#villager.id, NumTicks).
+    game:add_event(self(), build, EventData, Villager#villager.id, NumTicks).
 
 refine(Villager) ->
     lager:info("Villager refine"),

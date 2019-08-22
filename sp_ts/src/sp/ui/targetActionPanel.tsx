@@ -13,7 +13,7 @@ import followbutton from "ui_comp/followbutton.png";
 import infobutton from "ui_comp/infobutton.png";
 
 import { Util } from "../util";
-import { VILLAGER, DEAD, OBJ, TILE} from "../config";
+import { VILLAGER, DEAD, OBJ, TILE, FOUNDED} from "../config";
 import { Game } from "phaser";
 import { GameEvent } from "../gameEvent";
 
@@ -105,6 +105,9 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
           hideGatherButton = false;
           hideFollowButton = false;
 
+        } else if(Util.isState(this.props.selectedKey.id, FOUNDED)) {
+          hideInfoButton = false;
+          hideTranferButton = false;
         } else {
           hideInfoButton = false;
           hideInventoryButton = false;

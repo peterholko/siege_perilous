@@ -1,0 +1,24 @@
+Structure Revamp
+
+1. Only 1 builder at a time per structure (too difficult to implement multiple with event based system)
+2. Progress should pause if builder is interrupted
+3. Progress needs to be queryable
+
+Implementation:
+
+--- Phases ---
+1. Create Foundation 
+
+2. Build (while state == founded)
+  Set start time = current tick
+  Set end time = current tick + build time
+
+3. Cancel / Pause
+  Set state to paused ? (not sure if needed)
+  Set progress = (current tick - end time) / build time
+  
+4. Build (while state == progressing) 
+  Set start time = current tick
+  Set end time = current tick + (build time * (1 - progress))
+
+

@@ -29,9 +29,9 @@
          item_transfer/2,
          item_split/2,
          structure_list/0,
-         build/2,
+         create_foundation/2,
          upgrade/1,
-         finish_build/2,
+         build/2,
          recipe_list/1,
          refine/1,
          craft/2,
@@ -490,7 +490,7 @@ item_split(ItemId, Quantity) ->
 structure_list() ->
     structure:list().
 
-build(BuilderId, StructureName) ->
+create_foundation(BuilderId, StructureName) ->
     PlayerId = get(player_id),
     lager:info("PlayerId: ~p", [PlayerId]),
 
@@ -501,14 +501,15 @@ build(BuilderId, StructureName) ->
     Checks = [{is_player_owned(Builder, PlayerId), "Builder not owned by player"},              
               {structure:valid_location(StructureSubclass, Builder#obj.pos), "Invalid structure location"},
               {Builder#obj.state =:= ?NONE, "Builder is busy"}],
+
     lager:info("Checks: ~p", [Checks]),
     case process_checks(Checks) of
         true ->
             lager:info("Building structure"),
 
-            structure:start_build(PlayerId, 
-                                  Builder#obj.pos, 
-                                  StructureName),
+            structure:create_foundation(PlayerId, 
+                                        Builder#obj.pos, 
+                                        StructureName),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
@@ -540,65 +541,84 @@ upgrade(StructureId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
   
-finish_build(SourceId, StructureId) ->
+build(BuilderId, StructureId) ->
     PlayerId = get(player_id),
     [Structure] = db:read(obj, StructureId),
 
     lager:info("Structure state: ~p", [Structure#obj.state]),
 
-    finish_build(PlayerId, SourceId, Structure).
+    build(PlayerId, BuilderId, Structure).
 
-finish_build(PlayerId, SourceId, Structure = #obj {state = ?FOUNDED}) -> 
-    [Source] = db:read(obj, SourceId),
+build(PlayerId, BuilderId, Structure = #obj {state = ?FOUNDED}) -> 
+    [Builder] = db:read(obj, BuilderId),
     
-    Checks = [{Source#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
+    Checks = [{obj:pos(Builder) =:= obj:pos(Structure), "Builder must be on the structure"},
               {Structure#obj.player =:= PlayerId, "Structure not owned by player"},
               {structure:has_req(Structure#obj.id), "Structure is missing required items"}],
 
     case process_checks(Checks) of
         true ->
             lager:info("Finishing structure"),
-            game:cancel_event(SourceId),
+            game:cancel_event(BuilderId),
 
-            NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
-            EventData = {SourceId, Structure#obj.id},
+            %Get the build time and calculate the end time
+            BuildTimeTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
+
+            Start = game:get_tick(),
+            End = Start + BuildTimeTicks,
+
+            obj_attr:set(obj:id(Structure), <<"start_time">>, Start),
+            obj_attr:set(obj:id(Structure), <<"end_time">>, End),
+            obj_attr:set(obj:id(Structure), <<"builder">>, BuilderId),
+            obj_attr:set(obj:id(Structure), <<"progress">>, 0),
+
+            EventData = {BuilderId, Structure#obj.id},
 
             %Add obj update state to change to moving state on next tick
-            game:add_obj_update(self(), SourceId, ?STATE, ?BUILDING, 0),
+            game:add_obj_update(self(), BuilderId, ?STATE, ?BUILDING, 0),
             game:add_obj_update(self(), obj:id(Structure), ?STATE, ?PROGRESSING, 0),
 
-            game:add_event(self(), finish_build, EventData, SourceId, NumTicks),
+            game:add_event(self(), build, EventData, BuilderId, BuildTimeTicks),
 
-            #{<<"build_time">> => NumTicks * 4};
+            #{<<"build_time">> => BuildTimeTicks * 4};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
 
-finish_build(PlayerId, SourceId, Structure = #obj {state = ?PROGRESSING}) ->
-    [Source] = db:read(obj, SourceId),
+build(PlayerId, BuilderId, Structure = #obj {state = ?PROGRESSING}) ->
+    [Builder] = db:read(obj, BuilderId),
     
-    Checks = [{Source#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
+    Checks = [{Builder#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
               {Structure#obj.player =:= PlayerId, "Structure not owned by player"}],
 
     case process_checks(Checks) of
         true ->
             lager:info("Finishing structure"),
-            game:cancel_event(SourceId),
+            game:cancel_event(BuilderId),
 
-            NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
-            EventData = {SourceId, Structure#obj.id},
+            %Get the build time and calculate the end time
+            BuildTimeTicks = obj_attr:value(obj:id(Structure), <<"build_time">>),
+            Progress = obj_attr:value(obj:id(Structure), <<"progress">>),
 
-            obj:update_state(SourceId, building),
+            Start = game:get_tick(),
+            End = Start + (BuildTimeTicks * (1 - Progress)),
+
+            obj_attr:set(obj:id(Structure), <<"start_time">>, Start),
+            obj_attr:set(obj:id(Structure), <<"end_time">>, End),
+
+            EventData = {BuilderId, Structure#obj.id},
+
+            obj:update_state(BuilderId, building),
             obj:update_state(Structure#obj.id, ?PROGRESSING),
 
-            game:add_event(self(), finish_build, EventData, SourceId, NumTicks),
+            game:add_event(self(), build, EventData, BuilderId, BuildTimeTicks),
 
-            #{<<"build_time">> => NumTicks * 4};
+            #{<<"build_time">> => BuildTimeTicks * 4};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
 
-finish_build(_PlayerId, _SourceId, Structure) ->
+build(_PlayerId, _SourceId, Structure) ->
     lager:info("Invalid state of structure: ~p", [Structure#obj.state]).
 
 recipe_list(SourceId) ->

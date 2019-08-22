@@ -76,11 +76,20 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
-  public static sendBuild(id, structureName) {
+  public static sendCreateFoundation(id, structureName) {
     var m = {
-      cmd: "build",
+      cmd: "create_foundation",
       sourceid: id,
       structure: structureName
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendBuild(id, structureid) {
+    var m = {
+      cmd: "build", 
+      sourceid: id,
+      structureid: structureid
     }
     Global.socket.sendMessage(JSON.stringify(m));
   }
@@ -100,8 +109,6 @@ export class Network {
     };
     Global.socket.sendMessage(JSON.stringify(m));
   }
-
-
 
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
@@ -169,6 +176,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData)
       } else if(jsonData.packet == "structure_list") {
         Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData)
+      } else if(jsonData.packet == 'build') {
+        Global.gameEmitter.emit(NetworkEvent.BUILD, jsonData)
       }
     }
   }
@@ -184,8 +193,8 @@ export class Network {
         subclass: obj.subclass,
         template: obj.template,
         state: obj.state,
-        hexX: obj.x,
-        hexY: obj.y,
+        x: obj.x,
+        y: obj.y,
         vision: obj.vision,
         image: obj.image,
         op: 'added'
@@ -245,14 +254,14 @@ export class Network {
 
           if(obj.id in Global.objectStates) {
               Global.objectStates[obj.id].state = obj.state;
-              Global.objectStates[obj.id].hexX = obj.x;
-              Global.objectStates[obj.id].hexY = obj.y;
+              Global.objectStates[obj.id].x = obj.x;
+              Global.objectStates[obj.id].y = obj.y;
               Global.objectStates[obj.id].op = 'updated';
           } else {
               Global.objectStates[obj.id] = obj;
               Global.objectStates[obj.id].eventType = 'obj_move';
-              Global.objectStates[obj.id].prevHexX = src_x;
-              Global.objectStates[obj.id].prevHexY = src_y;
+              Global.objectStates[obj.id].prevX = src_x;
+              Global.objectStates[obj.id].prevY = src_y;
               Global.objectStates[obj.id].op = 'added';
           }            
       } else if(eventType =="obj_delete") {            

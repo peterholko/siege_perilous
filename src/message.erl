@@ -174,13 +174,13 @@ message_handle(<<"structure_list">>, _Message) ->
     jsx:encode([{<<"packet">>, <<"structure_list">>},
                 {<<"result">>, Structures}]);    
 
-message_handle(<<"build">>, Message) ->
+message_handle(<<"create_foundation">>, Message) ->
     lager:info("message: build"),
     
     Id = m_get(<<"sourceid">>, Message),    
     StructureId = m_get(<<"structure">>, Message),
 
-    Return = player:build(Id, StructureId),
+    Return = player:create_foundation(Id, StructureId),
 
     FinalReturn = maps:put(<<"packet">>, <<"build">>, Return),
     jsx:encode(FinalReturn);
@@ -195,15 +195,15 @@ message_handle(<<"upgrade">>, Message) ->
     jsx:encode([{<<"packet">>, <<"upgrade">>},
                 {<<"result">>, Result}]);
 
-message_handle(<<"finish_build">>, Message) ->
-    lager:info("message: finish_build"),
+message_handle(<<"build">>, Message) ->
+    lager:info("message: build"),
     
     SourceId = m_get(<<"sourceid">>, Message),
     StructureId = m_get(<<"structureid">>, Message),
 
-    Return = player:finish_build(SourceId, StructureId),
-    lager:info("Finish build return: ~p", [Return]),
-    FinalReturn = maps:put(<<"packet">>, <<"finish_build">>, Return),
+    Return = player:build(SourceId, StructureId),
+    lager:info("Build return: ~p", [Return]),
+    FinalReturn = maps:put(<<"packet">>, <<"build">>, Return),
     lager:info("FinalReturn: ~p", [FinalReturn]),
     jsx:encode(FinalReturn);
 

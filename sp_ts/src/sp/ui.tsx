@@ -11,7 +11,7 @@ import * as React from "react";
 import styles from "./ui.css";
 
 import SelectBox from './ui/selectBox';
-import InventoryPanel from './ui/inventoryPanel';
+import SingleInventoryPanel from './ui/singleInventoryPanel';
 import ItemPanel from './ui/itemPanel';
 
 import heroring from "ui/heroring.png";
@@ -30,7 +30,7 @@ import explorebutton from "ui/explorebutton.png";
 import gatherbutton from "ui/gatherbutton.png";
 
 import { NetworkEvent } from './networkEvent';
-import { STAT_BAR_WIDTH, STAT_BAR_HEIGHT, TILE, OBJ, HERO, VILLAGER } from './config';
+import { STAT_BAR_WIDTH, STAT_BAR_HEIGHT, TILE, OBJ, HERO, VILLAGER, STRUCTURE } from './config';
 import TargetActionPanel from './ui/targetActionPanel';
 import ItemTransferPanel from './ui/itemTransferPanel';
 import HeroPanel from './ui/heroPanel';
@@ -40,6 +40,7 @@ import SkillsPanel from './ui/skillsPanel';
 import TilePanel from './ui/tilePanel';
 import GatherPanel from './ui/gatherPanel';
 import BuildPanel from './ui/buildPanel';
+import StructurePanel from './ui/structurePanel';
 
 interface UIState {
   selectBoxes : [],
@@ -55,6 +56,7 @@ interface UIState {
   hideSkillsPanel : boolean,
   hideTilePanel : boolean,
   hideBuildPanel : boolean,
+  hideStructurePanel : boolean,
   leftInventoryId : integer,
   leftInventoryData: [],
   rightInventoryId : integer,
@@ -65,7 +67,8 @@ interface UIState {
   attrsData : any,
   skillsData : any,
   tileData : any,
-  structuresData : any,
+  structuresData : any, //Structures list
+  structureData : any, //Structure data
   selectedKey: {},
   hpBarWidth : integer,
   staBarWidth : integer,
@@ -92,6 +95,7 @@ export default class UI extends React.Component<any, UIState>{
       hideSkillsPanel : true,
       hideTilePanel : true,
       hideBuildPanel : true,
+      hideStructurePanel: true,
       leftInventoryId: -1,
       leftInventoryData: [],
       rightInventoryId: -1,
@@ -103,6 +107,7 @@ export default class UI extends React.Component<any, UIState>{
       skillsData : {},
       tileData : {},
       structuresData : {},
+      structureData : {},
       selectedKey: {},
       hpBarWidth: STAT_BAR_WIDTH,
       staBarWidth: STAT_BAR_WIDTH,
@@ -159,27 +164,27 @@ export default class UI extends React.Component<any, UIState>{
 
       if(angleDegrees < 30 || angleDegrees >= 330) {
         console.log('N');
-        var nextPos = Util.nextPosByDirection(heroObj.hexX, heroObj.hexY, 'N');
+        var nextPos = Util.nextPosByDirection(heroObj.x, heroObj.y, 'N');
         Network.sendMove(nextPos.q, nextPos.r);
       } else if(angleDegrees < 90 && angleDegrees >= 30) {
         console.log('NW');
-        var nextPos = Util.nextPosByDirection(heroObj.hexX, heroObj.hexY, 'NW');
+        var nextPos = Util.nextPosByDirection(heroObj.x, heroObj.y, 'NW');
         Network.sendMove(nextPos.q, nextPos.r);
       } else if(angleDegrees < 150 && angleDegrees >= 90) {
         console.log('SW');
-        var nextPos = Util.nextPosByDirection(heroObj.hexX, heroObj.hexY, 'SW');
+        var nextPos = Util.nextPosByDirection(heroObj.x, heroObj.y, 'SW');
         Network.sendMove(nextPos.q, nextPos.r);
       } else if(angleDegrees < 210 && angleDegrees >= 150) {
         console.log('S');
-        var nextPos = Util.nextPosByDirection(heroObj.hexX, heroObj.hexY, 'S');
+        var nextPos = Util.nextPosByDirection(heroObj.x, heroObj.y, 'S');
         Network.sendMove(nextPos.q, nextPos.r);
       } else if(angleDegrees < 270 && angleDegrees >= 210) {
         console.log('SE');
-        var nextPos = Util.nextPosByDirection(heroObj.hexX, heroObj.hexY, 'SE');
+        var nextPos = Util.nextPosByDirection(heroObj.x, heroObj.y, 'SE');
         Network.sendMove(nextPos.q, nextPos.r);
       } else if(angleDegrees < 330 && angleDegrees >= 270) {
         console.log('NE');
-        var nextPos = Util.nextPosByDirection(heroObj.hexX, heroObj.hexY, 'NE');
+        var nextPos = Util.nextPosByDirection(heroObj.x, heroObj.y, 'NE');
         Network.sendMove(nextPos.q, nextPos.r);
       }
   }
@@ -294,7 +299,9 @@ export default class UI extends React.Component<any, UIState>{
       this.setState({hideTilePanel: true});
     } else if(event.panelType == 'build') {
       this.setState({hideBuildPanel: true});
-    }  
+    } else if(event.panelType == 'structure') {
+      this.setState({hideStructurePanel: true});
+    }
   }
 
   handleTargetActionPanelClick(event : React.MouseEvent) {
@@ -348,7 +355,9 @@ export default class UI extends React.Component<any, UIState>{
         this.setState({hideHeroPanel: false, heroData: message});  
       } else if(Util.isSubclass(message.id, VILLAGER)) {
         this.setState({hideVillagerPanel: false, villagerData: message});
-      }
+      } else if(Util.isClass(message.id, STRUCTURE)) {
+        this.setState({hideStructurePanel: false, structureData: message});
+      } 
     }
     //this.setState({hideHeroPanel: false, heroData: message});
   }
@@ -416,7 +425,6 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   render() {
-
     const hpBarStyle  = {
       transform: 'translate(97px, 19px)',
       width: this.state.hpBarWidth + 'px',
@@ -492,7 +500,7 @@ export default class UI extends React.Component<any, UIState>{
             <TargetActionPanel selectedKey={this.state.selectedKey}/> }
 
           {!this.state.hideInventoryPanel && 
-            <InventoryPanel left={true} 
+            <SingleInventoryPanel left={true} 
                             inventoryData={this.state.leftInventoryData}
                             hideExitButton={false} /> }
 
@@ -523,6 +531,9 @@ export default class UI extends React.Component<any, UIState>{
 
           {!this.state.hideBuildPanel &&
             <BuildPanel structuresData={this.state.structuresData}/> }
+
+          {!this.state.hideStructurePanel &&
+            <StructurePanel structureData={this.state.structureData} />}
       </div>
     );
   }

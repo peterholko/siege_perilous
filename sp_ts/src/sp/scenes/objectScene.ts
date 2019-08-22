@@ -18,7 +18,6 @@ export class ObjectScene extends Phaser.Scene {
 
   public objectList = {};
 
-  //private imageDefList = [];
   private spriteTasks = [];
 
   constructor() {
@@ -30,6 +29,7 @@ export class ObjectScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image('selecthex', './static/art/hover-hex.png');
+    this.load.image('foundation', './static/art/foundation.png');
   }
 
   create(): void {
@@ -43,8 +43,6 @@ export class ObjectScene extends Phaser.Scene {
     this.load.on('filecomplete', this.loadSpriteSheet, this);
 
     this.add.image(100, 100, 'selecthex');
-
-    //this.cameras.main.centerOn(864, 2592);
   }
 
   processImageDefMessage(message) {
@@ -85,7 +83,6 @@ export class ObjectScene extends Phaser.Scene {
     for(var objectId in Global.objectStates) {
         var objectState = Global.objectStates[objectId] as ObjectState;
 
-        
         if(objectState.op == 'added') {
           console.log('Object Added');
 
@@ -103,37 +100,52 @@ export class ObjectScene extends Phaser.Scene {
         else if(objectState.op == 'updated') {
           console.log('Object Updated');
           var sprite = this.objectList[objectState.id] as GameSprite;
-          var pixel = Util.hex_to_pixel(objectState.hexX, objectState.hexY);
+          var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
           sprite.x = pixel.x;
           sprite.y = pixel.y;
 
           if(objectState.subclass == 'hero') {
             this.centerOnHero(sprite.x, sprite.y);
+          } else if(objectState.class == 'structure' && objectState.state == 'none') {
+            sprite.setTexture(objectState.image);
           }
         }
     }
   }
 
   addSprite(objectState : ObjectState) {
-    var pixel = Util.hex_to_pixel(objectState.hexX, objectState.hexY);
+    var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
+    var imageName = '';
+
+    if(objectState.class == 'structure' && objectState.state == 'founded') {
+      imageName = 'foundation';
+    } else {
+      imageName = objectState.image;
+    }
 
     var sprite = new GameSprite({
       scene: this,
       x: pixel.x,
       y: pixel.y,
       id: objectState.id,
-      imageName: objectState.image
+      imageName: imageName
     });
-    
+  
+    if(objectState.class == 'structure') {
+      sprite.setDepth(1);
+    } else {
+      sprite.setDepth(2);
+    }
+
     this.add.existing(sprite);
 
-    if(Util.isSprite(objectState.image)) {
-      var animName = objectState.image + '_' + objectState.state;
+    if(Util.isSprite(imageName)) {
+      var animName = imageName + '_' + objectState.state;
+      sprite.anims.play(animName);
     } else {
-      var animName = objectState.image;
+      var animName = imageName;
     }
-    sprite.anims.play(animName);
 
     this.objectList[objectState.id] = sprite;
 

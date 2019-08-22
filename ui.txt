@@ -89,13 +89,22 @@ template: "Tent"
 __proto__: Object
 
 class: "Ore"
-effects: (2) [{…}, {…}]
+effects: Array(2)
+0: {type: "Spear Damage %", value: 0.37}
+1: {type: "Axe Damage %", value: -0.27}
+length: 2
+__proto__: Array(0)
 equip: "false"
 id: 16
 name: "Valleyrun Copper Ore"
 owner: 6
 packet: "info_item"
-produces: (2) ["Valleyrun Copper Ingot", "Valleyrun Copper Dust"]
+produces: Array(2)
+0: "Valleyrun Copper Ingot"
+1: "Valleyrun Copper Dust"
+length: 2
+__proto__: Array(0)
 quantity: 100
 subclass: "Copper Ore"
 weight: 10
+__proto__: Object

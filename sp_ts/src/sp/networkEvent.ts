@@ -14,4 +14,5 @@ export namespace NetworkEvent {
     export const INFO_ATTRS : string = 'ITEM_ATTRS';
     export const INFO_SKILLS : string = 'ITEM_SKILLS';
     export const STRUCTURE_LIST : string = 'STRUCTURE_LIST';
+    export const BUILD : string = 'BUILD';
 }

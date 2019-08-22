@@ -353,7 +353,7 @@ do_event(sharvest, EventData, _Pid) ->
             message:send_to_process(global:whereis_name(villager), event_failure, {harvest, VillagerId, ErrMsg, FailureData})
     end;
 
-do_event(finish_build, EventData, _PlayerPid) ->
+do_event(build, EventData, _PlayerPid) ->
     lager:info("Processing build event: ~p", [EventData]),
     {ObjId, StructureId} = EventData,
 

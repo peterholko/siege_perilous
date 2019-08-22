@@ -60,6 +60,7 @@
 -define(DELETING, deleting).
 -define(FOUNDED, founded).
 -define(PROGRESSING, progressing).
+-define(STALLED, stalled).
 -define(EXPLORING, exploring).
 -define(GATHERING, gathering).
 -define(HARVESTING, harvesting).

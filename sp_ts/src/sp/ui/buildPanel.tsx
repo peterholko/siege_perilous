@@ -42,7 +42,7 @@ export default class BuildPanel extends React.Component<BuildPanelProps, any> {
   }
 
   handleBuildClick() {
-    Network.sendBuild(Global.heroId, this.state.structure.name);
+    Network.sendCreateFoundation(Global.heroId, this.state.structure.name);
     Global.gameEmitter.emit(GameEvent.START_BUILD_CLICK, {});
   }
 

@@ -99,7 +99,7 @@ export class Util {
     for(var objId in Global.objectStates) {
       var objectState = Global.objectStates[objId];
 
-      if(objectState.hexX == hexX && objectState.hexY == hexY) {
+      if(objectState.x == hexX && objectState.y == hexY) {
         objsAt.push(Global.objectStates[objId]);
       }
     }
@@ -118,7 +118,11 @@ export class Util {
   }
 
   static isSprite(imageName) : Boolean {
-    return 'animations' in Global.imageDefList[imageName];
+    if(imageName in Global.imageDefList) {
+      return 'animations' in Global.imageDefList[imageName];
+    } else {
+      return false;
+    }
   }
 
   static createImage(src : string) {
@@ -130,6 +134,11 @@ export class Util {
   static isPlayerObj(objId : integer) : boolean {
     return Global.objectStates[objId].player == Global.playerId
   }
+
+  static isClass(objId : integer, _class : string) : boolean {
+    return Global.objectStates[objId].class == _class;
+  }
+
   static isSubclass(objId : integer, subclass : string) : boolean {
     return Global.objectStates[objId].subclass == subclass;
   }

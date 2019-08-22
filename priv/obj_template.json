@@ -68,7 +68,7 @@
 	"class": "structure",
 	"subclass": "shelter",
     "template": "Tent",
-	"build_time": 25,
+	"build_time": 240,
 	"level": 0,
 	"req": [
 		{

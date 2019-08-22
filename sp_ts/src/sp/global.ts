@@ -27,4 +27,5 @@ export class Global {
 
     public static selectedItemId = -1;
     public static selectedItemOwnerId = -1;
+
 }

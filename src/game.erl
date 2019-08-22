@@ -15,11 +15,11 @@
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([add_obj_create/3, add_obj_delete/3, add_obj_update/4, add_obj_update/5, add_obj_move/5,
-        add_obj_hide/3, add_obj_reveal/3]).
+         add_obj_hide/3, add_obj_reveal/3]).
 -export([add_event/5, has_pre_events/1, has_post_events/1, cancel_event/1]).
 -export([process_dead_objs/1, process_deleting_objs/1]).
 -export([trigger_explored/1]).
--export([get_perception/0, get_explored/0, reset/0]).
+-export([get_tick/0, get_perception/0, get_explored/0, reset/0]).
 -export([get_info_tile/1, get_valid_tiles/1]).
 -export([hero_dead/2]).
 -export([spawn_shadow/1, spawn_wolf/0]).
@@ -337,7 +337,9 @@ process_deleting_objs(CurrentTick) ->
 
     lists:foreach(F, DeletingObjs).
 
-
+get_tick() ->
+    [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+    CurrentTick.
 
 %%
 %% API Functions
@@ -458,6 +460,8 @@ has_post_events(EventSource) ->
 cancel_event(EventSource) ->
     case db:index_read(event, EventSource, #event.source) of
         [Event] ->
+            process_cancel(Event#event.type, Event),
+
             lager:debug("Cancel_event - Deleting event: ~p", [Event]),
             db:delete(event, Event#event.id),
 
@@ -558,3 +562,19 @@ event_ticks(Ticks) ->
         true -> 1;
         false -> Ticks
     end.
+
+process_cancel(build, Event) ->
+    EventData = Event#event.data,
+    {BuilderId, StructureId} = EventData,
+
+    BuildTime = obj_attr:value(StructureId, <<"build_time">>),
+    EndTime = obj_attr:value(StructureId, <<"end_time">>),
+    CurrentTime = game:get_tick(),
+
+    Progress = util:round3((CurrentTime - EndTime) / BuildTime),
+
+    obj_attr:set(StructureId, <<"progress">>, Progress),
+
+    game:add_obj_update(self(), StructureId, ?STATE, ?STALLED, 0);
+
+process_cancel(_, _Event) -> nothing.

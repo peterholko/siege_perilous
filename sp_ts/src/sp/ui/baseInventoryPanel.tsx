@@ -2,21 +2,23 @@ import * as React from "react";
 import HalfPanel from "./halfPanel";
 import InventoryItem from "./inventoryItem";
 import { Global } from "../global";
-import { GameEvent } from "../gameEvent";
 
 import itemframe from "ui_comp/itemframe.png";
 import selectitemborder from "ui_comp/selectitemborder.png";
 import { Util } from "../util";
 import { Network } from "../network";
+import { GameEvent } from "../gameEvent";
 
-interface InventoryProps {
+interface BaseInventoryProps {
   left : boolean,
   inventoryData,
+  panelType : string,
   hideExitButton : boolean,
-  panelType? : string
+  hideSelect : boolean,
+  handleSelect : Function,
 }
 
-export default class InventoryPanel extends React.Component<InventoryProps, any> {
+export default class BaseInventoryPanel extends React.Component<BaseInventoryProps, any> {
   constructor(props) {
     super(props);
 
@@ -25,8 +27,6 @@ export default class InventoryPanel extends React.Component<InventoryProps, any>
     } as React.CSSProperties
 
     this.state = {
-      panelType: this.props.panelType || 'inventory',
-      hideSelectItem: true,
       selectItemStyle : selectItemStyle
     };
     
@@ -44,13 +44,9 @@ export default class InventoryPanel extends React.Component<InventoryProps, any>
     Global.selectedItemOwnerId = eventData.ownerId;
     Global.selectedItemId = eventData.itemId;
 
-    this.setState({hideSelectItem: false,
-                   selectItemStyle: selectItemStyle});
+    this.setState({selectItemStyle: selectItemStyle});
 
-    if(this.state.panelType == 'inventory') {
-      //Global.gameEmitter.emit(GameEvent.ITEM_INV_CLICK, eventData.itemId);
-      Network.sendInfoItem(eventData.itemId);
-    }
+    this.props.handleSelect(eventData);
   }
 
   render() {
@@ -100,12 +96,12 @@ export default class InventoryPanel extends React.Component<InventoryProps, any>
 
     return (
       <HalfPanel left={this.props.left} 
-                 panelType={this.state.panelType} 
+                 panelType={this.props.panelType} 
                  hideExitButton={this.props.hideExitButton}>
         <img src={'/static/art/' + imageName} style={spriteStyle} />
         {itemFrames}
         {items}
-        {!this.state.hideSelectItem && 
+        {!this.props.hideSelect && 
           <img src={selectitemborder} style={this.state.selectItemStyle} />
         }
       </HalfPanel>

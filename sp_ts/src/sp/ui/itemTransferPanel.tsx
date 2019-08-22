@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import transferbutton from "ui_comp/transferbutton.png";
-import InventoryPanel from "./inventoryPanel";
+import BaseInventoryPanel from "./baseInventoryPanel";
 import { Global } from "../global";
 import { GameEvent } from "../gameEvent";
 import { Network } from "../network";
@@ -16,9 +16,22 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
     super(props);
 
     this.state = {
+      hideLeftSelect: true,
+      hideRightSelect: true
     };
-    
+  
+    this.handleSelect = this.handleSelect.bind(this);
     this.handleItemTransferClick = this.handleItemTransferClick.bind(this);
+  }
+
+  handleSelect(eventData) {
+    if(Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
+      this.setState({hideLeftSelect: false,
+                     hideRightSelect: true});
+    } else {
+      this.setState({hideLeftSelect: true,
+                     hideRightSelect: false});
+    }
   }
 
   handleItemTransferClick(event : React.MouseEvent) {
@@ -30,6 +43,9 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
     } else {
       targetId = this.props.leftInventoryData.id;
     }
+
+    this.setState({hideLeftSelect: true,
+                   hideRightSelect: true});
 
     Network.sendItemTransfer(targetId, Global.selectedItemId);
   }
@@ -46,15 +62,19 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
 
     return (
       <div>
-        <InventoryPanel left={true} 
-                        inventoryData={this.props.leftInventoryData} 
-                        hideExitButton={true}
-                        panelType={'itemTransfer'}/>
+        <BaseInventoryPanel left={true} 
+                            inventoryData={this.props.leftInventoryData} 
+                            panelType={'itemTransfer'}
+                            hideExitButton={true}
+                            hideSelect={this.state.hideLeftSelect}
+                            handleSelect={this.handleSelect} />
 
-        <InventoryPanel left={false} 
-                        inventoryData={this.props.rightInventoryData} 
-                        hideExitButton={false}
-                        panelType={'itemTransfer'}/>
+        <BaseInventoryPanel left={false} 
+                            inventoryData={this.props.rightInventoryData} 
+                            panelType={'itemTransfer'}
+                            hideExitButton={false}
+                            hideSelect={this.state.hideRightSelect}
+                            handleSelect={this.handleSelect} />
 
         {<img src={transferbutton} 
               style={transferStyle} 

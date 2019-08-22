@@ -19,30 +19,7 @@
   z-index: 1; 
 }
 
-#heroring {
-  transform: translate(8px, 21px);
-  z-index: 2;
-  position: fixed;
-}
 
-#hpframe {
-  transform: translate(40px, 10px);
-  z-index: 1;
-  position: fixed;
-}
-
-#movecompass {
-  left: 10px;
-  bottom: 10px;
-  z-index: 1;
-  position: fixed;
-}
-
-.hero {
-  transform: translate(10px, 24px);
-  z-index: 3;
-  position: fixed;
-}
 
 canvas{ 
   position: fixed; 
