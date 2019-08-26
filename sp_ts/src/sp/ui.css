@@ -73,3 +73,53 @@
   margin-left: -50px;
   position: fixed;
 }
+
+#quickattackbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 20px;
+  position: fixed;
+}
+
+#preciseattackbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 70px;
+  position: fixed;
+}
+
+#fierceattackbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 120px;
+  position: fixed;
+}
+
+progress {
+  /* Reset the default appearance */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+   appearance: none;
+
+  /* Get rid of default border in Firefox. */
+  border: none;
+}
+
+progress::-webkit-progress-bar {
+  background-color: rgb(102, 102, 102);
+  border-radius: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset;
+}
+
+progress{
+  background-color: rgb(102, 102, 102);
+}
+
+progress::-webkit-progress-value {
+   border-radius: 2px; 
+}
+
+progress::-moz-progress-bar {
+  background-color: forestgreen !important;
+  border-radius: 2px;
+}

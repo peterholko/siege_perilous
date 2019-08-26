@@ -432,6 +432,7 @@ harvest(ObjId, Resource) ->
 
 loot(SourceId, ItemId) ->
     Item = item:get_rec(ItemId),
+    %Will fail if item id is invalid
     Owner = Item#item.owner,
 
     item:transfer(ItemId, SourceId),
@@ -441,6 +442,7 @@ loot(SourceId, ItemId) ->
 
 item_transfer(TargetId, ItemId) ->
     Player = get(player_id),
+    %Will fail if item id is invalid
     Item = item:get_rec(ItemId),
     Owner = Item#item.owner,
 
@@ -580,7 +582,7 @@ build(PlayerId, BuilderId, Structure = #obj {state = ?FOUNDED}) ->
 
             game:add_event(self(), build, EventData, BuilderId, BuildTimeTicks),
 
-            #{<<"build_time">> => BuildTimeTicks * 4};
+            #{<<"build_time">> => trunc(BuildTimeTicks / ?TICKS_SEC)};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
@@ -613,7 +615,7 @@ build(PlayerId, BuilderId, Structure = #obj {state = ?PROGRESSING}) ->
 
             game:add_event(self(), build, EventData, BuilderId, BuildTimeTicks),
 
-            #{<<"build_time">> => BuildTimeTicks * 4};
+            #{<<"build_time">> => trunc(BuildTimeTicks / ?TICKS_SEC)};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end;

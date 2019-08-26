@@ -9,18 +9,18 @@
         "harvesting": {
             "frames": [11,1,0,1],
             "next": "harvesting",
-            "speed": 0.05
+            "speed": 2000
         },
         "crafting": {
             "frames": [11,1,0,1],
             "next": "crafting",
-            "speed": 0.05
+            "speed": 2000
         },
         "none": [11],
         "moving": {
             "frames": [11,1,0,1],
             "next": "moving",
-            "speed": 0.05
+            "speed": 1000
         }
     }
 }

@@ -108,3 +108,11 @@ quantity: 100
 subclass: "Copper Ore"
 weight: 10
 __proto__: Object
+
+
+destid: 7
+item: {class: "Wood", equip: "false", id: 22, name: "Cragroot Maple Wood", owner: 7, …}
+merged: true
+packet: "info_item_transfer"
+sourceid: 20
+sourceitemid: 21

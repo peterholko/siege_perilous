@@ -11,6 +11,7 @@ import { GameEvent } from '../gameEvent';
 import { MapScene } from './mapScene';
 import { NetworkEvent } from '../networkEvent';
 import { ObjectState } from '../objectState';
+import { Network } from '../network';
 
 export class ObjectScene extends Phaser.Scene {
 
@@ -35,10 +36,14 @@ export class ObjectScene extends Phaser.Scene {
   create(): void {
     console.log('Object Scene Create');
     this.time.addEvent({ delay: 200, callback: this.processRender, callbackScope: this, loop: true });
-    
+   
+    this.onJumpComplete = this.onJumpComplete.bind(this);
+    this.onDmgTextComplete = this.onDmgTextComplete.bind(this);
+
     Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.CHANGES, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.IMAGE_DEF, this.processImageDefMessage, this);
+    Global.gameEmitter.on(NetworkEvent.DMG, this.processDmgMessage, this);
     
     this.load.on('filecomplete', this.loadSpriteSheet, this);
 
@@ -102,14 +107,26 @@ export class ObjectScene extends Phaser.Scene {
           var sprite = this.objectList[objectState.id] as GameSprite;
           var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
-          sprite.x = pixel.x;
-          sprite.y = pixel.y;
-
-          if(objectState.subclass == 'hero') {
-            this.centerOnHero(sprite.x, sprite.y);
+          if(objectState.state == 'moving') {
+            sprite.play(objectState.image + '_moving');  
+            sprite.x = pixel.x;
+            sprite.y = pixel.y;
           } else if(objectState.class == 'structure' && objectState.state == 'none') {
             sprite.setTexture(objectState.image);
+          } else {
+            sprite.play(objectState.image + '_' + objectState.state);
+
+            var tween = this.tweens.add({
+              targets: sprite,
+              x: pixel.x,
+              y: pixel.y,
+              ease: 'Power1',
+              duration: 500
+            });
+
+            tween.play();
           }
+
         }
     }
   }
@@ -152,9 +169,15 @@ export class ObjectScene extends Phaser.Scene {
     console.log(sprite);
 
     if(objectState.subclass == 'hero') {
-      Global.heroId = objectState.id;
-      
-      this.centerOnHero(sprite.x, sprite.y);
+      var mapScene = this.scene.get('MapScene') as MapScene;
+
+      mapScene.cameras.main.startFollow(sprite, true);
+      mapScene.cameras.main.followOffset.x = -36;
+      mapScene.cameras.main.followOffset.y = -36;
+
+      this.cameras.main.startFollow(sprite, true);
+      this.cameras.main.followOffset.x = -36;
+      this.cameras.main.followOffset.y = -36;
    }
   }
 
@@ -185,23 +208,23 @@ export class ObjectScene extends Phaser.Scene {
             var start = anim[0];
             var end = anim[1];
             var next = anim[2];
-            var repeat = 1;
+            var repeat = 0;
 
             if(animName == next) {
               repeat = -1;
             }
 
-            var frameRate = 1 / parseFloat(anim[3]);
+            var duration : any = anim[3];
             var frames = this.anims.generateFrameNumbers(imageName, { start: start, end: end});
 
           } else {
-            var frameRate = 1;
+            var duration : any = 10000;
             var repeat = 1;
             var frames = this.anims.generateFrameNumbers(imageName, { start: anim[0], end: anim[0]});
           }
         }
         else if(Array.isArray(anim.frames)) {
-          var frameRate = 1 / parseFloat(anim.speed);
+          var duration = anim.speed;
           var repeat = 1;
           var frames = this.anims.generateFrameNumbers(imageName, { frames: anim.frames});
         } else {
@@ -212,7 +235,7 @@ export class ObjectScene extends Phaser.Scene {
           key: imageName + '_' + animName,
           frames: frames,
           repeat: repeat,
-          frameRate: frameRate
+          duration: duration
         };
         
         console.log(config);
@@ -223,8 +246,8 @@ export class ObjectScene extends Phaser.Scene {
       var configNone = {
         key: imageName,
         frames: this.anims.generateFrameNumbers(imageName, { start: 0, end: 0}),
-        repeat: 1,
-        frameRate: 1
+        repeat: 0,
+        duration: 10000
       }
 
       this.anims.create(configNone);
@@ -233,14 +256,74 @@ export class ObjectScene extends Phaser.Scene {
     this.addLoadedSprites(imageName);
   }
 
-  centerOnHero(heroX, heroY) : void {
-      var centerX = heroX + 36;
-      var centerY = heroY + 36;
+  processDmgMessage(message) {
+    console.log('Dmg Message: ' + message);
+    if(message.sourceid in this.objectList && 
+       message.targetid in this.objectList) {
+      var source = this.objectList[message.sourceid] as GameSprite;
+      var target = this.objectList[message.targetid] as GameSprite;
 
-      var mapScene = this.scene.get('MapScene') as MapScene;
-      mapScene.centerOn(centerX, centerY);
+      console.log('Play attack');
+      source.play(source.imageName + '_attack');
+      source.anims.chain(source.imageName + '_none');
 
-      this.cameras.main.centerOn(centerX, centerY);    
+      var diffX = (target.x - source.x) * 0.5;
+      var diffY = (target.y - source.y) * 0.5;
+
+      var destX = source.x + diffX;
+      var destY = source.y + diffY;
+
+      var tween = this.tweens.add({
+        targets: source,
+        x: destX,
+        y: destY,
+        ease: 'Power2',
+        duration: 750,
+        onComplete: this.onJumpComplete
+      });
+
+      tween.play();
+
+      var dmgText = this.add.text(target.x + 33, target.y - 10, message.dmg, { fontFamily: 'Verdana', fontSize: 24, color: '#FF0000' });
+      dmgText.setDepth(10);
+
+      var textTween = this.tweens.add({
+        targets: dmgText,
+        alpha: 0,
+        ease: 'Power1',
+        duration: 5000,
+        onComplete: this.onDmgTextComplete
+      });
+
+      textTween.play();
+
+      if(message.state == 'dead') {
+        if(message.targetid == Global.heroId) {
+          console.log('Play die followed by dead');
+          target.play(target.imageName + '_die');
+        }
+      }
+    }
   }
 
+  onJumpComplete(tween, targets) {
+    var startX = tween.data[0].start;
+    var startY = tween.data[1].start;
+
+    var returnTween = this.tweens.add({
+        targets: targets[0],
+        x: startX,
+        y: startY,
+        ease: 'Power2',
+        duration: 200
+
+      });
+
+    returnTween.play();
+  }
+
+  onDmgTextComplete(tween, targets){
+    var sprite = targets[0];
+    sprite.destroy();
+  }
 }

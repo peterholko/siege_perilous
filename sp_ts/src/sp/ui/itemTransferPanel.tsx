@@ -15,6 +15,9 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
   constructor(props) {
     super(props);
 
+    Global.selectedItemId = -1;
+    Global.selectedItemOwnerId = -1;
+
     this.state = {
       hideLeftSelect: true,
       hideRightSelect: true
@@ -24,7 +27,7 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
     this.handleItemTransferClick = this.handleItemTransferClick.bind(this);
   }
 
-  handleSelect(eventData) {
+  handleSelect() {
     if(Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
       this.setState({hideLeftSelect: false,
                      hideRightSelect: true});
@@ -36,18 +39,23 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
 
   handleItemTransferClick(event : React.MouseEvent) {
     console.log('Item Transfer Click');
-    var targetId;
+    if(Global.selectedItemId != -1) {
+      var targetId;
 
-    if(Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
-      targetId = this.props.rightInventoryData.id;
-    } else {
-      targetId = this.props.leftInventoryData.id;
+      if(Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
+        targetId = this.props.rightInventoryData.id;
+      } else {
+        targetId = this.props.leftInventoryData.id;
+      }
+      this.setState({hideLeftSelect: true,
+                    hideRightSelect: true});
+
+      Network.sendItemTransfer(targetId, Global.selectedItemId);
+      
+      //Reset Global selected item / owner
+      Global.selectedItemId = -1;
+      Global.selectedItemOwnerId = -1;
     }
-
-    this.setState({hideLeftSelect: true,
-                   hideRightSelect: true});
-
-    Network.sendItemTransfer(targetId, Global.selectedItemId);
   }
 
   render() {

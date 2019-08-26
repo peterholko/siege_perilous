@@ -801,7 +801,7 @@ get_monolith_radius(<<"Monolith">>) -> 1;
 get_monolith_radius(<<"Greater Monolith">>) -> 2.
 
 %%
-%% Internal MongoDB functions
+%% Internal functions
 %%
 
 stats(Id) ->

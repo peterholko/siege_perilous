@@ -110,6 +110,14 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
+  public static sendGetStats(id) {
+    var m = {
+      cmd: "get_stats",
+      id: id
+    };
+    Global.socket.sendMessage(JSON.stringify(m)); 
+  }
+
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
     this.websocket = new WebSocket(url);
@@ -133,7 +141,11 @@ export class Network {
     this.websocket.onmessage = (evt) => {
       var jsonData = JSON.parse(evt.data);
 
-      if(jsonData.packet == "login") {
+      //Check if error message is in the packet
+      if(jsonData.hasOwnProperty('errmsg')) {
+        console.log('Error received: ' + jsonData.errmsg);
+        Global.gameEmitter.emit(NetworkEvent.ERROR, jsonData);
+      } else if(jsonData.packet == "login") {
         console.log("Login successful")
         Global.playerId = jsonData.player;
         Global.gameEmitter.emit(NetworkEvent.LOGGED_IN, {});
@@ -156,8 +168,8 @@ export class Network {
       } else if(jsonData.packet == 'image_def') {
         Global.gameEmitter.emit(NetworkEvent.IMAGE_DEF, jsonData);
       } else if(jsonData.packet == 'stats') {
-        console.log('Network stats received')
-        Global.gameEmitter.emit(NetworkEvent.STATS, jsonData.data);
+        this.processGetStats(jsonData.data);
+        Global.gameEmitter.emit(NetworkEvent.STATS, {});
       } else if(jsonData.packet == "info_unit") {
         Global.gameEmitter.emit(NetworkEvent.INFO_OBJ, jsonData);
       } else if(jsonData.packet == "info_tile") {
@@ -165,19 +177,22 @@ export class Network {
       } else if(jsonData.packet == "info_item") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM, jsonData)
       } else if(jsonData.packet == "info_inventory") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_INVENTORY, jsonData)
+        Global.gameEmitter.emit(NetworkEvent.INFO_INVENTORY, jsonData);
       } else if(jsonData.packet == "info_item_transfer") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_TRANSFER, jsonData)
+        Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_TRANSFER, jsonData);
       } else if(jsonData.packet == "item_transfer") {
-        Global.gameEmitter.emit(NetworkEvent.ITEM_TRANSFER, jsonData)
+        Global.gameEmitter.emit(NetworkEvent.ITEM_TRANSFER, jsonData);
       } else if(jsonData.packet == "info_attrs") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_ATTRS, jsonData)
+        Global.gameEmitter.emit(NetworkEvent.INFO_ATTRS, jsonData);
       } else if(jsonData.packet == "info_skills") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData)
+        Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData);
       } else if(jsonData.packet == "structure_list") {
-        Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData)
+        Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData);
       } else if(jsonData.packet == 'build') {
-        Global.gameEmitter.emit(NetworkEvent.BUILD, jsonData)
+        Global.gameEmitter.emit(NetworkEvent.BUILD, jsonData);
+      } else if(jsonData.packet == 'dmg') {
+        this.processDmg(jsonData);
+        Global.gameEmitter.emit(NetworkEvent.DMG, jsonData);
       }
     }
   }
@@ -199,6 +214,11 @@ export class Network {
         image: obj.image,
         op: 'added'
       };
+
+      if(objectState.subclass == 'hero') {
+        Global.heroId = objectState.id;
+        Network.sendGetStats(Global.heroId);
+      }
 
       Global.objectStates[objectState.id] = objectState; 
     }
@@ -272,7 +292,29 @@ export class Network {
     }
   }
 
+  processGetStats(data) {
+    console.log(data);
+
+    Global.heroHp = data.hp;
+    Global.heroMaxHp = data.base_hp;
+    Global.heroSta = data.stamina;
+    Global.heroMaxSta = data.base_stamina;
+  }
+
   public sendMessage(message : String) {
     this.websocket.send(message);
+  }
+
+  processDmg(data) {
+    if(data.targetid == Global.heroId) {
+
+      if(data.dmg > Global.heroHp) {
+        Global.heroHp = 0;
+      } else {
+        Global.heroHp -= data.dmg;
+      }
+
+      Global.gameEmitter.emit(NetworkEvent.STATS, {});
+   }
   }
 }

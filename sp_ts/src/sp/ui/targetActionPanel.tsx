@@ -14,7 +14,6 @@ import infobutton from "ui_comp/infobutton.png";
 
 import { Util } from "../util";
 import { VILLAGER, DEAD, OBJ, TILE, FOUNDED} from "../config";
-import { Game } from "phaser";
 import { GameEvent } from "../gameEvent";
 
 interface TAProps {

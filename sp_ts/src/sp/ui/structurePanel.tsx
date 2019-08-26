@@ -6,6 +6,7 @@ import deletebutton from "ui_comp/deletebutton.png";
 import { Network } from "../network";
 import { GameEvent } from "../gameEvent";
 import { NetworkEvent } from "../networkEvent";
+import '../ui.css';
 
 interface StructurePanelProps {
   structureData,
@@ -43,7 +44,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
   handleNetworkBuild(message) {
     console.log('Network build');
-    const buildTimeSeconds = Math.floor(message.build_time / 5);
+    const buildTimeSeconds = Math.floor(message.build_time);
 
     this.setState({hideProgress: false,
                    maxProgress: buildTimeSeconds});
@@ -52,9 +53,14 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
   }
 
   startTimer() {
-    this.timer = setInterval(() => this.setState({
-      progress: this.state.progress + 1  
-    }), 1000);
+    this.timer = setInterval(() => {
+      if(this.state.progress >= this.state.maxProgress) {
+        this.stopTimer();
+        Network.sendInfoObj(this.props.structureData.id);        
+      } else {
+        this.setState({progress: this.state.progress + 1});
+      }
+    }, 1000);
   }
 
   stopTimer() {
@@ -152,7 +158,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
             </tr>
             <tr>
               <td>Build Time:</td>
-              <td><progress max="100" value="50"></progress></td>
+              <td>{this.props.structureData.build_time}</td>
             </tr>
             { ! this.state.hideProgress &&
               <tr>

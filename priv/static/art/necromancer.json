@@ -1,0 +1,26 @@
+{
+  "frames": {
+      "width": 72,
+      "height": 72
+  },
+  "animations": {
+      "die": [6],
+      "dead": [6],
+      "casting": {
+          "frames": [3,4,5],
+          "next": "casting",
+          "speed": 750
+      },
+      "attack": {
+          "frames": [0,1],
+          "next": "none",
+          "speed": 500
+      },
+      "none": [6],
+      "moving": {
+          "frames": [6,0],
+          "next": "moving",
+          "speed": 500
+      }
+  }
+}

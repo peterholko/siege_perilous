@@ -6,8 +6,6 @@ import { Global } from "../global";
 import itemframe from "ui_comp/itemframe.png";
 import selectitemborder from "ui_comp/selectitemborder.png";
 import { Util } from "../util";
-import { Network } from "../network";
-import { GameEvent } from "../gameEvent";
 
 interface BaseInventoryProps {
   left : boolean,

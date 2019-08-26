@@ -5,6 +5,7 @@ export const STAT_BAR_WIDTH = 124;
 export const STAT_BAR_HEIGHT = 14;
 
 export const HERO = 'hero';
+export const NPC = 'npc';
 export const VILLAGER = 'villager';
 export const STRUCTURE = 'structure';
 export const DEAD = 'dead';

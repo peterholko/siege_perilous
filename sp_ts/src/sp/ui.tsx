@@ -29,8 +29,12 @@ import buildbutton from "ui/buildbutton.png";
 import explorebutton from "ui/explorebutton.png";
 import gatherbutton from "ui/gatherbutton.png";
 
+import quickattackbutton from "ui/quickattackbutton.png";
+import preciseattackbutton from "ui/preciseattackbutton.png";
+import fierceattackbutton from "ui/fierceattackbutton.png";
+
 import { NetworkEvent } from './networkEvent';
-import { STAT_BAR_WIDTH, STAT_BAR_HEIGHT, TILE, OBJ, HERO, VILLAGER, STRUCTURE } from './config';
+import { STAT_BAR_WIDTH, STAT_BAR_HEIGHT, TILE, OBJ, HERO, VILLAGER, STRUCTURE, NPC} from './config';
 import TargetActionPanel from './ui/targetActionPanel';
 import ItemTransferPanel from './ui/itemTransferPanel';
 import HeroPanel from './ui/heroPanel';
@@ -41,6 +45,7 @@ import TilePanel from './ui/tilePanel';
 import GatherPanel from './ui/gatherPanel';
 import BuildPanel from './ui/buildPanel';
 import StructurePanel from './ui/structurePanel';
+import ErrorPanel from './ui/errorPanel';
 
 interface UIState {
   selectBoxes : [],
@@ -57,6 +62,7 @@ interface UIState {
   hideTilePanel : boolean,
   hideBuildPanel : boolean,
   hideStructurePanel : boolean,
+  hideErrorPanel : boolean,
   leftInventoryId : integer,
   leftInventoryData: [],
   rightInventoryId : integer,
@@ -72,7 +78,8 @@ interface UIState {
   selectedKey: {},
   hpBarWidth : integer,
   staBarWidth : integer,
-  manaBarWidth: integer
+  manaBarWidth: integer,
+  errmsg : string
 }
 
 export default class UI extends React.Component<any, UIState>{
@@ -95,7 +102,8 @@ export default class UI extends React.Component<any, UIState>{
       hideSkillsPanel : true,
       hideTilePanel : true,
       hideBuildPanel : true,
-      hideStructurePanel: true,
+      hideStructurePanel : true,
+      hideErrorPanel : true,
       leftInventoryId: -1,
       leftInventoryData: [],
       rightInventoryId: -1,
@@ -111,7 +119,8 @@ export default class UI extends React.Component<any, UIState>{
       selectedKey: {},
       hpBarWidth: STAT_BAR_WIDTH,
       staBarWidth: STAT_BAR_WIDTH,
-      manaBarWidth: STAT_BAR_WIDTH
+      manaBarWidth: STAT_BAR_WIDTH,
+      errmsg : ''
     }
 
     this.handleMoveClick = this.handleMoveClick.bind(this);
@@ -130,7 +139,9 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(GameEvent.VILLAGER_GATHER_CLICK, this.handleVillagerGatherClick, this);
     Global.gameEmitter.on(GameEvent.RESOURCE_GATHER_CLICK, this.handleResourceGatherClick, this);
     Global.gameEmitter.on(GameEvent.START_BUILD_CLICK, this.handleStartBuildClick, this);
+    Global.gameEmitter.on(GameEvent.ERROR_OK_CLICK, this.handleErrorOkClick, this);
 
+    Global.gameEmitter.on(NetworkEvent.ERROR, this.handleError, this);
     Global.gameEmitter.on(NetworkEvent.STATS, this.handleStats, this);
     Global.gameEmitter.on(NetworkEvent.INFO_OBJ, this.handleInfoObj, this);
     Global.gameEmitter.on(NetworkEvent.INFO_TILE, this.handleInfoTile, this);
@@ -274,6 +285,11 @@ export default class UI extends React.Component<any, UIState>{
 
   handleSelectBoxClick(eventData) {
     console.log('SelectBoxClick');
+    if(eventData.type == OBJ) {
+
+    }
+
+
     this.setState({hideTargetActionPanel: false,
                    selectedKey: eventData})
   }
@@ -302,6 +318,10 @@ export default class UI extends React.Component<any, UIState>{
     } else if(event.panelType == 'structure') {
       this.setState({hideStructurePanel: true});
     }
+  }
+
+  handleErrorOkClick() {
+    this.setState({hideErrorPanel: true});
   }
 
   handleTargetActionPanelClick(event : React.MouseEvent) {
@@ -340,9 +360,14 @@ export default class UI extends React.Component<any, UIState>{
 
   }
 
-  handleStats(message) {
+  handleError(message) {
+    this.setState({hideErrorPanel : false,
+                   errmsg : message.errmsg});
+  }
+
+  handleStats() {
     console.log('UI handleStats');
-    const hpRatio = message.hp / message.maxHp;
+    const hpRatio = Global.heroHp / Global.heroMaxHp;
     const hpBarWidth = hpRatio * STAT_BAR_WIDTH;
 
     this.setState({hpBarWidth: hpBarWidth});
@@ -398,7 +423,9 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleItemTransfer(message) {
-    console.log('UI handleItemTransfer');
+    console.log('UI handleItemTransfer leftId: ' + this.state.leftInventoryId + ' rightId: ' + 
+    this.state.rightInventoryId + ' sourceId: ' + message.sourceid + ' targetId: ' + message.targetid );
+
     var leftInventoryData; 
     var rightInventoryData;
 
@@ -443,7 +470,7 @@ export default class UI extends React.Component<any, UIState>{
   
     const manaBarStyle  = {
       transform: 'translate(97px, 55px)',
-      width: this.state.hpBarWidth + 'px',
+      width: this.state.manaBarWidth + 'px',
       height: STAT_BAR_HEIGHT + 'px',
       zIndex: 4,
       position: 'fixed' 
@@ -485,6 +512,18 @@ export default class UI extends React.Component<any, UIState>{
               id="herogatherbutton" 
               className={styles.herogatherbutton} 
               onClick={this.handleHeroGatherClick} />
+
+          <img src={quickattackbutton} 
+              id="quickattackbutton" 
+              className={styles.quickattackbutton} />
+
+          <img src={preciseattackbutton} 
+              id="preciseattackbutton" 
+              className={styles.preciseattackbutton} />
+          
+          <img src={fierceattackbutton} 
+              id="fierceattackbutton" 
+              className={styles.fierceattackbutton} />
 
           <img src={hero} id="hero" className={styles.hero}/>
 
@@ -534,6 +573,9 @@ export default class UI extends React.Component<any, UIState>{
 
           {!this.state.hideStructurePanel &&
             <StructurePanel structureData={this.state.structureData} />}
+
+          {!this.state.hideErrorPanel && 
+            <ErrorPanel errmsg={this.state.errmsg} />}
       </div>
     );
   }

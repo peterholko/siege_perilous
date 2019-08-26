@@ -43,7 +43,6 @@ message_handle(<<"login">>, Message) ->
     setup:login(Username, Password, self());
 
 message_handle(<<"image_def">>, Message) ->
-    lager:info("Img"),
     RawImageName = m_get(<<"name">>, Message),
     ImageName = re:replace(RawImageName, "[0-9]+", "", [{return, binary}]),
 

@@ -1035,7 +1035,7 @@ process_plan(Villager, Tick) ->
     {PlanLabel, NewPlan} = htn:plan(NewVillager#villager.behavior, 
                                     NewVillager, 
                                     villager),
-    lager:info("NewPlan: ~p CurrentPlan: ~p", [NewPlan, CurrentPlan]),
+    %lager:info("NewPlan: ~p CurrentPlan: ~p", [NewPlan, CurrentPlan]),
     case NewPlan =:= CurrentPlan of
         false ->
             %New plan cancel current event

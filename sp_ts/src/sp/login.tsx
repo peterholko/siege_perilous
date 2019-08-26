@@ -1,6 +1,6 @@
 import React, { Component } from "react";
-import Game from "./Game"
-import UI from "./UI";
+import Game from "./game"
+import UI from "./ui";
 import {LOGIN_ATTEMPT} from './store/gameReducer'
 import store from "./store";
 import { Global } from "./global";

@@ -1,4 +1,5 @@
 export namespace NetworkEvent {
+    export const ERROR : string = 'ERROR';
     export const LOGGED_IN : string = 'LOGGED_IN';
     export const PERCEPTION : string = 'PERCEPTION';
     export const CHANGES : string = 'CHANGES';
@@ -15,4 +16,5 @@ export namespace NetworkEvent {
     export const INFO_SKILLS : string = 'ITEM_SKILLS';
     export const STRUCTURE_LIST : string = 'STRUCTURE_LIST';
     export const BUILD : string = 'BUILD';
+    export const DMG : string = 'DMG';
 }

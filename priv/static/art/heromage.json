@@ -4,12 +4,12 @@
         "height": 72
     },
     "animations": {
-        "die": [0,3,"dead",0.05],
+        "die": [0,3,"none", 1500],
         "dead": [3],
-        "harvesting": [4,9,"harvesting",0.4],
-        "crafting": [4,9,"crafting",0.4],
-        "attack": [4,9, "none", 0.1],
+        "harvesting": [4,9,"harvesting", 1000],
+        "crafting": [4,9,"crafting", 1000],
+        "attack": [4,9, "none", 1000],
         "none": [9],
-        "moving": [8,9, "moving", 0.1]
+        "moving": [8,9, "moving", 500]
     }
 }

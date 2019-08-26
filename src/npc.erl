@@ -619,6 +619,7 @@ process_plan(NPC, Tick) ->
 
     case NewPlan =:= CurrentPlan of
         false ->
+            lager:info("NPC ~p New Plan: ~p", [NewNPC#npc.id, NewPlan]),
             %New plan cancel current event
             game:cancel_event(NewNPC#npc.id),
 
