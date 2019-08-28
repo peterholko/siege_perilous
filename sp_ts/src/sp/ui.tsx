@@ -5,12 +5,10 @@ import { Global } from './global';
 import { ObjectState } from './objectState';
 import { GameEvent } from './gameEvent';
 import { Tile } from './objects/tile';
-import { Obj } from './obj';
 
 import * as React from "react";
 import styles from "./ui.css";
 
-import SelectBox from './ui/selectBox';
 import SingleInventoryPanel from './ui/singleInventoryPanel';
 import ItemPanel from './ui/itemPanel';
 
@@ -33,6 +31,10 @@ import quickattackbutton from "ui/quickattackbutton.png";
 import preciseattackbutton from "ui/preciseattackbutton.png";
 import fierceattackbutton from "ui/fierceattackbutton.png";
 
+import bracebutton from "ui/bracebutton.png";
+import parrybutton from "ui/parrybutton.png";
+import dodgebutton from "ui/dodgebutton.png";
+
 import { NetworkEvent } from './networkEvent';
 import { STAT_BAR_WIDTH, STAT_BAR_HEIGHT, TILE, OBJ, HERO, VILLAGER, STRUCTURE, NPC} from './config';
 import TargetActionPanel from './ui/targetActionPanel';
@@ -46,6 +48,7 @@ import GatherPanel from './ui/gatherPanel';
 import BuildPanel from './ui/buildPanel';
 import StructurePanel from './ui/structurePanel';
 import ErrorPanel from './ui/errorPanel';
+import SelectPanel from './ui/selectPanel';
 
 interface UIState {
   selectBoxes : [],
@@ -75,7 +78,9 @@ interface UIState {
   tileData : any,
   structuresData : any, //Structures list
   structureData : any, //Structure data
-  selectedKey: {},
+  selectedTile : Tile,
+  selectedBoxPos : integer,
+  selectedKey: any,
   hpBarWidth : integer,
   staBarWidth : integer,
   manaBarWidth: integer,
@@ -116,7 +121,9 @@ export default class UI extends React.Component<any, UIState>{
       tileData : {},
       structuresData : {},
       structureData : {},
-      selectedKey: {},
+      selectedTile: null,
+      selectedBoxPos: 0,
+      selectedKey: {type: '', id: -1},
       hpBarWidth: STAT_BAR_WIDTH,
       staBarWidth: STAT_BAR_WIDTH,
       manaBarWidth: STAT_BAR_WIDTH,
@@ -132,8 +139,13 @@ export default class UI extends React.Component<any, UIState>{
     this.handleHeroBuildClick = this.handleHeroBuildClick.bind(this);
     this.handleHeroGatherClick = this.handleHeroGatherClick.bind(this);
 
+    this.handleQuickAttack = this.handleQuickAttack.bind(this);
+    this.handlePreciseAttack = this.handlePreciseAttack.bind(this);
+    this.handleFierceAttack = this.handleFierceAttack.bind(this);
+
     Global.gameEmitter.on(GameEvent.TILE_CLICK, this.handleTileClick, this);
     Global.gameEmitter.on(GameEvent.SELECTBOX_CLICK, this.handleSelectBoxClick, this);
+    Global.gameEmitter.on(GameEvent.SELECT_PANEL_CLICK, this.handleSelectPanelClick, this);
     Global.gameEmitter.on(GameEvent.EXIT_HALFPANEL_CLICK, this.handleExitHalfPanelClick, this);
     Global.gameEmitter.on(GameEvent.TAP_CLICK, this.handleTargetActionPanelClick, this);
     Global.gameEmitter.on(GameEvent.VILLAGER_GATHER_CLICK, this.handleVillagerGatherClick, this);
@@ -202,96 +214,20 @@ export default class UI extends React.Component<any, UIState>{
 
   handleTileClick(gameObject) {
     console.log("gameObject: " + gameObject);
-    const boxes : any = []  // Strange react bug where type wasn't working
-
-    const tile = gameObject as Tile;
-    const objIdsOnTile = Obj.getObjsAt(tile.hexX, tile.hexY);
-
-    //Add terain tile first
-    var tileIndex = tile.hexX + '_' + tile.hexY;
-    var tileState = Global.tileStates[tileIndex];
-    const tiles = [...tileState.tiles]; //Deep copy
-
-    //The default Grass was "above" forest, solved it via sort
-    var tileId = tiles.sort().reverse()[0];
-    var imageName = Global.tileset[tileId].image;
-    var imageStyle;    
-
-    //Manual adjustments
-    if(tileId == 19) { //Forest
-      imageStyle = {
-        top: '9px',
-        right: '6px',
-        width: '75px',
-        height: '75px',
-        position: 'fixed'    
-      } as React.CSSProperties;
-    } else if (tileId == 32) { //Mountain
-      imageStyle = {
-        top: '-5px',
-        right: '2px',
-        width: '90px',
-        position: 'fixed'    
-      } as React.CSSProperties
-    } else {
-      imageStyle = {
-        top: '24px',
-        right: '24px',
-        width: '45px',
-        height: '45px',
-        position: 'fixed'
-      } as React.CSSProperties
-    }
-
-    var style = {
-      top: '10px',
-      right: '10px',
-      position: 'fixed'
-    } as React.CSSProperties
-
-     boxes.push(<SelectBox key={-1} 
-                          selectedKey={{type: TILE, x: tile.hexX, y: tile.hexY}}
-                          imageName={imageName} 
-                          style={style}
-                          imageStyle={imageStyle} />)
-
-    for(var i = 0; i < objIdsOnTile.length; i++) {
-      if(i > 5)
-        break;
-
-      const objId : integer = Number(objIdsOnTile[i]);
-
-      if(Util.isSprite(Global.objectStates[objId].image)) {
-        var imageName = Global.objectStates[objId].image + '_single.png';
-      } else {
-        var imageName = Global.objectStates[objId].image + '.png';
-      }
-
-      var style = {
-        top: '10px',
-        right: 85 + (75 * i) + 'px',
-        position: 'fixed'
-      } as React.CSSProperties
-
-      boxes.push(<SelectBox key={i} 
-                            selectedKey={{type: OBJ, id: objId}}
-                            imageName={imageName}
-                            style={style} />);
-    }
-
-    this.setState({selectBoxes: boxes,
+    this.setState({selectedTile: gameObject,
                    hideTargetActionPanel: true});
   }
 
   handleSelectBoxClick(eventData) {
     console.log('SelectBoxClick');
-    if(eventData.type == OBJ) {
-
-    }
-
 
     this.setState({hideTargetActionPanel: false,
-                   selectedKey: eventData})
+                   selectedBoxPos: eventData.pos,
+                   selectedKey: eventData.selectedKey})
+  }
+
+  handleSelectPanelClick() {
+    this.setState({hideTargetActionPanel: true});
   }
 
   handleExitHalfPanelClick(event) {
@@ -358,6 +294,18 @@ export default class UI extends React.Component<any, UIState>{
 
   handleHeroGatherClick(event: React.MouseEvent) {
 
+  }
+
+  handleQuickAttack(event: React.MouseEvent) {
+    Network.sendAttack('quick', Global.heroId, this.state.selectedKey.id);
+  }
+
+  handlePreciseAttack(event: React.MouseEvent) {
+    Network.sendAttack('precise', Global.heroId, this.state.selectedKey.id);
+  }
+
+  handleFierceAttack(event: React.MouseEvent) {
+    Network.sendAttack('fierce', Global.heroId, this.state.selectedKey.id);
   }
 
   handleError(message) {
@@ -515,15 +463,30 @@ export default class UI extends React.Component<any, UIState>{
 
           <img src={quickattackbutton} 
               id="quickattackbutton" 
-              className={styles.quickattackbutton} />
+              className={styles.quickattackbutton} 
+              onClick={this.handleQuickAttack}/>
 
           <img src={preciseattackbutton} 
               id="preciseattackbutton" 
-              className={styles.preciseattackbutton} />
+              className={styles.preciseattackbutton}
+              onClick={this.handlePreciseAttack}/>
           
           <img src={fierceattackbutton} 
-              id="fierceattackbutton" 
-              className={styles.fierceattackbutton} />
+              id="fierceattackbutton"
+              className={styles.fierceattackbutton}
+              onClick={this.handleFierceAttack}/>
+
+          <img src={bracebutton} 
+              id="bracebutton" 
+              className={styles.bracebutton} />
+
+          <img src={parrybutton} 
+              id="parrybutton" 
+              className={styles.parrybutton} />
+          
+          <img src={dodgebutton} 
+              id="dodgebutton" 
+              className={styles.dodgebutton} />
 
           <img src={hero} id="hero" className={styles.hero}/>
 
@@ -533,10 +496,11 @@ export default class UI extends React.Component<any, UIState>{
                className={styles.movecompass} 
                onClick={this.handleMoveClick}/>
 
-          {this.state.selectBoxes}
+          <SelectPanel selectedTile={this.state.selectedTile} />
 
           {!this.state.hideTargetActionPanel && 
-            <TargetActionPanel selectedKey={this.state.selectedKey}/> }
+            <TargetActionPanel selectedBoxPos={this.state.selectedBoxPos}
+                               selectedKey={this.state.selectedKey}/> }
 
           {!this.state.hideInventoryPanel && 
             <SingleInventoryPanel left={true} 

@@ -1,6 +1,7 @@
 export namespace GameEvent {
     export const TILE_CLICK : string = 'TILE_CLICK';
     export const SELECTBOX_CLICK : string = 'SELECTBOX_CLICK';
+    export const SELECT_PANEL_CLICK : string = 'SELECT_PANEL_CLICK';
     export const EXIT_HALFPANEL_CLICK : string = 'EXIT_HALFPANEL_CLICK';
     export const ERROR_OK_CLICK : string = 'ERROR_OK_CLICK';
     export const TAP_CLICK : string = 'TAP_CLICK';

@@ -54,41 +54,59 @@
 }
 
 #heroexplorebutton {
-  bottom: 10px;
-  left: 50%;
-  margin-left: -150px;
-  position: fixed;
-}
-
-#herobuildbutton {
-  bottom: 10px;
-  left: 50%;
-  margin-left: -100px;
+  transform: translate(60px, 175px);
+  z-index: 1;
   position: fixed;
 }
 
 #herogatherbutton {
-  bottom: 10px;
-  left: 50%;
-  margin-left: -50px;
+  transform: translate(60px, 125px);
+  z-index: 1;
+  position: fixed;
+}
+
+#herobuildbutton {
+  transform: translate(60px, 75px);
+  z-index: 1;
   position: fixed;
 }
 
 #quickattackbutton {
   bottom: 10px;
   left: 50%;
-  margin-left: 20px;
+  margin-left: -150px;
   position: fixed;
 }
 
 #preciseattackbutton {
   bottom: 10px;
   left: 50%;
-  margin-left: 70px;
+  margin-left: -100px;
   position: fixed;
 }
 
 #fierceattackbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -50px;
+  position: fixed;
+}
+
+#bracebutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 20px;
+  position: fixed;
+}
+
+#parrybutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 70px;
+  position: fixed;
+}
+
+#dodgebutton {
   bottom: 10px;
   left: 50%;
   margin-left: 120px;

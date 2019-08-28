@@ -13,10 +13,11 @@ import followbutton from "ui_comp/followbutton.png";
 import infobutton from "ui_comp/infobutton.png";
 
 import { Util } from "../util";
-import { VILLAGER, DEAD, OBJ, TILE, FOUNDED} from "../config";
+import { VILLAGER, DEAD, OBJ, TILE, FOUNDED, BUTTON_WIDTH} from "../config";
 import { GameEvent } from "../gameEvent";
 
 interface TAProps {
+  selectedBoxPos : integer,
   selectedKey : any
 }
 
@@ -94,6 +95,8 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
       follow: 5
     };
 
+    var numButtons = 1;
+
     if(this.props.selectedKey.type == OBJ) {
       if(Util.isPlayerObj(this.props.selectedKey.id)) {
         if(Util.isSubclass(this.props.selectedKey.id, VILLAGER)) {
@@ -103,20 +106,24 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
           hideExploreButton = false;
           hideGatherButton = false;
           hideFollowButton = false;
+          numButtons = 3; //Shortcut because the explore, gather, follow are stacked below
 
         } else if(Util.isState(this.props.selectedKey.id, FOUNDED)) {
           hideInfoButton = false;
           hideTranferButton = false;
+          numButtons = 2;
         } else {
           hideInfoButton = false;
           hideInventoryButton = false;
           hideTranferButton = false;
+          numButtons = 3;
         }
       } else {
         if(Util.isState(this.props.selectedKey.id, DEAD)) {
           hideInfoButton = false;
           hideInventoryButton = false;
           hideTranferButton = false;
+          numButtons = 3;
         } else {
           hideInfoButton = false;
         }
@@ -125,59 +132,59 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
       hideInfoButton = false;
     }
 
+    var panelWidth = numButtons * BUTTON_WIDTH;
+    var panelPos = ((this.props.selectedBoxPos + 1) * 74) + 35 - 37 + panelWidth / 2;
+
     const targetActionPanelStyle = {
-      top: '50%',
-      left: '50%',
-      width: '320px',
-      height: '67px',
-      marginTop: '-33px',
-      marginLeft: '-160px',
+      top: '82px',
+      right:  panelPos + 'px',
       position: 'fixed',
       zIndex: 6
     } as React.CSSProperties
 
     const tapStyle = {
-      position: 'fixed'
+      position: 'fixed',
+      width: '67px',
+      height: '67px'
     } as React.CSSProperties
 
     const infoStyle = {
-      transform: 'translate(8px, 8px)',
+      transform: 'translate(0px, 0px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const inventoryStyle = {
-      transform: 'translate(58px, 8px)',
+      transform: 'translate(50px, 0px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const transferStyle = {
-      transform: 'translate(108px, 8px)',
+      transform: 'translate(100px, 0px)',
       position: 'fixed'  
     } as React.CSSProperties
 
     const statsStyle = {
-      transform: 'translate(158px, 8px)',
+      transform: 'translate(150px, 0px)',
       position: 'fixed'  
     } as React.CSSProperties
 
     const exploreStyle = {
-      transform: 'translate(158px, 8px)',
+      transform: 'translate(0px, 50px)',
       position: 'fixed'  
     } as React.CSSProperties
 
     const gatherStyle = {
-      transform: 'translate(208px, 8px)',
+      transform: 'translate(50px, 50px)',
       position: 'fixed'  
     } as React.CSSProperties
 
     const followStyle = {
-      transform: 'translate(258px, 8px)',
+      transform: 'translate(100px, 50px)',
       position: 'fixed'  
     } as React.CSSProperties
 
     return (
       <div style={targetActionPanelStyle} >
-          <img src={targetactionpanel} style={tapStyle}/>
 
           {!hideInfoButton && 
               <img src={infobutton} 

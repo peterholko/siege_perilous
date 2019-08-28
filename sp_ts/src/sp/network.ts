@@ -118,6 +118,16 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m)); 
   }
 
+  public static sendAttack(attackType, sourceId, targetId) {
+    var m = {
+      cmd: "attack",
+      attacktype: attackType,
+      sourceid: sourceId,
+      targetid: targetId
+    };
+    Global.socket.sendMessage(JSON.stringify(m)); 
+  }
+
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
     this.websocket = new WebSocket(url);
