@@ -1,5 +1,6 @@
 import { ObjectState } from './objectState';
 import { TileState } from './tileState';
+import { MultiImage } from './multiImage';
 
 export class Global {
     public static socket;
@@ -24,6 +25,7 @@ export class Global {
 
     public static tileset = {};
     public static imageDefList = [];
+    public static multiImages : Record<string, MultiImage> = {};
 
     public static selectedItemId = -1;
     public static selectedItemOwnerId = -1;

@@ -373,8 +373,8 @@ update_dead(Id) ->
                          ?VILLAGER -> villager:remove(Obj#obj.id);
                          _ -> nothing
                      end, 
-
-                     Obj#obj {class = ?CORPSE,
+                    %TODO resolve string vs atom for class
+                     Obj#obj {class = ?CORPSE, 
                               state = ?DEAD,
                               vision = 0};
                 structure ->
@@ -385,7 +385,7 @@ update_dead(Id) ->
                               state = dead,
                               vision = 0};
                 _ ->
-                     Obj#obj {state = dead}
+                     Obj#obj {state = ?DEAD}
              end,
 
     %Save object
@@ -857,8 +857,14 @@ info_other(Id) ->
     Items = item:get_by_owner(Id),    
     Effects = effect:get_effects(Id),
 
+    %Temp fix until string vs atom is resolved for class
+    Class = case is_atom(Obj#obj.class) of
+                true -> atom_to_binary(Obj#obj.class, latin1);
+                false -> Obj#obj.class
+            end,    
+
     Info0 = maps:put(<<"id">>, Id, #{}),
-    Info1 = maps:put(<<"class">>, atom_to_binary(Obj#obj.class, latin1), Info0),
+    Info1 = maps:put(<<"class">>, Class, Info0),
     Info2 = maps:put(<<"subclass">>, Obj#obj.subclass, Info1),
     Info3 = maps:put(<<"name">>, Obj#obj.name, Info2),
     Info4 = maps:put(<<"template">>, Obj#obj.template, Info3),

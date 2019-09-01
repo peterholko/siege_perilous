@@ -42,31 +42,31 @@
 }
 
 #heroinventorybutton {
-  transform: translate(10px, 175px);
+  transform: translate(10px, 160px);
   z-index: 1;
   position: fixed;
 }
 
 #heroattrsbutton {
-  transform: translate(10px, 125px);
+  transform: translate(10px, 110px);
   z-index: 1;
   position: fixed;
 }
 
 #heroexplorebutton {
-  transform: translate(60px, 175px);
+  transform: translate(60px, 160px);
   z-index: 1;
   position: fixed;
 }
 
 #herogatherbutton {
-  transform: translate(60px, 125px);
+  transform: translate(60px, 110px);
   z-index: 1;
   position: fixed;
 }
 
 #herobuildbutton {
-  transform: translate(60px, 75px);
+  transform: translate(60px, 210px);
   z-index: 1;
   position: fixed;
 }

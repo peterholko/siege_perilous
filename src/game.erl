@@ -280,7 +280,7 @@ new_player(PlayerId) ->
          end,
 
     %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
-    game:add_event(none, event, F2, none, 10),
+    %game:add_event(none, event, F2, none, 24),
     %game:add_event(none, event, F3, none, 36),
     %game:add_event(none, event, F4, none, 40),
 

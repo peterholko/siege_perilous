@@ -218,6 +218,7 @@ export class Network {
         subclass: obj.subclass,
         template: obj.template,
         state: obj.state,
+        prevstate: obj.state,
         x: obj.x,
         y: obj.y,
         vision: obj.vision,
@@ -265,6 +266,7 @@ export class Network {
           var obj = events[i].obj;
 
           Global.objectStates[obj.id] = obj;
+          Global.objectStates[obj.id].prevstate = obj.state;
           Global.objectStates[obj.id].op = 'added';
           
       } else if(eventType == "obj_update") {
@@ -273,6 +275,7 @@ export class Network {
           var value = events[i].value;
 
           if(attr == 'state') {
+              Global.objectStates[obj_id].prevstate = Global.objectStates[obj_id].state;
               Global.objectStates[obj_id].state = value;
           }
 
@@ -283,12 +286,14 @@ export class Network {
           var src_y = events[i].src_y;      
 
           if(obj.id in Global.objectStates) {
+              Global.objectStates[obj.id].prevstate = Global.objectStates[obj.id].state;
               Global.objectStates[obj.id].state = obj.state;
               Global.objectStates[obj.id].x = obj.x;
               Global.objectStates[obj.id].y = obj.y;
               Global.objectStates[obj.id].op = 'updated';
           } else {
               Global.objectStates[obj.id] = obj;
+              Global.objectStates[obj.id].prevstate = obj.state;
               Global.objectStates[obj.id].eventType = 'obj_move';
               Global.objectStates[obj.id].prevX = src_x;
               Global.objectStates[obj.id].prevY = src_y;

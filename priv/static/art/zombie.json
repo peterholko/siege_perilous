@@ -4,10 +4,22 @@
         "height": 72
     },
     "animations": {
-        "die": [2,5,"dead", 1000],
+        "die": {
+            "frames": [2,3,4,5],
+            "repeat": 0,
+            "speed": 1000
+        },
         "dead": [5],
-        "attack": [1,1, "none", 500],
+        "attack": {
+            "frames": [1],
+            "repeat": 0,
+            "speed": 500
+        },
         "none": [0],
-        "moving": [0,1, "moving", 500]
+        "moving": {
+            "frames": [0,1],
+            "repeat": -1,
+            "speed": 500
+        }
     }
 }

@@ -8,18 +8,18 @@
       "dead": [6],
       "casting": {
           "frames": [3,4,5],
-          "next": "casting",
+          "repeat": -1,
           "speed": 750
       },
       "attack": {
           "frames": [0,1],
-          "next": "none",
+          "repeat": 0,
           "speed": 500
       },
       "none": [6],
       "moving": {
           "frames": [6,0],
-          "next": "moving",
+          "repeat": -1,
           "speed": 500
       }
   }

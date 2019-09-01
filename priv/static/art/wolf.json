@@ -7,14 +7,14 @@
         "die": [0],
         "attack": {
             "frames": [3,2,1],
-            "next": "none",
-            "speed": 0.05
+            "repeat": 0,
+            "speed": 1000
         },
         "none": [0],
         "moving": {
-            "frames": [0,4],
-            "next": "moving",
-            "speed": 0.05
+            "frames": [0,1,2,3,4],
+            "repeat": -1,
+            "speed": 1500
         }
     }
 }

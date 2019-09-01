@@ -11,7 +11,9 @@ import { GameEvent } from '../gameEvent';
 import { MapScene } from './mapScene';
 import { NetworkEvent } from '../networkEvent';
 import { ObjectState } from '../objectState';
+import { MultiImage } from '../multiImage';
 import { Network } from '../network';
+import { HERO, DEAD } from '../config';
 
 export class ObjectScene extends Phaser.Scene {
 
@@ -20,6 +22,7 @@ export class ObjectScene extends Phaser.Scene {
   public objectList = {};
 
   private spriteTasks = [];
+  private containerTasks = [];
 
   constructor() {
     super({
@@ -38,6 +41,7 @@ export class ObjectScene extends Phaser.Scene {
     this.time.addEvent({ delay: 200, callback: this.processRender, callbackScope: this, loop: true });
    
     this.onJumpComplete = this.onJumpComplete.bind(this);
+    this.onMoveComplete = this.onMoveComplete.bind(this);
     this.onDmgTextComplete = this.onDmgTextComplete.bind(this);
 
     Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.setRender, this);
@@ -45,7 +49,8 @@ export class ObjectScene extends Phaser.Scene {
     Global.gameEmitter.on(NetworkEvent.IMAGE_DEF, this.processImageDefMessage, this);
     Global.gameEmitter.on(NetworkEvent.DMG, this.processDmgMessage, this);
     
-    this.load.on('filecomplete', this.loadSpriteSheet, this);
+    this.load.on('filecomplete', this.fileLoadComplete, this);
+    this.load.on('complete', this.loadComplete, this);
 
     this.add.image(100, 100, 'selecthex');
   }
@@ -60,7 +65,24 @@ export class ObjectScene extends Phaser.Scene {
 
       if(Array.isArray(message.data.images)) {
         console.log(message.data.images);
-        //TODO handle stockade type images
+        for(var i = 0; i < message.data.images.length; i++) {
+
+          var multiImage : MultiImage = {
+            imageName : message.data.images[i],
+            width : message.data.frames[i][2],
+            height : message.data.frames[i][3],
+            regX : message.data.frames[i][5],
+            regY : message.data.frames[i][6]
+          }
+
+          Global.multiImages[message.name] = multiImage;
+
+          this.load.image(message.name + i, multiImage.imageName);
+          this.load.start();
+        }
+
+        //Push task        
+        this.containerTasks.push(message.name);
       } else {
         console.log(message.name);
         this.load.spritesheet(message.name, './static/art/' + message.name + '.png',
@@ -114,19 +136,46 @@ export class ObjectScene extends Phaser.Scene {
           } else if(objectState.class == 'structure' && objectState.state == 'none') {
             sprite.setTexture(objectState.image);
           } else {
-            sprite.play(objectState.image + '_' + objectState.state);
+            var animation;
 
-            var tween = this.tweens.add({
-              targets: sprite,
-              x: pixel.x,
-              y: pixel.y,
-              ease: 'Power1',
-              duration: 500
-            });
+            if(objectState.state == DEAD && objectState.prevstate != DEAD) {
+              animation = 'die';
+            } else {
+              animation = objectState.state;
+            }
 
-            tween.play();
+            sprite.play(objectState.image + '_' + animation);
+
+            //Only follow if Hero
+            if(objectState.subclass == HERO) {
+
+              var mapScene = this.scene.get('MapScene') as MapScene;
+              mapScene.cameras.main.startFollow(sprite, true);
+              mapScene.cameras.main.followOffset.x = -36;
+              mapScene.cameras.main.followOffset.y = -36;
+
+              this.cameras.main.startFollow(sprite, true);
+              this.cameras.main.followOffset.x = -36;
+              this.cameras.main.followOffset.y = -36;
+            }
+           
+            //Move completed, add tween to new location
+            if(sprite.x != pixel.x || sprite.y != pixel.y) {
+              var tween = this.tweens.add({
+                targets: sprite,
+                x: pixel.x,
+                y: pixel.y,
+                ease: 'Power1',
+                duration: 500,
+                onComplete: this.onMoveComplete
+              });
+
+              tween.play();
+            }
           }
-
+        } else if(objectState.op == 'deleted') {
+            var sprite = this.objectList[objectState.id] as GameSprite;
+            sprite.destroy();
         }
     }
   }
@@ -160,8 +209,6 @@ export class ObjectScene extends Phaser.Scene {
     if(Util.isSprite(imageName)) {
       var animName = imageName + '_' + objectState.state;
       sprite.anims.play(animName);
-    } else {
-      var animName = imageName;
     }
 
     this.objectList[objectState.id] = sprite;
@@ -170,14 +217,8 @@ export class ObjectScene extends Phaser.Scene {
 
     if(objectState.subclass == 'hero') {
       var mapScene = this.scene.get('MapScene') as MapScene;
-
-      mapScene.cameras.main.startFollow(sprite, true);
-      mapScene.cameras.main.followOffset.x = -36;
-      mapScene.cameras.main.followOffset.y = -36;
-
-      this.cameras.main.startFollow(sprite, true);
-      this.cameras.main.followOffset.x = -36;
-      this.cameras.main.followOffset.y = -36;
+      mapScene.cameras.main.centerOn(sprite.x + 36, sprite.y + 36);
+      this.cameras.main.centerOn(sprite.x + 36, sprite.y + 36);
    }
   }
 
@@ -192,9 +233,9 @@ export class ObjectScene extends Phaser.Scene {
     }
   }
 
-  loadSpriteSheet(key, type, raw) {
+  fileLoadComplete(key, type, raw) {
     var imageName = key;
-    console.log('Loading spritesheet: ' + imageName + ', ' + type);
+    console.log('Loaded file: ' + imageName + ', ' + type);
 
     if(Util.isSprite(imageName)) {
 
@@ -202,31 +243,29 @@ export class ObjectScene extends Phaser.Scene {
 
       for(var animName in animsData) {
         var anim = animsData[animName];
+        var repeat = 0;
+        var duration;
+        var frames;
 
         if(Array.isArray(anim)) {
           if(anim.length > 1) {
             var start = anim[0];
             var end = anim[1];
-            var next = anim[2];
-            var repeat = 0;
 
-            if(animName == next) {
-              repeat = -1;
-            }
+            repeat = anim[2];
+            duration = anim[3];
 
-            var duration : any = anim[3];
-            var frames = this.anims.generateFrameNumbers(imageName, { start: start, end: end});
+            frames = this.anims.generateFrameNumbers(imageName, { start: start, end: end});
 
           } else {
-            var duration : any = 10000;
-            var repeat = 1;
-            var frames = this.anims.generateFrameNumbers(imageName, { start: anim[0], end: anim[0]});
+            duration = 10000;
+            frames = this.anims.generateFrameNumbers(imageName, { start: anim[0], end: anim[0]});
           }
         }
         else if(Array.isArray(anim.frames)) {
-          var duration = anim.speed;
-          var repeat = 1;
-          var frames = this.anims.generateFrameNumbers(imageName, { frames: anim.frames});
+          duration = anim.speed;
+          repeat = anim.repeat;
+          frames = this.anims.generateFrameNumbers(imageName, { frames: anim.frames});
         } else {
           console.log('Should never reach here')
         }
@@ -242,18 +281,16 @@ export class ObjectScene extends Phaser.Scene {
         this.anims.create(config);
       }
     } else {
-      //No animations use case
-      var configNone = {
-        key: imageName,
-        frames: this.anims.generateFrameNumbers(imageName, { start: 0, end: 0}),
-        repeat: 0,
-        duration: 10000
-      }
-
-      this.anims.create(configNone);
+      console.log('No animation')
     }
 
     this.addLoadedSprites(imageName);
+  }
+
+  loadComplete() {
+    for(var i = 0; i < this.containerTasks.length; i++) {
+
+    }
   }
 
   processDmgMessage(message) {
@@ -262,6 +299,14 @@ export class ObjectScene extends Phaser.Scene {
        message.targetid in this.objectList) {
       var source = this.objectList[message.sourceid] as GameSprite;
       var target = this.objectList[message.targetid] as GameSprite;
+
+      if(Global.objectStates[message.sourceid].subclass == HERO) {
+
+        var mapScene = this.scene.get('MapScene') as MapScene;
+        mapScene.cameras.main.stopFollow();
+
+        this.cameras.main.stopFollow();
+      }
 
       console.log('Play attack');
       source.play(source.imageName + '_attack');
@@ -298,10 +343,7 @@ export class ObjectScene extends Phaser.Scene {
       textTween.play();
 
       if(message.state == 'dead') {
-        if(message.targetid == Global.heroId) {
-          console.log('Play die followed by dead');
-          target.play(target.imageName + '_die');
-        }
+        target.play(target.imageName + '_die');
       }
     }
   }
@@ -315,15 +357,32 @@ export class ObjectScene extends Phaser.Scene {
         x: startX,
         y: startY,
         ease: 'Power2',
-        duration: 200
-
+        duration: 200,
       });
 
     returnTween.play();
   }
 
+  onMoveComplete(tween, targets) {
+    var sprite = targets[0]
+
+    if(Global.objectStates[sprite.id].subclass == HERO) {
+
+      var mapScene = this.scene.get('MapScene') as MapScene;
+      mapScene.cameras.main.stopFollow();
+      this.cameras.main.stopFollow();
+    }
+  }
+
   onDmgTextComplete(tween, targets){
     var sprite = targets[0];
     sprite.destroy();
+  }
+
+  isContainer(imageName) : boolean {
+    //Strip numbers
+    var name = imageName.replace(/[0-9]/g, '');
+
+    return (this.containerTasks.includes(name));
   }
 }

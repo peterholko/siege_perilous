@@ -6,6 +6,7 @@ export interface ObjectState {
     subclass : string;
     template : string;
     state : string;
+    prevstate : string;
     x : integer;
     y : integer;
     prevX? : integer;
