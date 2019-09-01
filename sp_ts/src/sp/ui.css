@@ -11,8 +11,8 @@
 }
 
 #movecompass {
-  left: 5px;
-  bottom: 5px;
+  left: 0px;
+  bottom: 0px;
   z-index: 1;
   position: fixed;
 }
@@ -66,7 +66,7 @@
 }
 
 #herobuildbutton {
-  transform: translate(60px, 210px);
+  transform: translate(110px, 110px);
   z-index: 1;
   position: fixed;
 }
