@@ -1,4 +1,5 @@
 import { Global } from './global';
+import { SPRITE, CONTAINER, IMAGE } from './config';
 
 export class Util {
 
@@ -117,11 +118,36 @@ export class Util {
     }
   }
 
+  static getImageType(imageName: string) : string { 
+    if(imageName in Global.imageDefList) {
+      if('animations' in Global.imageDefList[imageName]) {
+        return SPRITE;
+      } else if('images' in Global.imageDefList[imageName]) {
+        return CONTAINER;
+      } else {
+        return IMAGE;
+      }
+    }
+  }
+
   static isSprite(imageName) : Boolean {
     if(imageName in Global.imageDefList) {
       return 'animations' in Global.imageDefList[imageName];
     } else {
       return false;
+    }
+  }
+
+  static isImage(imageName) : Boolean {
+    if(imageName in Global.imageDefList) {
+      return !('animations' in Global.imageDefList[imageName]);
+    }
+  }
+
+  static isContainer(imageName) : Boolean {
+    if(imageName in Global.imageDefList) {
+      //More than 1 image requires a container
+      return Global.imageDefList[imageName].images.length > 1;
     }
   }
 

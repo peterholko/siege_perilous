@@ -59,6 +59,10 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
   }
 
   render() {
+
+    console.log('this.props.leftInventoryData.id: ' + this.props.leftInventoryData.id);
+    console.log('this.props.rightInventoryData.id: ' + this.props.rightInventoryData.id);
+
     const transferStyle = {
       top: '50%',
       left: '50%',

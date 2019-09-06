@@ -24,7 +24,7 @@ export class Global {
     public static tileStates : Record<string, TileState> = {};
 
     public static tileset = {};
-    public static imageDefList = [];
+    public static imageDefList = {};
     public static multiImages : Record<string, MultiImage> = {};
 
     public static selectedItemId = -1;

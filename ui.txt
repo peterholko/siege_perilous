@@ -116,3 +116,14 @@ merged: true
 packet: "info_item_transfer"
 sourceid: 20
 sourceitemid: 21
+
+
+
+
+
+destid: 7
+item: {class: "Wood", equip: "false", id: 14, name: "Cragroot Maple Wood", owner: 7, …}
+merged: false
+packet: "info_item_transfer"
+sourceid: 20
+sourceitemid: 14

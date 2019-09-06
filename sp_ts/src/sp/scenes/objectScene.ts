@@ -13,7 +13,9 @@ import { NetworkEvent } from '../networkEvent';
 import { ObjectState } from '../objectState';
 import { MultiImage } from '../multiImage';
 import { Network } from '../network';
-import { HERO, DEAD } from '../config';
+import { HERO, DEAD, SPRITE, CONTAINER, IMAGE, FOUNDED, WALL } from '../config';
+import { GameImage } from '../objects/gameImage';
+import { GameContainer } from '../objects/gameContainer';
 
 export class ObjectScene extends Phaser.Scene {
 
@@ -21,8 +23,12 @@ export class ObjectScene extends Phaser.Scene {
 
   public objectList = {};
 
-  private spriteTasks = [];
+  private imageDefTasks = [];
   private containerTasks = [];
+
+  private wallList: Array<ObjectState> = [];
+
+  private multiImages: Record<string, Array<MultiImage>> = {};
 
   constructor() {
     super({
@@ -52,7 +58,7 @@ export class ObjectScene extends Phaser.Scene {
     this.load.on('filecomplete', this.fileLoadComplete, this);
     this.load.on('complete', this.loadComplete, this);
 
-    this.add.image(100, 100, 'selecthex');
+    //this.add.image(100, 100, 'selecthex');
   }
 
   processImageDefMessage(message) {
@@ -61,28 +67,36 @@ export class ObjectScene extends Phaser.Scene {
     if(message.result != '404') {
       console.log(message.name);
       console.log(message.data);
-      Global.imageDefList[message.name] = message.data;
 
       if(Array.isArray(message.data.images)) {
         console.log(message.data.images);
-        for(var i = 0; i < message.data.images.length; i++) {
 
-          var multiImage : MultiImage = {
-            imageName : message.data.images[i],
-            width : message.data.frames[i][2],
-            height : message.data.frames[i][3],
-            regX : message.data.frames[i][5],
-            regY : message.data.frames[i][6]
+        //Check if already loaded
+        if(!(message.name in Global.imageDefList)) {
+
+          for(var i = 0; i < message.data.images.length; i++) {
+
+            var multiImage : MultiImage = {
+              key : message.name + i,
+              imageName : message.data.images[i],
+              width : message.data.frames[i][2],
+              height : message.data.frames[i][3],
+              regX : message.data.frames[i][5],
+              regY : message.data.frames[i][6]
+            }
+
+            if(!this.multiImages.hasOwnProperty(message.name)) {
+              this.multiImages[message.name] = new Array();
+            }
+
+            this.multiImages[message.name].push(multiImage);
+
+            this.load.image(message.name + i, multiImage.imageName);
+            this.load.start();
           }
-
-          Global.multiImages[message.name] = multiImage;
-
-          this.load.image(message.name + i, multiImage.imageName);
-          this.load.start();
+          
+          this.containerTasks.push(message.name);
         }
-
-        //Push task        
-        this.containerTasks.push(message.name);
       } else {
         console.log(message.name);
         this.load.spritesheet(message.name, './static/art/' + message.name + '.png',
@@ -90,6 +104,8 @@ export class ObjectScene extends Phaser.Scene {
                                 frameHeight: message.data.frames.height})
         this.load.start();
       }
+
+      Global.imageDefList[message.name] = message.data;
     }
   }
 
@@ -113,82 +129,178 @@ export class ObjectScene extends Phaser.Scene {
         if(objectState.op == 'added') {
           console.log('Object Added');
 
-          if(this.textures.exists(objectState.image)) {
-            this.addSprite(objectState);
+          if(Global.imageDefList.hasOwnProperty(objectState.image)) {
+            const imageType = Util.getImageType(objectState.image);
+
+            if(imageType == SPRITE) {
+              this.addSprite(objectState);
+            } else if(imageType == IMAGE) {
+              this.addImage(objectState);
+            } else if (imageType == CONTAINER) {
+              this.addContainer(objectState);
+            }
           } else {
             var getImage = '{"cmd": "image_def", "name": "' + objectState.image + '"}';
             Global.socket.sendMessage(getImage);
-            console.log(getImage);
-
-            this.spriteTasks.push(objectState);
+            
+            this.imageDefTasks.push(objectState);
           }
-
         }
         else if(objectState.op == 'updated') {
           console.log('Object Updated');
-          var sprite = this.objectList[objectState.id] as GameSprite;
-          var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
+          const imageType = Util.getImageType(objectState.image);
 
-          if(objectState.state == 'moving') {
-            sprite.play(objectState.image + '_moving');  
-            sprite.x = pixel.x;
-            sprite.y = pixel.y;
-          } else if(objectState.class == 'structure' && objectState.state == 'none') {
-            sprite.setTexture(objectState.image);
-          } else {
-            var animation;
+          if(imageType == IMAGE) {
+            this.updateImage(objectState);
+          } else if(imageType == SPRITE) {
+            this.updateSprite(objectState);
+          } else if(imageType == CONTAINER) {
+            this.updateContainer(objectState);
+          }
 
-            if(objectState.state == DEAD && objectState.prevstate != DEAD) {
-              animation = 'die';
-            } else {
-              animation = objectState.state;
-            }
+       } else if(objectState.op == 'deleted') {
+            var obj = this.objectList[objectState.id];
+            obj.destroy();
+        }
+    }
 
-            sprite.play(objectState.image + '_' + animation);
+    //Call processWall here for loaded wall images
+    this.processWallList()
+  }
 
-            //Only follow if Hero
-            if(objectState.subclass == HERO) {
+  processWallList() {
+    //Hide overlapping containers images
+    for(var wallKey in this.wallList) {
+      var wall = this.wallList[wallKey];
+      var neighbours = Util.getNeighbours(wall.x, wall.y);
 
-              var mapScene = this.scene.get('MapScene') as MapScene;
-              mapScene.cameras.main.startFollow(sprite, true);
-              mapScene.cameras.main.followOffset.x = -36;
-              mapScene.cameras.main.followOffset.y = -36;
+      for(var neighbourId in neighbours) {
+        var neighbour = neighbours[neighbourId];
 
-              this.cameras.main.startFollow(sprite, true);
-              this.cameras.main.followOffset.x = -36;
-              this.cameras.main.followOffset.y = -36;
-            }
-           
-            //Move completed, add tween to new location
-            if(sprite.x != pixel.x || sprite.y != pixel.y) {
-              var tween = this.tweens.add({
-                targets: sprite,
-                x: pixel.x,
-                y: pixel.y,
-                ease: 'Power1',
-                duration: 500,
-                onComplete: this.onMoveComplete
-              });
+        for(var otherId in this.wallList) {
+          var other = this.wallList[otherId];
 
-              tween.play();
+          if((neighbour.q == other.x) && (neighbour.r == other.y)) {
+            var container = this.objectList[wall.id] as GameContainer;
+
+            if(neighbour.d == 'nw') {
+              (container.getAt(2) as Phaser.GameObjects.Image).setVisible(false);
+              (container.getAt(4) as Phaser.GameObjects.Image).setVisible(false);
+            } else if(neighbour.d == 'ne') {
+              (container.getAt(3) as Phaser.GameObjects.Image).setVisible(false);
+              (container.getAt(5) as Phaser.GameObjects.Image).setVisible(false);
+            } else if(neighbour.d == 'n') {
+              (container.getAt(0) as Phaser.GameObjects.Image).setVisible(false);
+              (container.getAt(1) as Phaser.GameObjects.Image).setVisible(false);
+              (container.getAt(4) as Phaser.GameObjects.Image).setVisible(false);
+              (container.getAt(5) as Phaser.GameObjects.Image).setVisible(false);
+            } else if(neighbour.d == 's') {
+              (container.getAt(8) as Phaser.GameObjects.Image).setVisible(false);
+              (container.getAt(9) as Phaser.GameObjects.Image).setVisible(false);
+            } else if(neighbour.d == 'sw') {
+              (container.getAt(6) as Phaser.GameObjects.Image).setVisible(false);
+            } else if(neighbour.d == 'se') {
+              (container.getAt(7) as Phaser.GameObjects.Image).setVisible(false);
             }
           }
-        } else if(objectState.op == 'deleted') {
-            var sprite = this.objectList[objectState.id] as GameSprite;
-            sprite.destroy();
         }
+      }
+    }
+  }
+
+  updateImage(objectState: ObjectState) {
+    var image = this.objectList[objectState.id] as GameImage;
+    var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
+
+    //Structure construction complete
+    if(objectState.state == 'none') {
+      if(objectState.image != image.imageName) {
+        image.setTexture(objectState.image);
+      }
+    }
+
+    image.x = pixel.x;
+    image.y = pixel.y;
+  }
+
+  updateSprite(objectState: ObjectState) {
+    var sprite = this.objectList[objectState.id] as GameSprite;
+    var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
+
+    if(objectState.state == 'moving') {
+      sprite.play(objectState.image + '_moving');  
+      sprite.x = pixel.x;
+      sprite.y = pixel.y;
+    } else {
+      var animation;
+
+      if(objectState.state == DEAD && objectState.prevstate != DEAD) {
+        animation = 'die';
+      } else {
+        animation = objectState.state;
+      }
+
+      sprite.play(objectState.image + '_' + animation);
+
+      //Only follow if Hero
+      if(objectState.subclass == HERO) {
+
+        var mapScene = this.scene.get('MapScene') as MapScene;
+        mapScene.cameras.main.startFollow(sprite, true);
+        mapScene.cameras.main.followOffset.x = -36;
+        mapScene.cameras.main.followOffset.y = -36;
+
+        this.cameras.main.startFollow(sprite, true);
+        this.cameras.main.followOffset.x = -36;
+        this.cameras.main.followOffset.y = -36;
+      }
+      
+      //Move completed, add tween to new location
+      if(sprite.x != pixel.x || sprite.y != pixel.y) {
+        var tween = this.tweens.add({
+          targets: sprite,
+          x: pixel.x,
+          y: pixel.y,
+          ease: 'Power1',
+          duration: 500,
+          onComplete: this.onMoveComplete
+        });
+
+        tween.play();
+      }
+    }
+  }
+
+  updateContainer(objectState: ObjectState) {
+
+    //Structure construction complete
+    if(objectState.state == 'none') {
+      var multiImageList = this.multiImages[objectState.image];
+      var container = this.objectList[objectState.id] as GameContainer;
+      container.removeAll();
+      
+      for(var i = 0; i < multiImageList.length; i++) {
+        var multiImage = multiImageList[i] as MultiImage;
+
+        var image = new GameImage({
+          scene: this,
+          x: -1 * multiImage.regX,
+          y: -1 * multiImage.regY,
+          id: objectState.id,
+          imageName: multiImage.key
+        });
+        container.add(image);
+      }
+
+      if(objectState.subclass == WALL) {
+       this.wallList.push(objectState);
+      }
     }
   }
 
   addSprite(objectState : ObjectState) {
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
-    var imageName = '';
-
-    if(objectState.class == 'structure' && objectState.state == 'founded') {
-      imageName = 'foundation';
-    } else {
-      imageName = objectState.image;
-    }
+    var imageName = objectState.image;
 
     var sprite = new GameSprite({
       scene: this,
@@ -197,23 +309,15 @@ export class ObjectScene extends Phaser.Scene {
       id: objectState.id,
       imageName: imageName
     });
-  
-    if(objectState.class == 'structure') {
-      sprite.setDepth(1);
-    } else {
-      sprite.setDepth(2);
-    }
+ 
+    sprite.setDepth(2);
 
     this.add.existing(sprite);
 
-    if(Util.isSprite(imageName)) {
-      var animName = imageName + '_' + objectState.state;
-      sprite.anims.play(animName);
-    }
+    var animName = objectState.image + '_' + objectState.state;
+    sprite.anims.play(animName);
 
     this.objectList[objectState.id] = sprite;
-
-    console.log(sprite);
 
     if(objectState.subclass == 'hero') {
       var mapScene = this.scene.get('MapScene') as MapScene;
@@ -223,74 +327,190 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   addLoadedSprites(imageName) {
-    console.log('addLoadedSprites: ');
-    var spritesToAdd = this.spriteTasks.filter(obj => obj.image === imageName);
+    var spritesToAdd = this.imageDefTasks.filter(obj => obj.image === imageName);
 
     for(var i = 0; i < spritesToAdd.length; i++) {
       var spriteObj = spritesToAdd[i];
-      console.log(spriteObj);
       this.addSprite(spriteObj);
     }
   }
 
-  fileLoadComplete(key, type, raw) {
-    var imageName = key;
-    console.log('Loaded file: ' + imageName + ', ' + type);
+  createSpriteAnimation(imageName) {
+    var animsData = Global.imageDefList[imageName].animations;
 
-    if(Util.isSprite(imageName)) {
+    for(var animName in animsData) {
+      var anim = animsData[animName];
+      var repeat = 0;
+      var duration;
+      var frames;
 
-      var animsData = Global.imageDefList[imageName].animations;
+      if(Array.isArray(anim)) {
+        if(anim.length > 1) {
+          var start = anim[0];
+          var end = anim[1];
 
-      for(var animName in animsData) {
-        var anim = animsData[animName];
-        var repeat = 0;
-        var duration;
-        var frames;
+          repeat = anim[2];
+          duration = anim[3];
 
-        if(Array.isArray(anim)) {
-          if(anim.length > 1) {
-            var start = anim[0];
-            var end = anim[1];
+          frames = this.anims.generateFrameNumbers(imageName, { start: start, end: end});
 
-            repeat = anim[2];
-            duration = anim[3];
-
-            frames = this.anims.generateFrameNumbers(imageName, { start: start, end: end});
-
-          } else {
-            duration = 10000;
-            frames = this.anims.generateFrameNumbers(imageName, { start: anim[0], end: anim[0]});
-          }
-        }
-        else if(Array.isArray(anim.frames)) {
-          duration = anim.speed;
-          repeat = anim.repeat;
-          frames = this.anims.generateFrameNumbers(imageName, { frames: anim.frames});
         } else {
-          console.log('Should never reach here')
+          duration = 10000;
+          frames = this.anims.generateFrameNumbers(imageName, { start: anim[0], end: anim[0]});
         }
-
-        var config = {
-          key: imageName + '_' + animName,
-          frames: frames,
-          repeat: repeat,
-          duration: duration
-        };
-        
-        console.log(config);
-        this.anims.create(config);
       }
+      else if(Array.isArray(anim.frames)) {
+        duration = anim.speed;
+        repeat = anim.repeat;
+        frames = this.anims.generateFrameNumbers(imageName, { frames: anim.frames});
+      } else {
+        console.log('Should never reach here')
+      }
+
+      var config = {
+        key: imageName + '_' + animName,
+        frames: frames,
+        repeat: repeat,
+        duration: duration
+      };
+      
+      console.log(config);
+      this.anims.create(config);
+    }
+  }
+
+  addImage(objectState : ObjectState) {
+    var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
+    var imageName = '';
+
+    if(objectState.state == FOUNDED) {
+      imageName = 'foundation';
     } else {
-      console.log('No animation')
+      imageName = objectState.image;
     }
 
-    this.addLoadedSprites(imageName);
+    var image = new GameImage({
+      scene: this,
+      x: pixel.x,
+      y: pixel.y,
+      id: objectState.id,
+      imageName: imageName
+    });
+  
+    if(objectState.class == 'structure') {
+      image.setDepth(1);
+    } else {
+      image.setDepth(2);
+    }
+
+    this.add.existing(image);
+
+    this.objectList[objectState.id] = image;
+  }
+
+  addLoadedImages(imageName) {
+    var imagesToAdd = this.imageDefTasks.filter(obj => obj.image === imageName);
+
+    for(var i = 0; i < imagesToAdd.length; i++) {
+      var imageObj = imagesToAdd[i];
+      this.addImage(imageObj);
+    }
+  }
+
+  addContainer(objectState : ObjectState) {
+    var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
+
+    var container = new GameContainer({
+        scene: this,
+        x: pixel.x,
+        y: pixel.y,
+        id: objectState.id,
+        containerName: objectState.image
+    });
+
+    if(objectState.class == 'structure') {
+      container.setDepth(1);
+    } else {
+      container.setDepth(2);
+    }
+
+    this.add.existing(container);
+
+    this.objectList[objectState.id] = container;
+
+    if(objectState.state == FOUNDED) {
+      var image = new GameImage({
+        scene: this,
+        x: 0,
+        y: 0,
+        id: objectState.id,
+        imageName: "foundation"
+      });
+
+      container.add(image);
+    } else {
+
+      var multiImageList = this.multiImages[objectState.image];
+
+      for(var i = 0; i < multiImageList.length; i++) {
+        var multiImage = multiImageList[i] as MultiImage;
+
+        var image = new GameImage({
+          scene: this,
+          x: -1 * multiImage.regX,
+          y: -1 * multiImage.regY,
+          id: objectState.id,
+          imageName: multiImage.key
+        });
+        container.add(image);
+      }
+
+      if(objectState.subclass == WALL) {
+       this.wallList.push(objectState);
+      } 
+    }
+ }
+
+  addLoadedContainerImages(imageName) {
+    var containersToAdd = this.imageDefTasks.filter(obj => obj.image === imageName);
+
+    for(var i = 0; i < containersToAdd.length; i++) {
+      var containerObj = containersToAdd[i];
+      this.addContainer(containerObj);
+    }
+  }
+
+  fileLoadComplete(key, type, raw) {
+    console.log('Loaded file: ' + key + ', ' + type);
+    var imageName = key;
+    var imageType = Util.getImageType(imageName);
+
+    if(imageType == SPRITE) {
+      this.createSpriteAnimation(imageName);
+      this.addLoadedSprites(imageName);
+    } else if(imageType == IMAGE) {
+      this.addLoadedImages(imageName);
+    } else if(imageType == CONTAINER) {
+      //this.addLoadedContainers(imageName);
+    }
+
   }
 
   loadComplete() {
+    console.log('loadComplete')
     for(var i = 0; i < this.containerTasks.length; i++) {
+      var containerName = this.containerTasks[i];
 
+      var containersToAdd = this.imageDefTasks.filter(obj => obj.image === containerName);
+
+      for(var j = 0; j < containersToAdd.length; j++) {
+        var objState = containersToAdd[j] as ObjectState;
+        this.addContainer(objState);
+      }
     }
+
+    //Call process wall for images finished loading
+    this.processWallList();
   }
 
   processDmgMessage(message) {
@@ -298,13 +518,12 @@ export class ObjectScene extends Phaser.Scene {
     if(message.sourceid in this.objectList && 
        message.targetid in this.objectList) {
       var source = this.objectList[message.sourceid] as GameSprite;
-      var target = this.objectList[message.targetid] as GameSprite;
+      var target = this.objectList[message.targetid];
 
       if(Global.objectStates[message.sourceid].subclass == HERO) {
 
         var mapScene = this.scene.get('MapScene') as MapScene;
         mapScene.cameras.main.stopFollow();
-
         this.cameras.main.stopFollow();
       }
 
@@ -342,6 +561,7 @@ export class ObjectScene extends Phaser.Scene {
 
       textTween.play();
 
+      //TODO Check subclass 
       if(message.state == 'dead') {
         target.play(target.imageName + '_die');
       }
@@ -349,13 +569,13 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   onJumpComplete(tween, targets) {
-    var startX = tween.data[0].start;
-    var startY = tween.data[1].start;
+    var objectState = Global.objectStates[targets[0].id];
+    var origin = Util.hex_to_pixel(objectState.x, objectState.y); 
 
     var returnTween = this.tweens.add({
         targets: targets[0],
-        x: startX,
-        y: startY,
+        x: origin.x,
+        y: origin.y,
         ease: 'Power2',
         duration: 200,
       });
@@ -379,10 +599,4 @@ export class ObjectScene extends Phaser.Scene {
     sprite.destroy();
   }
 
-  isContainer(imageName) : boolean {
-    //Strip numbers
-    var name = imageName.replace(/[0-9]/g, '');
-
-    return (this.containerTasks.includes(name));
-  }
 }

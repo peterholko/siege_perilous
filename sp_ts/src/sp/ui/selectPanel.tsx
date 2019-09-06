@@ -46,7 +46,7 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
 
     const boxes = [];
     const tile = this.props.selectedTile as Tile;
-    const objIdsOnTile = Obj.getObjsAt(tile.hexX, tile.hexY);
+    var objIdsOnTile = Obj.getObjsAt(tile.hexX, tile.hexY);
 
     var hideLeftButton = true;
     var hideRightButton = true;
@@ -96,8 +96,12 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
 
     var maxIndex = (Math.floor(this.state.startIndex / MAX_SELECT_BOXES) + 1) * MAX_SELECT_BOXES;
 
+    //Add a fake object to represent the tile
+    objIdsOnTile.unshift(-1); 
+
     //Draw tile only if startIndex == 0
     if(this.state.startIndex == 0) {
+
       boxes.push(<SelectBox key={-1}
                             pos={0}
                             selectedKey={{type: TILE, x: tile.hexX, y: tile.hexY}}
@@ -105,11 +109,9 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
                             style={style}
                             imageStyle={imageStyle} />)
       
-      //Remove one from maxIndex due to tile selectBox
-      maxIndex--;
-
       //Increment selectBoxPos due to tile
       selectBoxPos++;
+
     }
 
 
@@ -129,6 +131,11 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
     for(var i = this.state.startIndex; i < maxIndex; i++) {
       const objId : integer = Number(objIdsOnTile[i]);
 
+      if(objId == -1) {
+        //Skip the fake object that represents the tile
+        continue
+      }
+
       if(Util.isSprite(Global.objectStates[objId].image)) {
         var imageName = Global.objectStates[objId].image + '_single.png';
       } else {
@@ -136,10 +143,6 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
       }
 
       var rightPos = i % MAX_SELECT_BOXES;
-
-      if(this.state.startIndex == 0) {
-        rightPos++;
-      }
 
       var style = {
         top: '10px',

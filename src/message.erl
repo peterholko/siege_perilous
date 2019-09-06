@@ -490,8 +490,8 @@ prepare(info_effect_update, Message) ->
 prepare(info_item_update, Message) ->
     maps:put(<<"packet">>, <<"info_item_update">>, Message);
 
-prepare(info_item_transfer, Message) ->
-    maps:put(<<"packet">>, <<"info_item_transfer">>, Message);
+prepare(item_transfer_result, Message) ->
+    maps:put(<<"packet">>, <<"item_transfer_result">>, Message);
 
 prepare(villager_change, Message) ->
     maps:put(<<"packet">>, <<"villager_change">>, Message);

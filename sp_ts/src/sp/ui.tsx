@@ -352,6 +352,9 @@ export default class UI extends React.Component<any, UIState>{
 
   handleInfoItemTransfer(message) {
     console.log('UI handleInfoItemTransfer');
+    console.log(message);
+    console.log('leftInventoryData.id: ' + message.sourceitems.id);
+    console.log('rightInventoryData.id: ' + message.targetitems.id);
 
     this.setState({hideItemTransferPanel: false,
                    leftInventoryId: message.sourceid, 

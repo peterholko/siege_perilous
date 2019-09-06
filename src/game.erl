@@ -134,7 +134,7 @@ send_item_transfer(SourceOwnerId, DestOwnerId, SourceItemId, Item, Merged) ->
 
             %TODO item transfer right now can only be between same player objs 
             [Conn] = db:read(connection, obj:player(DestOwnerObj)),
-            message:send_to_process(Conn#connection.process, info_item_transfer, Message);
+            message:send_to_process(Conn#connection.process, item_transfer_result, Message);
         false ->
             nothing
     end.
@@ -279,7 +279,7 @@ new_player(PlayerId) ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
          end,
 
-    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
     %game:add_event(none, event, F2, none, 24),
     %game:add_event(none, event, F3, none, 36),
     %game:add_event(none, event, F4, none, 40),

@@ -33,6 +33,11 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     Global.gameEmitter.on(NetworkEvent.BUILD, this.handleNetworkBuild, this);
   }
 
+  componentWillUnmount() {
+    this.stopTimer();
+    Global.gameEmitter.removeListener(NetworkEvent.BUILD, this.handleNetworkBuild);
+  }
+
   handleBuildClick() {
     Network.sendBuild(Global.heroId, this.props.structureData.id);
     //Global.gameEmitter.emit(GameEvent.START_BUILD_CLICK, {});
