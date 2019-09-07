@@ -54,6 +54,7 @@ export class ObjectScene extends Phaser.Scene {
     Global.gameEmitter.on(NetworkEvent.CHANGES, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.IMAGE_DEF, this.processImageDefMessage, this);
     Global.gameEmitter.on(NetworkEvent.DMG, this.processDmgMessage, this);
+    Global.gameEmitter.on(NetworkEvent.SPEECH, this.processSpeech, this);
     
     this.load.on('filecomplete', this.fileLoadComplete, this);
     this.load.on('complete', this.loadComplete, this);
@@ -548,8 +549,9 @@ export class ObjectScene extends Phaser.Scene {
 
       tween.play();
 
-      var dmgText = this.add.text(target.x + 33, target.y - 10, message.dmg, { fontFamily: 'Verdana', fontSize: 24, color: '#FF0000' });
+      var dmgText = this.add.text(target.x + 36, target.y - 5, message.dmg, { fontFamily: 'Verdana', fontSize: 24, color: '#FF0000' });
       dmgText.setDepth(10);
+      dmgText.setOrigin(0.5, 0.5);
 
       var textTween = this.tweens.add({
         targets: dmgText,
@@ -563,6 +565,9 @@ export class ObjectScene extends Phaser.Scene {
 
       //TODO Check subclass 
       if(message.state == 'dead') {
+        //Set object state to dead because an update is not sent to save on messages
+        Global.objectStates[message.targetid].state = DEAD;
+
         target.play(target.imageName + '_die');
       }
     }
@@ -595,8 +600,49 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   onDmgTextComplete(tween, targets){
-    var sprite = targets[0];
-    sprite.destroy();
+    targets[0].destroy();
+  }
+
+  processSpeech(message) {
+    var objectState = Global.objectStates[message.source];
+    var source = Util.hex_to_pixel(objectState.x, objectState.y);
+    var graphics = this.add.graphics()
+    var container = this.add.container(source.x - 24, source.y - 20);
+
+    var speechText = this.add.text(60, 20, message.text, { fontFamily: 'Alegreya', fontSize: 14, color: '#FFFFFF' });
+    speechText.setWordWrapWidth(120);
+    speechText.setOrigin(0.5, 0.5);
+    speechText.setAlign('center');
+
+    container.add(graphics);
+    container.add(speechText);
+    container.setDepth(20);
+
+    graphics.fillStyle(0x000000, 0.50);
+    graphics.fillRoundedRect(0, 
+                             0,
+                             120,
+                             40,
+                             5);
+
+    if(message.text.length < 5) {
+      graphics.setVisible(false);
+    }
+
+    var textTween = this.tweens.add({
+      targets: container,
+      alpha: 0,
+      ease: 'Power1',
+      delay: 5000,
+      duration: 5000,
+      onComplete: this.onSpeechComplete
+    });
+
+    textTween.play();
+  }
+
+  onSpeechComplete(tween, targets) {
+    targets[0].destroy();
   }
 
 }

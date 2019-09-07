@@ -203,6 +203,8 @@ export class Network {
       } else if(jsonData.packet == 'dmg') {
         this.processDmg(jsonData);
         Global.gameEmitter.emit(NetworkEvent.DMG, jsonData);
+      } else if(jsonData.packet == 'speech') {
+        Global.gameEmitter.emit(NetworkEvent.SPEECH, jsonData);
       }
     }
   }

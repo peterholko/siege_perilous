@@ -17,4 +17,5 @@ export namespace NetworkEvent {
     export const STRUCTURE_LIST : string = 'STRUCTURE_LIST';
     export const BUILD : string = 'BUILD';
     export const DMG : string = 'DMG';
+    export const SPEECH : string = 'SPEECH';
 }

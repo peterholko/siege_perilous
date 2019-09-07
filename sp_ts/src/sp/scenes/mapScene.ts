@@ -14,7 +14,6 @@ import { TileState } from '../tileState';
 
 export class MapScene extends Phaser.Scene {
 
-  //private tileset = {};
   private forests = [18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31];
   private renderToggle = false;
 
@@ -102,6 +101,8 @@ export class MapScene extends Phaser.Scene {
 
     this.load.json('tileset', './static/tileset.json');
     this.load.on('filecomplete-json-tileset', this.tilesetComplete, this)
+
+    this.load.on('complete', this.loadingComplete, this);
   }
 
   tilesetComplete(k, file): void {
@@ -117,14 +118,16 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  loadingComplete() {
+    console.log('Loading complete');
+    Global.gameEmitter.on(NetworkEvent.MAP, this.setRender, this);
+    
+    this.time.addEvent({ delay: 1000, callback: this.processRender, callbackScope: this, loop: true });
+    this.setRender();
+  }
+
   create(): void {
     console.log('Map Scene Create');
-
-    //Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.setRender, this);
-    Global.gameEmitter.on(NetworkEvent.MAP, this.setRender, this);
-
-    this.time.addEvent({ delay: 1000, callback: this.processRender, callbackScope: this, loop: true });
-
 
     this.base = this.add.container(0, 0);
     this.trans = this.add.container(0, 0);
@@ -136,8 +139,6 @@ export class MapScene extends Phaser.Scene {
     this.selectHex.setOrigin(0);
     this.select.add(this.selectHex);
 
-    this.setRender();
-
     var _this = this;
 
     this.input.on('gameobjectdown', function(pointer, gameObject) {
@@ -148,13 +149,7 @@ export class MapScene extends Phaser.Scene {
 
         Global.gameEmitter.emit(GameEvent.TILE_CLICK, gameObject);
       }
-
-      //_this.base.moveTo(_this.selectHex, _this.base.list.length - 1);
-      /*_this.trans.moveTo(_this.selectHex, _this.trans.list.length - 1);
-      _this.extra.moveTo(_this.selectHex, _this.extra.list.length - 1);
-      _this.void.moveTo(_this.selectHex, _this.void.list.length - 1);*/
     });
-
   }
 
   update() : void {

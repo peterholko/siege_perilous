@@ -510,7 +510,7 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 10)) =:= 0) and (NumTick 
     process_rest_state(NumTick);
 process_rest(_) -> nothing.
 
-process_dead_objs(NumTick) when (NumTick rem (?TICKS_MIN * 1)) =:= 0 ->
+process_dead_objs(NumTick) when (NumTick rem (?TICKS_MIN * 5)) =:= 0 ->
     game:process_dead_objs(NumTick);
 process_dead_objs(_) ->
     nothing. 
