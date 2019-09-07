@@ -166,7 +166,8 @@ export class Network {
         this.processTileStates(jsonData.data.map);
         this.processInitObjStates(jsonData.data.objs);
 
-        Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);
+        //Add small delay
+        setTimeout(function() {Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 3000);
       } else if(jsonData.packet == 'changes') {
         console.log(jsonData);
         this.processUpdateObjStates(jsonData.events);
