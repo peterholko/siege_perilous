@@ -49,16 +49,17 @@ import BuildPanel from './ui/buildPanel';
 import StructurePanel from './ui/structurePanel';
 import ErrorPanel from './ui/errorPanel';
 import SelectPanel from './ui/selectPanel';
+import AssignPanel from './ui/assignPanel';
 
 interface UIState {
   selectBoxes : [],
   inventoryPanels : [],
   hideTargetActionPanel: boolean,
   hideGatherPanel : boolean,
-  hideInventoryPanel: boolean,
-  hideItemTransferPanel: boolean,
-  hideItemPanel: boolean,
-  hideHeroPanel: boolean,
+  hideInventoryPanel : boolean,
+  hideItemTransferPanel : boolean,
+  hideItemPanel : boolean,
+  hideHeroPanel : boolean,
   hideVillagerPanel: boolean,
   hideAttrsPanel : boolean,
   hideSkillsPanel : boolean,
@@ -66,6 +67,7 @@ interface UIState {
   hideBuildPanel : boolean,
   hideStructurePanel : boolean,
   hideErrorPanel : boolean,
+  hideAssignPanel : boolean,
   leftInventoryId : integer,
   leftInventoryData: [],
   rightInventoryId : integer,
@@ -73,6 +75,7 @@ interface UIState {
   itemData : any,
   heroData : any,
   villagerData : any,
+  assignData : any,
   attrsData : any,
   skillsData : any,
   tileData : any,
@@ -108,6 +111,7 @@ export default class UI extends React.Component<any, UIState>{
       hideTilePanel : true,
       hideBuildPanel : true,
       hideStructurePanel : true,
+      hideAssignPanel : true,
       hideErrorPanel : true,
       leftInventoryId: -1,
       leftInventoryData: [],
@@ -116,6 +120,7 @@ export default class UI extends React.Component<any, UIState>{
       itemData : {},
       heroData : {},
       villagerData : {},
+      assignData : {},
       attrsData : {},
       skillsData : {},
       tileData : {},
@@ -164,6 +169,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
     Global.gameEmitter.on(NetworkEvent.ITEM_TRANSFER, this.handleItemTransfer, this);
     Global.gameEmitter.on(NetworkEvent.STRUCTURE_LIST, this.handleStructureList, this);
+    Global.gameEmitter.on(NetworkEvent.ASSIGN_LIST, this.handleAssignList, this);
   }
 
   handleMoveClick(event : React.MouseEvent) {
@@ -252,7 +258,10 @@ export default class UI extends React.Component<any, UIState>{
     } else if(event.panelType == 'build') {
       this.setState({hideBuildPanel: true});
     } else if(event.panelType == 'structure') {
-      this.setState({hideStructurePanel: true});
+      this.setState({hideStructurePanel: true,
+                     hideAssignPanel: true});
+    } else if(event.panelType == 'assign') {
+      this.setState({hideAssignPanel: true});
     }
   }
 
@@ -402,6 +411,10 @@ export default class UI extends React.Component<any, UIState>{
     this.setState({hideBuildPanel: false, structuresData: message.result});
   }
 
+  handleAssignList(message) {
+    this.setState({hideAssignPanel: false, assignData: message.result});
+  }
+
   render() {
     const hpBarStyle  = {
       transform: 'translate(97px, 19px)',
@@ -540,6 +553,9 @@ export default class UI extends React.Component<any, UIState>{
 
           {!this.state.hideStructurePanel &&
             <StructurePanel structureData={this.state.structureData} />}
+
+          {!this.state.hideAssignPanel && 
+            <AssignPanel assignData={this.state.assignData} />}
 
           {!this.state.hideErrorPanel && 
             <ErrorPanel errmsg={this.state.errmsg} />}

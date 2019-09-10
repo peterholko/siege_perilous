@@ -442,6 +442,12 @@ message_handle(<<"revent_response">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"revent_resolution">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"tick">>, Message) ->
+    lager:info("message: tick"),
+    ReturnMsg = #{<<"packet">> => <<"tick">>,
+                  <<"tick">> => game:get_tick()},
+    jsx:encode(ReturnMsg);
+
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 
     lager:info("~p: ~p~n", [Error, Message]),

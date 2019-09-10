@@ -279,7 +279,7 @@ new_player(PlayerId) ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
          end,
 
-    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
     %game:add_event(none, event, F2, none, 24),
     %game:add_event(none, event, F3, none, 36),
     %game:add_event(none, event, F4, none, 40),
@@ -567,16 +567,21 @@ event_ticks(Ticks) ->
 
 process_cancel(build, Event) ->
     EventData = Event#event.data,
-    {BuilderId, StructureId} = EventData,
+    {_BuilderId, StructureId} = EventData,
 
     BuildTime = obj_attr:value(StructureId, <<"build_time">>),
     EndTime = obj_attr:value(StructureId, <<"end_time">>),
     CurrentTime = game:get_tick(),
+    lager:info("BuildTime: ~p", [BuildTime]),
+    lager:info("EndTime: ~p", [EndTime]),
+    lager:info("CurrentTime: ~p", [CurrentTime]),
 
-    Progress = util:round3((CurrentTime - EndTime) / BuildTime),
+
+    Progress = util:round3(1 - ((EndTime - CurrentTime) / BuildTime)),
+    lager:info("Cancelled Event - progress: ~p", [Progress]),
 
     obj_attr:set(StructureId, <<"progress">>, Progress),
 
-    game:add_obj_update(self(), StructureId, ?STATE, ?STALLED, 0);
+    game:add_obj_update(self(), StructureId, ?STATE, ?STALLED, 1);
 
 process_cancel(_, _Event) -> nothing.

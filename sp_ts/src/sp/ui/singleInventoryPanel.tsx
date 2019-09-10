@@ -1,7 +1,7 @@
 
 
 import * as React from "react";
-import InventoryPanel from "./baseInventoryPanel";
+import BaseInventoryPanel from "./baseInventoryPanel";
 import { Network } from "../network";
 
 
@@ -26,7 +26,7 @@ export default class SingleInventoryPanel extends React.Component<any, any> {
 
     return (
       <div>
-        <InventoryPanel left={true} 
+        <BaseInventoryPanel left={true} 
                         inventoryData={this.props.inventoryData}
                         panelType={'inventory'} 
                         hideExitButton={false}

@@ -94,7 +94,7 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
       <HalfPanel left={true} 
                  panelType={'tile'} 
                  hideExitButton={false}>
-        <img src={'/static/art/tileset/' + imageName} style={tileStyle} />
+        <img src={'/static/art/' + imageName} style={tileStyle} />
         <span style={spanNameStyle}>{this.props.tileData.name} ({x}, {y})</span>
         <table style={tableStyle}>
           <tbody>

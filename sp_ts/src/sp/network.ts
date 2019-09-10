@@ -128,6 +128,29 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m)); 
   }
 
+  public static sendTick() {
+    var m = {
+      cmd: "tick"
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendGetAssignList() {
+    var m = {
+      cmd: "assign_list"
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendAssign(sourceId, targetId) {
+    var m = {
+      cmd: "assign",
+      sourceid: sourceId,
+      targetid: targetId,
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
     this.websocket = new WebSocket(url);
@@ -166,8 +189,8 @@ export class Network {
         this.processTileStates(jsonData.data.map);
         this.processInitObjStates(jsonData.data.objs);
 
-        //Add small delay
-        setTimeout(function() {Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 3000);
+        //Add small delay to prevent perception event before Scenes are created.
+        setTimeout(function() {Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 2000);
       } else if(jsonData.packet == 'changes') {
         console.log(jsonData);
         this.processUpdateObjStates(jsonData.events);
@@ -206,6 +229,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.DMG, jsonData);
       } else if(jsonData.packet == 'speech') {
         Global.gameEmitter.emit(NetworkEvent.SPEECH, jsonData);
+      } else if(jsonData.packet == 'assign_list') {
+        Global.gameEmitter.emit(NetworkEvent.ASSIGN_LIST, jsonData);
       }
     }
   }

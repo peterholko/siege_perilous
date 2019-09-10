@@ -3,10 +3,11 @@ import HalfPanel from "./halfPanel";
 import { Global } from "../global";
 import buildbutton from "ui_comp/buildbutton.png";
 import deletebutton from "ui_comp/deletebutton.png";
+import assignbutton from "ui_comp/assignbutton.png";
 import { Network } from "../network";
-import { GameEvent } from "../gameEvent";
 import { NetworkEvent } from "../networkEvent";
 import '../ui.css';
+import { FOUNDED, PROGRESSING, STALLED, NONE} from "../config";
 
 interface StructurePanelProps {
   structureData,
@@ -18,29 +19,48 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
   constructor(props) {
     super(props);
 
+    var progress = 0;
+    var maxProgress = 100;
+
+    if('progress' in this.props.structureData) {
+      maxProgress = this.props.structureData.build_time / 5;
+      progress = (this.props.structureData.progress / 100) * maxProgress;
+    }
+
     this.state = {
-      hideProgress : true,
-      maxProgress: 100,
-      progress: 0
+      maxProgress: maxProgress,
+      progress: progress,
+      structureState: this.props.structureData.state
     };
 
     this.handleBuildClick = this.handleBuildClick.bind(this);
+    this.handleAssignClick = this.handleAssignClick.bind(this);
     this.handleDeleteClick = this.handleDeleteClick.bind(this);
   
     this.startTimer = this.startTimer.bind(this)
     this.stopTimer = this.stopTimer.bind(this)
     
     Global.gameEmitter.on(NetworkEvent.BUILD, this.handleNetworkBuild, this);
-  }
+   }
 
   componentWillUnmount() {
     this.stopTimer();
     Global.gameEmitter.removeListener(NetworkEvent.BUILD, this.handleNetworkBuild);
   }
 
+  componentDidMount() {
+    if(this.state.structureState == PROGRESSING) {
+      this.startTimer();
+    }
+  }
+
   handleBuildClick() {
     Network.sendBuild(Global.heroId, this.props.structureData.id);
     //Global.gameEmitter.emit(GameEvent.START_BUILD_CLICK, {});
+  }
+
+  handleAssignClick() {
+    Network.sendGetAssignList();
   }
 
   handleDeleteClick() {
@@ -51,8 +71,8 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     console.log('Network build');
     const buildTimeSeconds = Math.floor(message.build_time);
 
-    this.setState({hideProgress: false,
-                   maxProgress: buildTimeSeconds});
+    this.setState({maxProgress: buildTimeSeconds,
+                   structureState: PROGRESSING});
 
     this.startTimer();
   }
@@ -73,6 +93,15 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
   }
 
   render() {
+    const showBuildButton = (this.state.structureState == FOUNDED ||
+                             this.state.structureState == STALLED);
+
+    const showProgress = (this.state.structureState == FOUNDED ||
+                          this.state.structureState == PROGRESSING ||
+                          this.state.structureState == STALLED)
+
+    const showAssignButton = this.state.structureState == NONE;
+
     var imageName = '';
 
     if(this.props.structureData.state == 'founded') {
@@ -129,6 +158,11 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
       position: 'fixed'
     } as React.CSSProperties
 
+    const assignStyle = {
+      transform: 'translate(-212px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
     const deleteStyle = {
       transform: 'translate(-162px, 295px)',
       position: 'fixed'
@@ -147,7 +181,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
             
             <tr>
               <td>State:</td>
-              <td>{this.props.structureData.state}</td>
+              <td>{this.state.structureState}</td>
             </tr>
             <tr>
               <td>Subclass:</td>
@@ -163,12 +197,14 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
             </tr>
             <tr>
               <td>Build Time:</td>
-              <td>{this.props.structureData.build_time}</td>
+              <td>{this.props.structureData.build_time / 5}</td>
             </tr>
-            { ! this.state.hideProgress &&
+            { showProgress &&
               <tr>
                 <td>Build Progress: </td>
-                <td><progress max={this.state.maxProgress} value={this.state.progress}>{this.state.progress}</progress></td>
+                <td><progress max={this.state.maxProgress} 
+                              value={this.state.progress}>{this.state.progress}
+                              </progress></td>
               </tr>
             }
             <tr>
@@ -183,7 +219,17 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
             </tr>
           </tbody>
         </table>
-        <img src={buildbutton} style={buildStyle} onClick={this.handleBuildClick} />
+        
+        {showBuildButton && 
+          <img src={buildbutton} 
+               style={buildStyle} 
+               onClick={this.handleBuildClick} />}
+
+        {showAssignButton && 
+          <img src={assignbutton}
+               style={assignStyle}
+               onClick={this.handleAssignClick} />}
+
         <img src={deletebutton} style={deleteStyle} onClick={this.handleDeleteClick} />
       </HalfPanel>
     );

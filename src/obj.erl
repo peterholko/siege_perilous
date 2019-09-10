@@ -848,7 +848,12 @@ info(Id) ->
     Info6 = maps:put(<<"effects">>, Effects, Info5),
 
     %Check if any subclass specific info should be added
-    AllInfo = info_subclass(Obj#obj.subclass, Obj, Info6),
+    AllSubClassInfo = info_subclass(Obj#obj.subclass, Obj, Info6),
+
+    %Check if any states specific info should be added
+    lager:info("Info obj state: ~p", [Obj#obj.state]),
+    AllInfo = info_states(Obj#obj.state, Obj, AllSubClassInfo),
+
     AllInfo.
 
 info_other(Id) ->
@@ -921,6 +926,25 @@ info_subclass(<<"storage">>, Obj, Info) ->
     Info1 = maps:put(<<"capacity">>, Capacity, Info0),
     Info1;
 info_subclass(_, _Obj, Info) -> Info.
+
+info_states(?PROGRESSING, #obj{id = Id}, Info) ->
+    BuildTime = obj_attr:value(Id, <<"build_time">>, 0),
+    EndTime = obj_attr:value(Id, <<"end_time">>, 0),
+    CurrentTime = game:get_tick(),
+    
+    Progress = round((1 - ((EndTime - CurrentTime) / BuildTime)) * 100),
+
+    Info0 = maps:put(<<"progress">>, Progress, Info),
+    Info0;
+
+info_states(?STALLED, #obj{id = Id}, Info) ->
+    Progress = obj_attr:value(Id, <<"progress">>) * 100,
+    Info0 = maps:put(<<"progress">>, Progress, Info),
+    Info0;
+
+info_states(State, _, Info) ->
+    lager:info("Info States passthrough: ~p", [State]),
+    Info.
 
 info_inventory(PlayerId, Obj) ->
     Items = case PlayerId =:= Obj#obj.player of

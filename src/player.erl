@@ -577,8 +577,8 @@ build(PlayerId, BuilderId, Structure = #obj {state = ?FOUNDED}) ->
             EventData = {BuilderId, Structure#obj.id},
 
             %Add obj update state to change to moving state on next tick
-            game:add_obj_update(self(), BuilderId, ?STATE, ?BUILDING, 0),
-            game:add_obj_update(self(), obj:id(Structure), ?STATE, ?PROGRESSING, 0),
+            game:add_obj_update(self(), BuilderId, ?STATE, ?BUILDING),
+            game:add_obj_update(self(), obj:id(Structure), ?STATE, ?PROGRESSING),
 
             game:add_event(self(), build, EventData, BuilderId, BuildTimeTicks),
 
@@ -587,7 +587,7 @@ build(PlayerId, BuilderId, Structure = #obj {state = ?FOUNDED}) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
 
-build(PlayerId, BuilderId, Structure = #obj {state = ?PROGRESSING}) ->
+build(PlayerId, BuilderId, Structure = #obj {state = ?STALLED}) ->
     [Builder] = db:read(obj, BuilderId),
     
     Checks = [{Builder#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
@@ -610,8 +610,8 @@ build(PlayerId, BuilderId, Structure = #obj {state = ?PROGRESSING}) ->
 
             EventData = {BuilderId, Structure#obj.id},
 
-            obj:update_state(BuilderId, building),
-            obj:update_state(Structure#obj.id, ?PROGRESSING),
+            game:add_obj_update(self(), BuilderId, ?STATE, ?BUILDING),
+            game:add_obj_update(self(), obj:id(Structure), ?STATE, ?PROGRESSING),
 
             game:add_event(self(), build, EventData, BuilderId, BuildTimeTicks),
 

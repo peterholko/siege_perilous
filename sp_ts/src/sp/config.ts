@@ -6,6 +6,7 @@ export const STAT_BAR_HEIGHT = 14;
 export const LARGE_SCREEN_WIDTH = 1024;
 export const BUTTON_WIDTH = 50;
 
+
 export const SPRITE = 'string';
 export const IMAGE = 'image';
 export const CONTAINER = 'container';
@@ -16,6 +17,9 @@ export const VILLAGER = 'villager';
 export const STRUCTURE = 'structure';
 export const DEAD = 'dead';
 export const FOUNDED = 'founded';
+export const PROGRESSING = 'progressing';
+export const STALLED = 'stalled';
+export const NONE = 'none';
 export const OBJ = 'obj';
 export const TILE = 'tile';
 export const WALL = 'Wall';

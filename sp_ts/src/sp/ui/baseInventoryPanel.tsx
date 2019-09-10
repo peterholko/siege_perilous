@@ -33,9 +33,11 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
 
   handleSelect(eventData) {
     console.log('handleSelect ' + eventData);
+    var xPos = -293 + ((eventData.index % 5) * 53);
+    var yPos = 73 + (Math.floor(eventData.index / 5) * 53);
 
     const selectItemStyle = {
-      transform: 'translate(' + eventData.xPos + 'px, ' + eventData.yPos + 'px)',
+      transform: 'translate(' + xPos + 'px, ' + yPos + 'px)',
       position: 'fixed'
     }
 
@@ -79,6 +81,7 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
       console.log('Item: ' + this.props.inventoryData.items[i]);
       var itemId = this.props.inventoryData.items[i].id;
       var itemName = this.props.inventoryData.items[i].name;
+      var quantity = this.props.inventoryData.items[i].quantity;
 
       var xPos = -292 + ((i % 5) * 53);
       var yPos = 74 + (Math.floor(i / 5) * 53);
@@ -87,8 +90,8 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
                                 ownerId={objId}
                                 itemId={itemId} 
                                 itemName={itemName} 
-                                xPos={xPos} 
-                                yPos={yPos}
+                                quantity={quantity}
+                                index={i}
                                 handleSelect={this.handleSelect}/>);
     }
 

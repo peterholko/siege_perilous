@@ -8,8 +8,8 @@ interface InvItemProps {
   ownerId,
   itemName,
   itemId,
-  xPos,
-  yPos,
+  index,
+  quantity,
   handleSelect
 }
 
@@ -25,24 +25,45 @@ export default class InventoryItem extends React.Component<InvItemProps, any> {
       ownerId: this.props.ownerId,
       itemId: this.props.itemId,
       itemName: this.props.itemName,
-      xPos: this.props.xPos,
-      yPos: this.props.yPos
+      index: this.props.index,
     }
     this.props.handleSelect(eventData)
   }
 
   render() {
-    const itemStyle = {
-      transform: 'translate(' + this.props.xPos + 'px, ' + this.props.yPos + 'px)',
+    var xPos = 31 + ((this.props.index % 5) * 53);
+    var yPos = -286 + (Math.floor(this.props.index / 5) * 53);
+
+    //31px -286px
+    const divStyle = {
+      transform: 'translate(' + xPos + 'px, ' + yPos + 'px)',
       position: 'fixed'
+    } as React.CSSProperties
+
+    const itemStyle = {
+      transform: 'translate(0px, 0px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const spanStyle = {
+      transform: 'translate(-3px, 35px)',
+      position: 'fixed',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+      width: '50px',
+      textAlign: 'right'
     } as React.CSSProperties
 
     const imageName = this.props.itemName.replace(/\s/g, '').toLowerCase();
 
     return (
-      <img src={'/static/art/' + imageName + '.png'}
-           style={itemStyle}
-           onClick={this.handleClick}/>
+      <div style={divStyle}>
+        <img src={'/static/art/' + imageName + '.png'}
+            style={itemStyle}
+            onClick={this.handleClick}/>
+        <span style={spanStyle}>{this.props.quantity}</span>
+      </div>
     );
   }
 }
