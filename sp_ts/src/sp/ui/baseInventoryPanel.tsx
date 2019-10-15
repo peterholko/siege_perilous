@@ -83,8 +83,8 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
       var itemName = this.props.inventoryData.items[i].name;
       var quantity = this.props.inventoryData.items[i].quantity;
 
-      var xPos = -292 + ((i % 5) * 53);
-      var yPos = 74 + (Math.floor(i / 5) * 53);
+      var xPos = 31 + ((i % 5) * 53);
+      var yPos = -286 + (Math.floor(i / 5) * 53);
 
       items.push(<InventoryItem key={i}
                                 ownerId={objId}
@@ -92,7 +92,9 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
                                 itemName={itemName} 
                                 quantity={quantity}
                                 index={i}
-                                handleSelect={this.handleSelect}/>);
+                                xPos={xPos}
+                                yPos={yPos}
+                                handleSelect={this.handleSelect} />);
     }
 
     return (

@@ -66,7 +66,7 @@ heuristic(Start, End) ->
 
 get_neighbours(X, Y, Obj) ->
     Neighbours = map:neighbours(X, Y),
-    F = fun(Pos) -> map:is_passable(Pos) and map:is_not_blocked(Pos, Obj) end,
+    F = fun(Pos) -> map:is_passable(Pos, Obj) and map:is_not_blocked(Pos, Obj) end,
     lists:filter(F, Neighbours).
     
 get_move_cost(Pos, Obj) ->

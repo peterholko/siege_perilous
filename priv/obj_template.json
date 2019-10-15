@@ -189,9 +189,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "558451f795960a150d4be6d3"
-	},
 	"name": "Quarry",
 	"base_hp": 250,
 	"base_dmg": 0,
@@ -211,9 +208,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "5584520295960a150d4be6d4"
-	},
 	"name": "Mine",
 	"base_hp": 250,
 	"base_dmg": 0,
@@ -769,6 +763,23 @@
 	"subclass": "poi",
     "template": "Shipwreck",
 	"base_hp": "0"
+},
+{
+	"name": "Meager Merchant",
+	"base_hp": 2000,
+	"base_stamina": 2000,
+	"base_dmg": 5,
+	"dmg_range": 10,
+	"base_def": 10,
+	"base_speed": 4,
+	"class": "unit",
+	"subclass": "npc",
+	"template": "Merchant",
+	"family": "Undead",
+	"base_vision": 3,
+	"order": "merchant",
+	"waterwalk": 1,
+	"landwalk": 0 
 }
     
     

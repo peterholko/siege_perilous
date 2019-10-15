@@ -1,16 +1,16 @@
 
 import * as React from "react";
-import selectbox from "ui_comp/selectbox.png";
-import { Global } from "../global";
-import { GameEvent } from "../gameEvent";
+import styles from "./../ui.css";
 
 interface InvItemProps {
   ownerId,
   itemName,
   itemId,
-  index,
   quantity,
-  handleSelect
+  xPos,
+  yPos,
+  index?,
+  handleSelect?
 }
 
 export default class InventoryItem extends React.Component<InvItemProps, any> {
@@ -30,13 +30,22 @@ export default class InventoryItem extends React.Component<InvItemProps, any> {
     this.props.handleSelect(eventData)
   }
 
+  formatQuantity(quantity) {
+    if(quantity > 1000000) {
+      return (quantity / 1000000).toFixed(2) + 'M';
+    } else if(quantity > 1000) {
+      return (quantity / 1000).toFixed(2) + 'K';
+    } else {
+      return quantity;
+    }
+  }
+
   render() {
-    var xPos = 31 + ((this.props.index % 5) * 53);
-    var yPos = -286 + (Math.floor(this.props.index / 5) * 53);
+    var quantityStr = this.formatQuantity(this.props.quantity);
 
     //31px -286px
     const divStyle = {
-      transform: 'translate(' + xPos + 'px, ' + yPos + 'px)',
+      transform: 'translate(' + this.props.xPos + 'px, ' + this.props.yPos + 'px)',
       position: 'fixed'
     } as React.CSSProperties
 
@@ -45,24 +54,14 @@ export default class InventoryItem extends React.Component<InvItemProps, any> {
       position: 'fixed'
     } as React.CSSProperties
 
-    const spanStyle = {
-      transform: 'translate(-3px, 35px)',
-      position: 'fixed',
-      color: 'white',
-      fontFamily: 'Verdana',
-      fontSize: '12px',
-      width: '50px',
-      textAlign: 'right'
-    } as React.CSSProperties
-
     const imageName = this.props.itemName.replace(/\s/g, '').toLowerCase();
 
     return (
       <div style={divStyle}>
-        <img src={'/static/art/' + imageName + '.png'}
+        <img src={'/static/art/items/' + imageName + '.png'}
             style={itemStyle}
-            onClick={this.handleClick}/>
-        <span style={spanStyle}>{this.props.quantity}</span>
+            onClick={this.props.handleSelect != null ? this.handleClick : null}/>
+        <span id="itemquantity" className={styles.itemquantity}>{quantityStr}</span>
       </div>
     );
   }

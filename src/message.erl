@@ -156,14 +156,12 @@ message_handle(<<"item_split">>, Message) ->
     lager:info("message: item_split ~p", [Message]),
 
     ItemId = m_get(<<"item">>, Message),
+    Quantity = m_get(<<"quantity">>, Message),
 
-    QuantityStr = m_get(<<"quantity">>, Message),
-    Quantity = binary_to_integer(QuantityStr),
+    Return = player:item_split(ItemId, Quantity),
+    FinalReturn = maps:put(<<"packet">>, <<"item_split">>, Return),
 
-    Result = player:item_split(ItemId, Quantity),
-
-    jsx:encode([{<<"packet">>, <<"item_split">>},
-                {<<"result">>, Result}]);
+    jsx:encode(FinalReturn);
 
 message_handle(<<"structure_list">>, _Message) ->
     lager:info("message: structure_list"),
@@ -181,7 +179,7 @@ message_handle(<<"create_foundation">>, Message) ->
 
     Return = player:create_foundation(Id, StructureId),
 
-    FinalReturn = maps:put(<<"packet">>, <<"build">>, Return),
+    FinalReturn = maps:put(<<"packet">>, <<"create_foundation">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(<<"upgrade">>, Message) ->
@@ -216,23 +214,23 @@ message_handle(<<"recipe_list">>, Message) ->
     jsx:encode([{<<"packet">>, <<"recipe_list">>},
                 {<<"result">>, RecipeList}]);
 
-message_handle(<<"refine">>, Message) ->
-    lager:info("message: refine"),
+message_handle(<<"order_refine">>, Message) ->
+    lager:info("message: order_refine"),
     StructureId = m_get(<<"structureid">>, Message),
 
-    Reply = player:refine(StructureId),
+    Reply = player:order_refine(StructureId),
 
-    jsx:encode([{<<"packet">>, <<"refine">>},
+    jsx:encode([{<<"packet">>, <<"order_refine">>},
                 {<<"reply">>, Reply}]);
 
-message_handle(<<"craft">>, Message) ->
-    lager:info("message: craft"),
+message_handle(<<"order_craft">>, Message) ->
+    lager:info("message: order_craft"),
     SourceId = m_get(<<"sourceid">>, Message),
     Recipe = m_get(<<"recipe">>, Message),
 
-    Result = player:craft(SourceId, Recipe),
+    Result = player:order_craft(SourceId, Recipe),
 
-    jsx:encode([{<<"packet">>, <<"craft">>},
+    jsx:encode([{<<"packet">>, <<"order_craft">>},
                 {<<"result">>, Result}]);
 
 message_handle(<<"equip">>, Message) ->
@@ -442,11 +440,28 @@ message_handle(<<"revent_response">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"revent_resolution">>, Return),
     jsx:encode(FinalReturn);
 
-message_handle(<<"tick">>, Message) ->
+message_handle(<<"tick">>, _Message) ->
     lager:info("message: tick"),
     ReturnMsg = #{<<"packet">> => <<"tick">>,
                   <<"tick">> => game:get_tick()},
     jsx:encode(ReturnMsg);
+
+message_handle(<<"buy_item">>, Message) ->
+    lager:info("message: buy_item"),
+    ItemId = m_get(<<"itemid">>, Message),
+    Quantity = m_get(<<"quantity">>, Message),
+    Return = player:buy_item(ItemId, Quantity),
+    FinalReturn = maps:put(<<"packet">>, <<"buy_item">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"sell_item">>, Message) ->
+    lager:info("message: sell_item"),
+    ItemId = m_get(<<"itemid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
+    Quantity = m_get(<<"quantity">>, Message),
+    Return = player:sell_item(ItemId, TargetId, Quantity),
+    FinalReturn = maps:put(<<"packet">>, <<"sell_item">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(_Cmd, Message) ->
     Error = "Unrecognized message", 

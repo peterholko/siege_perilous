@@ -19,6 +19,7 @@ load() ->
     move_to_pos(),
     wander_flee(),
     necro_event(),
+    merchant(),
     idle(),
     villager(),
     lost_villager().
@@ -111,6 +112,24 @@ necro_event() ->
             add_primitive(hide_idle, hide_idle, [], [], idle),
         add_select_all(phase2_idle, phase2, [], []),
             add_primitive(phase2_idle, phase2_idle, [], [], idle).
+
+merchant() ->
+    new(merchant),
+    add_select_all(do_merchant, merchant, [], []),
+        add_primitive(find_trade_pos, do_merchant, [], [], find_trade_pos),
+        add_primitive(move_to_pos, do_merchant, [], [], move_to_pos),
+        add_primitive(wait_at_pos, do_merchant, [], [], {wait, 300}),
+        add_primitive(set_pos_empire, do_merchant, [], [], set_pos_empire),
+        add_primitive(move_to_pos, do_merchant, [], [], move_to_pos).
+
+tax_collector() ->
+    new(tax_collector),
+    add_select_all(do_tax_collector, tax_collector, [], []),
+        add_primitive(find_trade_pos, do_merchant, [], [], find_player_pos),
+        add_primitive(move_to_pos, do_merchant, [], [], move_to_pos),
+        add_primitive(wait_at_pos, do_merchant, [], [], {wait, 300}),
+        add_primitive(set_pos_empire, do_merchant, [], [], set_pos_empire),
+        add_primitive(move_to_pos, do_merchant, [], [], move_to_pos).
 
 idle() ->
     new(idle),

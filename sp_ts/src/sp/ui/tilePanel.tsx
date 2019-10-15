@@ -2,6 +2,7 @@
 import * as React from "react";
 import HalfPanel from "./halfPanel";
 import { Global } from "../global";
+import ResourceItem from "./resourceItem";
 
 interface TilePanelProps {
   tileData,
@@ -13,6 +14,7 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
 
     this.state = {
     };
+    
   }
 
   render() {
@@ -37,10 +39,11 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
       var resource = this.props.tileData.resources[i];
 
       resources.push(
-      <tr key={i}>
-        <td>{resource.name}</td>
-        <td>{resource.quantity}</td>
-      </tr>)
+        <ResourceItem key={i}
+                      resourceName={resource.name}
+                      quantity={resource.quantity}
+                      index={i}/>
+      )
     }
 
     //Manual size adjustments
@@ -72,12 +75,9 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
       fontSize: '12px'
     } as React.CSSProperties
 
-    const tableStyle2 = {
-      transform: 'translate(-130px, 10px)',
+    const resDivStyle = {
+      transform: 'translate(0px, -90px)',
       position: 'fixed',
-      color: 'white',
-      fontFamily: 'Verdana',
-      fontSize: '12px'
     } as React.CSSProperties
 
     const spanNameStyle = {
@@ -90,7 +90,7 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
       width: '323px'
     } as React.CSSProperties
 
-    return (
+        return (
       <HalfPanel left={true} 
                  panelType={'tile'} 
                  hideExitButton={false}>
@@ -122,7 +122,17 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
             <td>Unrevealed Resources: </td>
             <td>{this.props.tileData.unrevealed}</td>
           </tr>
-          <tr>
+          </tbody>
+        </table>
+        <div style={resDivStyle}>
+          {resources}
+        </div>
+      </HalfPanel>
+    );
+  }
+}
+
+/*
             <td>Resources Found: </td>
             <td>
               <table style={tableStyle2}>
@@ -131,11 +141,4 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
                 </tbody>
               </table>
             </td>
-          </tr>
-          </tbody>
-        </table>
-      </HalfPanel>
-    );
-  }
-}
-
+*/

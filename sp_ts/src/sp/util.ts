@@ -151,26 +151,35 @@ export class Util {
     }
   }
 
-  static createImage(src : string) {
+  static createImage(src: string) {
     var image = document.createElement('img');
     image.src = src;
     return image;
   }
   
-  static isPlayerObj(objId : integer) : boolean {
+  static isPlayerObj(objId: integer): boolean {
     return Global.objectStates[objId].player == Global.playerId
   }
 
-  static isClass(objId : integer, _class : string) : boolean {
+  static isClass(objId: integer, _class: string) : boolean {
     return Global.objectStates[objId].class == _class;
   }
 
-  static isSubclass(objId : integer, subclass : string) : boolean {
+  static isSubclass(objId: integer, subclass: string) : boolean {
     return Global.objectStates[objId].subclass == subclass;
   }
 
-  static isState(objId : integer, state : string) : boolean {
+  static isState(objId: integer, state: string) : boolean {
     return Global.objectStates[objId].state == state;
+  }
+
+  static isTemplate(objId: integer, template: string) : boolean {
+    return Global.objectStates[objId].template == template;
+  }
+
+  static hasGroup(objId: integer, group: string) : boolean {
+    let groups : Array<string> = Global.objectStates[objId].groups;
+    return groups.includes(group);
   }
 
 }

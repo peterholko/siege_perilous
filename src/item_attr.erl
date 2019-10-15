@@ -6,7 +6,7 @@
 -include("schema.hrl").
 
 -export([all/1, all_to_map/1, value/2, value/3]).
--export([set/3, update/3]). 
+-export([has/2, set/3, update/3, copy/2, delete/1]). 
 
 all(Id) ->
     db:dirty_match_object({item_attr, {Id, '_'}, '_'}).
@@ -21,6 +21,12 @@ all_to_map(Id) ->
         end,
 
     lists:foldl(F, #{}, All).
+
+has(Id, Attr) ->
+    case db:dirty_read(item_attr, {Id, Attr}) of
+        [_ItemAttr] -> true;
+        [] -> false
+    end.
 
 value(All, Attr) when is_list(All) ->
     [H | _Rest] = All,
@@ -54,3 +60,17 @@ update(Id, Attr, Value) ->
     NewValue = ItemAttr#item_attr.value + Value,
     NewItemAttr = ItemAttr#item_attr {value = NewValue},
     db:dirty_write(NewItemAttr).
+
+copy(SourceId, TargetId) ->
+    All = db:dirty_match_object({item_attr, {SourceId, '_'}, '_'}),
+
+    F = fun(ItemAttr) ->
+            {_Id, Name} = ItemAttr#item_attr.key,
+            set(TargetId, Name, ItemAttr#item_attr.value)
+        end,
+
+    lists:foreach(F, All).
+
+delete(Id) ->
+    %TODO delete match object
+    lager:info("delete").

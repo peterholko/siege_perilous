@@ -3,6 +3,7 @@ import {Global} from './global'
 import { NetworkEvent } from './networkEvent';
 import { ObjectState } from './objectState';
 import { TileState } from './tileState';
+import { GameEvent } from './gameEvent';
 
 export class Network {
 
@@ -28,6 +29,15 @@ export class Network {
     Global.socket.sendMessage(m);
   }
 
+  public static sendItemSplit(item, quantity) {
+    var m = {
+      cmd: "item_split",
+      item: item,
+      quantity: quantity
+    };
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
   public static sendInfoObj(id) {
     var m = '{"cmd": "info_unit", "id": ' + id + '}';
     Global.socket.sendMessage(m);
@@ -49,8 +59,12 @@ export class Network {
   }
 
   public static sendInfoItemTransfer(sourceId, targetId) {
-    var m = '{"cmd": "info_item_transfer", "sourceid": ' + sourceId + ', "targetid": ' + targetId + '}';
-    Global.socket.sendMessage(m);
+    var m = {
+      cmd: 'info_item_transfer',
+      sourceid: sourceId,
+      targetid: targetId
+    };
+    Global.socket.sendMessage(JSON.stringify(m));
   }
 
   public static sendInfoAttrs(id) {
@@ -110,6 +124,23 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
+  public static sendOrderCraft(structureId, recipe) {
+    var m = {
+      cmd: "order_craft",
+      sourceid: structureId,
+      recipe: recipe
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendOrderRefine(structureId) {
+    var m = {
+      cmd: "order_refine",
+      structureid: structureId
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+  
   public static sendGetStats(id) {
     var m = {
       cmd: "get_stats",
@@ -147,6 +178,33 @@ export class Network {
       cmd: "assign",
       sourceid: sourceId,
       targetid: targetId,
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendGetRecipeList(structureId) {
+    var m = {
+      cmd: "recipe_list",
+      sourceid: structureId
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendBuyItem(itemId, quantity) {
+    var m = {
+      cmd: "buy_item",
+      itemid: itemId,
+      quantity: quantity
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendSellItem(itemId, targetId, quantity) {
+    var m = {
+      cmd: "sell_item",
+      itemid: itemId,
+      targetid: targetId,
+      quantity: quantity
     }
     Global.socket.sendMessage(JSON.stringify(m));
   }
@@ -216,6 +274,10 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_TRANSFER, jsonData);
       } else if(jsonData.packet == "item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.ITEM_TRANSFER, jsonData);
+      } else if(jsonData.packet == "item_split") {
+        if(jsonData.result == 'success') {
+          Network.sendInfoInventory(jsonData.owner);
+        }
       } else if(jsonData.packet == "info_attrs") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ATTRS, jsonData);
       } else if(jsonData.packet == "info_skills") {
@@ -231,7 +293,13 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.SPEECH, jsonData);
       } else if(jsonData.packet == 'assign_list') {
         Global.gameEmitter.emit(NetworkEvent.ASSIGN_LIST, jsonData);
-      }
+      } else if(jsonData.packet == 'recipe_list') {
+        Global.gameEmitter.emit(NetworkEvent.RECIPE_LIST, jsonData);
+      } else if(jsonData.packet == 'buy_item') {
+        Global.gameEmitter.emit(NetworkEvent.BUYSELL_ITEM, jsonData);
+      } else if(jsonData.packet == 'sell_item') {
+        Global.gameEmitter.emit(NetworkEvent.BUYSELL_ITEM, jsonData);
+      } 
     }
   }
 
@@ -245,6 +313,7 @@ export class Network {
         class: obj.class,
         subclass: obj.subclass,
         template: obj.template,
+        groups: obj.groups,
         state: obj.state,
         prevstate: obj.state,
         x: obj.x,
@@ -308,6 +377,8 @@ export class Network {
           }
 
           Global.objectStates[obj_id].op = 'updated';
+          console.log("Emitting obj update: " + obj_id);
+          Global.gameEmitter.emit(GameEvent.OBJ_UPDATE, obj_id);
       } else if(eventType == "obj_move") {
           var obj = events[i].obj;
           var src_x = events[i].src_x;

@@ -12,11 +12,12 @@
 -export([list/0, recipe_list/1, refine/1]).
 -export([has_req/1, has_upgrade_req/1, has_refine_resources/1, check_recipe_req/2]).
 -export([process_upkeep/1, process_upkeep_item/3]).
--export([get_harvesters/1, harvest/2]).
+-export([get_harvesters/1]).
 -export([get_craftable_recipe/1]).
 -export([can_craft/1, can_refine/1, consume_req/1]).
 -export([recipe_name/1]).
 -export([get_nearby_bones/1]).
+-export([resource_type/1, to_skill/1]).
 
 recipe_name(Recipe) -> maps:get(<<"item">>, Recipe).
 
@@ -30,20 +31,6 @@ get_harvesters(Player) ->
         end,
 
     lists:filter(F, Objs).
-
-harvest([_Villager], [Structure]) ->
-    case resource:survey(Structure#obj.pos) of
-        [Resource | _Rest] ->
-            ResourceName = maps:get(<<"name">>, Resource),
-            case resource:harvest(Structure#obj.id, ResourceName, Structure#obj.pos) of
-                {error, ErrMsg} -> {error, ErrMsg};
-                _ -> success
-            end;
-        [] ->
-            {error, <<"Invalid resource">>}
-    end;
-harvest(_, _) -> 
-    {error, <<"Invalid villager or structure">>}.
 
 create_foundation(PlayerId, Pos, Name) ->
     StructureId = obj:create(Pos, 
@@ -324,3 +311,26 @@ get_nearby_bones(SourceObj) ->
     [Bones | _] = lists:foldl(F, [], AllAdjPos),
     Bones.
 
+resource_type(StructureId) when is_integer(StructureId) ->
+    Structure = obj:get(StructureId),
+    resource_type(Structure);
+resource_type(Structure) when is_record(Structure, obj) ->
+    case Structure#obj.template of
+        ?MINE -> ?ORE;
+        ?LUMBERMILL -> ?WOOD;
+        ?QUARRY -> ?STONE;
+        ?TRAPPER -> ?GAME;
+        ?FARM -> ?FOOD
+    end.
+    
+to_skill(Structure) ->
+    case Structure#obj.template of
+        ?MINE -> ?MINING;
+        ?LUMBERMILL -> ?WOODCUTTING;
+        ?QUARRY -> ?STONECUTTING;
+        ?TRAPPER -> ?HUNTING;
+        ?FARM -> ?FARMING
+    end.
+
+
+    

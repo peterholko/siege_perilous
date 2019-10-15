@@ -25,8 +25,6 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
 
     this.leftClick = this.leftClick.bind(this);
     this.rightClick = this.rightClick.bind(this);
-
-
   }
 
   leftClick() {
@@ -164,8 +162,8 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
       right: '0px',
       position: 'fixed',
       width: '35px',
-      height: '35px',
-      zIndex: 10
+      height: '35px'
+      //zIndex: 5
     } as React.CSSProperties
 
     const leftStyle = {
@@ -173,8 +171,8 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
       right: '259px',
       position: 'fixed',
       width: '35px',
-      height: '35px',
-      zIndex: 10
+      height: '35px'
+      //zIndex: 5
     } as React.CSSProperties
 
     return (

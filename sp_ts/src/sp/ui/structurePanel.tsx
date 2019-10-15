@@ -1,13 +1,16 @@
 import * as React from "react";
 import HalfPanel from "./halfPanel";
 import { Global } from "../global";
+import craftbutton from "ui_comp/craftbutton.png";
 import buildbutton from "ui_comp/buildbutton.png";
 import deletebutton from "ui_comp/deletebutton.png";
 import assignbutton from "ui_comp/assignbutton.png";
+import refinebutton from "ui_comp/refinebutton.png";
 import { Network } from "../network";
-import { NetworkEvent } from "../networkEvent";
 import '../ui.css';
-import { FOUNDED, PROGRESSING, STALLED, NONE} from "../config";
+import { FOUNDED, PROGRESSING, STALLED, NONE, CRAFT} from "../config";
+import { NetworkEvent } from "../networkEvent";
+import { GameEvent } from "../gameEvent";
 
 interface StructurePanelProps {
   structureData,
@@ -30,32 +33,44 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     this.state = {
       maxProgress: maxProgress,
       progress: progress,
-      structureState: this.props.structureData.state
+      structureData: this.props.structureData
     };
 
+    this.handleCraftClick = this.handleCraftClick.bind(this);
+    this.handleRefineClick = this.handleRefineClick.bind(this);
     this.handleBuildClick = this.handleBuildClick.bind(this);
     this.handleAssignClick = this.handleAssignClick.bind(this);
     this.handleDeleteClick = this.handleDeleteClick.bind(this);
   
     this.startTimer = this.startTimer.bind(this)
     this.stopTimer = this.stopTimer.bind(this)
-    
+
     Global.gameEmitter.on(NetworkEvent.BUILD, this.handleNetworkBuild, this);
+    Global.gameEmitter.on(GameEvent.OBJ_UPDATE, this.handleObjUpdate, this);
    }
 
   componentWillUnmount() {
     this.stopTimer();
     Global.gameEmitter.removeListener(NetworkEvent.BUILD, this.handleNetworkBuild);
+    Global.gameEmitter.removeListener(GameEvent.OBJ_UPDATE, this.handleObjUpdate);
   }
 
   componentDidMount() {
-    if(this.state.structureState == PROGRESSING) {
+    if(this.props.structureData.state == PROGRESSING) {
       this.startTimer();
     }
   }
 
+  handleCraftClick() {
+    Network.sendGetRecipeList(this.state.structureData.id);
+  }
+
+  handleRefineClick() {
+    Network.sendOrderRefine(this.state.structureData.id);
+  }
+
   handleBuildClick() {
-    Network.sendBuild(Global.heroId, this.props.structureData.id);
+    Network.sendBuild(Global.heroId, this.state.structureData.id);
     //Global.gameEmitter.emit(GameEvent.START_BUILD_CLICK, {});
   }
 
@@ -77,11 +92,20 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     this.startTimer();
   }
 
+  handleObjUpdate(objId) {
+    console.log('Obj Update: ' + objId + " " + Math.random());
+    if(objId == this.state.structureData.id) {
+      let newStructureData = this.state.structureData;
+      newStructureData.state = Global.objectStates[objId].state;
+      //this.setState({structureData: newStructureData});
+    }
+  }
+
   startTimer() {
     this.timer = setInterval(() => {
       if(this.state.progress >= this.state.maxProgress) {
         this.stopTimer();
-        Network.sendInfoObj(this.props.structureData.id);        
+        Network.sendInfoObj(this.state.structureData.id);        
       } else {
         this.setState({progress: this.state.progress + 1});
       }
@@ -93,27 +117,33 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
   }
 
   render() {
-    const showBuildButton = (this.state.structureState == FOUNDED ||
-                             this.state.structureState == STALLED);
+    const showCraftButton = (this.state.structureData.state == NONE && 
+                             this.state.structureData.subclass == CRAFT);
 
-    const showProgress = (this.state.structureState == FOUNDED ||
-                          this.state.structureState == PROGRESSING ||
-                          this.state.structureState == STALLED)
+    const showRefineButton = (this.state.structureData.state == NONE &&
+                              this.state.structureData.name == 'Blacksmith');
 
-    const showAssignButton = this.state.structureState == NONE;
+    const showBuildButton = (this.state.structureData.state == FOUNDED ||
+                             this.state.structureData.state == STALLED);
+
+    const showProgress = (this.state.structureData.state == FOUNDED ||
+                          this.state.structureData.state == PROGRESSING ||
+                          this.state.structureData.state == STALLED)
+
+    const showAssignButton = this.state.structureData.state == NONE;
 
     var imageName = '';
 
-    if(this.props.structureData.state == 'founded') {
+    if(this.state.structureData.state == 'founded') {
       imageName = 'foundation.png'
     } else {
-      imageName = this.props.structureData.name.toLowerCase() + '.png';
+      imageName = this.state.structureData.name.toLowerCase() + '.png';
     }
 
     const reqs = [];
 
-    for(var i = 0; i < this.props.structureData.req.length; i++) {
-      var req = this.props.structureData.req[i];
+    for(var i = 0; i < this.state.structureData.req.length; i++) {
+      var req = this.state.structureData.req[i];
 
       reqs.push(
         <tr key={i}>
@@ -153,18 +183,28 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
       fontSize: '12px'
     } as React.CSSProperties
 
-    const buildStyle = {
+    const craftStyle = {
+      transform: 'translate(-262px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const refineStyle = {
       transform: 'translate(-212px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const buildStyle = {
+      transform: 'translate(-162px, 295px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const assignStyle = {
-      transform: 'translate(-212px, 295px)',
+      transform: 'translate(-162px, 295px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const deleteStyle = {
-      transform: 'translate(-162px, 295px)',
+      transform: 'translate(-112px, 295px)',
       position: 'fixed'
     } as React.CSSProperties
 
@@ -174,30 +214,30 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
                  hideExitButton={false}>
         <img src={'/static/art/' + imageName} style={imageStyle} />
         <span style={spanNameStyle}>
-          {this.props.structureData.name} Level {this.props.structureData.level}
+          {this.state.structureData.name} Level {this.state.structureData.level}
         </span>
         <table style={tableStyle}>
           <tbody>
             
             <tr>
               <td>State:</td>
-              <td>{this.state.structureState}</td>
+              <td>{this.state.structureData.state}</td>
             </tr>
             <tr>
               <td>Subclass:</td>
-              <td>{this.props.structureData.subclass}</td>
+              <td>{this.state.structureData.subclass}</td>
             </tr>
             <tr>
               <td>Base HP:</td>
-              <td>{this.props.structureData.base_hp}</td>
+              <td>{this.state.structureData.base_hp}</td>
             </tr>
             <tr>
               <td>Base Defense:</td>
-              <td>{this.props.structureData.base_def}</td>
+              <td>{this.state.structureData.base_def}</td>
             </tr>
             <tr>
               <td>Build Time:</td>
-              <td>{this.props.structureData.build_time / 5}</td>
+              <td>{this.state.structureData.build_time / 5}</td>
             </tr>
             { showProgress &&
               <tr>
@@ -219,7 +259,18 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
             </tr>
           </tbody>
         </table>
-        
+
+        {showCraftButton &&
+          <img src={craftbutton}
+               style={craftStyle}
+               onClick={this.handleCraftClick} />}
+ 
+        {showRefineButton &&
+          <img src={refinebutton}
+               style={refineStyle}
+               onClick={this.handleRefineClick} />}
+ 
+       
         {showBuildButton && 
           <img src={buildbutton} 
                style={buildStyle} 

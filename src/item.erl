@@ -8,12 +8,13 @@
 -export([get_rec/1, get_map/1, get_all_attr/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1,
          get_weapon_range/1, get_by_class/2]).
--export([transfer/2, transfer/3, split/2, update/2, create/1, create/3, create/4, equip/1, unequip/1]).
--export([has_by_class/2, has_by_subclass/2]).
+-export([transfer/2, transfer/3, transfer_by_class/4,
+         split/2, update/2, create/1, create/3, create/4, equip/1, unequip/1]).
+-export([has_by_class/2, has_by_subclass/2, has_price/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, 
          is_class/2, is_subclass/2]).
--export([get_total_weight/1, weight/2]).
--export([id/1, owner/1, quantity/1]).
+-export([get_total_weight/1, get_total_gold/1, weight/2]).
+-export([id/1, owner/1, quantity/1, price/1]).
 -export([match_req/3]).
 
 id(Item) when is_map(Item) -> maps:get(<<"id">>, Item);
@@ -24,6 +25,9 @@ owner(Item) -> Item#item.owner.
 
 quantity(Item) when is_map(Item) -> maps:get(<<"quantity">>, Item);
 quantity(Item) -> Item#item.quantity.
+
+price(ItemId) ->
+    item_attr:value(ItemId, <<"price">>).
 
 get_rec(Id) ->
     case db:read(item, Id) of
@@ -111,6 +115,21 @@ get_total_weight(ObjId) ->
     TotalWeight = lists:foldl(F, 0, AllItems),
     TotalWeight.   
 
+get_total_gold(ObjId) ->
+    AllItems = db:dirty_index_read(item, ObjId, #item.owner),
+
+    F = fun(Item, AccGold) ->
+            case Item#item.class =:= <<"Gold">> of
+                true ->
+                    AccGold + Item#item.quantity;
+                false ->
+                    AccGold
+            end
+        end,
+
+    TotalGold = lists:foldl(F, 0, AllItems),
+    TotalGold.
+
 has_by_class(OwnerId, Class) ->
     Items = get_by_class(OwnerId, Class),
     Items =/= [].
@@ -118,6 +137,9 @@ has_by_class(OwnerId, Class) ->
 has_by_subclass(OwnerId, Subclass) ->
     Items = get_by_subclass(OwnerId, Subclass),
     Items =/= [].
+
+has_price(ItemId) ->
+    item_attr:has(ItemId, <<"price">>).
 
 is_class(ItemName, Class) ->
     item_def:value(ItemName, <<"class">>) =:= Class.
@@ -156,8 +178,6 @@ is_valid_split(Player, ItemId, Quantity) when Quantity > 0 ->
         [] -> false
     end;
 is_valid_split(_, _, _) -> false.
-
-
 
 weight(ItemName, ItemQuantity) ->
     ItemWeight = item_def:value(ItemName, <<"weight">>),
@@ -205,27 +225,73 @@ transfer(TransferItemId, TargetOwnerId) ->
 
     db:write(NewItem),
 
-
+    lager:info("Transfer Item: ~p", [NewItem]),
     %Return item map with all the attributes
     all_attr_map(NewItem).
                 
 transfer(ItemId, TargetId, Quantity) ->
-    NewItem = split(ItemId, Quantity),
+    lager:info("ItemId: ~p TargetId: ~p Quantity: ~p", [ItemId, TargetId, Quantity]),
+    NewItem = split(ItemId, Quantity), %TODO Split isn't required if it is a transfer
     transfer(NewItem#item.id, TargetId).
+
+transfer_by_class(SourceId, TargetId, Class, Quantity) ->
+    ClassItems = get_by_class(SourceId, Class),
+
+    F = fun(ClassItem, Total) ->
+            Total + quantity(ClassItem)
+        end,
+
+    ClassQuantity = lists:foldl(F, 0, ClassItems),
+
+    case ClassQuantity >= Quantity of
+        true ->
+            transfer_class_items(ClassItems, TargetId, 0, Quantity);
+        false ->
+            nothing %Failure do not transfer
+    end.
+            
+transfer_class_items(_ClassItems, _TargetId, AccQuantity, TargetQuantity) 
+  when AccQuantity =:= TargetQuantity ->
+    done;
+transfer_class_items([ClassItem | Rest], TargetId, AccQuantity, TargetQuantity) ->
+    Remaining = TargetQuantity - AccQuantity,
+
+    NewAccQuantity = case Remaining < quantity(ClassItem) of
+                        true ->
+                            transfer(id(ClassItem), TargetId, Remaining),
+                            AccQuantity + Remaining; % None remaining
+                        false ->
+                            transfer(id(ClassItem), TargetId),
+                            AccQuantity + quantity(ClassItem)
+                     end,
+    transfer_class_items(Rest, TargetId, NewAccQuantity, TargetQuantity).
+    
 
 split(ItemId, NewQuantity) ->
     [Item] = db:read(item, ItemId),
     CurrentQuantity = Item#item.quantity,
     NewId = util:get_id(),
 
-    SourceItem = Item#item{quantity = NewQuantity},
-    NewItem = Item#item{id = NewId,
-                        quantity = CurrentQuantity - NewQuantity},
-    
-    db:write(SourceItem),
-    db:write(NewItem),
+    %Added quantity checks to ensure mistakes at the player checks 
+    %won't cause duplication of items
 
-    SourceItem.
+    case CurrentQuantity - NewQuantity of
+        N when N > 0 -> %New Object
+            SourceItem = Item#item{quantity = CurrentQuantity - NewQuantity},
+            NewItem = Item#item{id = NewId,
+                                quantity = NewQuantity},
+
+            item_attr:copy(ItemId, NewId),
+
+            db:write(SourceItem),
+            db:write(NewItem),
+
+            NewItem;
+        N when N =:= 0 -> 
+            Item; %Passthrough to transfer function
+        N when N < 0 ->
+            erlang:error("Invalid item split", {ItemId, NewQuantity})
+    end.
 
 equip(ItemId) ->
     [Item] = db:read(item, ItemId),

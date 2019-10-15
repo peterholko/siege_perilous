@@ -64,7 +64,7 @@ login(Username, Password, Socket) ->
             put(player_id, PlayerId),
 
             %Add event to spawn new player
-            game:new_player(PlayerId),
+            game:init_new_player(PlayerId),
 
             LoginPacket = [{<<"packet">>, <<"login">>},
                            {<<"player">>, PlayerId}],

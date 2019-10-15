@@ -3,6 +3,7 @@
 import * as React from "react";
 import BaseInventoryPanel from "./baseInventoryPanel";
 import { Network } from "../network";
+import { Global } from "../global";
 
 
 export default class SingleInventoryPanel extends React.Component<any, any> {
@@ -19,6 +20,7 @@ export default class SingleInventoryPanel extends React.Component<any, any> {
   handleSelect(eventData) {
     this.setState({hideSelect: false});
 
+    Global.infoItemAction = 'inventory';
     Network.sendInfoItem(eventData.itemId);
   }
 

@@ -6,11 +6,11 @@ import { Global } from "../global";
 
 import inventorybutton from "ui_comp/inventorybutton.png";
 import transferbutton from "ui_comp/transferbutton.png";
-import statsbutton from "ui_comp/statsbutton.png";
 import explorebutton from "ui_comp/explorebutton.png";
 import gatherbutton from "ui_comp/gatherbutton.png";
 import followbutton from "ui_comp/followbutton.png"; 
 import infobutton from "ui_comp/infobutton.png";
+import merchantbutton from "ui_comp/merchantbutton.png";
 
 import { Util } from "../util";
 import { VILLAGER, DEAD, OBJ, TILE, FOUNDED, BUTTON_WIDTH} from "../config";
@@ -34,6 +34,7 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
     this.handleGatherClick = this.handleGatherClick.bind(this)
     this.handleFollowClick = this.handleFollowClick.bind(this)
     this.handleInfoClick = this.handleInfoClick.bind(this)
+    this.handleMerchantClick = this.handleMerchantClick.bind(this)
   }
 
   handleInventoryClick(event : React.MouseEvent) {
@@ -44,6 +45,7 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
 
   handleTransferClick(event : React.MouseEvent) {
     console.log('Transfer Click');
+    Global.infoItemTransferAction = 'transfer';
     Network.sendInfoItemTransfer(Global.heroId, this.props.selectedKey.id);
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
@@ -77,14 +79,20 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
+  handleMerchantClick() {
+    Global.infoItemTransferAction = 'merchant';
+    Network.sendInfoItemTransfer(Global.heroId, this.props.selectedKey.id);
+    Global.gameEmitter.emit(GameEvent.MERCHANT_CLICK, this.props.selectedKey.id);
+  }
+
   render() {
     var hideInfoButton = true;
     var hideInventoryButton = true;
     var hideTranferButton = true;
-    var hideStatsButton = true;
     var hideExploreButton = true;
     var hideGatherButton = true;
     var hideFollowButton = true;
+    var hideMerchantButton = true;
 
     var buttonOrder = {
       info: 0,
@@ -124,6 +132,10 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
           hideInventoryButton = false;
           hideTranferButton = false;
           numButtons = 3;
+        }
+        else if(Util.hasGroup(this.props.selectedKey.id, "Merchant")) {
+          hideMerchantButton = false;
+          hideInfoButton = false;
         } else {
           hideInfoButton = false;
         }
@@ -163,8 +175,8 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
       position: 'fixed'  
     } as React.CSSProperties
 
-    const statsStyle = {
-      transform: 'translate(150px, 0px)',
+    const merchantStyle = {
+      transform: 'translate(50px, 0px)',
       position: 'fixed'  
     } as React.CSSProperties
 
@@ -215,6 +227,11 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
             <img src={followbutton} 
                  style={followStyle} 
                  onClick={this.handleFollowClick}/>}
+
+          {!hideMerchantButton && 
+            <img src={merchantbutton} 
+                 style={merchantStyle} 
+                 onClick={this.handleMerchantClick}/>}
 
       </div>
     );

@@ -384,9 +384,9 @@
 },
 {
 	"name": "Gold Coins",
-	"class": "Resource",
-	"subclass": "Coins",
-	"weight": 1
+	"class": "Gold Coins",
+	"subclass": "Gold Coins",
+	"weight": 0.01
 },
 {
     "name": "bones",

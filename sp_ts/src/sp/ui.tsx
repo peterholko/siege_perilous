@@ -36,7 +36,8 @@ import parrybutton from "ui/parrybutton.png";
 import dodgebutton from "ui/dodgebutton.png";
 
 import { NetworkEvent } from './networkEvent';
-import { STAT_BAR_WIDTH, STAT_BAR_HEIGHT, TILE, OBJ, HERO, VILLAGER, STRUCTURE, NPC} from './config';
+import { STAT_BAR_WIDTH, STAT_BAR_HEIGHT, TILE, OBJ, HERO, VILLAGER, 
+         STRUCTURE, NPC, PROGRESSING, TRIGGER_INVENTORY} from './config';
 import TargetActionPanel from './ui/targetActionPanel';
 import ItemTransferPanel from './ui/itemTransferPanel';
 import HeroPanel from './ui/heroPanel';
@@ -50,6 +51,11 @@ import StructurePanel from './ui/structurePanel';
 import ErrorPanel from './ui/errorPanel';
 import SelectPanel from './ui/selectPanel';
 import AssignPanel from './ui/assignPanel';
+import CraftPanel from './ui/craftPanel';
+import ItemDividePanel from './ui/itemDividePanel';
+import MerchantPanel from './ui/merchantPanel';
+import MerchantQuantityPanel from './ui/merchantQuantityPanel';
+import ResourcePanel from './ui/resourcePanel';
 
 interface UIState {
   selectBoxes : [],
@@ -58,6 +64,7 @@ interface UIState {
   hideGatherPanel : boolean,
   hideInventoryPanel : boolean,
   hideItemTransferPanel : boolean,
+  hideItemDividePanel : boolean,
   hideItemPanel : boolean,
   hideHeroPanel : boolean,
   hideVillagerPanel: boolean,
@@ -68,6 +75,10 @@ interface UIState {
   hideStructurePanel : boolean,
   hideErrorPanel : boolean,
   hideAssignPanel : boolean,
+  hideCraftPanel : boolean,
+  hideMerchantPanel : boolean,
+  hideMerchantQuantityPanel : boolean,
+  hideResourcePanel : boolean,
   leftInventoryId : integer,
   leftInventoryData: [],
   rightInventoryId : integer,
@@ -81,12 +92,18 @@ interface UIState {
   tileData : any,
   structuresData : any, //Structures list
   structureData : any, //Structure data
+  recipesData : any,
+  itemDivideData : any,
+  itemMerchantQuantityData : any,
+  resourceData : any,
+  merchantAction : any, 
   selectedTile : Tile,
   selectedBoxPos : integer,
   selectedKey: any,
   hpBarWidth : integer,
   staBarWidth : integer,
   manaBarWidth: integer,
+  infoItemAction : string,
   errmsg : string
 }
 
@@ -103,6 +120,7 @@ export default class UI extends React.Component<any, UIState>{
       hideGatherPanel: true,
       hideInventoryPanel: true,
       hideItemTransferPanel: true,
+      hideItemDividePanel : true,
       hideItemPanel: true,
       hideHeroPanel: true,
       hideVillagerPanel: true,
@@ -112,7 +130,11 @@ export default class UI extends React.Component<any, UIState>{
       hideBuildPanel : true,
       hideStructurePanel : true,
       hideAssignPanel : true,
+      hideCraftPanel : true,
       hideErrorPanel : true,
+      hideMerchantPanel : true,
+      hideMerchantQuantityPanel : true,
+      hideResourcePanel : true,
       leftInventoryId: -1,
       leftInventoryData: [],
       rightInventoryId: -1,
@@ -126,12 +148,18 @@ export default class UI extends React.Component<any, UIState>{
       tileData : {},
       structuresData : {},
       structureData : {},
+      recipesData : {},
+      itemDivideData : {},
+      itemMerchantQuantityData : {},
+      resourceData : {},
+      merchantAction : 'buy',
       selectedTile: null,
       selectedBoxPos: 0,
       selectedKey: {type: '', id: -1},
       hpBarWidth: STAT_BAR_WIDTH,
       staBarWidth: STAT_BAR_WIDTH,
       manaBarWidth: STAT_BAR_WIDTH,
+      infoItemAction: TRIGGER_INVENTORY,
       errmsg : ''
     }
 
@@ -156,7 +184,13 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(GameEvent.VILLAGER_GATHER_CLICK, this.handleVillagerGatherClick, this);
     Global.gameEmitter.on(GameEvent.RESOURCE_GATHER_CLICK, this.handleResourceGatherClick, this);
     Global.gameEmitter.on(GameEvent.START_BUILD_CLICK, this.handleStartBuildClick, this);
+    Global.gameEmitter.on(GameEvent.ASSIGN_CLICK, this.handleAssignClick, this);
     Global.gameEmitter.on(GameEvent.ERROR_OK_CLICK, this.handleErrorOkClick, this);
+    Global.gameEmitter.on(GameEvent.ITEM_DIVIDE_CLICK, this.handleItemDivideClick, this);
+    Global.gameEmitter.on(GameEvent.ITEM_DIVIDE_OK_CLICK, this.handleItemDivideOkClick, this);
+    Global.gameEmitter.on(GameEvent.MERCHANT_BUYSELL_CLICK, this.handleMerchantBuySellClick, this);
+    Global.gameEmitter.on(GameEvent.MERCHANT_QUANTITY_CANCEL, this.handleMerchantQuantityCancel, this);
+    Global.gameEmitter.on(GameEvent.RESOURCE_CLICK, this.handleResourceClick, this);
 
     Global.gameEmitter.on(NetworkEvent.ERROR, this.handleError, this);
     Global.gameEmitter.on(NetworkEvent.STATS, this.handleStats, this);
@@ -168,8 +202,10 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.INFO_ATTRS, this.handleInfoAttrs, this);
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
     Global.gameEmitter.on(NetworkEvent.ITEM_TRANSFER, this.handleItemTransfer, this);
+    Global.gameEmitter.on(NetworkEvent.BUYSELL_ITEM, this.handleBuySellItem, this);
     Global.gameEmitter.on(NetworkEvent.STRUCTURE_LIST, this.handleStructureList, this);
     Global.gameEmitter.on(NetworkEvent.ASSIGN_LIST, this.handleAssignList, this);
+    Global.gameEmitter.on(NetworkEvent.RECIPE_LIST, this.handleRecipeList, this);
   }
 
   handleMoveClick(event : React.MouseEvent) {
@@ -243,6 +279,8 @@ export default class UI extends React.Component<any, UIState>{
       this.setState({hideInventoryPanel: true});
     } else if(event.panelType == 'itemTransfer') {
       this.setState({hideItemTransferPanel: true})
+    } else if(event.panelType == 'merchant') {
+      this.setState({hideMerchantPanel: true})
     } else if(event.panelType == 'item') {
       this.setState({hideItemPanel: true});
     } else if(event.panelType == 'hero') {
@@ -262,11 +300,38 @@ export default class UI extends React.Component<any, UIState>{
                      hideAssignPanel: true});
     } else if(event.panelType == 'assign') {
       this.setState({hideAssignPanel: true});
-    }
+    } else if(event.panelType == 'craft') {
+      this.setState({hideCraftPanel: true});
+    } else if(event.panelType == 'resource') {
+      this.setState({hideResourcePanel: true});
+    } 
   }
 
   handleErrorOkClick() {
     this.setState({hideErrorPanel: true});
+  }
+
+  handleAssignClick() {
+    this.setState({hideAssignPanel: true});
+  }
+  
+  handleItemDivideClick(itemData) {
+    this.setState({hideItemDividePanel: false, 
+                   itemDivideData: itemData});
+  }
+
+  handleItemDivideOkClick() {
+    this.setState({hideItemDividePanel: true});
+  }
+
+  handleMerchantBuySellClick(eventData) {
+    this.setState({hideMerchantQuantityPanel: false,
+                   itemMerchantQuantityData: eventData.itemData,
+                   merchantAction: eventData.action});
+  }
+
+  handleMerchantQuantityCancel() {
+    this.setState({hideMerchantQuantityPanel: true});
   }
 
   handleTargetActionPanelClick(event : React.MouseEvent) {
@@ -330,6 +395,11 @@ export default class UI extends React.Component<any, UIState>{
     this.setState({hpBarWidth: hpBarWidth});
   }
 
+  handleResourceClick(eventData) {
+    this.setState({hideResourcePanel: false,
+                   resourceData: eventData});
+  }
+
   handleInfoObj(message) {
     console.log('UI handleInfoObj');
     if(Util.isPlayerObj(message.id)) {
@@ -351,7 +421,9 @@ export default class UI extends React.Component<any, UIState>{
 
   handleInfoItem(message) {
     console.log('UI handleInfoItem');
-    this.setState({hideItemPanel: false, itemData: message});
+    this.setState({hideItemPanel: false, 
+                   itemData: message,
+                   infoItemAction: Global.infoItemAction});
   }
 
   handleInfoInventory(message) {
@@ -365,11 +437,19 @@ export default class UI extends React.Component<any, UIState>{
     console.log('leftInventoryData.id: ' + message.sourceitems.id);
     console.log('rightInventoryData.id: ' + message.targetitems.id);
 
-    this.setState({hideItemTransferPanel: false,
-                   leftInventoryId: message.sourceid, 
-                   leftInventoryData: message.sourceitems,
-                   rightInventoryId: message.targetid,
-                   rightInventoryData: message.targetitems});
+    if(Global.infoItemTransferAction == 'transfer') {
+      this.setState({hideItemTransferPanel: false,
+                    leftInventoryId: message.sourceid, 
+                    leftInventoryData: message.sourceitems,
+                    rightInventoryId: message.targetid,
+                    rightInventoryData: message.targetitems});
+    } else if(Global.infoItemTransferAction == 'merchant') {
+      this.setState({hideMerchantPanel: false,
+                    leftInventoryId: message.sourceid, 
+                    leftInventoryData: message.sourceitems,
+                    rightInventoryId: message.targetid,
+                    rightInventoryData: message.targetitems});
+    }
   }
 
   handleInfoAttrs(message) {
@@ -406,6 +486,29 @@ export default class UI extends React.Component<any, UIState>{
                    rightInventoryData: rightInventoryData})
   }
 
+  handleBuySellItem(message) {
+    var leftInventoryData; 
+    var rightInventoryData;
+
+    if(this.state.leftInventoryId == message.sourceid) {
+      leftInventoryData = message.sourceitems;
+    } else if(this.state.leftInventoryId == message.targetid) {
+      leftInventoryData = message.targetitems;
+    }
+
+    if(this.state.rightInventoryId == message.sourceid) {
+      rightInventoryData = message.sourceitems;
+    } else if(this.state.rightInventoryId == message.targetid) {
+      rightInventoryData = message.targetitems;
+    }
+
+    this.setState({hideMerchantPanel: false,
+                   hideItemPanel: true,
+                   leftInventoryData: leftInventoryData,
+                   rightInventoryData: rightInventoryData})
+    
+  }
+
   handleStructureList(message) {
     //TODO look to fix the structures list packet
     this.setState({hideBuildPanel: false, structuresData: message.result});
@@ -413,6 +516,16 @@ export default class UI extends React.Component<any, UIState>{
 
   handleAssignList(message) {
     this.setState({hideAssignPanel: false, assignData: message.result});
+  }
+
+  handleRecipeList(message) {
+    this.setState({hideCraftPanel: false, recipesData: message.result});
+  }
+
+  handleBuild(message) {
+    let newData = {...this.state.structureData}
+    newData.state = PROGRESSING;
+    this.setState({structureData: newData})
   }
 
   render() {
@@ -526,9 +639,14 @@ export default class UI extends React.Component<any, UIState>{
           {!this.state.hideItemTransferPanel && 
             <ItemTransferPanel leftInventoryData={this.state.leftInventoryData} 
                                rightInventoryData={this.state.rightInventoryData} /> }
-                               
+
+          {!this.state.hideMerchantPanel && 
+            <MerchantPanel leftInventoryData={this.state.leftInventoryData} 
+                           rightInventoryData={this.state.rightInventoryData} /> }
+                              
           {!this.state.hideItemPanel &&
-            <ItemPanel itemData={this.state.itemData}/> }
+            <ItemPanel itemData={this.state.itemData}
+                       triggerAction={this.state.infoItemAction}/> }
 
           {!this.state.hideHeroPanel &&
             <HeroPanel heroData={this.state.heroData}/> }
@@ -555,7 +673,22 @@ export default class UI extends React.Component<any, UIState>{
             <StructurePanel structureData={this.state.structureData} />}
 
           {!this.state.hideAssignPanel && 
-            <AssignPanel assignData={this.state.assignData} />}
+            <AssignPanel structuredId={this.state.structureData.id}
+                         assignData={this.state.assignData} />}
+
+          {!this.state.hideCraftPanel && 
+            <CraftPanel structureId={this.state.structureData.id}
+                        recipesData={this.state.recipesData} />}
+
+          {!this.state.hideItemDividePanel && 
+            <ItemDividePanel itemData={this.state.itemDivideData} />}
+
+          {!this.state.hideMerchantQuantityPanel && 
+            <MerchantQuantityPanel itemData={this.state.itemMerchantQuantityData}
+                                   action={this.state.merchantAction} />}
+
+          {!this.state.hideResourcePanel && 
+            <ResourcePanel resourceData={this.state.resourceData} />}
 
           {!this.state.hideErrorPanel && 
             <ErrorPanel errmsg={this.state.errmsg} />}

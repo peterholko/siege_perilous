@@ -20,7 +20,7 @@
 -export([process_dead_objs/1, process_deleting_objs/1]).
 -export([trigger_explored/1]).
 -export([get_tick/0, get_perception/0, get_explored/0, reset/0]).
--export([get_info_tile/1, get_valid_tiles/1]).
+-export([get_info_tile/1, get_valid_tiles/2]).
 -export([hero_dead/2]).
 -export([spawn_shadow/1, spawn_wolf/0]).
 -export([new_player/1, login/1]).
@@ -195,11 +195,11 @@ get_info_tile(Pos) ->
 
     Info8.
 
-get_valid_tiles({X, Y}) ->
+get_valid_tiles({X, Y}, Obj) ->
     Neighbours = map:neighbours(X, Y),
 
     F = fun(Pos) ->
-        map:is_passable(Pos) and obj:is_empty(Pos)
+        map:is_passable(Pos, Obj) and obj:is_empty(Pos)
     end,
 
     lists:filter(F, Neighbours).
@@ -219,6 +219,7 @@ new_player(PlayerId) ->
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
     HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),   
     
+    
     %Create 2 corpses
     obj:create({16,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
     obj:create({17,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
@@ -231,6 +232,7 @@ new_player(PlayerId) ->
 
     item:create(HeroId, <<"Honeybell Berries">>, 25),
     item:create(HeroId, <<"Spring Water">>, 25),
+    item:create(HeroId, <<"Gold Coins">>, 25),
     item:create(MonolithId, <<"Mana">>, 2500),
     item:create(ShipwreckId, <<"Cragroot Maple Wood">>, 100),
     item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 25),
@@ -268,7 +270,10 @@ new_player(PlayerId) ->
          end,
 
     F2 = fun() ->
-            npc:create({16,35}, ?UNDEAD, <<"Zombie">>)
+            MeagerMerchantId = npc:create({0, 40}, ?EMPIRE, <<"Meager Merchant">>),
+            obj:add_group(MeagerMerchantId, ?MERCHANT),
+            ItemMap = item:create(MeagerMerchantId, <<"Pick Axe">>, 2),
+            item_attr:set(item:id(ItemMap), <<"price">>, 5)
          end,
 
     F3 = fun() ->
@@ -280,7 +285,7 @@ new_player(PlayerId) ->
          end,
 
     %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
-    %game:add_event(none, event, F2, none, 24),
+    game:add_event(none, event, F2, none, 15),
     %game:add_event(none, event, F3, none, 36),
     %game:add_event(none, event, F4, none, 40),
 

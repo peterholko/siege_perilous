@@ -1,8 +1,16 @@
 
 import * as React from "react";
 import HalfPanel from "./halfPanel";
+import dividebutton from "ui_comp/dividebutton.png";
+import buybutton from "ui_comp/buybutton.png";
+import sellbutton from "ui_comp/sellbutton.png";
+import { GameEvent } from "../gameEvent";
+import { Global } from "../global";
+import { TRIGGER_MERCHANT_BUY, TRIGGER_INVENTORY, TRIGGER_MERCHANT_SELL } from "../config";
+import { Network } from "../network";
 
 interface ItemPanelProps {
+  triggerAction,
   itemData,
 }
 
@@ -13,6 +21,28 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     this.state = {
     };
     
+    this.handleDivideClick = this.handleDivideClick.bind(this);
+    this.handleBuyClick = this.handleBuyClick.bind(this);
+    this.handleSellClick = this.handleSellClick.bind(this);
+  }
+
+  handleDivideClick() {
+    Global.gameEmitter.emit(GameEvent.ITEM_DIVIDE_CLICK, this.props.itemData);
+  }
+
+  handleBuyClick() {
+    const eventData = {'itemData': this.props.itemData,
+                       'action': 'buy'};
+
+    Global.gameEmitter.emit(GameEvent.MERCHANT_BUYSELL_CLICK, eventData);
+  }
+
+  handleSellClick() {
+    //Network.sendSellItem(this.props.itemData.id, this.props.itemData.quantity);
+    const eventData = {'itemData': this.props.itemData,
+                       'action': 'sell'};
+
+    Global.gameEmitter.emit(GameEvent.MERCHANT_BUYSELL_CLICK, eventData);
   }
 
   render() {
@@ -20,6 +50,14 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     const imageName = itemName.toLowerCase().replace(/ /g, '') + '.png'
     const effects = [];
     var produces = '';
+
+    const showDivideButton = (this.props.itemData.quantity > 1) && 
+                             (this.props.triggerAction == TRIGGER_INVENTORY)
+
+    const showBuyButton = (this.props.triggerAction == TRIGGER_MERCHANT_BUY);
+    const showSellButton = (this.props.triggerAction == TRIGGER_MERCHANT_SELL);
+
+    const isLeftPanel = (this.props.triggerAction == TRIGGER_MERCHANT_BUY);
 
     if(this.props.itemData.hasOwnProperty('effects')) {
 
@@ -83,11 +121,26 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
       fontSize: '12px'
     } as React.CSSProperties
 
+    const divideStyle = {
+      transform: 'translate(-187px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const buyStyle = {
+      transform: 'translate(-187px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const sellStyle = {
+      transform: 'translate(-187px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
     return (
-      <HalfPanel left={false} 
+      <HalfPanel left={isLeftPanel} 
                  panelType={'item'} 
                  hideExitButton={false}>
-        <img src={'/static/art/' + imageName} style={itemStyle} />
+        <img src={'/static/art/items/' + imageName} style={itemStyle} />
         <span style={spanNameStyle}>
           {itemName} x {this.props.itemData.quantity}
         </span>
@@ -124,6 +177,23 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
           </tr>
           </tbody>
         </table>
+
+        {showDivideButton && 
+          <img src={dividebutton}
+               style={divideStyle}
+               onClick={this.handleDivideClick} />}
+
+        {showBuyButton && 
+          <img src={buybutton}
+               style={buyStyle}
+               onClick={this.handleBuyClick} />}
+
+        {showSellButton && 
+          <img src={sellbutton}
+               style={sellStyle}
+               onClick={this.handleSellClick} />}
+ 
+ 
       </HalfPanel>
     );
   }

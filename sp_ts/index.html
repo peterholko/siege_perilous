@@ -17,7 +17,7 @@
     </script>
     
   </head>
-  <body>
+  <body style="background-color: black">
     <div id="root"></div>
   </body>
     <script>
@@ -34,7 +34,7 @@
         } else {
           var iframe = document.createElement("iframe");
           iframe.src = "/desktop";
-          iframe.style = "border:none; width:1024px; height: 768px;";
+          iframe.style = "display: block; margin: 0 auto; border:none; width:1024px; height: 768px;";
 
           document.body.appendChild(iframe);
         }

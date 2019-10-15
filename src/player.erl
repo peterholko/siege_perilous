@@ -26,6 +26,8 @@
          explore/1,
          harvest/2,
          loot/2,
+         buy_item/2, 
+         sell_item/3, 
          item_transfer/2,
          item_split/2,
          structure_list/0,
@@ -33,8 +35,8 @@
          upgrade/1,
          build/2,
          recipe_list/1,
-         refine/1,
-         craft/2,
+         order_refine/1,
+         order_craft/2,
          equip/1,
          unequip/1,
          rest/1,
@@ -298,7 +300,7 @@ move(SourceId, Pos) ->
               {Obj#obj.class =:= unit, "Obj cannot move"},
               {Obj#obj.state =/= dead, "Unit is dead"}, 
               {map:is_adjacent(Obj#obj.pos, Pos), "Unit is not adjacent to position"},
-              {map:is_passable(Pos), "Tile is not passable"},
+              {map:is_passable(Pos, Obj), "Tile is not passable"},
               {not obj:is_subclass(?VILLAGER, Obj), "Cannot move villager"},
               {obj:is_empty(Obj, Pos), "Position is occupied"},
               {obj:is_hero_nearby(Obj, PlayerId), "Unit not near Hero"}],
@@ -430,6 +432,94 @@ harvest(ObjId, Resource) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
+is_valid_buysell(TargetId, ItemId, Quantity) ->
+    case item:has_price(ItemId) of
+        true ->
+            TargetGold = item:get_total_gold(TargetId),
+            {TargetGold < (item:price(ItemId) * Quantity), "Insufficent gold"};
+        false ->
+            {false, "Item is not for sale"}
+    end.
+
+buy_item(ItemId, Quantity) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+
+    Item = item:get_rec(ItemId),
+    lager:info("Item: ~p", [Item]),
+    ItemOwnerId = item:owner(Item),
+    ItemOwner = obj:get(ItemOwnerId),
+
+    Checks = [{map:is_adjacent(Hero, ItemOwner), "Item is not nearby"},
+              {Quantity =< item:quantity(Item), "Purchase quantity too large"},
+              is_valid_buysell(obj:id(Hero), ItemId, Quantity)],
+
+    case process_checks(Checks) of
+        true -> 
+            %Transfer gold
+            item:transfer_by_class(obj:id(Hero), 
+                                   ItemOwnerId, 
+                                   ?GOLD_COINS, 
+                                   item:price(ItemId) * Quantity),
+
+            %Transfer purchased item
+            ItemMap = item:transfer(Item#item.id, obj:id(Hero), Quantity),
+
+            %Trigger object transfer hooks
+            obj:item_transfer(Hero, ItemMap),
+
+            SourceItems = obj:get_info_inventory(PlayerId, Hero),
+            TargetItems = obj:get_info_inventory(PlayerId, ItemOwner),
+
+            #{<<"result">> => <<"success">>,
+              <<"sourceid">> => obj:id(Hero),
+              <<"sourceitems">> => SourceItems,
+              <<"targetid">> => ItemOwnerId,
+              <<"targetitems">> => TargetItems};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+sell_item(ItemId, TargetId, Quantity) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+    Target = obj:get(TargetId),
+
+    Item = item:get_rec(ItemId),
+
+    Checks = [{map:is_adjacent(Hero, Target), "Target is not nearby"},
+              {Quantity =< item:quantity(Item), "Sell quantity too large"},
+              is_valid_buysell(TargetId, ItemId, Quantity)],
+
+    case process_checks(Checks) of
+        true -> 
+            %Transfer gold
+            item:transfer_by_class(TargetId, 
+                                   obj:id(Hero), 
+                                   ?GOLD_COINS, 
+                                   item:price(ItemId) * Quantity),
+
+            %Transfer purchased item
+            ItemMap = item:transfer(Item#item.id, TargetId, Quantity),
+
+            %Trigger object transfer hooks
+            obj:item_transfer(TargetId, ItemMap),
+
+            SourceItems = obj:get_info_inventory(PlayerId, Hero),
+            TargetItems = obj:get_info_inventory(PlayerId, Target),
+
+            lager:info("~p", [SourceItems]),
+            lager:info("~p", [TargetItems]),
+
+            #{<<"result">> => <<"success">>,
+              <<"sourceid">> => obj:id(Hero),
+              <<"sourceitems">> => SourceItems,
+              <<"targetid">> => TargetId,
+              <<"targetitems">> => TargetItems};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
 loot(SourceId, ItemId) ->
     Item = item:get_rec(ItemId),
     %Will fail if item id is invalid
@@ -483,8 +573,9 @@ item_split(ItemId, Quantity) ->
     case process_checks(Checks) of
         true ->
             lager:info("Splitting item"),
-            item:split(ItemId, Quantity),
-            #{<<"result">> => <<"success">>};
+            SourceItem = item:split(ItemId, Quantity),
+            #{<<"result">> => <<"success">>,
+              <<"owner">> => item:owner(SourceItem)};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
@@ -638,7 +729,7 @@ recipe_list(SourceId) ->
              end,
     Result.
 
-refine(Structure) when is_record(Structure, obj) ->
+order_refine(Structure) when is_record(Structure, obj) ->
     Player = get(player_id),
     Checks = [{not is_event_locked(Structure#obj.id), "Event in progress"},
               {is_player_owned(Structure, Player), "Structure not owned by player"},
@@ -656,19 +747,18 @@ refine(Structure) when is_record(Structure, obj) ->
             lager:info("Refine failed: ~p", [Error]),
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
-refine(StructureId) ->
+order_refine(StructureId) ->
     Structure = obj:get(StructureId),
-    refine(Structure).
+    order_refine(Structure).
 
-craft(StructureId, Recipe) ->
+order_craft(StructureId, Recipe) ->
     Player = get(player_id),
     [Structure] = db:read(obj, StructureId),
 
     Checks = [{not is_event_locked(StructureId), "Event in process"},
               {Player =:= Structure#obj.player, "Structure not owned by player"},
               {villager:has_assigned(StructureId), "Missing assigned villager to structure"},
-              {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"},
-               recipe:is_refine(Recipe), "Cannot craft refine recipe"],
+              {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"}],
 
     case process_checks(Checks) of
         true ->
@@ -779,7 +869,13 @@ assign(SourceId, TargetId) ->
         true ->
             lager:info("Assigning villager"),
             villager:assign(SourceId, TargetId),
-            villager:set_order(SourceId, ?ORDER_HARVEST),
+
+            case obj:subclass(TargetObj) of
+                ?HARVESTER -> villager:set_order(SourceId, ?ORDER_HARVEST);
+                ?CRAFT ->  villager:set_order(SourceId, ?ORDER_REFINE);
+                _ -> none
+            end,
+
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}

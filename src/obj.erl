@@ -17,7 +17,7 @@
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
--export([has_vision/1]).
+-export([has_vision/1, has_landwalk/1, has_waterwalk/1, has_mountainwalk/1]).
 -export([trigger_effects/1, trigger_inspect/1]).
 -export([item_transfer/2, has_space/2]).
 -export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
@@ -26,6 +26,7 @@
 -export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, 
          name/1, image/1, vision/1, modtick/1]).
 -export([rec_to_map/1]).
+-export([add_group/2]).
 
 create(Pos, PlayerId, Template) ->
     create(Pos, PlayerId, Template, none, none).
@@ -39,6 +40,7 @@ create(Pos, PlayerId, Template, UniqueName, State) ->
 
     %Create obj attr entries from obj def entries
     create_obj_attr(Id, Template),
+    lager:info("Done setting obj attrs..."),
 
     %Get base attributes
     BaseHp = obj_attr:value(Id, <<"base_hp">>, 0),
@@ -73,6 +75,7 @@ create(Pos, PlayerId, Template, UniqueName, State) ->
     obj_attr:set(Id, <<"hp">>, BaseHp),
     obj_attr:set(Id, <<"stamina">>, BaseStamina),
 
+    lager:info("Storing object..."),
     %Create obj
     Obj = #obj {id = Id,
                 pos = Pos,
@@ -682,7 +685,7 @@ is_subclass(_, _) -> false.
 is_player(#obj{player = Player}) when Player > ?NPC_ID -> true;
 is_player(_) -> false.
 
-is_blocking(SourcePlayer, #obj{player = Player, state = State}) ->
+is_blocking(#obj{player = SourcePlayer}, #obj{player = Player, state = State}) ->
     case SourcePlayer =/= Player of
        true -> is_blocking_state(State);
        false -> false
@@ -955,7 +958,12 @@ info_inventory(PlayerId, Obj) ->
                         true ->
                             item:get_by_owner(Obj#obj.id);
                         false ->
-                            []
+                            case lists:member(?MERCHANT, Obj#obj.groups) of
+                                true ->
+                                    item:get_by_owner(Obj#obj.id);
+                                false ->
+                                    []
+                            end
                     end
             end,
     
@@ -1010,6 +1018,10 @@ is_blocking_state(_) -> true.
 
 has_vision(Obj) -> Obj#obj.vision > 0.
 
+has_landwalk(Obj) -> obj_attr:value(id(Obj), <<"landwalk">>, 1) > 0. %Assumed every unit has landwalk
+has_waterwalk(Obj) -> obj_attr:value(id(Obj), <<"waterwalk">>, 0) > 0.
+has_mountainwalk(Obj) -> obj_attr:value(id(Obj), <<"mountainwalk">>, 0) > 0.
+
 rec_to_map(Obj) ->
     {X, Y} = Obj#obj.pos,
     #{<<"id">> => Obj#obj.id, 
@@ -1020,6 +1032,7 @@ rec_to_map(Obj) ->
       <<"template">> => Obj#obj.template, %TODO convert to binary everywhere
       <<"class">> => Obj#obj.class,
       <<"subclass">> => Obj#obj.subclass,
+      <<"groups">> => Obj#obj.groups,
       <<"vision">> => Obj#obj.vision,
       <<"state">> => Obj#obj.state,
       <<"image">> => Obj#obj.image,
@@ -1046,3 +1059,9 @@ save(Obj, StateData) when is_record(Obj, obj) ->
 
     %Trigger any new effects
     obj:trigger_effects(Obj).
+
+add_group(ObjId, Group) ->
+    [Obj] = db:read(obj, ObjId),
+    NewGroups = [Group | Obj#obj.groups],
+    NewObj = Obj#obj{groups = NewGroups},
+    save(NewObj).

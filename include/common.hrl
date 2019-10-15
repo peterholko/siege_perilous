@@ -106,6 +106,7 @@
 -define(CRAFT, <<"craft">>).
 -define(STORAGE, <<"resource">>).
 -define(SHELTER, <<"shelter">>).
+-define(TRADE, <<"trade">>).
 
 -define(QUICK, <<"quick">>).
 -define(PRECISE, <<"precise">>).
@@ -170,6 +171,8 @@
 
 -define(EXPOSE_ARMOR_DEF, -0.05).
 
+-define(MERCHANT, <<"Merchant">>).
+
 %ORDERS
 -define(ORDER_ATTACK, <<"Attack">>).
 -define(ORDER_GUARD, <<"Guard">>).
@@ -229,6 +232,13 @@
 -define(MANA, <<"Mana">>).
 -define(FOOD, <<"Food">>).
 
+%STRUCTURE RESOURCE TYPES
+-define(MINE, <<"Mine">>).
+-define(QUARRY, <<"Quarry">>).
+-define(TRAPPER, <<"Trapper">>).
+-define(LUMBERMILL, <<"Lumbermill">>).
+-define(FARM, <<"Farm">>).
+
 %SKILLS
 -define(MINING, <<"Mining">>).
 -define(WOODCUTTING, <<"Woodcutting">>).
@@ -236,6 +246,9 @@
 -define(HUNTING, <<"Hunting">>).
 -define(FORAGING, <<"Foraging">>).
 -define(FARMING, <<"Farming">>).
+
+%ITEM CLASSES
+-define(GOLD_COINS, <<"Gold Coins">>).
 
 %ITEM SUBCLASSES
 -define(PICK_AXE, <<"Pick Axe">>).
@@ -251,7 +264,6 @@
 -define(SWORD, <<"Sword">>).
 -define(HAMMER, <<"Hammer">>).
 -define(SPEAR, <<"Spear">>).
-
 
 %RESOURCE TRAITS
 -define(AXE_DMG_P, <<"Axe Damage %">>).

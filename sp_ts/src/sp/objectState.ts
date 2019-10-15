@@ -7,6 +7,7 @@ export interface ObjectState {
     template : string;
     state : string;
     prevstate : string;
+    groups : Array<string>;
     x : integer;
     y : integer;
     prevX? : integer;

@@ -10,6 +10,7 @@
                  login_errors = 0,
                  disabled = false,
                  hero = false,
+                 class = none,
                  npc = false}).
 
 -record(connection, {player,
@@ -103,7 +104,7 @@
               hunger = 0,
               focus = 0,
               stress = 0,
-              effect = [],
+              groups = [],
               vision = -1,
               image,
               hsl = [],

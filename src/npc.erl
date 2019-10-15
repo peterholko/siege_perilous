@@ -27,7 +27,8 @@
          cast_shadow_bolt/1, set_pos_mausoleum/1, hide/1, reveal/1, next_phase/1]).
 -export([mausoleum_corpses_nearby/1, mausoleum_guardian_dead/1, has_minions/3, are_minions_dead/1, swarm_attack/1]).
 -export([say_guard_text/1]).
--export([idle/1]).
+-export([wait/2, idle/1]).
+-export([find_trade_pos/1, set_pos_empire/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -405,6 +406,21 @@ swarm_attack(NPC) ->
     lists:foreach(F, Minions),
     NPC#npc{task_state = completed}.
 
+find_trade_pos(NPC) ->
+    %TODO find player positions
+    lager:info("Find trade pos"),
+    LandingPos = {15, 37},
+    NPC#npc{dest = LandingPos, task_state = completed}.
+
+wait(NPC, Time) ->
+    lager:info("Wait"),
+    game:add_event(self(), wait, NPC#npc.id, NPC#npc.id, Time),
+    NPC#npc{task_state = running}.
+
+set_pos_empire(NPC) -> 
+    %TODO define empire location
+    NPC#npc{dest = {0, 40}, task_state = completed}.
+
 idle(NPC) ->
     NPC.
 
@@ -413,7 +429,6 @@ say_guard_text(NPC) ->
     sound:talk(NPC#npc.id, Text),
 
     NPC#npc{task_state = completed}.
-
 
 %% ====================================================================
 %% Server functions
@@ -487,6 +502,7 @@ handle_call({create, Pos, Template}, _From, Data) ->
                last_run = ?MAX_INT},
 
     NewData = maps:put(NPCId, NPC, Data),
+    lager:info("Create completed..."),
 
     {reply, NPCId, NewData};
 
@@ -501,6 +517,7 @@ handle_call({create, Pos, PlayerId, Template}, _From, Data) ->
                last_run = ?MAX_INT},
 
     NewData = maps:put(NPCId, NPC, Data),
+    lager:info("Create completed..."),
 
     {reply, NPCId, NewData};
 
@@ -615,11 +632,10 @@ process_plan(NPC, Tick) ->
     NewNPC = process_perception(NPC),
 
     CurrentPlan = NewNPC#npc.plan,    
-    {_PlanLabel, NewPlan} = htn:plan(NewNPC#npc.order, NewNPC, npc),    
+    {_PlanLabel, NewPlan} = htn:plan(NewNPC#npc.order, NewNPC, npc),   
 
     case NewPlan =:= CurrentPlan of
         false ->
-            lager:info("NPC ~p New Plan: ~p", [NewNPC#npc.id, NewPlan]),
             %New plan cancel current event
             game:cancel_event(NewNPC#npc.id),
 
@@ -641,9 +657,17 @@ process_run_plan(NPC, Tick) ->
             NewNPC#npc{last_run = Tick}
     end.
 
+get_task_by_index(NPC, TaskIndex) ->
+    TaskData = lists:nth(TaskIndex, NPC#npc.plan),
+    process_task_data(NPC, TaskData).
+
+process_task_data(NPC, {TaskName, TaskArgs}) -> {TaskName, [NPC, TaskArgs]};
+process_task_data(NPC, TaskName) -> {TaskName, [NPC]}.
+
 process_task_state(init, NPC) ->
-    TaskToRun = lists:nth(1, NPC#npc.plan),
-    NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
+    {TaskName, TaskArgs} = get_task_by_index(NPC, 1),
+
+    NewNPC = erlang:apply(npc, TaskName, TaskArgs),
     NewNPC;
 process_task_state(completed, NPC) ->
     TaskIndex = NPC#npc.task_index,
@@ -653,8 +677,9 @@ process_task_state(completed, NPC) ->
 
     case NextTask of
         {next_task, NextTaskIndex} ->
-            TaskToRun = lists:nth(NextTaskIndex, NPC#npc.plan),
-            NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
+            {TaskName, TaskArgs} = get_task_by_index(NPC, NextTaskIndex),
+
+            NewNPC = erlang:apply(npc, TaskName, TaskArgs),
             NewNPC#npc{task_index = NextTaskIndex};
         plan_completed -> 
             NPC#npc{task_state = init, task_index = 1}
@@ -745,13 +770,13 @@ get_wander_pos(NPCObj, false,  _, Neighbours) ->
 
     get_wander_pos(NPCObj, IsAvailable, RandomPos, NewNeighbours).
 
-is_pos_available(#obj{player = Player}, RandomPos) when Player =:= ?UNDEAD ->
+is_pos_available(Obj = #obj{player = Player}, RandomPos) when Player =:= ?UNDEAD ->
     IsAvailable = obj:is_empty(RandomPos) andalso
-                  map:is_passable(RandomPos) andalso
+                  map:is_passable(RandomPos, Obj) andalso
                   not effect:has_effect({tile, RandomPos}, ?SANCTUARY),
     IsAvailable;
-is_pos_available(_, RandomPos) ->
-    obj:is_empty(RandomPos) and map:is_passable(RandomPos).
+is_pos_available(Obj, RandomPos) ->
+    obj:is_empty(RandomPos) and map:is_passable(RandomPos, Obj).
 
 check_wall(#obj{id = Id} = EnemyUnit) ->    
     case effect:get_effect_data(Id, ?FORTIFIED) of
@@ -762,8 +787,8 @@ check_wall(_) ->
     none.
 
 find_target(NPCObj, AllEnemyUnits) ->
-    Int = obj_attr:value(NPCObj#obj.id, <<"int">>),
-    Aggression = obj_attr:value(NPCObj#obj.id, <<"aggression">>),
+    Int = obj_attr:value(NPCObj#obj.id, <<"int">>, none),
+    Aggression = obj_attr:value(NPCObj#obj.id, <<"aggression">>, none),
     find_target(NPCObj, Int, Aggression, AllEnemyUnits).
 
 find_target(_NPCObj, _, _, []) ->
@@ -776,7 +801,9 @@ find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
 find_target(NPCObj, <<"animal">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_poi(remove_structures(remove_dead(remove_fortified(AllEnemyUnits)))),
     EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
-    return_target(EnemyUnit). 
+    return_target(EnemyUnit);
+find_target(_NPCObj, _, _, _) ->
+    none.
 
 return_target(Target) when is_record(Target, obj) ->
     Target#obj.id;
@@ -824,6 +851,7 @@ process_complete(NPC, Data) ->
                  attack -> complete_task(NPC);
                  cast_raise_dead -> complete_task(NPC);
                  cast_shadow_bolt -> complete_task(NPC);
+                 wait -> complete_task(NPC);
                  _ -> NPC
              end,
 
