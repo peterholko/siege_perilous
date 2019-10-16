@@ -8,13 +8,19 @@ import { Network } from "./network";
 import { NetworkEvent } from "./networkEvent";
 import "./login.css"
 import logo from "art/perilous_logo.png";
+import warrior from "art/warrior_single.png";
+import ranger from "art/ranger_single.png";
+import mage from "art/mage_single.png";
+import halfpanel from "ui/halfpanel.png";
 
 export default class LoginControl extends React.Component<any, any> {
   constructor(props) {
     super(props);
 
     this.state = {
-      isLoggedIn: false,
+      hideLoginForm : false,
+      hideSelectClass : true,
+      hideGame: true,
       username: 'Username',
       password: 'Password'
     };
@@ -30,6 +36,9 @@ export default class LoginControl extends React.Component<any, any> {
 
     this.handleLoggedIn = this.handleLoggedIn.bind(this);
 
+    this.handleWarriorSelect = this.handleWarriorSelect.bind(this);
+
+    Global.gameEmitter.on(NetworkEvent.SELECT_CLASS, this.handleSelectClass, this);
     Global.gameEmitter.on(NetworkEvent.LOGGED_IN, this.handleLoggedIn, this);
   }
 
@@ -72,24 +81,97 @@ export default class LoginControl extends React.Component<any, any> {
     }
   }
 
+  handleSelectClass() {
+    this.setState({hideLoginForm: true,
+                   hideSelectClass: false,
+                   hideGame: true});
+  }
+
   handleLoggedIn() {
-    this.setState({isLoggedIn: true});
+    this.setState({hideLoginForm: true,
+                   hideSelectClass: true,
+                   hideGame: false});
+  }
+
+  handleWarriorSelect() {
+    Network.sendSelectedClass("Warrior");
   }
 
   render() {
-    const isLoggedIn = this.state.isLoggedIn;
-
     const logoStyle = {
     } 
 
+    const warriorStyle = {
+      transform: 'translate(40px, 100px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const rangerStyle = {
+      transform: 'translate(140px, 100px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const mageStyle = {
+      transform: 'translate(240px, 100px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const selectClassStyle = {
+      top: '50%',
+      left: '50%',
+      width: '360px',
+      height: '323px',
+      marginTop: '-161px',
+      marginLeft: '-180px',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const selectClassBGStyle = {
+      position: 'fixed',
+      WebkitTransform: 'rotate(90deg)',
+      transform: 'rotate(90deg) translate(-19px, -18px)'
+    } as React.CSSProperties
+
+    const selectHeroText = {
+      transform: 'translate(0px, 50px)',
+      position: 'fixed',
+      textAlign: 'center',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '16px',
+      width: '360px'
+    } as React.CSSProperties
+
+    const warriorText = {
+      transform: 'translate(48px, 175px)',
+      position: 'fixed',
+      textAlign: 'center',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '14px',
+    } as React.CSSProperties
+
+    const rangerText = {
+      transform: 'translate(152px, 175px)',
+      position: 'fixed',
+      textAlign: 'center',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '14px',
+    } as React.CSSProperties
+
+    const mageText = {
+      transform: 'translate(256px, 175px)',
+      position: 'fixed',
+      textAlign: 'center',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '14px',
+    } as React.CSSProperties
+
     return (
       <div>
-        {isLoggedIn ? (
-            <div id="gameContainer" className="gameContainer">
-              <UI />
-              <Game />
-            </div>
-          ) : (
+        {!this.state.hideLoginForm && (
             <div className="container">
               <img src={logo} style={logoStyle}/>
               <div id="login">
@@ -114,13 +196,36 @@ export default class LoginControl extends React.Component<any, any> {
                 </fieldset>
                 </form>
 
-                <p>Not a member? <a href="#">Sign up now</a><span className="fontawesome-arrow-right"></span></p>
+                {/*<p>Not a member? <a href="#">Sign up now</a><span className="fontawesome-arrow-right"></span></p>*/}
 
               </div>
             </div>
 
           )
-        }    
+        }   
+
+        {!this.state.hideSelectClass && (
+          <div style={selectClassStyle}>
+              <img src={halfpanel} style={selectClassBGStyle} />
+              <span style={selectHeroText}>Select Your Hero</span>
+              <img src={warrior} style={warriorStyle} onClick={this.handleWarriorSelect}/>
+              <span style={warriorText}>Warrior</span>
+              <img src={ranger} style={rangerStyle}/>
+              <span style={rangerText}>Ranger</span>
+              <img src={mage} style={mageStyle}/>
+              <span style={mageText}>Mage</span>
+          </div>          
+        )}
+
+        {!this.state.hideGame && (
+            <div id="gameContainer" className="gameContainer">
+              <UI />
+              <Game />
+            </div>
+          )
+        }
+
+ 
       </div>
     );
   }

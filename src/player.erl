@@ -57,6 +57,7 @@
          is_player_owned/2,
          is_player/1,
          is_online/1,
+         is_class/2,
          set_player_online/1,
          get_conn/1]).
 
@@ -77,6 +78,9 @@ is_online(PlayerId) ->
         false ->
             false
     end.
+
+is_class(Player, Class) when is_record(Player, player) ->
+    Player#player.class =:= Class.
 
 set_player_online(PlayerId) ->
     case db:read(connection, PlayerId) of

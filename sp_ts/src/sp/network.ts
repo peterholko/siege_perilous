@@ -18,6 +18,15 @@ export class Network {
     Global.socket.sendMessage(m);
   }
 
+  public static sendSelectedClass(className: string) {
+    var m = {
+      cmd: "select_class",
+      classname: className 
+    };
+
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
   public static sendMove(newX : integer, newY : integer) {
     console.log('')
     var m = '{"cmd": "move_unit", "id": ' + '7' + ', "x": ' + newX + ', "y": ' + newY + '}';
@@ -236,11 +245,18 @@ export class Network {
       if(jsonData.hasOwnProperty('errmsg')) {
         console.log('Error received: ' + jsonData.errmsg);
         Global.gameEmitter.emit(NetworkEvent.ERROR, jsonData);
+      } else if(jsonData.packet == "select_class") {
+        Global.playerId = jsonData.player;
+        Global.gameEmitter.emit(NetworkEvent.SELECT_CLASS, {});
+      } else if(jsonData.packet == "info_select_class") {
+        if(jsonData.result == "success") {
+          console.log("Class selected, logging in")
+          Global.gameEmitter.emit(NetworkEvent.LOGGED_IN, {});
+        }
       } else if(jsonData.packet == "login") {
         console.log("Login successful")
         Global.playerId = jsonData.player;
         Global.gameEmitter.emit(NetworkEvent.LOGGED_IN, {});
-
       } else if(jsonData.packet == 'perception') {
         console.log('Received Perception');
 
@@ -248,7 +264,7 @@ export class Network {
         this.processInitObjStates(jsonData.data.objs);
 
         //Add small delay to prevent perception event before Scenes are created.
-        setTimeout(function() {Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 2000);
+        setTimeout(function() {Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 3000);
       } else if(jsonData.packet == 'changes') {
         console.log(jsonData);
         this.processUpdateObjStates(jsonData.events);

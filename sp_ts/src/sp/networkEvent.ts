@@ -1,5 +1,6 @@
 export namespace NetworkEvent {
     export const ERROR : string = 'ERROR';
+    export const SELECT_CLASS : string = 'SELECT_CLASS';
     export const LOGGED_IN : string = 'LOGGED_IN';
     export const PERCEPTION : string = 'PERCEPTION';
     export const CHANGES : string = 'CHANGES';

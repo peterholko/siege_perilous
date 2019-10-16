@@ -23,7 +23,7 @@
 -export([get_info_tile/1, get_valid_tiles/2]).
 -export([hero_dead/2]).
 -export([spawn_shadow/1, spawn_wolf/0]).
--export([new_player/1, login/1]).
+-export([create_new_player/1, login/1]).
 -export([send_update_items/3, 
          send_update_stats/2, 
          send_villager_change/1,
@@ -204,10 +204,11 @@ get_valid_tiles({X, Y}, Obj) ->
 
     lists:filter(F, Neighbours).
 
-new_player(PlayerId) ->
+create_new_player(PlayerId) ->
     lager:info("Spawning new player: ~p", [PlayerId]),
     %Pos = map:random_location(),
     %AdjPos = map:get_random_neighbour(Pos),
+    [Player] = db:read(player, PlayerId),
 
     HeroPos = {16,36},
     VillagerPos = {16,37},
@@ -217,14 +218,13 @@ new_player(PlayerId) ->
 
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
-    HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),   
+    HeroId = obj:create(HeroPos, PlayerId, Player#player.class),   
     
     
     %Create 2 corpses
     obj:create({16,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
     obj:create({17,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
 
-    [Player] = db:read(player, PlayerId),
     NewPlayer = Player#player {hero = HeroId},
     db:write(NewPlayer),
 

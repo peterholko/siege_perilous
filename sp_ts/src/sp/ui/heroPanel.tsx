@@ -16,8 +16,7 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
 
   render() {
     const heroName = this.props.heroData.name;
-    //const imageName = heroName.toLowerCase().replace(/ /g, '') + '.png'
-    const imageName = "heromage_single.png";
+    const imageName = heroName.toLowerCase().replace(/ /g, '') + '.png'
 
     const heroStyle = {
       transform: 'translate(-185px, 25px)',

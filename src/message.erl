@@ -42,6 +42,11 @@ message_handle(<<"login">>, Message) ->
 
     setup:login(Username, Password, self());
 
+message_handle(<<"select_class">>, Message) ->
+    lager:info("message: select_class"),
+    Class = m_get(<<"classname">>, Message),
+    setup:select_class(Class);
+
 message_handle(<<"image_def">>, Message) ->
     RawImageName = m_get(<<"name">>, Message),
     ImageName = re:replace(RawImageName, "[0-9]+", "", [{return, binary}]),

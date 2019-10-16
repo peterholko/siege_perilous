@@ -42,7 +42,7 @@
 	]
 },
 {
-	"name": "Hero Mage",
+	"name": "Warrior",
 	"base_hp": 12,
 	"base_stamina": 10000,
 	"base_dmg": 3,
@@ -52,13 +52,10 @@
 	"base_vision": 2,
 	"class": "unit",
 	"subclass": "hero",
-    "template": "Hero Mage",
+  "template": "Warrior",
 	"capacity": 300
 },
 {
-	"_id": {
-		"$oid": "555f986bbecfe3e72e7864f1"
-	},
 	"name": "Tent",
 	"base_hp": 50,
 	"base_dmg": 0,
@@ -78,9 +75,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "5565ccb8becfe3e72e7864f2"
-	},
 	"name": "Smelter",
 	"base_hp": 50,
 	"base_dmg": 0,
