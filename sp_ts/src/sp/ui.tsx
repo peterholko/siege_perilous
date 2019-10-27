@@ -12,15 +12,8 @@ import styles from "./ui.css";
 import SingleInventoryPanel from './ui/singleInventoryPanel';
 import ItemPanel from './ui/itemPanel';
 
-import heroring from "ui/heroring.png";
-import hpframe from "ui/hpframe.png";
 import movecompass from "ui/movecompass.png";
-import statbg from "ui/statbg.png";
-import hpbar from "ui/hpbar.png";
-import stabar from "ui/stabar.png";
-import manabar from "ui/manabar.png";
 
-import hero from "art/heromage_single.png";
 import inventorybutton from "ui/inventorybutton.png";
 import attrsbutton from "ui/attrsbutton.png";
 import buildbutton from "ui/buildbutton.png";
@@ -36,8 +29,8 @@ import parrybutton from "ui/parrybutton.png";
 import dodgebutton from "ui/dodgebutton.png";
 
 import { NetworkEvent } from './networkEvent';
-import { STAT_BAR_WIDTH, STAT_BAR_HEIGHT, TILE, OBJ, HERO, VILLAGER, 
-         STRUCTURE, NPC, PROGRESSING, TRIGGER_INVENTORY} from './config';
+import { HERO, VILLAGER, STRUCTURE, PROGRESSING, 
+  TRIGGER_INVENTORY} from './config';
 import TargetActionPanel from './ui/targetActionPanel';
 import ItemTransferPanel from './ui/itemTransferPanel';
 import HeroPanel from './ui/heroPanel';
@@ -56,6 +49,8 @@ import ItemDividePanel from './ui/itemDividePanel';
 import MerchantPanel from './ui/merchantPanel';
 import MerchantQuantityPanel from './ui/merchantQuantityPanel';
 import ResourcePanel from './ui/resourcePanel';
+import HeroFrame from './ui/heroFrame';
+import MerchantHirePanel from './ui/merchantHirePanel';
 
 interface UIState {
   selectBoxes : [],
@@ -78,6 +73,7 @@ interface UIState {
   hideCraftPanel : boolean,
   hideMerchantPanel : boolean,
   hideMerchantQuantityPanel : boolean,
+  hideMerchantHirePanel : boolean,
   hideResourcePanel : boolean,
   leftInventoryId : integer,
   leftInventoryData: [],
@@ -96,13 +92,11 @@ interface UIState {
   itemDivideData : any,
   itemMerchantQuantityData : any,
   resourceData : any,
+  hireData : any,
   merchantAction : any, 
   selectedTile : Tile,
   selectedBoxPos : integer,
   selectedKey: any,
-  hpBarWidth : integer,
-  staBarWidth : integer,
-  manaBarWidth: integer,
   infoItemAction : string,
   errmsg : string
 }
@@ -134,6 +128,7 @@ export default class UI extends React.Component<any, UIState>{
       hideErrorPanel : true,
       hideMerchantPanel : true,
       hideMerchantQuantityPanel : true,
+      hideMerchantHirePanel : true,
       hideResourcePanel : true,
       leftInventoryId: -1,
       leftInventoryData: [],
@@ -152,13 +147,11 @@ export default class UI extends React.Component<any, UIState>{
       itemDivideData : {},
       itemMerchantQuantityData : {},
       resourceData : {},
+      hireData : {},
       merchantAction : 'buy',
       selectedTile: null,
       selectedBoxPos: 0,
       selectedKey: {type: '', id: -1},
-      hpBarWidth: STAT_BAR_WIDTH,
-      staBarWidth: STAT_BAR_WIDTH,
-      manaBarWidth: STAT_BAR_WIDTH,
       infoItemAction: TRIGGER_INVENTORY,
       errmsg : ''
     }
@@ -190,10 +183,10 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(GameEvent.ITEM_DIVIDE_OK_CLICK, this.handleItemDivideOkClick, this);
     Global.gameEmitter.on(GameEvent.MERCHANT_BUYSELL_CLICK, this.handleMerchantBuySellClick, this);
     Global.gameEmitter.on(GameEvent.MERCHANT_QUANTITY_CANCEL, this.handleMerchantQuantityCancel, this);
+    Global.gameEmitter.on(GameEvent.MERCHANT_HIRE_CLICK, this.handleMerchantHireClick, this);
     Global.gameEmitter.on(GameEvent.RESOURCE_CLICK, this.handleResourceClick, this);
 
     Global.gameEmitter.on(NetworkEvent.ERROR, this.handleError, this);
-    Global.gameEmitter.on(NetworkEvent.STATS, this.handleStats, this);
     Global.gameEmitter.on(NetworkEvent.INFO_OBJ, this.handleInfoObj, this);
     Global.gameEmitter.on(NetworkEvent.INFO_TILE, this.handleInfoTile, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM, this.handleInfoItem, this);
@@ -201,6 +194,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM_TRANSFER, this.handleInfoItemTransfer, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ATTRS, this.handleInfoAttrs, this);
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_HAULING, this.handleInfoHauling, this);
     Global.gameEmitter.on(NetworkEvent.ITEM_TRANSFER, this.handleItemTransfer, this);
     Global.gameEmitter.on(NetworkEvent.BUYSELL_ITEM, this.handleBuySellItem, this);
     Global.gameEmitter.on(NetworkEvent.STRUCTURE_LIST, this.handleStructureList, this);
@@ -304,6 +298,8 @@ export default class UI extends React.Component<any, UIState>{
       this.setState({hideCraftPanel: true});
     } else if(event.panelType == 'resource') {
       this.setState({hideResourcePanel: true});
+    } else if(event.panelType == 'hire') {
+      this.setState({hideMerchantHirePanel: true});
     } 
   }
 
@@ -328,6 +324,11 @@ export default class UI extends React.Component<any, UIState>{
     this.setState({hideMerchantQuantityPanel: false,
                    itemMerchantQuantityData: eventData.itemData,
                    merchantAction: eventData.action});
+  }
+
+  handleMerchantHireClick() {
+    this.setState({hideMerchantHirePanel: true,
+                   hideMerchantPanel: true});
   }
 
   handleMerchantQuantityCancel() {
@@ -387,13 +388,7 @@ export default class UI extends React.Component<any, UIState>{
                    errmsg : message.errmsg});
   }
 
-  handleStats() {
-    console.log('UI handleStats');
-    const hpRatio = Global.heroHp / Global.heroMaxHp;
-    const hpBarWidth = hpRatio * STAT_BAR_WIDTH;
-
-    this.setState({hpBarWidth: hpBarWidth});
-  }
+  
 
   handleResourceClick(eventData) {
     this.setState({hideResourcePanel: false,
@@ -460,6 +455,16 @@ export default class UI extends React.Component<any, UIState>{
   handleInfoSkills(message) {
     console.log('UI handleInfoSkills');
     this.setState({hideSkillsPanel: false, skillsData: message});
+  }
+
+  handleInfoHauling(message) {
+    console.log('UI handleInfoHauling');
+    if(message.data.length > 0) {
+      this.setState({hideMerchantHirePanel: false, hireData : message.data})
+    } else {
+      this.setState({hideErrorPanel : false,
+                     errmsg : "No hires availables"});
+    }
   }
 
   handleItemTransfer(message) {
@@ -529,43 +534,10 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   render() {
-    const hpBarStyle  = {
-      transform: 'translate(97px, 19px)',
-      width: this.state.hpBarWidth + 'px',
-      height: STAT_BAR_HEIGHT + 'px',
-      zIndex: 4,
-      position: 'fixed' 
-    } as React.CSSProperties
  
-    const staBarStyle  = {
-      transform: 'translate(97px, 37px)',
-      width: this.state.staBarWidth + 'px',
-      height: STAT_BAR_HEIGHT + 'px',
-      zIndex: 4,
-      position: 'fixed' 
-    } as React.CSSProperties
-  
-    const manaBarStyle  = {
-      transform: 'translate(97px, 55px)',
-      width: this.state.manaBarWidth + 'px',
-      height: STAT_BAR_HEIGHT + 'px',
-      zIndex: 4,
-      position: 'fixed' 
-    } as React.CSSProperties
-  
     return(
       <div id="ui" className={styles.ui}>
-          <img src={heroring} id="heroring" className={styles.heroring}/>
-          <img src={hpframe} id="hpframe" className={styles.hpframe}/>
-
-          <img src={statbg} id="hpbg" className={styles.hpbg}/>
-          <img src={hpbar} id="hpbar" style={hpBarStyle}/>
-          <img src={statbg} id="stabg" className={styles.stabg}/>
-          <img src={stabar} id="stabar" style={staBarStyle}/>
-          <img src={statbg} id="manabg" className={styles.manabg}/>
-          <img src={manabar} id="manabar" style={manaBarStyle}/>
-
-          <img src={attrsbutton} 
+         <img src={attrsbutton} 
               id="heroattrsbutton" 
               className={styles.heroattrsbutton} 
               onClick={this.handleHeroAttrsClick} />
@@ -617,13 +589,13 @@ export default class UI extends React.Component<any, UIState>{
               id="dodgebutton" 
               className={styles.dodgebutton} />
 
-          <img src={hero} id="hero" className={styles.hero}/>
-
           <img src={movecompass} 
                id="movecompass" 
                ref={this.compassRef}
                className={styles.movecompass} 
                onClick={this.handleMoveClick}/>
+          
+          <HeroFrame></HeroFrame>
 
           <SelectPanel selectedTile={this.state.selectedTile} />
 
@@ -689,6 +661,9 @@ export default class UI extends React.Component<any, UIState>{
 
           {!this.state.hideResourcePanel && 
             <ResourcePanel resourceData={this.state.resourceData} />}
+
+          {!this.state.hideMerchantHirePanel && 
+            <MerchantHirePanel hireData={this.state.hireData} />}
 
           {!this.state.hideErrorPanel && 
             <ErrorPanel errmsg={this.state.errmsg} />}

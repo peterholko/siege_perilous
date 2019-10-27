@@ -88,9 +88,9 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
                             hideSelect={this.state.hideRightSelect}
                             handleSelect={this.handleSelect} />
 
-        {<img src={transferbutton} 
+        <img src={transferbutton} 
               style={transferStyle} 
-              onClick={this.handleItemTransferClick}/> }
+              onClick={this.handleItemTransferClick}/> 
       </div>
     );
   }

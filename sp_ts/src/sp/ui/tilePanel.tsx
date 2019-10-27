@@ -25,6 +25,11 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
     const tiles = [...tileState.tiles]; //Deep copy
     const resources = []
 
+    let numResources = this.props.tileData.resources.length + 
+                       this.props.tileData.unrevealed;
+
+    let discoveredResources = this.props.tileData.resources.length;
+
     //The default Grass was "above" forest, solved it via sort
     var tileId = tiles.sort().reverse()[0];
     var imageName = Global.tileset[tileId].image;
@@ -42,7 +47,8 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
         <ResourceItem key={i}
                       resourceName={resource.name}
                       quantity={resource.quantity}
-                      index={i}/>
+                      index={i}
+                      showQuantity={false}/>
       )
     }
 
@@ -119,8 +125,8 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
             <td>{this.props.tileData.wildness}</td>
           </tr>
           <tr>
-            <td>Unrevealed Resources: </td>
-            <td>{this.props.tileData.unrevealed}</td>
+            <td>Discovered Resources: </td>
+            <td>{discoveredResources} / {numResources}</td>
           </tr>
           </tbody>
         </table>

@@ -53,6 +53,8 @@
 -define(BASE_FOCUS_TIRED, 3000).
 -define(BASE_FOCUS_EXHAUSTED, 6000).
 
+-define(PLAYER, <<"player">>).
+
 %STATES
 -define(STATE, <<"state">>).
 -define(NONE, none).
@@ -74,6 +76,7 @@
 -define(DRINKING, drinking).
 -define(RESTING, resting).
 -define(DISABLED, disabled).
+-define(ABOARD, aboard).
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
@@ -184,6 +187,10 @@
 -define(ORDER_CRAFT, <<"Craft">>).
 -define(ORDER_BUILD, <<"Build">>).
 
+%ORDERS NPC
+-define(ORDER_TAX_COLLECT, <<"Tax Collect">>).
+
+
 %ACTIVITIES
 -define(ACTIVITY_ATTACK, <<"Attacking target">>).
 -define(ACTIVITY_EXPLORE, <<"Exploring">>).
@@ -221,6 +228,9 @@
 -define(FOCUS, <<"Focus">>).
 -define(SPIRIT, <<"Spirit">>).
 -define(CREATIVITY, <<"Creativity">>).
+
+%OBJ ATTR
+-define(WAGE, <<"wage">>).
 
 %RESOURCE TYPES
 -define(ORE, <<"Ore">>).
@@ -288,6 +298,13 @@
 -define(RAISE_DEAD, <<"Raise Dead">>).
 -define(SHADOW_BOLT, <<"Shadow Bolt">>).
 
+%RELATIONS
+-define(ALLIES, 10).
+-define(NEUTRAL, 0).
+-define(ENEMIES, -10).
+
+%EMPIRE
+-define(EMPIRE_POS, {-100, -50}).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

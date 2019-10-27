@@ -25,6 +25,8 @@ export class Global {
     public static objectStates : Record<string, ObjectState> = {};
     public static tileStates : Record<string, TileState> = {};
 
+    public static visibleTiles = [];
+
     public static tileset = {};
     public static imageDefList = {};
 

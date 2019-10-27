@@ -226,7 +226,7 @@ message_handle(<<"order_refine">>, Message) ->
     Reply = player:order_refine(StructureId),
 
     jsx:encode([{<<"packet">>, <<"order_refine">>},
-                {<<"reply">>, Reply}]);
+                {<<"result">>, Reply}]);
 
 message_handle(<<"order_craft">>, Message) ->
     lager:info("message: order_craft"),
@@ -429,6 +429,13 @@ message_handle(<<"info_item_transfer">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_item_transfer">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_hauling">>, Message) ->
+    lager:info("message: info_hauling"),
+    SourceId = m_get(<<"sourceid">>, Message),
+    InfoMaps = player:get_info_hauling(SourceId),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_hauling">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
 message_handle(<<"ford">>, Message) ->
     lager:info("message: ford"),
     Id = m_get(<<"id">>, Message),
@@ -466,6 +473,14 @@ message_handle(<<"sell_item">>, Message) ->
     Quantity = m_get(<<"quantity">>, Message),
     Return = player:sell_item(ItemId, TargetId, Quantity),
     FinalReturn = maps:put(<<"packet">>, <<"sell_item">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"hire">>, Message) ->
+    lager:info("message: hire"),
+    SourceId = m_get(<<"sourceid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
+    Return = player:hire(SourceId, TargetId),
+    FinalReturn = maps:put(<<"packet">>, <<"hire">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(_Cmd, Message) ->

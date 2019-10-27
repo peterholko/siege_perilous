@@ -18,7 +18,7 @@
          write/1, read/2, delete/2, index_read/3, select/2, match_object/1,
          dirty_write/1, dirty_read/2, dirty_index_read/3, dirty_delete/2, dirty_match_object/1,
          dirty_delete_object/1, dump/1,
-         import/1,
+         import/1, import_yaml/1,
          reset_tables/0,
          do/1
         ]).
@@ -74,6 +74,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(attack, [{ram_copies, [node()]}, {attributes, record_info(fields, attack)}]),  
     {atomic, ok} = mnesia:create_table(game_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, game_attr)}]),  
     {atomic, ok} = mnesia:create_table(active_info, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, active_info)}]),  
+    {atomic, ok} = mnesia:create_table(relation, [{ram_copies, [node()]}, {attributes, record_info(fields, relation)}]),  
 
     mnesia:add_table_index(perception, player),
     mnesia:add_table_index(player, name),
@@ -134,6 +135,12 @@ import_entry(Table, ObjName, ObjList) ->
         end,
 
     lists:foreach(F, ObjList).
+
+import_yaml(DefFileName) ->
+    PrivDir = code:lib_dir(sp) ++ "/priv/",
+    Document = yamerl_constr:file(PrivDir ++ DefFileName ++ ".yaml"),
+
+    lager:info("Document: ~p", [Document]).
 
 first(T) ->
     F = fun() -> mnesia:first(T) end,
@@ -213,10 +220,10 @@ test_tables() ->
      {connection, ?UNDEAD, online, none},     
      {connection, ?ANIMAL, online, none},     
      {connection, ?EMPIRE, online, none},     
-     {player, 98, <<"natives">>, <<"123123">>, 0, false, false, none, true},
-     {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, none, true},
-     {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, none, true},
-     {player, ?EMPIRE, <<"Empire">>, <<"123123">>, 0, false, false, none, true},     
+     {player, 98, <<"natives">>, <<"123123">>, 0, false, false, none, true, #{}},
+     {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, none, true, #{}},
+     {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, none, true, #{}},
+     {player, ?EMPIRE, <<"Empire">>, <<"123123">>, 0, false, false, none, true, #{}},     
      {counter, player, ?NPC_ID},
      {world, time, day},
      %{revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>], [none]},

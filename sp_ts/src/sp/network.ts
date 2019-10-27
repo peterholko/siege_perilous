@@ -218,6 +218,24 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
+  public static sendInfoHauling(sourceId) {
+    var m = {
+      cmd: "info_hauling",
+      sourceid: sourceId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendHire(sourceId, targetId) {
+    var m = {
+      cmd: "hire",
+      sourceid: sourceId,
+      targetid: targetId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
     this.websocket = new WebSocket(url);
@@ -315,7 +333,9 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.BUYSELL_ITEM, jsonData);
       } else if(jsonData.packet == 'sell_item') {
         Global.gameEmitter.emit(NetworkEvent.BUYSELL_ITEM, jsonData);
-      } 
+      } else if(jsonData.packet == 'info_hauling') {
+        Global.gameEmitter.emit(NetworkEvent.INFO_HAULING, jsonData);
+      }  
     }
   }
 

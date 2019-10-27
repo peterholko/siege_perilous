@@ -8,7 +8,8 @@
 -include("schema.hrl").
 -include("common.hrl").
 
--export([create/3, create/4, create/5, update_state/2, remove/1]).
+-export([create/3, create/4, create/5, update_state/2, remove/1, 
+         transfer/2, unload/2]).
 -export([process_create/1, process_update_state/2, process_move/2, process_sleep/1, 
          process_deleting/1, process_obj_stats/0]).
 -export([update_hp/2, update_stamina/2, update_thirst/2, update_hunger/2, update_focus/2, 
@@ -16,17 +17,20 @@
 -export([set_thirst/2, set_hunger/2]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
--export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, is_blocking/2]).
+-export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, 
+         is_blocking/2, is_hauling/2]).
 -export([has_vision/1, has_landwalk/1, has_waterwalk/1, has_mountainwalk/1]).
 -export([trigger_effects/1, trigger_inspect/1]).
 -export([item_transfer/2, has_space/2]).
--export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, get_info_other/1, get_capacity/1]).
+-export([get/1, get_by_attr/1, get_by_attr/2, get_stats/1, get_info/1, 
+         get_info_other/1, get_capacity/1, get_info_hauling/2]).
 -export([get_nearby_corpses/1, get_by_player/1, get_name_by_id/1, get_info_inventory/2,
          get_info_attrs/1, get_info_skills/1]).
 -export([id/1, player/1, class/1, subclass/1, template/1, state/1, pos/1, 
          name/1, image/1, vision/1, modtick/1]).
 -export([rec_to_map/1]).
 -export([add_group/2]).
+-export([has_wage/1, wage/1]).
 
 create(Pos, PlayerId, Template) ->
     create(Pos, PlayerId, Template, none, none).
@@ -36,7 +40,7 @@ create(Pos, PlayerId, Template, State) ->
 
 create(Pos, PlayerId, Template, UniqueName, State) ->
     Id = util:get_id(),
-    lager:info("Creating object ~p", [Template]),
+    lager:info("Creating object ~p ~p", [Template, Id]),
 
     %Create obj attr entries from obj def entries
     create_obj_attr(Id, Template),
@@ -363,9 +367,6 @@ update_focus(Id, ModValue) ->
     %TODO replace db:write with save
     db:write(NewObj).
 
-
-
-
 update_dead(Id) ->
     [Obj] = db:read(obj, Id),
 
@@ -480,28 +481,6 @@ apply_trigger(#obj{player = Player, subclass = Subclass,
 apply_trigger(Obj) ->    
     obj_attr:set(Obj#obj.id, <<"inspected">>, true).
 
-is_empty(Pos) ->
-    Objs = db:dirty_index_read(obj, Pos, #obj.pos),
-    Units = filter_units(Objs),
-    Units =:= [].
-
-is_empty(SourceObj, Pos) when is_record(SourceObj, obj) ->
-    Objs = db:dirty_index_read(obj, Pos, #obj.pos),
-
-    F = fun(Obj) ->
-            case is_player(Obj) of
-                true ->
-                    (SourceObj#obj.player =/= Obj#obj.player) and (Obj#obj.class =:= unit);
-                false ->
-                    Obj#obj.class =:= unit
-            end
-        end,
-
-    lists:filter(F, Objs) =:= [];
-is_empty(SourceId, Pos) ->
-    [Obj] = db:read(obj, SourceId),
-    is_empty(Obj, Pos).
-
 item_transfer(#obj {id = Id, 
                     subclass = Subclass, 
                     state = State}, Item) when (Subclass =:= ?MONOLITH) and 
@@ -520,6 +499,21 @@ item_transfer(#obj {id = Id, class = Class}, Item) when Class =:= unit ->
         _ -> nothing
      end;
 item_transfer(_Obj, _Item) -> nothing.
+
+transfer(ObjId, PlayerId) ->
+    [Obj] = db:read(obj, ObjId),
+    NewObj = Obj#obj {player = PlayerId},    
+
+    db:write(NewObj).
+
+    %Add obj update event
+    %lager:info("Adding obj update"),
+    %game:add_obj_update(self(), Obj#obj.id, ?PLAYER, PlayerId).
+
+unload(SourceId, TargetId) ->
+    Hauling = obj_attr:value(SourceId, <<"hauling">>),
+    NewHauling = lists:delete(TargetId, Hauling),
+    obj_attr:set(SourceId, <<"hauling">>, NewHauling).
 
 %Get obj or return false
 get(Id) ->
@@ -577,6 +571,9 @@ image(Obj = #obj{}) -> Obj#obj.image.
 vision(Obj = #obj{}) -> Obj#obj.vision.
 modtick(Obj = #obj{}) -> Obj#obj.modtick.
 
+wage(ObjId) -> obj_attr:value(ObjId, ?WAGE).
+has_wage(ObjId) -> obj_attr:has(ObjId, ?WAGE).
+
 %Get vital stats
 get_stats(Id) ->
     stats(Id).
@@ -591,6 +588,9 @@ get_info_other(Id) ->
 
 get_info_inventory(Id, Obj) ->
     info_inventory(Id, Obj).
+
+get_info_hauling(Id, Obj) ->
+    info_hauling(Id, Obj).
 
 get_info_attrs(Obj) ->
     info_attrs(Obj).
@@ -679,17 +679,35 @@ is_monolith_nearby(QueryPos) ->
 is_subclass(IsSubclass, #obj{subclass = Subclass}) when Subclass =:= IsSubclass -> true;
 is_subclass(_, _) -> false.
 
-
-
-
 is_player(#obj{player = Player}) when Player > ?NPC_ID -> true;
 is_player(_) -> false.
 
-is_blocking(#obj{player = SourcePlayer}, #obj{player = Player, state = State}) ->
-    case SourcePlayer =/= Player of
-       true -> is_blocking_state(State);
-       false -> false
+is_blocking(#obj{player = SourcePlayer}, #obj{player = TargetPlayer, state = State}) ->
+    case relation:is_ally(SourcePlayer, TargetPlayer) of
+       true -> false;
+       false -> is_blocking_state(State)
     end.
+
+is_empty(Pos) ->
+    Objs = db:dirty_index_read(obj, Pos, #obj.pos),
+    Units = filter_units(Objs),
+    Units =:= [].
+
+is_empty(SourceObj, Pos) when is_record(SourceObj, obj) ->
+    Objs = db:dirty_index_read(obj, Pos, #obj.pos),
+
+    F = fun(Obj) ->
+            relation:is_ally(obj:id(SourceObj), obj:id(Obj))
+        end,
+
+    lists:filter(F, Objs) =:= [];
+is_empty(SourceId, Pos) ->
+    [Obj] = db:read(obj, SourceId),
+    is_empty(Obj, Pos).
+
+is_hauling(SourceId, TargetId) ->
+    ObjList = obj_attr:value(SourceId, <<"hauling">>, []),
+    lists:member(TargetId, ObjList).
 
 has_space(ObjId, NewItemWeight) ->
     Capacity = get_capacity(ObjId),
@@ -971,6 +989,18 @@ info_inventory(PlayerId, Obj) ->
              <<"items">> => Items},
     Info.
 
+info_hauling(PlayerId, Obj) ->
+    InfoObjs = case PlayerId =:= Obj#obj.player of
+                    true ->
+                        obj_hauling_info(Obj#obj.id);
+                    false ->
+                        case lists:member(?MERCHANT, Obj#obj.groups) of
+                            true -> obj_hauling_info(Obj#obj.id);
+                            false -> []
+                        end
+                end,
+    InfoObjs.
+
 info_attrs(Obj) ->
     Attrs = #{?STRENGTH => obj_attr:value(Obj#obj.id, ?STRENGTH, 0),
               ?TOUGHNESS => obj_attr:value(Obj#obj.id, ?TOUGHNESS, 0),
@@ -1065,3 +1095,10 @@ add_group(ObjId, Group) ->
     NewGroups = [Group | Obj#obj.groups],
     NewObj = Obj#obj{groups = NewGroups},
     save(NewObj).
+
+obj_hauling_info(SourceId) ->
+    HaulingObjs = obj_attr:value(SourceId, <<"hauling">>),
+    F = fun(ObjId, Acc) ->
+            [info(ObjId) | Acc]
+        end,
+    lists:foldl(F, [], HaulingObjs).

@@ -386,7 +386,7 @@ set_pos_shelter(Villager) ->
     Villager#villager {dest = Pos, task_state = completed}.
 
 set_pos_structure(Villager) ->
-    lager:info("Villager: ~p", [Villager]),
+    lager:debug("Villager: ~p", [Villager]),
     {_Id, Pos, _Name} = Villager#villager.structure,
     Villager#villager {dest = Pos, task_state = completed}.
 
@@ -437,21 +437,23 @@ move_to(Villager, Pos) ->
 
     %If dest is set and dest does not equal villager current pos
     FinalVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
-                      true ->
-                         Path = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
+                        true ->
+                            PathResult = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
 
-                         case Path of
-                             [] -> 
-                                 %No path, move task completed
-                                 NewVillager#villager {task_state = completed};
-                             _ -> 
-                                 %Move to next path location
-                                 move_unit(VillagerObj, lists:nth(2, Path)),
-                                 NewVillager#villager {task_state = running, path = Path}
-                         end;
-                      false ->
-                         lager:info("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
-                         NewVillager#villager {task_state = skipped}
+                            case PathResult of
+                                {success, Path} -> 
+                                    %Move to next path location
+                                    move_unit(VillagerObj, lists:nth(2, Path)),
+                                    NewVillager#villager {task_state = running, path = Path};
+                                {nearby, _Dist, _Closest} ->
+                                    NewVillager#villager {task_state = completed};
+                                {failure, _} -> 
+                                    %No path, move task completed
+                                    NewVillager#villager {task_state = completed}
+                            end;
+                        false ->
+                            lager:debug("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
+                            NewVillager#villager {task_state = skipped}
                  end,
     FinalVillager.
 
@@ -462,23 +464,25 @@ move_to_pos(Villager) ->
 
     %If dest is set and dest does not equal villager current pos
     NewVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
-                      true ->
-                         Path = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
-                         lager:info("Path: ~p", [Path]),
+                    true ->
+                        PathResult = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
 
-                         case Path of
-                             [] -> 
-                                 %No path, move task completed
-                                 Villager#villager {task_state = completed};
-                             _ -> 
+                        case PathResult of
+                             {success, Path} ->
                                  %Move to next path location
                                  move_unit(VillagerObj, lists:nth(2, Path)),
-                                 Villager#villager {task_state = running, path = Path}
-                         end;
-                      false ->
-                         lager:info("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
-                         Villager#villager {task_state = completed}
-                 end,
+                                 Villager#villager {task_state = running, path = Path};
+                             {nearby, _Dist, _Closest} ->
+                                 %No path, move task completed
+                                 Villager#villager {task_state = completed};
+                             {failure, _} -> 
+                                 %No path, move task completed
+                                 Villager#villager {task_state = completed}
+                        end;
+                    false ->
+                        lager:debug("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
+                        Villager#villager {task_state = completed}
+                  end,
     NewVillager.
 
 move_random_pos(Villager) ->
@@ -511,7 +515,8 @@ move_to_target(Villager) ->
 
                           case IsAdjacent of
                               false ->
-                                  Path = astar:astar(VillagerObj#obj.pos, TargetObj#obj.pos, VillagerObj),
+                                  %Assume path is found due to adjacent obj
+                                  {success, Path} = astar:astar(VillagerObj#obj.pos, TargetObj#obj.pos, VillagerObj),
 
                                   move_next_path(VillagerObj, Path),
                                   Villager#villager {path = Path,
@@ -1121,13 +1126,13 @@ process_task_state(completed, Villager) ->
     PlanLength = length(Villager#villager.plan),
 
     NextTask = get_next_task(TaskIndex, PlanLength),
-    lager:info("V - NextTask: ~p", [NextTask]),
+    lager:debug("V - NextTask: ~p", [NextTask]),
 
     NewerVillager = case NextTask of
                         {next_task, NextTaskIndex} ->
                             {TaskName, TaskArgs} = get_task_by_index(Villager, NextTaskIndex),
 
-                            lager:info("V - TaskName: ~p TaskArgs: ~p", [TaskName, TaskArgs]),
+                            lager:debug("V - TaskName: ~p TaskArgs: ~p", [TaskName, TaskArgs]),
                             NewVillager = erlang:apply(villager, TaskName, TaskArgs),
                             NewVillager#villager{task_index = NextTaskIndex};
                         plan_completed ->
@@ -1157,11 +1162,11 @@ process_task_state(running, Villager) ->
     Villager.
 
 process_event_complete(Villager) ->
-    lager:info("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
+    lager:debug("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
 
     {TaskName, TaskArgs} = get_task_by_index(Villager, Villager#villager.task_index),
 
-    lager:info("Villager Task: ~p", [TaskName]),
+    lager:debug("Villager Task: ~p", [TaskName]),
 
     case TaskName of
         move_to -> process_move_to_complete(TaskArgs);
@@ -1257,12 +1262,12 @@ get_next_task(_TaskIndex, _PlanLength) ->
         plan_completed.
 
 move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) ->
-    lager:info("Pos: ~p NewPos: ~p", [Pos, NewPos]),
+    lager:debug("Pos: ~p NewPos: ~p", [Pos, NewPos]),
 
     SourcePos = Pos,
     DestPos = NewPos,
     MoveTicks = obj:movement_cost(Obj, DestPos),
-    lager:info("Move ticks: ~p", [MoveTicks]),
+    lager:debug("Move ticks: ~p", [MoveTicks]),
 
     %Add obj update state to change to moving state on next tick
     game:add_obj_update(self(), Id, ?STATE, ?MOVING, 1),

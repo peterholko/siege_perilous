@@ -64,6 +64,32 @@ export class Util {
     return Util.cube_to_odd_q(cube.x, cube.y, cube.z);
   }
 
+  static range(srcX, srcY, dist) {
+
+    var srcCube = Util.odd_q_to_cube(srcX, srcY);
+    var results = [];
+
+    for(var x = -1 * dist; x <= dist; x++) {
+        for(var y = -1 * dist; y <= dist; y++) {
+            for(var z = -1 * dist; z <= dist; z++) {
+
+                if((x + y + z) == 0) {
+                    var cube = {x: 0, y: 0, z: 0};
+
+                    cube.x = srcCube.x + x;
+                    cube.y = srcCube.y + y;
+                    cube.z = srcCube.z + z;
+
+                    var oddq = Util.cube_to_odd_q(cube.x, cube.y, cube.z);
+                    results.push(oddq);
+                }
+            }
+        }
+    }
+
+    return results;
+  };
+
   static getNeighbours(Q, R) {
     var conversion = [ [1, -1, 0], [1, 0, -1], [0, 1, -1], [-1, 1, 0], [-1, 0, 1], [0, -1, 1] ];
     var cube = Util.odd_q_to_cube(Q, R);
@@ -149,6 +175,19 @@ export class Util {
       //More than 1 image requires a container
       return Global.imageDefList[imageName].images.length > 1;
     }
+  }
+
+  static isVisible(srcX: integer, srcY: integer): boolean {
+    for(var i = 0; i < Global.visibleTiles.length; i++) {
+      var visibleTile = Global.visibleTiles[i];
+
+      if(srcX == visibleTile.q && 
+         srcY == visibleTile.r) {
+          return true;
+      }
+    }
+
+    return false;
   }
 
   static createImage(src: string) {

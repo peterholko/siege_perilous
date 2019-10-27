@@ -15,6 +15,7 @@
          get_info_item_name/1,
          get_info_inventory/1,
          get_info_item_transfer/2,
+         get_info_hauling/1,
          get_info_attrs/1,
          get_info_skills/1,
          move/2,
@@ -27,7 +28,8 @@
          harvest/2,
          loot/2,
          buy_item/2, 
-         sell_item/3, 
+         sell_item/3,
+         hire/2, 
          item_transfer/2,
          item_split/2,
          structure_list/0,
@@ -191,6 +193,15 @@ get_info_item_transfer(SourceId, TargetId) ->
              <<"sourceitems">> => SourceItems,
              <<"targetid">> => TargetId,
              <<"targetitems">> => TargetItems},
+    Info.
+
+get_info_hauling(SourceId) ->
+    Player = get(player_id),
+    [SourceObj] = db:read(obj, SourceId),
+
+    HaulingObjs = obj:get_info_hauling(Player, SourceObj),
+
+    Info = #{<<"data">> => HaulingObjs},
     Info.
 
 get_info_attrs(Id) ->
@@ -403,8 +414,6 @@ explore(ObjId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
-
-
 harvest(ObjId, Resource) ->
     PlayerId = get(player_id),
 
@@ -439,7 +448,7 @@ harvest(ObjId, Resource) ->
 is_valid_buysell(TargetId, ItemId, Quantity) ->
     case item:has_price(ItemId) of
         true ->
-            TargetGold = item:get_total_gold(TargetId),
+            TargetGold = item:total_gold(TargetId),
             {TargetGold < (item:price(ItemId) * Quantity), "Insufficent gold"};
         false ->
             {false, "Item is not for sale"}
@@ -520,6 +529,46 @@ sell_item(ItemId, TargetId, Quantity) ->
               <<"sourceitems">> => SourceItems,
               <<"targetid">> => TargetId,
               <<"targetitems">> => TargetItems};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+is_hire_valid(Hero, TargetId) ->
+    case obj:has_wage(TargetId) of
+        true ->
+            HeroGold = item:total_gold(obj:id(Hero)),
+            {HeroGold < obj:wage(TargetId), "Insufficient gold"};
+        false ->
+            {false, "Target is not for hire"}
+    end.
+
+hire(MerchantId, TargetId) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+    Merchant = obj:get(MerchantId),
+
+    Checks = [{map:is_adjacent(Hero, Merchant), "Merchant is not nearby"},
+              {obj:is_hauling(MerchantId, TargetId), "Target is not being hauled"},
+              is_hire_valid(Hero, TargetId)],
+
+    case process_checks(Checks) of
+        true ->
+            %Transfer gold
+            item:transfer_by_class(obj:id(Hero), 
+                                   MerchantId, 
+                                   ?GOLD_COINS, 
+                                   obj:wage(TargetId)),
+
+            %Remove obj from merchant
+            obj:unload(MerchantId, TargetId),
+
+            %Transfer obj to player
+            obj:transfer(TargetId, PlayerId),
+
+            %Move obj to hero location
+            game:add_obj_move(self(), TargetId, {-50, -50}, obj:pos(Hero), 4),
+
+            #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.

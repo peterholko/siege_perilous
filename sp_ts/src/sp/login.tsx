@@ -37,6 +37,8 @@ export default class LoginControl extends React.Component<any, any> {
     this.handleLoggedIn = this.handleLoggedIn.bind(this);
 
     this.handleWarriorSelect = this.handleWarriorSelect.bind(this);
+    this.handleRangerSelect = this.handleRangerSelect.bind(this);
+    this.handleMageSelect = this.handleMageSelect.bind(this);
 
     Global.gameEmitter.on(NetworkEvent.SELECT_CLASS, this.handleSelectClass, this);
     Global.gameEmitter.on(NetworkEvent.LOGGED_IN, this.handleLoggedIn, this);
@@ -95,6 +97,14 @@ export default class LoginControl extends React.Component<any, any> {
 
   handleWarriorSelect() {
     Network.sendSelectedClass("Warrior");
+  }
+
+  handleRangerSelect() {
+    Network.sendSelectedClass("Ranger");
+  }
+
+  handleMageSelect() {
+    Network.sendSelectedClass("Mage");
   }
 
   render() {
@@ -176,7 +186,6 @@ export default class LoginControl extends React.Component<any, any> {
               <img src={logo} style={logoStyle}/>
               <div id="login">
                 <form onSubmit={this.handleLoginClick} method="get">
-                <fieldset className="clearfix">
 
                   <p><span className="fontawesome-user"></span>
                       <input type="text" 
@@ -193,7 +202,6 @@ export default class LoginControl extends React.Component<any, any> {
                              onFocus={this.handlePasswordFocus}/>
                   </p>
                   <p><input type="submit" value="Play"/></p>
-                </fieldset>
                 </form>
 
                 {/*<p>Not a member? <a href="#">Sign up now</a><span className="fontawesome-arrow-right"></span></p>*/}
@@ -210,9 +218,9 @@ export default class LoginControl extends React.Component<any, any> {
               <span style={selectHeroText}>Select Your Hero</span>
               <img src={warrior} style={warriorStyle} onClick={this.handleWarriorSelect}/>
               <span style={warriorText}>Warrior</span>
-              <img src={ranger} style={rangerStyle}/>
+              <img src={ranger} style={rangerStyle} onClick={this.handleRangerSelect}/>
               <span style={rangerText}>Ranger</span>
-              <img src={mage} style={mageStyle}/>
+              <img src={mage} style={mageStyle} onClick={this.handleMageSelect}/>
               <span style={mageText}>Mage</span>
           </div>          
         )}

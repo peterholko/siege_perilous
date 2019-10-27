@@ -20,6 +20,8 @@ load() ->
     wander_flee(),
     necro_event(),
     merchant(),
+    tax_collector(),
+    tax_collector_ship(),
     idle(),
     villager(),
     lost_villager().
@@ -124,14 +126,39 @@ merchant() ->
 
 tax_collector() ->
     new(tax_collector),
-    add_select_all(do_tax_collector, tax_collector, [], []),
-        add_primitive(find_trade_pos, do_merchant, [], [], find_player_pos),
-        add_primitive(move_to_pos, do_merchant, [], [], move_to_pos),
-        add_primitive(wait_at_pos, do_merchant, [], [], {wait, 300}),
-        add_primitive(set_pos_empire, do_merchant, [], [], set_pos_empire),
-        add_primitive(move_to_pos, do_merchant, [], [], move_to_pos).
+    add_select_all(traveling, tax_collector, [{is_state, ?ABOARD}], []),
+        add_primitive(traveling_idle, traveling, [], [], idle),
+    add_select_one(returning, tax_collector, [is_tax_collected], []),
+        add_select_all(in_empire, returning, [is_in_empire], []),
+            add_primitive(wait_in_empire, in_empire, [], [], idle), 
+        add_select_all(is_ship_adjacent, returning, [is_ship_adjacent], []),
+            add_primitive(board, is_ship_adjacent, [], [], board_ship),
+        add_select_all(at_landing, returning, [at_landing_pos], []),
+            add_primitive(at_landing_idle, at_landing, [], [], idle),
+        add_select_all(move_to_landing, returning, [], []),
+            add_primitive(set_pos_landing, move_to_landing, [], [], set_pos_landing),
+            add_primitive(move_to_landing, move_to_landing, [], [], move_to_pos),
+    add_select_all(forfeiture, tax_collector, [{wait_count, moreorequal, 3}], []),
+        add_primitive(find_items, forfeiture, [], [], find_item),
+        add_primitive(move_to_item, forfeiture, [], [], move_to_pos),
+        add_primitive(take_items, forfeiture, [], [], take_item),
+    add_select_all(collecting, tax_collector, [], []),
+        add_primitive(demand_tax, collecting, [], [], say_demand_tax),
+        add_primitive(wait_for_tax, collecting, [], [], {wait, 5}).
 
-idle() ->
+tax_collector_ship() ->
+    new(tax_collector_ship),
+    add_select_all(return_to_empire, tax_collector_ship, [is_tax_collected, is_hauling_collector], []),
+        add_primitive(set_pos_empire, return_to_empire, [], [], set_pos_empire),
+        add_primitive(move_to_empire, return_to_empire, [], [], move_to_pos),
+    add_select_all(travel_to_player, tax_collector_ship, [is_hauling_collector], []),
+        add_primitive(set_landing_pos, travel_to_player, [], [], set_pos_landing),
+        add_primitive(move_to_pos, travel_to_player, [], [], move_to_pos),
+        add_primitive(unload, travel_to_player, [], [], unload_tax_collector),
+    add_select_all(wait_for_collector, tax_collector_ship, [], []),
+        add_primitive(wait_at_pos, wait_for_collector, [], [], idle).
+
+  idle() ->
     new(idle),
     add_select_all(do_idle, idle, [], []),
         add_primitive(idle, do_idle, [], [], idle).

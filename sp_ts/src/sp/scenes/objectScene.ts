@@ -26,8 +26,10 @@ export class ObjectScene extends Phaser.Scene {
   private imageDefTasks = [];
   private containerTasks = [];
 
-  private wallList: Array<ObjectState> = [];
+  private shroudTiles = [];
 
+  private wallList: Array<ObjectState> = [];
+  
   private multiImages: Record<string, Array<MultiImage>> = {};
 
   constructor() {
@@ -40,6 +42,7 @@ export class ObjectScene extends Phaser.Scene {
   preload(): void {
     this.load.image('selecthex', './static/art/hover-hex.png');
     this.load.image('foundation', './static/art/foundation.png');
+    this.load.image('shroud', './static/art/shroud.png');
   }
 
   create(): void {
@@ -124,6 +127,10 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   drawObjects() : void {
+    //Clear visibleTiles & shroud
+    Global.visibleTiles = [];
+    this.clearShroud();
+
     for(var objectId in Global.objectStates) {
         var objectState = Global.objectStates[objectId] as ObjectState;
 
@@ -159,14 +166,31 @@ export class ObjectScene extends Phaser.Scene {
             this.updateContainer(objectState);
           }
 
-       } else if(objectState.op == 'deleted') {
+        } else if(objectState.op == 'deleted') {
             var obj = this.objectList[objectState.id];
             obj.destroy();
         }
+
+        this.processVisibleTiles(objectState);
     }
 
     //Call processWall here for loaded wall images
-    this.processWallList()
+    this.processWallList();
+
+    //Add Shroud tiles
+    this.addShroud();
+  }
+
+  processVisibleTiles(objectState : ObjectState) {
+    if(objectState.player == Global.playerId) {
+      if(objectState.vision > 0) {
+        var visibleTiles = Util.range(objectState.x, 
+                                      objectState.y,
+                                      objectState.vision);
+
+        Global.visibleTiles = Global.visibleTiles.concat(visibleTiles);
+      }
+    }
   }
 
   processWallList() {
@@ -209,6 +233,39 @@ export class ObjectScene extends Phaser.Scene {
     }
   }
 
+  addShroud() {
+    for(var index in Global.tileStates) {
+      var tileState = Global.tileStates[index];
+    
+      if(Util.isVisible(tileState.hexX, tileState.hexY) == false) {
+        var pixel = Util.hex_to_pixel(tileState.hexX, tileState.hexY);
+
+        var shroud = new GameImage({
+          scene: this,
+          x: pixel.x,
+          y: pixel.y,
+          id: 'shroud' + pixel.x + pixel.y,
+          imageName: 'shroud'
+        });
+
+        this.add.existing(shroud);
+
+        this.shroudTiles.push(shroud);
+      }
+    }
+  }
+
+  clearShroud() {
+    console.log('Clearing shroud');
+    for(var i = 0; i < this.shroudTiles.length; i++) {
+      var shroud = this.shroudTiles[i];
+
+      shroud.destroy();
+    }
+
+    this.shroudTiles = [];
+  }
+
   updateImage(objectState: ObjectState) {
     var image = this.objectList[objectState.id] as GameImage;
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
@@ -220,8 +277,19 @@ export class ObjectScene extends Phaser.Scene {
       }
     }
 
-    image.x = pixel.x;
-    image.y = pixel.y;
+    //Move completed, add tween to new location
+    if(image.x != pixel.x || image.y != pixel.y) {
+      var tween = this.tweens.add({
+        targets: image,
+        x: pixel.x,
+        y: pixel.y,
+        ease: 'Power1',
+        duration: 500,
+        onComplete: this.onMoveComplete
+      });
+
+      tween.play();
+    }
   }
 
   updateSprite(objectState: ObjectState) {
@@ -590,12 +658,20 @@ export class ObjectScene extends Phaser.Scene {
 
   onMoveComplete(tween, targets) {
     var sprite = targets[0]
+    var objectState = Global.objectStates[sprite.id];
 
-    if(Global.objectStates[sprite.id].subclass == HERO) {
+    if(objectState.subclass == HERO) {
 
       var mapScene = this.scene.get('MapScene') as MapScene;
       mapScene.cameras.main.stopFollow();
       this.cameras.main.stopFollow();
+    } else if(objectState.player != Global.playerId) {
+
+      if(Util.isVisible(objectState.x, objectState.y) == false) {
+        console.log('Destroying sprite start');
+        sprite.destroy();
+        console.log('Destroying sprite end');
+      }
     }
   }
 

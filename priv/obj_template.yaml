@@ -1,0 +1,50 @@
+# obj_template.yaml
+- name: Shipwreck
+  class: poi
+  subclass: poi
+  template: Shipwreck
+  base_hp: 0
+
+- name: Zombie
+  class: unit
+  subclass: npc
+  template: Zombie
+  family: Undead
+  base_hp: 50
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: mindless
+  aggression: high
+  kill_xp: 100
+  order: wander
+
+- name: Warrior
+  class: unit
+  subclass: hero
+  template: Warrior
+  base_hp: 12
+  base_stamina: 10000
+  base_dmg: 3
+  dmg_range: 8
+  base_def: 1
+  base_speed: 5
+  base_vision: 2
+  capacity: 300
+
+- name: Tent
+  class: structure
+  subclass: shelter
+  template: Tent
+  base_hp: 50
+  base_def: 0
+  build_time: 240,
+  level: 0
+  req: 
+    - type: Wood
+      quantity: 1
+    - type: Ingot
+      quantity: 2

@@ -11,6 +11,7 @@ import '../ui.css';
 import { FOUNDED, PROGRESSING, STALLED, NONE, CRAFT} from "../config";
 import { NetworkEvent } from "../networkEvent";
 import { GameEvent } from "../gameEvent";
+import ResourceItem from "./resourceItem";
 
 interface StructurePanelProps {
   structureData,
@@ -132,6 +133,8 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
     const showAssignButton = this.state.structureData.state == NONE;
 
+    const isFinished = this.state.structureData.state == NONE;
+
     var imageName = '';
 
     if(this.state.structureData.state == 'founded') {
@@ -146,10 +149,12 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
       var req = this.state.structureData.req[i];
 
       reqs.push(
-        <tr key={i}>
-          <td>{req.type} </td>
-          <td>x {req.quantity}</td>
-        </tr>)
+        <ResourceItem key={i}
+                      resourceName={req.type}
+                      quantity={req.quantity}
+                      index={i}
+                      showQuantity={true}/>
+      )
     }
 
     const imageStyle = {
@@ -175,8 +180,8 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
       fontSize: '12px'
     } as React.CSSProperties
 
-    const tableStyle2 = {
-      transform: 'translate(-80px, 10px)',
+    const divReqsStyle = {
+      transform: 'translate(-110px, 15px)',
       position: 'fixed',
       color: 'white',
       fontFamily: 'Verdana',
@@ -224,17 +229,24 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
               <td>{this.state.structureData.state}</td>
             </tr>
             <tr>
-              <td>Subclass:</td>
+              <td>Class:</td>
               <td>{this.state.structureData.subclass}</td>
             </tr>
-            <tr>
-              <td>Base HP:</td>
-              <td>{this.state.structureData.base_hp}</td>
-            </tr>
-            <tr>
-              <td>Base Defense:</td>
-              <td>{this.state.structureData.base_def}</td>
-            </tr>
+
+            { isFinished && 
+              <tr>
+                <td>HP:</td>
+                <td>{this.state.structureData.base_hp}</td>
+              </tr> 
+            }
+
+            { isFinished &&
+              <tr>
+                <td>Defense:</td>
+                <td>{this.state.structureData.base_def}</td>
+              </tr> 
+            }
+
             <tr>
               <td>Build Time:</td>
               <td>{this.state.structureData.build_time / 5}</td>
@@ -250,11 +262,9 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
             <tr>
               <td>Requirements:</td>
               <td>
-                <table style={tableStyle2}>
-                  <tbody>
-                    {reqs}
-                  </tbody>
-                </table>
+                <div style={divReqsStyle}>
+                  {reqs}
+                </div>
               </td>
             </tr>
           </tbody>

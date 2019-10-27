@@ -209,6 +209,8 @@ create_new_player(PlayerId) ->
     %Pos = map:random_location(),
     %AdjPos = map:get_random_neighbour(Pos),
     [Player] = db:read(player, PlayerId),
+    PlayerStartPos = {16, 36},
+
 
     HeroPos = {16,36},
     VillagerPos = {16,37},
@@ -225,7 +227,9 @@ create_new_player(PlayerId) ->
     obj:create({16,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
     obj:create({17,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
 
-    NewPlayer = Player#player {hero = HeroId},
+    PlayerData = #{start_pos => PlayerStartPos},
+    NewPlayer = Player#player {hero = HeroId,
+                               data = PlayerData},
     db:write(NewPlayer),
 
     VillagerId = villager:create(0, PlayerId, VillagerPos),
@@ -273,11 +277,39 @@ create_new_player(PlayerId) ->
             MeagerMerchantId = npc:create({0, 40}, ?EMPIRE, <<"Meager Merchant">>),
             obj:add_group(MeagerMerchantId, ?MERCHANT),
             ItemMap = item:create(MeagerMerchantId, <<"Pick Axe">>, 2),
-            item_attr:set(item:id(ItemMap), <<"price">>, 5)
+            item_attr:set(item:id(ItemMap), <<"price">>, 5),
+
+
+            VillagerForHireId = villager:create(0, ?EMPIRE, {-50, -50}),
+            obj_attr:set(VillagerForHireId, <<"wage">>, 24),
+
+            obj_attr:set(MeagerMerchantId, <<"hauling">>, [VillagerForHireId]),
+            obj:update_state(VillagerForHireId, ?ABOARD)
+
          end,
 
     F3 = fun() ->
-            npc:create({17,35}, ?UNDEAD, <<"Zombie">>)
+            TaxCollectorShipId = npc:create({0, 40}, ?EMPIRE, <<"Tax Ship">>),
+            TaxCollectorId = npc:create({-100, -50}, ?EMPIRE, <<"Tax Collector">>),
+            
+            obj_attr:set(TaxCollectorShipId, <<"hauling">>, [TaxCollectorId]),
+            obj:update_state(TaxCollectorId, ?ABOARD),
+
+            Data1 = #{tax_collector => TaxCollectorId,
+                      target_player => PlayerId},
+
+            Data2 = #{tax_collector_ship => TaxCollectorShipId,
+                      target_player => PlayerId},
+
+            npc:set_data(TaxCollectorShipId, Data1),
+            npc:set_data(TaxCollectorId, Data2),
+
+            %Set player is_tax_collected to false TODO move to another module
+            [EmpirePlayer] = db:read(player, ?EMPIRE),
+            NewEmpirePlayerData1 = maps:put({PlayerId, is_tax_collected}, false, EmpirePlayer#player.data),
+            NewEmpirePlayerData2 = maps:put({PlayerId, landing_pos}, PlayerStartPos, NewEmpirePlayerData1),
+            NewEmpirePlayer = EmpirePlayer#player {data = NewEmpirePlayerData2},
+            db:write(NewEmpirePlayer)
          end,
 
     F4 = fun() ->
@@ -285,8 +317,8 @@ create_new_player(PlayerId) ->
          end,
 
     %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
-    game:add_event(none, event, F2, none, 15),
-    %game:add_event(none, event, F3, none, 36),
+    %game:add_event(none, event, F2, none, 15),
+    game:add_event(none, event, F3, none, 15),
     %game:add_event(none, event, F4, none, 40),
 
     lager:info("Game end.").

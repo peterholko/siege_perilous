@@ -3,69 +3,75 @@ import HalfPanel from "./halfPanel";
 import { Global } from "../global";
 import leftbutton from "ui_comp/leftbutton.png";
 import rightbutton from "ui_comp/rightbutton.png";
-import buildbutton from "ui_comp/buildbutton.png";
+import hirebutton from "ui_comp/okbutton.png";
 import { Network } from "../network";
 import { GameEvent } from "../gameEvent";
-import ResourceItem from "./resourceItem";
 
-interface BuildPanelProps {
-  structuresData,
+interface MHPProps {
+  hireData,
 }
 
-export default class BuildPanel extends React.Component<BuildPanelProps, any> {
+export default class MerchantHirePanel extends React.Component<MHPProps, any> {
   constructor(props) {
     super(props);
 
     this.state = {
-      structure : this.props.structuresData[0],
+      villager : this.props.hireData[0],
       index : 0
     };
 
     this.handleLeftClick = this.handleLeftClick.bind(this);
     this.handleRightClick = this.handleRightClick.bind(this);
-    this.handleBuildClick = this.handleBuildClick.bind(this);
+    this.handleHireClick = this.handleHireClick.bind(this);
   }
 
   handleLeftClick(event) {
     if(this.state.index != 0) {
       const newIndex = this.state.index - 1;
-      this.setState({structure: this.props.structuresData[newIndex],
+      this.setState({villager: this.props.hireData[newIndex],
                      index: newIndex})
     } 
   }
 
   handleRightClick(event) {
-    if(this.state.index != (this.props.structuresData.length - 1)) {
+    if(this.state.index != (this.props.hireData.length - 1)) {
       const newIndex = this.state.index + 1;
-      this.setState({structure: this.props.structuresData[newIndex],
+      this.setState({villager: this.props.hireData[newIndex],
                      index: newIndex})
     } 
   }
 
-  handleBuildClick() {
-    Network.sendCreateFoundation(Global.heroId, this.state.structure.name);
-    Global.gameEmitter.emit(GameEvent.START_BUILD_CLICK, {});
+  handleHireClick() {
+    Network.sendHire(Global.merchantSellTarget, this.state.villager.id);
+    Global.gameEmitter.emit(GameEvent.MERCHANT_HIRE_CLICK, {});
   }
 
   render() {
-    var imageName = this.state.structure.name.toLowerCase() + '.png';
-    const reqs = [];
+    var imageName = this.state.villager.image.toLowerCase() + '_single.png';
 
-    for(var i = 0; i < this.state.structure.req.length; i++) {
-      var req = this.state.structure.req[i];
+    var topStats = [];
 
-      /*reqs.push(
-        <tr key={i}>
-          <td>{req.type} </td>
-          <td>x {req.quantity}</td>
-        </tr>)*/
-      reqs.push(
-        <ResourceItem key={i}
-                      resourceName={req.type}
-                      quantity={req.quantity}
-                      index={i}
-                      showQuantity={true}/>
-      )
+    topStats.push({'name': 'Creativity', 'value': this.state.villager.Creativity});
+    topStats.push({'name': 'Dexterity', 'value': this.state.villager.Dexterity});
+    topStats.push({'name': 'Endurance', 'value': this.state.villager.Endurance});
+    topStats.push({'name': 'Focus', 'value': this.state.villager.Focus});
+    topStats.push({'name': 'Intellect', 'value': this.state.villager.Intellect});
+    topStats.push({'name': 'Spirit', 'value': this.state.villager.Spirit});
+    topStats.push({'name': 'Strength', 'value': this.state.villager.Strength});
+    topStats.push({'name': 'Toughness', 'value': this.state.villager.Toughness});
+
+    topStats.sort((a, b) => (a.value < b.value) ? 1 : -1);
+
+    var skills = [];
+    var key = 0;
+
+    for(var skill in this.state.villager.skills) {
+      skills.push(<tr key={key}>
+                    <td>{skill}</td>
+                    <td>{this.state.villager.skills[skill]}</td>
+                  </tr>);
+
+      key++;
     }
 
     const imageStyle = {
@@ -92,8 +98,6 @@ export default class BuildPanel extends React.Component<BuildPanelProps, any> {
     } as React.CSSProperties
 
     const tableStyle2 = {
-      transform: 'translate(-80px, 10px)',
-      position: 'fixed',
       color: 'white',
       fontFamily: 'Verdana',
       fontSize: '12px'
@@ -109,54 +113,45 @@ export default class BuildPanel extends React.Component<BuildPanelProps, any> {
       position: 'fixed'
     } as React.CSSProperties
   
-    const buildStyle = {
+    const assignStyle = {
       transform: 'translate(-187px, 295px)',
       position: 'fixed'
     } as React.CSSProperties
 
-    const reqDivStyle = {
-      transform: 'translate(5px, -120px)',
-      position: 'fixed'
-    } as React.CSSProperties
-
-
     return (
-      <HalfPanel left={true} 
-                 panelType={'build'} 
+      <HalfPanel left={false} 
+                 panelType={'hire'} 
                  hideExitButton={false}>
         <img src={'/static/art/' + imageName} style={imageStyle} />
         <span style={spanNameStyle}>
-          {this.state.structure.name} Level {this.state.structure.level}
+          {this.state.villager.name}
         </span>
         <table style={tableStyle}>
           <tbody>
             <tr>
-              <td>Class:</td>
-              <td>{this.state.structure.subclass}</td>
+              <td>Wage:</td>
+              <td>{this.state.villager.wage}</td>
             </tr>
             <tr>
-              <td>HP:</td>
-              <td>{this.state.structure.base_hp}</td>
+              <td>Primary Skills:</td>
+              <td><table style={tableStyle2}>
+                <tbody>
+                  {skills}
+                </tbody>
+                </table></td>
             </tr>
             <tr>
-              <td>Defense:</td>
-              <td>{this.state.structure.base_def}</td>
-            </tr>
-            <tr>
-              <td>Build Time:</td>
-              <td>{this.state.structure.build_time}</td>
-            </tr>
-            <tr>
-              <td>Materials:</td>
+              <td>Primary Stats:</td>
+              <td>{topStats[0].name} ({topStats[0].value}) <br/>
+                  {topStats[1].name} ({topStats[1].value}) <br/>
+                  {topStats[2].name} ({topStats[2].value})
+              </td>
             </tr>
           </tbody>
         </table>
-        <div style={reqDivStyle}>
-          {reqs}
-        </div>
         <img src={leftbutton} style={leftStyle} onClick={this.handleLeftClick} />
         <img src={rightbutton} style={rightStyle} onClick={this.handleRightClick} />
-        <img src={buildbutton} style={buildStyle} onClick={this.handleBuildClick} />
+        <img src={hirebutton} style={assignStyle} onClick={this.handleHireClick} />
       </HalfPanel>
     );
   }

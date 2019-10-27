@@ -50,11 +50,19 @@ process_login([], [Name, Pass, Socket]) ->
 
     ExploredMap = #explored_map {player = PlayerId,
                                  tiles = [],
-                                 new_tiles = []}, 
+                                 new_tiles = []},
+
+    RelationPlayer = #relation{key = {PlayerId, ?EMPIRE},
+                               score = ?ALLIES},
+
+    RelationEmpire = #relation{key = {?EMPIRE, PlayerId},
+                               score = ?ALLIES},
 
     db:write(Player),
     db:write(Connection),
     db:write(ExploredMap),
+    db:write(RelationPlayer),
+    db:write(RelationEmpire),
    
     {first_login, PlayerId};
 

@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([all/1, all_to_map/1, value/2, value/3]).
+-export([all/1, all_to_map/1, value/2, value/3, has/2]).
 -export([set/3, update/3]). 
 
 all(Id) ->
@@ -21,6 +21,12 @@ all_to_map(Id) ->
         end,
 
     lists:foldl(F, #{}, All).
+
+has(Id, Attr) ->
+    case db:dirty_read(obj_attr, {Id, Attr}) of
+        [_ObjAttr] -> true;
+        [] -> false
+    end.
 
 value(All, Attr) when is_list(All) ->
     [H | _Rest] = All,

@@ -1,43 +1,7 @@
-#heroring {
-  transform: translate(8px, 21px);
-  z-index: 2;
-  position: fixed;
-}
-
-#hpframe {
-  transform: translate(40px, 10px);
-  z-index: 1;
-  position: fixed;
-}
-
 #movecompass {
   left: 0px;
   bottom: 0px;
   z-index: 1;
-  position: fixed;
-}
-
-#hero {
-  transform: translate(10px, 24px);
-  z-index: 3;
-  position: fixed;
-}
-
-#hpbg {
-  transform: translate(95px, 17px);
-  z-index: 3;
-  position: fixed;
-}
-
-#stabg {
-  transform: translate(95px, 35px);
-  z-index: 3;
-  position: fixed;
-}
-
-#manabg {
-  transform: translate(95px, 53px);
-  z-index: 3;
   position: fixed;
 }
 
@@ -143,14 +107,14 @@ progress::-moz-progress-bar {
 }
 
 #itemquantity {
-  transform: translate(-3px, 35px);
+  transform: translate(-3px, 31px);
   position: fixed;
   color: white;
   font-family: Verdana;
   font-size: 12px;
   width: 50px;
   text-align: right;
-  -webkit-touch-callout: none; /* iOS Safari */
+  font-weight: bold;
     -webkit-user-select: none; /* Safari */
      -khtml-user-select: none; /* Konqueror HTML */
        -moz-user-select: none; /* Firefox */

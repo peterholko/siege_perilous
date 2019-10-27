@@ -7,7 +7,8 @@ import { GameEvent } from "../gameEvent";
 interface ResItemProps {
   resourceName,
   quantity,
-  index
+  index,
+  showQuantity
 }
 
 export default class ResourceItem extends React.Component<ResItemProps, any> {
@@ -38,7 +39,7 @@ export default class ResourceItem extends React.Component<ResItemProps, any> {
   }
 
   render() {
-    //var quantityStr = this.formatQuantity(this.props.quantity);
+    var quantityStr = this.formatQuantity(this.props.quantity);
 
     let xPos = this.props.index * 50 + 15;
 
@@ -56,10 +57,11 @@ export default class ResourceItem extends React.Component<ResItemProps, any> {
     const imageName = this.props.resourceName.replace(/\s/g, '').toLowerCase();
 
     return (
-      <div style={divStyle}>
+      <div style={divStyle} onClick={this.handleClick}>
         <img src={'/static/art/items/' + imageName + '.png'}
-            style={itemStyle}
-            onClick={this.handleClick}/>
+            style={itemStyle} />
+        {this.props.showQuantity &&
+          <span id="itemquantity" className={styles.itemquantity}>{quantityStr}</span>}
       </div>
     );
   }

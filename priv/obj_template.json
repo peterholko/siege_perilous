@@ -56,6 +56,34 @@
 	"capacity": 300
 },
 {
+	"name": "Ranger",
+	"base_hp": 12,
+	"base_stamina": 10000,
+	"base_dmg": 3,
+	"dmg_range": 8,
+	"base_def": 1,
+	"base_speed": 5,
+	"base_vision": 2,
+	"class": "unit",
+	"subclass": "hero",
+  "template": "Ranger",
+	"capacity": 300
+},
+{
+	"name": "Mage",
+	"base_hp": 12,
+	"base_stamina": 10000,
+	"base_dmg": 3,
+	"dmg_range": 8,
+	"base_def": 1,
+	"base_speed": 5,
+	"base_vision": 2,
+	"class": "unit",
+	"subclass": "hero",
+  "template": "Mage",
+	"capacity": 300
+},
+{
 	"name": "Tent",
 	"base_hp": 50,
 	"base_dmg": 0,
@@ -774,6 +802,38 @@
 	"order": "merchant",
 	"waterwalk": 1,
 	"landwalk": 0 
+},
+{
+	"name": "Tax Ship",
+	"base_hp": 2000,
+	"base_stamina": 2000,
+	"base_dmg": 5,
+	"dmg_range": 10,
+	"base_def": 10,
+	"base_speed": 4,
+	"class": "unit",
+	"subclass": "npc",
+	"template": "Tax Ship",
+	"base_vision": 3,
+	"order": "tax_collector_ship",
+	"waterwalk": 1,
+	"landwalk": 0 
+},
+{
+	"name": "Tax Collector",
+	"base_hp": 2000,
+	"base_stamina": 2000,
+	"base_dmg": 5,
+	"dmg_range": 10,
+	"base_def": 10,
+	"base_speed": 4,
+	"class": "unit",
+	"subclass": "npc",
+	"template": "Taxcollector",
+	"base_vision": 3,
+	"order": "tax_collector",
+	"waterwalk": 0,
+	"landwalk": 1 
 }
     
     

@@ -11,7 +11,8 @@
                  disabled = false,
                  hero = false,
                  class = none,
-                 npc = false}).
+                 npc = false,
+                 data = #{}}).
 
 -record(connection, {player,
                      status = init,
@@ -255,3 +256,5 @@
                       player,
                       id}).
 
+-record(relation, {key, % {source, target}
+                   score}).

@@ -9,6 +9,8 @@
 -export([start/0, login/3, select_class/1]).
 
 start() ->
+    application:start(yamerl),
+
     lager:info("Creating schema..."),
     db:create_schema(),
     lager:info("Starting mnesia db..."),
@@ -22,6 +24,8 @@ start() ->
     db:import("recipe_def"),
     db:import("resource_def"),
     db:import("skill_def"),
+
+    db:import_yaml("obj_template"),
 
     lager:info("Starting game process..."),
     game:start(),

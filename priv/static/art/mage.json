@@ -1,60 +1,29 @@
-{"frames": [
-
 {
-	"filename": "mage-attack-magic1.png",
-	"frame": {"x":0,"y":0,"w":72,"h":72},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":72,"h":72},
-	"sourceSize": {"w":72,"h":72}
-},
-{
-	"filename": "mage-attack-magic2.png",
-	"frame": {"x":72,"y":0,"w":72,"h":72},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":72,"h":72},
-	"sourceSize": {"w":72,"h":72}
-},
-{
-	"filename": "mage-attack-staff1.png",
-	"frame": {"x":144,"y":0,"w":72,"h":72},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":72,"h":72},
-	"sourceSize": {"w":72,"h":72}
-},
-{
-	"filename": "mage-attack-staff2.png",
-	"frame": {"x":216,"y":0,"w":72,"h":72},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":72,"h":72},
-	"sourceSize": {"w":72,"h":72}
-},
-{
-	"filename": "mage-defend.png",
-	"frame": {"x":288,"y":0,"w":72,"h":72},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":72,"h":72},
-	"sourceSize": {"w":72,"h":72}
-},
-{
-	"filename": "mage.png",
-	"frame": {"x":360,"y":0,"w":72,"h":72},
-	"rotated": false,
-	"trimmed": false,
-	"spriteSourceSize": {"x":0,"y":0,"w":72,"h":72},
-	"sourceSize": {"w":72,"h":72}
-}],
-"meta": {
-	"app": "https://www.codeandweb.com/texturepacker",
-	"version": "1.0",
-	"image": "mage.png",
-	"format": "RGBA8888",
-	"size": {"w":432,"h":72},
-	"scale": "1",
-	"smartupdate": "$TexturePacker:SmartUpdate:2278b708b723bfc75bd740dc972821ea:b79654b651b929685c7c2827cd251dad:d73cacd293d5b01fa66fb09c67c7a757$"
-}
+	"frames": {
+			"width": 72,
+			"height": 72
+	},
+	"animations": {
+			"harvesting": {
+					"frames": [0,1],
+					"repeat": -1,
+					"speed": 1000
+			},
+			"crafting": {
+					"frames": [0,1],
+					"repeat": -1,
+					"speed": 1000
+			},
+			"attack": {
+					"frames": [0,1,2,3],
+					"repeat": 0,
+					"speed": 1000
+			},
+			"none": [5],
+			"moving": {
+					"frames": [0,2,5],
+					"repeat": -1,
+					"speed": 750
+			}
+	}
 }

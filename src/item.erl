@@ -13,7 +13,7 @@
 -export([has_by_class/2, has_by_subclass/2, has_price/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, 
          is_class/2, is_subclass/2]).
--export([get_total_weight/1, get_total_gold/1, weight/2]).
+-export([get_total_weight/1, total_gold/1, weight/2]).
 -export([id/1, owner/1, quantity/1, price/1]).
 -export([match_req/3]).
 
@@ -115,7 +115,7 @@ get_total_weight(ObjId) ->
     TotalWeight = lists:foldl(F, 0, AllItems),
     TotalWeight.   
 
-get_total_gold(ObjId) ->
+total_gold(ObjId) ->
     AllItems = db:dirty_index_read(item, ObjId, #item.owner),
 
     F = fun(Item, AccGold) ->

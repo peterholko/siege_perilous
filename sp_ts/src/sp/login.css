@@ -3,10 +3,6 @@
 /* ---------- http://fortawesome.github.com/Font-Awesome/ ---------- */
 /* ---------- http://weloveiconfonts.com/ ---------- */
 @import url(http://weloveiconfonts.com/api/?family=fontawesome);
-/* ---------- ERIC MEYER'S RESET CSS ---------- */
-/* ---------- http://meyerweb.com/eric/tools/css/reset/ ---------- */
-@import url(http://meyerweb.com/eric/tools/css/reset/reset.css);
-/* ---------- FONTAWESOME ---------- */
 [class*="fontawesome-"]:before {
   font-family: 'FontAwesome', sans-serif;
 }
@@ -96,7 +92,7 @@ p {
   background-color: #3b4148;
   border-radius: 0px 3px 3px 0px;
   color: #606468;
-  margin-bottom: 1em;
+  /*margin-bottom: 1em;*/
   padding: 0 16px;
   width: 230px;
 }
@@ -108,7 +104,7 @@ p {
   background-color: #ea4c4c;
   color: #eee;
   font-weight: bold;
-  margin-bottom: 2em;
+  /*margin-bottom: 2em;*/
   text-transform: uppercase;
   width: 280px;
 }

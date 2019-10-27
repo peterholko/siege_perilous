@@ -4,6 +4,7 @@ import BaseInventoryPanel from "./baseInventoryPanel";
 import { Global } from "../global";
 import { GameEvent } from "../gameEvent";
 import { Network } from "../network";
+import hirebutton from "ui_comp/assignbutton.png";
 
 interface MPProps {
   leftInventoryData,
@@ -24,6 +25,7 @@ export default class MerchantPanel extends React.Component<MPProps, any> {
     };
   
     this.handleSelect = this.handleSelect.bind(this);
+    this.handleInfoHireClick = this.handleInfoHireClick.bind(this);
   }
 
   handleSelect() {
@@ -41,38 +43,22 @@ export default class MerchantPanel extends React.Component<MPProps, any> {
     Network.sendInfoItem(Global.selectedItemId);
   }
 
-  /*handleItemTransferClick(event : React.MouseEvent) {
-    console.log('Item Transfer Click');
-    if(Global.selectedItemId != -1) {
-      var targetId;
-
-      if(Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
-        targetId = this.props.rightInventoryData.id;
-      } else {
-        targetId = this.props.leftInventoryData.id;
-      }
-      this.setState({hideLeftSelect: true,
-                    hideRightSelect: true});
-
-      Network.sendItemTransfer(targetId, Global.selectedItemId);
-      
-      //Reset Global selected item / owner
-      Global.selectedItemId = -1;
-      Global.selectedItemOwnerId = -1;
-    }
-  }*/
+  handleInfoHireClick() {
+    Network.sendInfoHauling(Global.merchantSellTarget);
+  }
 
   render() {
     console.log('this.props.leftInventoryData.id: ' + this.props.leftInventoryData.id);
     console.log('this.props.rightInventoryData.id: ' + this.props.rightInventoryData.id);
 
-    const transferStyle = {
+    const hireStyle = {
       top: '50%',
       left: '50%',
       marginTop: '-25px',
       marginLeft: '-25px',
       position: 'fixed',
-      zIndex: 7
+      transform: 'translate(161px, 135px)',
+      zIndex: 6
     } as React.CSSProperties
 
     return (
@@ -91,6 +77,9 @@ export default class MerchantPanel extends React.Component<MPProps, any> {
                             hideSelect={this.state.hideRightSelect}
                             handleSelect={this.handleSelect} />
 
+      <img src={hirebutton}
+               style={hireStyle}
+               onClick={this.handleInfoHireClick} />}
       </div>
     );
   }
