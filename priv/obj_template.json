@@ -247,6 +247,10 @@
 		{
 			"type": "Wood",
 			"quantity": 1
+		},
+		{
+			"type": "Ingot",
+			"quantity": 1
 		}
 	]
 },

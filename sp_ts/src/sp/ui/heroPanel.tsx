@@ -16,7 +16,7 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
   }
 
   render() {
-    let imageName = Global.objectStates[Global.heroId].template;
+    let imageName = Global.objectStates[Global.heroId].template.toLowerCase();
     let imagePath = '/static/art/' + imageName  + '_single.png';
 
     const heroStyle = {

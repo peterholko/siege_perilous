@@ -28,9 +28,13 @@ export class Network {
   }
 
   public static sendMove(newX : integer, newY : integer) {
-    console.log('')
-    var m = '{"cmd": "move_unit", "id": ' + '7' + ', "x": ' + newX + ', "y": ' + newY + '}';
-    Global.socket.sendMessage(m);
+    var m = {
+      cmd: "move_unit",
+      id: Global.heroId,
+      x: newX,
+      y: newY
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
   }
 
   public static sendItemTransfer(targetId, item) {
@@ -284,6 +288,7 @@ export class Network {
         //Add small delay to prevent perception event before Scenes are created.
         setTimeout(function() {Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 3000);
       } else if(jsonData.packet == 'changes') {
+        console.log("--- Changes Packet Received ---");
         console.log(jsonData);
         this.processUpdateObjStates(jsonData.events);
         Global.gameEmitter.emit(NetworkEvent.CHANGES, jsonData);
@@ -383,9 +388,6 @@ export class Network {
   }
 
   processUpdateObjStates(events) {
-    console.log("processUpdateStates");
-    console.log(events);
-
     //Reset the operation
     for(var objectId in Global.objectStates) {
         var objectState = Global.objectStates[objectId] as ObjectState;

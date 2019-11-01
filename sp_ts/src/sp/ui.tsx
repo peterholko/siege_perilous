@@ -205,19 +205,11 @@ export default class UI extends React.Component<any, UIState>{
   handleMoveClick(event : React.MouseEvent) {
     const compass = this.compassRef.current!;
 
-      console.log('compass click');
-      console.log('offset: ' + event.nativeEvent.offsetX + ', ' + event.nativeEvent.offsetY);
-      console.log('compass: ' + this.compassRef);
-
       var pocX = event.nativeEvent.offsetX - compass.naturalWidth / 2;
       var pocY = event.nativeEvent.offsetY - compass.naturalHeight / 2;
 
-      console.log('poc: ' + pocX + ', ' + pocY);
-
       var angleRads = Math.atan2(pocX, pocY);
       var angleDegrees = ((angleRads * 180) / Math.PI) + 180;
-
-      console.log('Angle: ' + angleDegrees);
 
       var heroObj = Global.objectStates[Global.heroId] as ObjectState;
 

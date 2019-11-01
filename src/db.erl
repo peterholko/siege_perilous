@@ -139,8 +139,65 @@ import_entry(Table, ObjName, ObjList) ->
 import_yaml(DefFileName) ->
     PrivDir = code:lib_dir(sp) ++ "/priv/",
     Document = yamerl_constr:file(PrivDir ++ DefFileName ++ ".yaml"),
+    [Content] = Document,
 
-    lager:info("Document: ~p", [Document]).
+    F = fun(Entry) ->
+            [Name | _Rest] = Entry,
+            {_, ObjName} = Name,
+            import_yaml_entry(list_to_atom(DefFileName), ObjName, Entry)
+        end,
+
+    lists:foreach(F, Content).
+
+import_yaml_entry(_, _, []) ->
+    done;
+import_yaml_entry(Table, ObjName, [Entry | Rest]) ->
+    {AttrKey, AttrValue} = Entry,
+
+    FinalAttrValue = convert_value(AttrValue),
+
+    R = {Table, 
+        {list_to_binary(ObjName), 
+         list_to_binary(AttrKey)}, FinalAttrValue},
+
+    db:dirty_write(R), 
+
+    import_yaml_entry(Table, ObjName, Rest).
+
+convert_value(Value) ->
+    lager:info("Value: ~p", [Value]),
+    case Value of 
+        [ListValue | _] when is_list(ListValue) ->
+            lager:info("ListValue: ~p", [ListValue]),
+            case ListValue of
+                [ChildListValue | _] when is_list(ChildListValue) ->
+                    ChildListValue;
+                [ChildListValue | _] when is_tuple(ChildListValue) ->                    
+                    F = fun(E, Acc) ->
+                        lager:info("E: ~p", [E]),
+                        {K, V} = E,
+                        BinaryKey = to_binary(K),
+                        BinaryValue = to_binary(V),
+                        maps:put(BinaryKey, BinaryValue, Acc)
+                    end,
+
+                    [lists:foldl(F, #{}, ListValue)];
+                _ -> 
+                    F = fun(E, Acc) ->
+                            [ list_to_binary(E) | Acc]
+                        end,
+                    lists:foldl(F, [], Value)
+            end;
+
+        List when is_list(List) ->
+            lager:info("List: ~p", [List]),
+            erlang:list_to_binary(List);
+        V -> 
+            V
+    end.
+
+to_binary(V) when is_list(V) -> erlang:list_to_binary(V);
+to_binary(V) -> V.
 
 first(T) ->
     F = fun() -> mnesia:first(T) end,

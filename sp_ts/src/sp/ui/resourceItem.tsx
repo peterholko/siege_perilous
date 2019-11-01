@@ -8,7 +8,8 @@ interface ResItemProps {
   resourceName,
   quantity,
   index,
-  showQuantity
+  showQuantity,
+  fixedPos?
 }
 
 export default class ResourceItem extends React.Component<ResItemProps, any> {
@@ -39,14 +40,14 @@ export default class ResourceItem extends React.Component<ResItemProps, any> {
   }
 
   render() {
+    let xPos = this.props.index * 55;
     var quantityStr = this.formatQuantity(this.props.quantity);
-
-    let xPos = this.props.index * 50 + 15;
+    let fixedPos = this.props.fixedPos != null ? 'static' : 'fixed';
 
     //31px -286px
     const divStyle = {
       transform: 'translate(' + xPos +'px,  0px)',
-      position: 'fixed'
+      position: fixedPos
     } as React.CSSProperties
 
     const itemStyle = {

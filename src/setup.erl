@@ -25,7 +25,7 @@ start() ->
     db:import("resource_def"),
     db:import("skill_def"),
 
-    db:import_yaml("obj_template"),
+    %db:import_yaml("obj_template"),
 
     lager:info("Starting game process..."),
     game:start(),

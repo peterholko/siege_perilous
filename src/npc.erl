@@ -22,7 +22,7 @@
 -export([is_not_structure_inspected/1]).
 -export([set_pos_flee/1, set_pos_guard/1, set_pos_order/1,
          move_random_pos/1, move_to_target/1, attack/1, move_to_pos/1]).
--export([get_player_id/1]).
+-export([get_player_id/1, pay_tax/2]).
 -export([has_mana/2, has_order/2, phase_id/2, corpses_nearby/1, move_in_range/1, cast_raise_dead/1, 
          cast_shadow_bolt/1, set_pos_mausoleum/1, hide/1, reveal/1, next_phase/1]).
 -export([mausoleum_corpses_nearby/1, mausoleum_guardian_dead/1, has_minions/3, are_minions_dead/1, swarm_attack/1]).
@@ -76,6 +76,22 @@ set_data(Id, Data) ->
 get_player_id(NPCType) ->
     [NPCPlayer] = db:index_read(player, NPCType, #player.name),
     NPCPlayer#player.id.
+
+%TODO move to empire module
+pay_tax(PlayerId, PayAmount) ->
+    [EmpirePlayer] = db:read(player, ?EMPIRE),
+    TaxAmountDue = maps:get({PlayerId, tax_amount_due}, EmpirePlayer#player.data),
+
+    NewData = case TaxAmountDue =< PayAmount of
+                true ->
+                    D1 = maps:put({PlayerId, is_tax_collected}, true, EmpirePlayer#player.data),
+                    maps:put({PlayerId, tax_amount_due}, 0, D1);
+                false ->
+                    maps:put({PlayerId, tax_amount_due}, TaxAmountDue - PayAmount, EmpirePlayer#player.data)
+                end,
+    
+    NewEmpirePlayer = EmpirePlayer#player{data = NewData},
+    db:write(NewEmpirePlayer).
 
 %% HTN Conditions %%%
 

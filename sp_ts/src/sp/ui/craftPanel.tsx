@@ -1,4 +1,7 @@
 import * as React from "react";
+import SimpleBar from 'simplebar-react';
+import 'simplebar/dist/simplebar.min.css';
+
 import HalfPanel from "./halfPanel";
 import { Global } from "../global";
 import leftbutton from "ui_comp/leftbutton.png";
@@ -7,6 +10,8 @@ import craftbutton from "ui_comp/craftbutton.png";
 import { Network } from "../network";
 import { GameEvent } from "../gameEvent";
 import { WEAPON } from "../config";
+
+import ResourceItem from "./resourceItem";
 
 interface CraftPanelProps {
   structureId,
@@ -56,14 +61,17 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
       var req = this.state.recipe.req[i];
 
       reqs.push(
-        <tr key={i}>
-          <td>{req.type} </td>
-          <td>x {req.quantity}</td>
-        </tr>)
+        <ResourceItem key={i}
+                      resourceName={req.type}
+                      quantity={req.quantity}
+                      index={i}
+                      showQuantity={true}
+                      fixedPos={false}/>
+      );
     }
 
     const imageStyle = {
-      transform: 'translate(-195px, 25px)',
+      transform: 'translate(-187px, 35px)',
       position: 'fixed'
     } as React.CSSProperties
 
@@ -78,8 +86,6 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
     } as React.CSSProperties
 
     const tableStyle = {
-      transform: 'translate(20px, -230px)',
-      position: 'fixed',
       color: 'white',
       fontFamily: 'Verdana',
       fontSize: '12px'
@@ -94,28 +100,37 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
     } as React.CSSProperties
 
     const leftStyle = {
-      transform: 'translate(-320px, 60px)',
+      transform: 'translate(15px, -215px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const rightStyle = {
-      transform: 'translate(-50px, 60px)',
+      transform: 'translate(259px, -215px)',
       position: 'fixed'
     } as React.CSSProperties
   
     const craftStyle = {
-      transform: 'translate(-187px, 295px)',
+      transform: 'translate(135px, -215px)',
       position: 'fixed'
+    } as React.CSSProperties
+
+    const simpleStyle = {
+      transform: 'translate(20px, -230px)',
+      width: '280px',
+      height: '150px',
+      maxHeight: '150px'
     } as React.CSSProperties
 
     return (
       <HalfPanel left={false} 
                  panelType={'craft'} 
                  hideExitButton={false}>
-        <img src={'/static/art/' + imageName} style={imageStyle} />
+        <img src={'/static/art/items/' + imageName} style={imageStyle} />
         <span style={spanNameStyle}>
           {this.state.recipe.name}
         </span>
+        <SimpleBar style={simpleStyle}>
+
         <table style={tableStyle}>
           <tbody>
             <tr>
@@ -168,16 +183,17 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
              
             <tr>
               <td>Requirements:</td>
-              <td>
-                <table style={tableStyle2}>
-                  <tbody>
-                    {reqs}
-                  </tbody>
-                </table>
+              <td></td>
+            </tr>
+            <tr>
+              <td colSpan={2}>
+                {reqs}
               </td>
             </tr>
           </tbody>
         </table>
+
+        </SimpleBar>
         <img src={leftbutton} style={leftStyle} onClick={this.handleLeftClick} />
         <img src={rightbutton} style={rightStyle} onClick={this.handleRightClick} />
         <img src={craftbutton} style={craftStyle} onClick={this.handleCraftClick} />
@@ -188,3 +204,11 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
 
 
 
+/*
+
+                <table style={tableStyle2}>
+                  <tbody>
+                    {reqs}
+                  </tbody>
+                </table>
+*/

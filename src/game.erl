@@ -304,11 +304,14 @@ create_new_player(PlayerId) ->
             npc:set_data(TaxCollectorShipId, Data1),
             npc:set_data(TaxCollectorId, Data2),
 
+            obj:add_group(TaxCollectorId, ?TAX_COLLECTOR),
+
             %Set player is_tax_collected to false TODO move to another module
             [EmpirePlayer] = db:read(player, ?EMPIRE),
             NewEmpirePlayerData1 = maps:put({PlayerId, is_tax_collected}, false, EmpirePlayer#player.data),
-            NewEmpirePlayerData2 = maps:put({PlayerId, landing_pos}, PlayerStartPos, NewEmpirePlayerData1),
-            NewEmpirePlayer = EmpirePlayer#player {data = NewEmpirePlayerData2},
+            NewEmpirePlayerData2 = maps:put({PlayerId, tax_amount_due}, 10, NewEmpirePlayerData1),
+            NewEmpirePlayerData3 = maps:put({PlayerId, landing_pos}, PlayerStartPos, NewEmpirePlayerData2),
+            NewEmpirePlayer = EmpirePlayer#player {data = NewEmpirePlayerData3},
             db:write(NewEmpirePlayer)
          end,
 

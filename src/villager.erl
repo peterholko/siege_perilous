@@ -879,12 +879,16 @@ handle_call({info, VillagerId}, _From, Data) ->
 
 handle_call({has_assigned, StructureId}, _From, Data) ->
     F = fun(_VillagerId, Villager, Acc) ->
-            {AssignedId, _Pos, _Name} = Villager#villager.structure,
-            case AssignedId =:= StructureId of
-                true ->
-                    [Villager | Acc];
-                false ->    
-                    Acc
+
+            case Villager#villager.structure of
+                none -> Acc;
+                {AssignedId, _Pos, _Name} ->
+                    case AssignedId =:= StructureId of
+                        true ->
+                            [Villager | Acc];
+                        false ->    
+                            Acc
+                    end
             end
         end,
 

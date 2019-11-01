@@ -29,7 +29,8 @@
          loot/2,
          buy_item/2, 
          sell_item/3,
-         hire/2, 
+         hire/2,
+         pay_tax/2, 
          item_transfer/2,
          item_split/2,
          structure_list/0,
@@ -567,6 +568,31 @@ hire(MerchantId, TargetId) ->
 
             %Move obj to hero location
             game:add_obj_move(self(), TargetId, {-50, -50}, obj:pos(Hero), 4),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+pay_tax(TaxCollectorId, Amount) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+    TaxCollector = obj:get(TaxCollectorId),
+    HeroGold = item:total_gold(obj:id(Hero)),
+    
+    Checks = [{map:is_adjacent(Hero, TaxCollector), "Tax Collector is not nearby"},
+              {HeroGold >= Amount, "Insufficient gold to pay that amount"}],
+
+    case process_checks(Checks) of
+        true ->
+            %Transfer gold
+            item:transfer_by_class(obj:id(Hero),
+                                   TaxCollectorId, 
+                                   ?GOLD_COINS,
+                                   Amount),
+
+            %Update NPC Player data state
+            npc:pay_tax(PlayerId, Amount),
 
             #{<<"result">> => <<"success">>};
         {false, Error} ->

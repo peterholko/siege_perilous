@@ -53,6 +53,8 @@ export class ObjectScene extends Phaser.Scene {
     this.onMoveComplete = this.onMoveComplete.bind(this);
     this.onDmgTextComplete = this.onDmgTextComplete.bind(this);
 
+    Global.gameEmitter.on("VISIBLE", this.drawAllObjects, this);
+
     Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.CHANGES, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.IMAGE_DEF, this.processImageDefMessage, this);
@@ -61,8 +63,6 @@ export class ObjectScene extends Phaser.Scene {
     
     this.load.on('filecomplete', this.fileLoadComplete, this);
     this.load.on('complete', this.loadComplete, this);
-
-    //this.add.image(100, 100, 'selecthex');
   }
 
   processImageDefMessage(message) {
@@ -114,16 +114,34 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   processRender() : void {
+    console.log('processRender');
     if(this.renderToggle) {
-      //console.log('Draw Objects');
+      console.log('Draw Objects');
       this.drawObjects()
       this.renderToggle = false;
     }
   }
 
   setRender() : void {
-    //console.log('Object Scene Set Render')
+    console.log('ObjectScene setRender')
     this.renderToggle = true;
+  }
+
+  drawAllObjects() : void {
+    this.time
+
+    //Clear all objects
+    for(var key in this.objectList) {
+      var obj = this.objectList[key];
+      obj.destroy();
+    }
+
+    for(var objectId in Global.objectStates) {
+      var objectState = Global.objectStates[objectId] as ObjectState;
+      objectState.op = 'added';
+    }
+
+    this.setRender();
   }
 
   drawObjects() : void {
@@ -256,7 +274,6 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   clearShroud() {
-    console.log('Clearing shroud');
     for(var i = 0; i < this.shroudTiles.length; i++) {
       var shroud = this.shroudTiles[i];
 
@@ -301,15 +318,20 @@ export class ObjectScene extends Phaser.Scene {
       sprite.x = pixel.x;
       sprite.y = pixel.y;
     } else {
-      var animation;
+      var animState;
+      var anim;
 
       if(objectState.state == DEAD && objectState.prevstate != DEAD) {
-        animation = 'die';
+        animState = 'die';
       } else {
-        animation = objectState.state;
+        animState = objectState.state;
       }
 
-      sprite.play(objectState.image + '_' + animation);
+      anim = objectState.image + '_' + animState;
+
+      if(this.anims.exists(anim)) {
+        sprite.play(anim);
+      }
 
       //Only follow if Hero
       if(objectState.subclass == HERO) {
@@ -383,8 +405,11 @@ export class ObjectScene extends Phaser.Scene {
 
     this.add.existing(sprite);
 
-    var animName = objectState.image + '_' + objectState.state;
-    sprite.anims.play(animName);
+    var anim = objectState.image + '_' + objectState.state;
+
+    if(this.anims.exists(anim)) {
+      sprite.anims.play(anim);
+    }
 
     this.objectList[objectState.id] = sprite;
 

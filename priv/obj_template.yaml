@@ -1,10 +1,152 @@
 # obj_template.yaml
-- name: Shipwreck
-  class: poi
-  subclass: poi
-  template: Shipwreck
-  base_hp: 0
 
+##################
+### CREATURES ####
+##################
+
+- name: Wolf
+  class: unit
+  subclass: npc
+  template: Zombie
+  family: Animal
+  base_hp: 10
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 5
+  base_vision: 3
+  int: animal
+  aggression: high
+  kill_xp: 5
+
+- name: Giant Rat
+  class: unit
+  subclass: npc
+  template: Rat
+  family: Animal
+  base_hp: 10
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: animal
+  aggression: high
+  kill_xp: 100
+
+- name: Necromancer
+  class: unit
+  subclass: npc
+  template: Necromancer
+  family: Undead
+  base_hp: 500
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: mindless
+  aggression: high
+  kill_xp: 100
+  order: necro_event
+
+- name: Scorpion
+  class: unit
+  subclass: npc
+  template: Rat
+  family: Animal
+  base_hp: 10
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: mindless
+  aggression: high
+  kill_xp: 100
+
+- name: Shadow
+  class: unit
+  subclass: npc
+  template: Shadow
+  family: Undead
+  base_hp: 500
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: mindless
+  aggression: high
+  kill_xp: 100
+
+- name: Skeleton
+  class: unit
+  subclass: npc
+  template: Skeleton
+  family: Undead
+  base_hp: 10
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: mindless
+  aggression: high
+  kill_xp: 100
+
+- name: Spider
+  class: unit
+  subclass: npc
+  template: Spider
+  family: Animal
+  base_hp: 10
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: mindless
+  aggression: high
+  kill_xp: 100
+
+- name: Wose
+  class: unit
+  subclass: npc
+  template: Wose
+  family: Animal
+  base_hp: 10
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: mindless
+  aggression: high
+  kill_xp: 100
+
+- name: Yeti
+  class: unit
+  subclass: npc
+  template: Yeti
+  base_hp: 10
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 2
+  int: mindless
+  aggression: high
+ 
 - name: Zombie
   class: unit
   subclass: npc
@@ -22,6 +164,84 @@
   kill_xp: 100
   order: wander
 
+- name: Elite Zombie
+  class: unit
+  subclass: npc
+  template: Elite Zombie
+  family: Undead
+  base_hp: 150
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  int: mindless
+  base_vision: 2
+  aggression: high
+  kill_xp: 100
+  images: 
+    - zombie2
+  hsl: 
+    - 90
+    - 50
+    - 0
+
+##################
+##### EMPIRE #####
+##################
+
+- name: Meager Merchant
+  class: unit
+  subclass: npc
+  template: Meager Merchant
+  base_hp: 2000
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 3
+  kill_xp: 100
+  order: merchant
+  waterwalk: 1
+  landwalk: 0
+  
+- name: Tax Ship
+  class: unit
+  subclass: npc
+  template: Tax Ship
+  base_hp: 2000
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 3
+  kill_xp: 100
+  order: tax_collector_ship
+  waterwalk: 1
+  landwalk: 0
+
+- name: Tax Collector
+  class: unit
+  subclass: npc
+  template: Tax Ship
+  base_hp: 2000
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 3
+  base_vision: 3
+  kill_xp: 100
+  order: tax_collector
+  waterwalk: 0
+  landwalk: 1
+
+##################
+##### HEROES #####
+##################
+
 - name: Warrior
   class: unit
   subclass: hero
@@ -35,16 +255,346 @@
   base_vision: 2
   capacity: 300
 
+- name: Ranger
+  class: unit
+  subclass: hero
+  template: Ranger
+  base_hp: 12
+  base_stamina: 10000
+  base_dmg: 3
+  dmg_range: 8
+  base_def: 1
+  base_speed: 5
+  base_vision: 2
+  capacity: 300
+
+- name: Mage
+  class: unit
+  subclass: hero
+  template: Mage
+  base_hp: 12
+  base_stamina: 10000
+  base_dmg: 3
+  dmg_range: 8
+  base_def: 1
+  base_speed: 5
+  base_vision: 2
+  capacity: 300
+
+##################
+#### VILLAGERS ###
+##################
+
+- name: Human Villager
+  class: unit
+  subclass: villager
+  template: Human Villager
+  base_hp: 500
+  base_stamina: 10000
+  base_dmg: 0
+  dmg_range: 0
+  base_def: 0
+  base_speed: 0
+  base_vision: 1
+  capacity: 150
+  images: 
+    - humanvillager1
+    - humanvillager2
+    - humanvillager3
+    - humanvillager4
+  hsl:
+    - 90
+    - 50
+    - 0 
+
+##################
+### STRUCTURES ###
+##################
+
 - name: Tent
   class: structure
   subclass: shelter
   template: Tent
   base_hp: 50
   base_def: 0
-  build_time: 240,
+  build_time: 240
   level: 0
   req: 
     - type: Wood
       quantity: 1
     - type: Ingot
       quantity: 2
+
+- name: Farm
+  class: structure
+  subclass: resource
+  template: Farm
+  base_hp: 250
+  base_def: 0
+  build_time: 240
+  level: 0
+  profession: the Farmer
+  req: 
+    - type: Wood
+      quantity: 40
+
+- name: Trapper
+  class: structure
+  subclass: resource
+  template: Trapper
+  base_hp: 250
+  base_def: 0
+  build_time: 240
+  level: 1
+  profession: the Hunter
+  req: 
+    - type: Wood
+      quantity: 40
+
+- name: Lumbermill
+  class: structure
+  subclass: resource
+  template: Lumbermill
+  base_hp: 250
+  base_def: 0
+  build_time: 240
+  level: 0
+  refine: "Wood"
+  profession: the Forester
+  req: 
+    - type: Wood
+      quantity: 40
+
+- name: Quarry
+  class: structure
+  subclass: resource
+  template: Quarry
+  base_hp: 250
+  base_def: 0
+  build_time: 240
+  level: 0
+  refine: "Wood"
+  profession: the Stonecutter
+  req: 
+    - type: Wood
+      quantity: 40
+
+- name: Mine
+  class: structure
+  subclass: resource
+  template: Mine
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 0
+  capacity: 21
+  profession: the Miner
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Tavern
+  class: structure
+  subclass: craft
+  template: Tavern
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 1
+  capacity: 21
+  profession: the Innkeeper
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Carpenter
+  class: structure
+  subclass: craft
+  template: Carpenter
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 1
+  capacity: 50
+  profession: the Carpenter
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Mason
+  class: structure
+  subclass: craft
+  template: Mason
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 1
+  capacity: 50
+  profession: the Mason
+  refine: Stone
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Blacksmith
+  class: structure
+  subclass: craft
+  template: Blacksmith
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 1
+  capacity: 50
+  profession: the Blacksmith
+  refine: Ore
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Tailor
+  class: structure
+  subclass: craft
+  template: Tailor
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 2
+  capacity: 50
+  profession: the Tailor
+  refine: Ore
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Alchemist
+  class: structure
+  subclass: craft
+  template: Alchemist
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 3
+  capacity: 21
+  profession: the Alchemist
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Herbalist
+  class: structure
+  subclass: craft
+  template: Herbalist
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 3
+  capacity: 21
+  profession: the Herbalist
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Burrow
+  class: structure
+  subclass: storage
+  template: Burrow
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 3
+  capacity: 21
+  req: 
+    - type: Wood
+      quantity: 1
+
+- name: Warehouse
+  class: structure
+  subclass: storage
+  template: Warehouse
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 3
+  capacity: 21
+  req: 
+    - type: Wood
+      quantity: 1
+      
+- name: Stockade
+  class: structure
+  subclass: Wall
+  template: Stockade
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 0
+  req: 
+    - type: Wood
+      quantity: 1
+  upkeep:
+    - type: Wood
+      quantity: 1
+
+##################
+###### POI #######
+##################
+
+- name: Shipwreck
+  class: poi
+  subclass: poi
+  template: Shipwreck
+  base_hp: 0
+
+- name: Monolith
+  class: structure
+  subclass: monolith
+  template: Monolith
+  base_hp: 10000000
+  
+- name: Burned House
+  class: poi
+  subclass: poi
+  template: Burned House
+  base_hp: 10000000
+  
+- name: Haunted Mine
+  class: poi
+  subclass: poi
+  template: Haunted Mine
+  base_hp: 10000000
+
+- name: Graveyard
+  class: poi
+  subclass: poi
+  template: Graveyard
+  base_hp: 10000000
+
+- name: Mausoleum
+  class: poi
+  subclass: poi
+  template: Mausoleum
+  base_hp: 10000000
+
+- name: Sealed Cavern
+  class: poi
+  subclass: poi
+  template: Sealed Cavern
+  base_hp: 10000000
+
+##################
+###### MISC ######
+##################
+
+- name: Human Corpse
+  class: corpse
+  subclass: corpse
+  template: Human Corpse
+  base_vision: 0 
+
+
+
+
+ 
+
+
+
