@@ -319,9 +319,9 @@ create_new_player(PlayerId) ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
          end,
 
-    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
     %game:add_event(none, event, F2, none, 15),
-    game:add_event(none, event, F3, none, 15),
+    %game:add_event(none, event, F3, none, 15),
     %game:add_event(none, event, F4, none, 40),
 
     lager:info("Game end.").

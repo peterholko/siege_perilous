@@ -218,7 +218,7 @@ generate_effects() ->
             case ResourceType of
                 <<"Ore">> ->
                     Effects = randomize_effects(ResourceType),
-                    item_def:add(ResourceName, <<"effects">>, Effects);
+                    item_template:add(ResourceName, <<"effects">>, Effects);
                 _ -> 
                     none
             end

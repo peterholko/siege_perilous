@@ -1,6 +1,6 @@
 import * as React from "react";
-import SimpleBar from 'simplebar-react';
-import 'simplebar/dist/simplebar.min.css';
+import 'overlayscrollbars/css/OverlayScrollbars.css';
+import { OverlayScrollbarsComponent } from 'overlayscrollbars-react';
 
 import HalfPanel from "./halfPanel";
 import { Global } from "../global";
@@ -129,7 +129,7 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
         <span style={spanNameStyle}>
           {this.state.recipe.name}
         </span>
-        <SimpleBar style={simpleStyle}>
+        <OverlayScrollbarsComponent style={simpleStyle}>
 
         <table style={tableStyle}>
           <tbody>
@@ -193,7 +193,7 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
           </tbody>
         </table>
 
-        </SimpleBar>
+        </OverlayScrollbarsComponent>
         <img src={leftbutton} style={leftStyle} onClick={this.handleLeftClick} />
         <img src={rightbutton} style={rightStyle} onClick={this.handleRightClick} />
         <img src={craftbutton} style={craftStyle} onClick={this.handleCraftClick} />

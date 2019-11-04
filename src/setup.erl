@@ -19,13 +19,15 @@ start() ->
     db:reset_tables(),
 
     lager:info("Import data"),
-    db:import("obj_template"),
-    db:import("item_def"),
+    %db:import("obj_template"),
+    %db:import("item_template"),
     db:import("recipe_def"),
     db:import("resource_def"),
     db:import("skill_def"),
 
-    %db:import_yaml("obj_template"),
+    db:import_yaml("obj_template"),
+    db:import_yaml("item_template"),
+    
 
     lager:info("Starting game process..."),
     game:start(),

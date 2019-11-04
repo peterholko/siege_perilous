@@ -49,7 +49,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(obj_template, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_template)}]),    
     {atomic, ok} = mnesia:create_table(item, [{ram_copies, [node()]}, {attributes, record_info(fields, item)}]),    
     {atomic, ok} = mnesia:create_table(item_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, item_attr)}]),    
-    {atomic, ok} = mnesia:create_table(item_def, [{ram_copies, [node()]}, {attributes, record_info(fields, item_def)}]), 
+    {atomic, ok} = mnesia:create_table(item_template, [{ram_copies, [node()]}, {attributes, record_info(fields, item_template)}]), 
     {atomic, ok} = mnesia:create_table(recipe, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe)}]),    
     {atomic, ok} = mnesia:create_table(recipe_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe_attr)}]),    
     {atomic, ok} = mnesia:create_table(recipe_def, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe_def)}]),    
@@ -140,7 +140,7 @@ import_yaml(DefFileName) ->
     PrivDir = code:lib_dir(sp) ++ "/priv/",
     Document = yamerl_constr:file(PrivDir ++ DefFileName ++ ".yaml"),
     [Content] = Document,
-
+    lager:info("Content: ~p", [Content]),
     F = fun(Entry) ->
             [Name | _Rest] = Entry,
             {_, ObjName} = Name,

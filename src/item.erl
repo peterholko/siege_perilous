@@ -46,7 +46,7 @@ get_all_attr(Id) ->
     end.
 
 get_map_by_name(Name) ->
-    item_def:all_to_map(Name).
+    item_template:all_to_map(Name).
 
 get_by_owner(OwnerId) ->
     Items = db:index_read(item, OwnerId, #item.owner),
@@ -142,10 +142,10 @@ has_price(ItemId) ->
     item_attr:has(ItemId, <<"price">>).
 
 is_class(ItemName, Class) ->
-    item_def:value(ItemName, <<"class">>) =:= Class.
+    item_template:value(ItemName, <<"class">>) =:= Class.
 
 is_subclass(ItemName, Subclass) ->
-    item_def:value(ItemName, <<"subclass">>) =:= Subclass.
+    item_template:value(ItemName, <<"subclass">>) =:= Subclass.
 
 is_equipable(Item) ->
     case Item#item.class of
@@ -180,7 +180,7 @@ is_valid_split(Player, ItemId, Quantity) when Quantity > 0 ->
 is_valid_split(_, _, _) -> false.
 
 weight(ItemName, ItemQuantity) ->
-    ItemWeight = item_def:value(ItemName, <<"weight">>),
+    ItemWeight = item_template:value(ItemName, <<"weight">>),
     ItemWeight * ItemQuantity.
 
 can_merge(ItemClass) ->
@@ -355,8 +355,8 @@ create(Owner, Name, Quantity, Equip) ->
 
     db:write(NewItem),
 
-    %Return item_def map with quantity
-    ItemDef1 = item_def:all_to_map(Name),
+    %Return item_template map with quantity
+    ItemDef1 = item_template:all_to_map(Name),
     ItemDef2 = maps:put(<<"quantity">>, Quantity, ItemDef1),
     ItemDef3 = maps:put(<<"id">>, NewItem#item.id, ItemDef2),
     ItemDef3.
@@ -437,15 +437,15 @@ filter_by_name(Items, Name) ->
     lists:filter(F, Items).
 
 create_item_attr(Id, Name) ->
-    AllItemDef = item_def:all(Name),
+    AllItemDef = item_template:all(Name),
     
     F = fun(ItemDef) -> 
-            {Name, Attr} = item_def:key(ItemDef),
-            case item_def:key(ItemDef) of
+            {Name, Attr} = item_template:key(ItemDef),
+            case item_template:key(ItemDef) of
                 {Name, Attr} ->
                     AttrKey = {Id, Attr},
                     ItemAttr = #item_attr {key = AttrKey, 
-                                           value = item_def:value(ItemDef)},
+                                           value = item_template:value(ItemDef)},
                     db:dirty_write(ItemAttr)
             end
         end,

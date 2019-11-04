@@ -130,8 +130,8 @@
 -record(item_attr, {key, % {id, attr}
                     value}).
 
--record(item_def, {key, % {name, attr}
-                   value}).
+-record(item_template, {key, % {name, attr}
+                        value}).
 
 -record(recipe, {id,
                  name}).

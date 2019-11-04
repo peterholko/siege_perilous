@@ -86,8 +86,13 @@ is_passable(Pos, Obj) ->
                   obj:has_mountainwalk(Obj)).
 
 is_passable(TileName) when is_binary(TileName) ->
+    passable_tile(TileName);
+is_passable(Pos) -> %TODO review if this necessary due to need for objs
+    [Tile] = db:dirty_read(map, Pos),
+    TileType = Tile#map.tile,
+    TileName = tile_name(TileType),
     passable_tile(TileName).
-
+ 
 is_not_blocked(Pos, SourceObj) ->
     Objs = obj:get_by_pos(Pos),
 
