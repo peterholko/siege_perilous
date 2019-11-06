@@ -71,6 +71,7 @@ Randomize Tile bonuses:
 -Old Growth -> woodcutting bonus
 -Teeming with Wildlife -> hunting bonus
 -Abundant Nature Stone -> stone cutting bonus
+-Stone of Inspiration -> crafting bonus
 
 
 
@@ -221,6 +222,42 @@ Tile being observed:
 2. Encounter wildness changes
 3. Effect changes (sanctuary, etc...)
 4. Resoure changes revealed number and list of resources
+
+
+Tax collector:
+
+1. Travels from empire to player's location
+2. Demands X gold from player
+3. Waits for player to transfer X head tax and Y property tax 
+4. While waiting he stops and "audits" villagers.
+5. While waiting he takes food and water and shelter from the player or villagers
+6. After a sometime he decides to take any items of value.  (If the player has very little of value, he deems the settlement wretchedly poor and leaves)
+
+Hero creation:
+
+*Warrior
+
+*Ranger
+
+*Mage
+
+##########
+
+Basic Workshop upgrades go Blacksmith, Mason, alchemist.  Ensures the player can make basic items.
+
+Magical recipes have limited use.
+
+Villagers young, middle age, old, ancient.  (Age leads to lower physical attrs and higher int and higher skill)
+
+Mining -> Gems/Dust
+Stone cutting -> Gems/Dust
+Woodcutting -> Herbs
+
+Gems - full sockets of items (permanent bonus)
+Dust - enchants items, temporary 
+
+
+
 
 
 
