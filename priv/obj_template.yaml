@@ -443,7 +443,7 @@
   base_hp: 250
   base_def: 0
   build_time: 5
-  level: 1
+  level: 0
   capacity: 50
   profession: the Blacksmith
   refine: Ore

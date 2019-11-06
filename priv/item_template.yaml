@@ -186,8 +186,13 @@
 
 - name: Pick Axe
   class: Gathering
-  subclass: "Pick Axe"
+  subclass: Pick Axe
   weight: 5
+
+- name: Mana
+  class: Resource
+  subclass: Mana
+  weight: 1
 
 
 

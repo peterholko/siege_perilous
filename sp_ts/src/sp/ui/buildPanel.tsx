@@ -100,12 +100,12 @@ export default class BuildPanel extends React.Component<BuildPanelProps, any> {
     } as React.CSSProperties
 
     const leftStyle = {
-      transform: 'translate(-320px, 60px)',
+      transform: 'translate(-305px, 295px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const rightStyle = {
-      transform: 'translate(-50px, 60px)',
+      transform: 'translate(-65px, 295px)',
       position: 'fixed'
     } as React.CSSProperties
   
@@ -115,7 +115,7 @@ export default class BuildPanel extends React.Component<BuildPanelProps, any> {
     } as React.CSSProperties
 
     const reqDivStyle = {
-      transform: 'translate(5px, -120px)',
+      transform: 'translate(20px, -120px)',
       position: 'fixed'
     } as React.CSSProperties
 

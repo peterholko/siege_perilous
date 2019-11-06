@@ -47,7 +47,6 @@ export class ObjectScene extends Phaser.Scene {
 
   create(): void {
     console.log('Object Scene Create');
-    this.time.addEvent({ delay: 200, callback: this.processRender, callbackScope: this, loop: true });
    
     this.onJumpComplete = this.onJumpComplete.bind(this);
     this.onMoveComplete = this.onMoveComplete.bind(this);
@@ -55,7 +54,7 @@ export class ObjectScene extends Phaser.Scene {
 
     Global.gameEmitter.on("VISIBLE", this.drawAllObjects, this);
 
-    Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.setRender, this);
+    Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.drawInit, this);
     Global.gameEmitter.on(NetworkEvent.CHANGES, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.IMAGE_DEF, this.processImageDefMessage, this);
     Global.gameEmitter.on(NetworkEvent.DMG, this.processDmgMessage, this);
@@ -127,9 +126,16 @@ export class ObjectScene extends Phaser.Scene {
     this.renderToggle = true;
   }
 
-  drawAllObjects() : void {
-    this.time
+  drawInit() : void {
+    console.log('drawInit');
+    //TODO revisit this hack, possible issue if the 'added' is overwritten during drawing
+    this.drawAllObjects();
+    this.drawObjects();
 
+    this.time.addEvent({ delay: 200, callback: this.processRender, callbackScope: this, loop: true });
+  }
+
+  drawAllObjects() : void {
     //Clear all objects
     for(var key in this.objectList) {
       var obj = this.objectList[key];
@@ -166,22 +172,29 @@ export class ObjectScene extends Phaser.Scene {
               this.addContainer(objectState);
             }
           } else {
-            var getImage = '{"cmd": "image_def", "name": "' + objectState.image + '"}';
-            Global.socket.sendMessage(getImage);
+            Network.sendImageDef(objectState.image);
             
             this.imageDefTasks.push(objectState);
           }
         }
         else if(objectState.op == 'updated') {
           console.log('Object Updated');
-          const imageType = Util.getImageType(objectState.image);
 
-          if(imageType == IMAGE) {
-            this.updateImage(objectState);
-          } else if(imageType == SPRITE) {
-            this.updateSprite(objectState);
-          } else if(imageType == CONTAINER) {
-            this.updateContainer(objectState);
+          if(Global.imageDefList.hasOwnProperty(objectState.image)) {
+            const imageType = Util.getImageType(objectState.image);
+
+            if(imageType == IMAGE) {
+              this.updateImage(objectState);
+            } else if(imageType == SPRITE) {
+              this.updateSprite(objectState);
+            } else if(imageType == CONTAINER) {
+              this.updateContainer(objectState);
+            }
+          } else {
+            Network.sendImageDef(objectState.image);
+            
+            this.imageDefTasks.push(objectState);
+ 
           }
 
         } else if(objectState.op == 'deleted') {
@@ -690,12 +703,20 @@ export class ObjectScene extends Phaser.Scene {
       var mapScene = this.scene.get('MapScene') as MapScene;
       mapScene.cameras.main.stopFollow();
       this.cameras.main.stopFollow();
+
+      for(var targetId in Global.objectStates) {
+        var otherState = Global.objectStates[targetId];
+
+        if(Util.isVisible(otherState.x, otherState.y) == false) {
+          var otherSprite = this.objectList[targetId];
+          otherSprite.destroy();          
+        }
+
+      }
     } else if(objectState.player != Global.playerId) {
 
       if(Util.isVisible(objectState.x, objectState.y) == false) {
-        console.log('Destroying sprite start');
         sprite.destroy();
-        console.log('Destroying sprite end');
       }
     }
   }

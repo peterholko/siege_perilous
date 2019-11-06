@@ -27,6 +27,14 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
+  public static sendImageDef(imageName : string) {
+    var m = {
+      cmd: 'image_def',
+      name: imageName
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
   public static sendMove(newX : integer, newY : integer) {
     var m = {
       cmd: "move_unit",
@@ -286,7 +294,7 @@ export class Network {
         this.processInitObjStates(jsonData.data.objs);
 
         //Add small delay to prevent perception event before Scenes are created.
-        setTimeout(function() {Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 3000);
+        setTimeout(function() {console.log('Emitting perception event'); Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 3000);
       } else if(jsonData.packet == 'changes') {
         console.log("--- Changes Packet Received ---");
         console.log(jsonData);
