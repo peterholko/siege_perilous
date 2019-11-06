@@ -1,75 +1,124 @@
-#heroring {
-  transform: translate(8px, 21px);
-  z-index: 2;
-  position: fixed;
-}
-
-#hpframe {
-  transform: translate(40px, 10px);
-  z-index: 1;
-  position: fixed;
-}
-
 #movecompass {
-  left: 5px;
-  bottom: 5px;
+  left: 0px;
+  bottom: 0px;
   z-index: 1;
-  position: fixed;
-}
-
-#hero {
-  transform: translate(10px, 24px);
-  z-index: 3;
-  position: fixed;
-}
-
-#hpbg {
-  transform: translate(95px, 17px);
-  z-index: 3;
-  position: fixed;
-}
-
-#stabg {
-  transform: translate(95px, 35px);
-  z-index: 3;
-  position: fixed;
-}
-
-#manabg {
-  transform: translate(95px, 53px);
-  z-index: 3;
   position: fixed;
 }
 
 #heroinventorybutton {
-  transform: translate(10px, 175px);
+  transform: translate(10px, 160px);
   z-index: 1;
   position: fixed;
 }
 
 #heroattrsbutton {
-  transform: translate(10px, 125px);
+  transform: translate(10px, 110px);
   z-index: 1;
   position: fixed;
 }
 
 #heroexplorebutton {
+  transform: translate(60px, 160px);
+  z-index: 1;
+  position: fixed;
+}
+
+#herogatherbutton {
+  transform: translate(60px, 110px);
+  z-index: 1;
+  position: fixed;
+}
+
+#herobuildbutton {
+  transform: translate(110px, 110px);
+  z-index: 1;
+  position: fixed;
+}
+
+#quickattackbutton {
   bottom: 10px;
   left: 50%;
   margin-left: -150px;
   position: fixed;
 }
 
-#herobuildbutton {
+#preciseattackbutton {
   bottom: 10px;
   left: 50%;
   margin-left: -100px;
   position: fixed;
 }
 
-#herogatherbutton {
+#fierceattackbutton {
   bottom: 10px;
   left: 50%;
   margin-left: -50px;
   position: fixed;
+}
+
+#bracebutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 20px;
+  position: fixed;
+}
+
+#parrybutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 70px;
+  position: fixed;
+}
+
+#dodgebutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 120px;
+  position: fixed;
+}
+
+progress {
+  /* Reset the default appearance */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+   appearance: none;
+
+  /* Get rid of default border in Firefox. */
+  border: none;
+}
+
+progress::-webkit-progress-bar {
+  background-color: rgb(102, 102, 102);
+  border-radius: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset;
+}
+
+progress{
+  background-color: rgb(102, 102, 102);
+}
+
+progress::-webkit-progress-value {
+   border-radius: 2px; 
+}
+
+progress::-moz-progress-bar {
+  background-color: forestgreen !important;
+  border-radius: 2px;
+}
+
+#itemquantity {
+  transform: translate(-3px, 31px);
+  position: fixed;
+  color: white;
+  font-family: Verdana;
+  font-size: 12px;
+  width: 50px;
+  text-align: right;
+  font-weight: bold;
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
 }

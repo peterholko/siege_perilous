@@ -6,13 +6,16 @@
 -include("common.hrl").
 -include("schema.hrl").
 
--export([gather_by_type/3, harvest/3, explore/2, survey/1, type_to_skill/1]).
+-export([gather_by_type/3, gather_by_type/4, harvest/3, 
+         explore/2, survey/1, type_to_skill/1]).
 -export([is_valid/2, is_valid_type/2, is_auto/2, quantity/1]).
 -export([get_by_type/2, get_num_unrevealed/1]).
 -export([create/4, generate_effects/0]).
 
+gather_by_type(GathererId, ResourceType, Pos) ->
+    gather_by_type(GathererId, GathererId, ResourceType, Pos).
 
-gather_by_type(ObjId, ResourceType, Pos) ->
+gather_by_type(GathererId, DestId, ResourceType, Pos) ->
     Resources = get_by_type(Pos, ResourceType),
 
     F = fun(Resource) ->
@@ -20,7 +23,7 @@ gather_by_type(ObjId, ResourceType, Pos) ->
             ResourceSkillReq = maps:get(<<"skill_req">>, ResourceDef),
                
             SkillTypeReq = type_to_skill(ResourceType),
-            SkillValue = skill:get_by_name(ObjId, SkillTypeReq),
+            SkillValue = skill:get_by_name(GathererId, SkillTypeReq),
             lager:info("Skill ~p Value: ~p", [SkillTypeReq, SkillValue]),
             
             GatherChance = gather_chance({SkillValue, ResourceSkillReq}), 
@@ -30,7 +33,7 @@ gather_by_type(ObjId, ResourceType, Pos) ->
 
             case Random < GatherChance of
                 true ->
-                    harvest(ObjId, Resource, 1);
+                    harvest(DestId, Resource, 1);
                 false ->
                     nothing
             end
@@ -40,7 +43,8 @@ gather_by_type(ObjId, ResourceType, Pos) ->
     lists:foreach(F, Resources).
 
 harvest(ObjId, Resource, HarvestQuantity) ->
-    ItemWeight = item:weight(name(Resource), HarvestQuantity),
+    lager:info("ObjId: ~p Resource: ~p", [ObjId, Resource]),
+    ItemWeight = item:weight(Resource#resource.name, HarvestQuantity),
 
     case obj:has_space(ObjId, ItemWeight) of
         true ->
@@ -48,7 +52,7 @@ harvest(ObjId, Resource, HarvestQuantity) ->
             update_resource(Resource, HarvestQuantity),
 
             %Create new item
-            NewItem = item:create(ObjId, name(Resource), HarvestQuantity),
+            NewItem = item:create(ObjId, Resource#resource.name, HarvestQuantity),
             lager:info("Creating Item ~p", [NewItem]),
         
             %Set quantity to 1, as the returns of this function 
@@ -214,7 +218,7 @@ generate_effects() ->
             case ResourceType of
                 <<"Ore">> ->
                     Effects = randomize_effects(ResourceType),
-                    item_def:add(ResourceName, <<"effects">>, Effects);
+                    item_template:add(ResourceName, <<"effects">>, Effects);
                 _ -> 
                     none
             end

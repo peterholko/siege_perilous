@@ -1,5 +1,6 @@
 import * as React from "react";
 import HalfPanel from "./halfPanel";
+import { Global } from "../global";
 
 interface HeroPanelProps {
   heroData,
@@ -15,9 +16,8 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
   }
 
   render() {
-    const heroName = this.props.heroData.name;
-    //const imageName = heroName.toLowerCase().replace(/ /g, '') + '.png'
-    const imageName = "heromage_single.png";
+    let imageName = Global.objectStates[Global.heroId].template.toLowerCase();
+    let imagePath = '/static/art/' + imageName  + '_single.png';
 
     const heroStyle = {
       transform: 'translate(-185px, 25px)',
@@ -36,7 +36,7 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
       <HalfPanel left={true} 
                  panelType={'hero'} 
                  hideExitButton={false}>
-        <img src={'/static/art/' + imageName} style={heroStyle} />
+        <img src={imagePath} style={heroStyle} />
         <table style={tableStyle}>
           <tbody>
           <tr>

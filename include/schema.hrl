@@ -10,7 +10,9 @@
                  login_errors = 0,
                  disabled = false,
                  hero = false,
-                 npc = false}).
+                 class = none,
+                 npc = false,
+                 data = #{}}).
 
 -record(connection, {player,
                      status = init,
@@ -103,7 +105,7 @@
               hunger = 0,
               focus = 0,
               stress = 0,
-              effect = [],
+              groups = [],
               vision = -1,
               image,
               hsl = [],
@@ -128,8 +130,8 @@
 -record(item_attr, {key, % {id, attr}
                     value}).
 
--record(item_def, {key, % {name, attr}
-                   value}).
+-record(item_template, {key, % {name, attr}
+                        value}).
 
 -record(recipe, {id,
                  name}).
@@ -254,3 +256,5 @@
                       player,
                       id}).
 
+-record(relation, {key, % {source, target}
+                   score}).

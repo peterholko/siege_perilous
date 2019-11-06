@@ -42,8 +42,12 @@ message_handle(<<"login">>, Message) ->
 
     setup:login(Username, Password, self());
 
+message_handle(<<"select_class">>, Message) ->
+    lager:info("message: select_class"),
+    Class = m_get(<<"classname">>, Message),
+    setup:select_class(Class);
+
 message_handle(<<"image_def">>, Message) ->
-    lager:info("Img"),
     RawImageName = m_get(<<"name">>, Message),
     ImageName = re:replace(RawImageName, "[0-9]+", "", [{return, binary}]),
 
@@ -157,14 +161,12 @@ message_handle(<<"item_split">>, Message) ->
     lager:info("message: item_split ~p", [Message]),
 
     ItemId = m_get(<<"item">>, Message),
+    Quantity = m_get(<<"quantity">>, Message),
 
-    QuantityStr = m_get(<<"quantity">>, Message),
-    Quantity = binary_to_integer(QuantityStr),
+    Return = player:item_split(ItemId, Quantity),
+    FinalReturn = maps:put(<<"packet">>, <<"item_split">>, Return),
 
-    Result = player:item_split(ItemId, Quantity),
-
-    jsx:encode([{<<"packet">>, <<"item_split">>},
-                {<<"result">>, Result}]);
+    jsx:encode(FinalReturn);
 
 message_handle(<<"structure_list">>, _Message) ->
     lager:info("message: structure_list"),
@@ -174,15 +176,15 @@ message_handle(<<"structure_list">>, _Message) ->
     jsx:encode([{<<"packet">>, <<"structure_list">>},
                 {<<"result">>, Structures}]);    
 
-message_handle(<<"build">>, Message) ->
+message_handle(<<"create_foundation">>, Message) ->
     lager:info("message: build"),
     
     Id = m_get(<<"sourceid">>, Message),    
     StructureId = m_get(<<"structure">>, Message),
 
-    Return = player:build(Id, StructureId),
+    Return = player:create_foundation(Id, StructureId),
 
-    FinalReturn = maps:put(<<"packet">>, <<"build">>, Return),
+    FinalReturn = maps:put(<<"packet">>, <<"create_foundation">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(<<"upgrade">>, Message) ->
@@ -195,15 +197,15 @@ message_handle(<<"upgrade">>, Message) ->
     jsx:encode([{<<"packet">>, <<"upgrade">>},
                 {<<"result">>, Result}]);
 
-message_handle(<<"finish_build">>, Message) ->
-    lager:info("message: finish_build"),
+message_handle(<<"build">>, Message) ->
+    lager:info("message: build"),
     
     SourceId = m_get(<<"sourceid">>, Message),
     StructureId = m_get(<<"structureid">>, Message),
 
-    Return = player:finish_build(SourceId, StructureId),
-    lager:info("Finish build return: ~p", [Return]),
-    FinalReturn = maps:put(<<"packet">>, <<"finish_build">>, Return),
+    Return = player:build(SourceId, StructureId),
+    lager:info("Build return: ~p", [Return]),
+    FinalReturn = maps:put(<<"packet">>, <<"build">>, Return),
     lager:info("FinalReturn: ~p", [FinalReturn]),
     jsx:encode(FinalReturn);
 
@@ -217,23 +219,23 @@ message_handle(<<"recipe_list">>, Message) ->
     jsx:encode([{<<"packet">>, <<"recipe_list">>},
                 {<<"result">>, RecipeList}]);
 
-message_handle(<<"refine">>, Message) ->
-    lager:info("message: refine"),
+message_handle(<<"order_refine">>, Message) ->
+    lager:info("message: order_refine"),
     StructureId = m_get(<<"structureid">>, Message),
 
-    Reply = player:refine(StructureId),
+    Reply = player:order_refine(StructureId),
 
-    jsx:encode([{<<"packet">>, <<"refine">>},
-                {<<"reply">>, Reply}]);
+    jsx:encode([{<<"packet">>, <<"order_refine">>},
+                {<<"result">>, Reply}]);
 
-message_handle(<<"craft">>, Message) ->
-    lager:info("message: craft"),
+message_handle(<<"order_craft">>, Message) ->
+    lager:info("message: order_craft"),
     SourceId = m_get(<<"sourceid">>, Message),
     Recipe = m_get(<<"recipe">>, Message),
 
-    Result = player:craft(SourceId, Recipe),
+    Result = player:order_craft(SourceId, Recipe),
 
-    jsx:encode([{<<"packet">>, <<"craft">>},
+    jsx:encode([{<<"packet">>, <<"order_craft">>},
                 {<<"result">>, Result}]);
 
 message_handle(<<"equip">>, Message) ->
@@ -427,6 +429,13 @@ message_handle(<<"info_item_transfer">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_item_transfer">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_hauling">>, Message) ->
+    lager:info("message: info_hauling"),
+    SourceId = m_get(<<"sourceid">>, Message),
+    InfoMaps = player:get_info_hauling(SourceId),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_hauling">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
 message_handle(<<"ford">>, Message) ->
     lager:info("message: ford"),
     Id = m_get(<<"id">>, Message),
@@ -441,6 +450,45 @@ message_handle(<<"revent_response">>, Message) ->
     ResponseNum = m_get(<<"response_num">>, Message),
     Return = player:revent_response(ResponseNum),
     FinalReturn = maps:put(<<"packet">>, <<"revent_resolution">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"tick">>, _Message) ->
+    lager:info("message: tick"),
+    ReturnMsg = #{<<"packet">> => <<"tick">>,
+                  <<"tick">> => game:get_tick()},
+    jsx:encode(ReturnMsg);
+
+message_handle(<<"buy_item">>, Message) ->
+    lager:info("message: buy_item"),
+    ItemId = m_get(<<"itemid">>, Message),
+    Quantity = m_get(<<"quantity">>, Message),
+    Return = player:buy_item(ItemId, Quantity),
+    FinalReturn = maps:put(<<"packet">>, <<"buy_item">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"sell_item">>, Message) ->
+    lager:info("message: sell_item"),
+    ItemId = m_get(<<"itemid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
+    Quantity = m_get(<<"quantity">>, Message),
+    Return = player:sell_item(ItemId, TargetId, Quantity),
+    FinalReturn = maps:put(<<"packet">>, <<"sell_item">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"hire">>, Message) ->
+    lager:info("message: hire"),
+    SourceId = m_get(<<"sourceid">>, Message),
+    TargetId = m_get(<<"targetid">>, Message),
+    Return = player:hire(SourceId, TargetId),
+    FinalReturn = maps:put(<<"packet">>, <<"hire">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"pay_tax">>, Message) ->
+    lager:info("message: pay_tax"),
+    TaxCollectorId = m_get(<<"taxcollector">>, Message),
+    Amount = m_get(<<"amount">>, Message),
+    Return = player:pay_tax(TaxCollectorId, Amount),
+    FinalReturn = maps:put(<<"packet">>, <<"pay_tax">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(_Cmd, Message) ->
@@ -491,8 +539,8 @@ prepare(info_effect_update, Message) ->
 prepare(info_item_update, Message) ->
     maps:put(<<"packet">>, <<"info_item_update">>, Message);
 
-prepare(info_item_transfer, Message) ->
-    maps:put(<<"packet">>, <<"info_item_transfer">>, Message);
+prepare(item_transfer_result, Message) ->
+    maps:put(<<"packet">>, <<"item_transfer_result">>, Message);
 
 prepare(villager_change, Message) ->
     maps:put(<<"packet">>, <<"villager_change">>, Message);

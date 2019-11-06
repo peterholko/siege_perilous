@@ -18,7 +18,7 @@
          write/1, read/2, delete/2, index_read/3, select/2, match_object/1,
          dirty_write/1, dirty_read/2, dirty_index_read/3, dirty_delete/2, dirty_match_object/1,
          dirty_delete_object/1, dump/1,
-         import/1,
+         import/1, import_yaml/1,
          reset_tables/0,
          do/1
         ]).
@@ -49,7 +49,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(obj_template, [{ram_copies, [node()]}, {attributes, record_info(fields, obj_template)}]),    
     {atomic, ok} = mnesia:create_table(item, [{ram_copies, [node()]}, {attributes, record_info(fields, item)}]),    
     {atomic, ok} = mnesia:create_table(item_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, item_attr)}]),    
-    {atomic, ok} = mnesia:create_table(item_def, [{ram_copies, [node()]}, {attributes, record_info(fields, item_def)}]), 
+    {atomic, ok} = mnesia:create_table(item_template, [{ram_copies, [node()]}, {attributes, record_info(fields, item_template)}]), 
     {atomic, ok} = mnesia:create_table(recipe, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe)}]),    
     {atomic, ok} = mnesia:create_table(recipe_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe_attr)}]),    
     {atomic, ok} = mnesia:create_table(recipe_def, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe_def)}]),    
@@ -74,6 +74,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(attack, [{ram_copies, [node()]}, {attributes, record_info(fields, attack)}]),  
     {atomic, ok} = mnesia:create_table(game_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, game_attr)}]),  
     {atomic, ok} = mnesia:create_table(active_info, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, active_info)}]),  
+    {atomic, ok} = mnesia:create_table(relation, [{ram_copies, [node()]}, {attributes, record_info(fields, relation)}]),  
 
     mnesia:add_table_index(perception, player),
     mnesia:add_table_index(player, name),
@@ -134,6 +135,69 @@ import_entry(Table, ObjName, ObjList) ->
         end,
 
     lists:foreach(F, ObjList).
+
+import_yaml(DefFileName) ->
+    PrivDir = code:lib_dir(sp) ++ "/priv/",
+    Document = yamerl_constr:file(PrivDir ++ DefFileName ++ ".yaml"),
+    [Content] = Document,
+    lager:info("Content: ~p", [Content]),
+    F = fun(Entry) ->
+            [Name | _Rest] = Entry,
+            {_, ObjName} = Name,
+            import_yaml_entry(list_to_atom(DefFileName), ObjName, Entry)
+        end,
+
+    lists:foreach(F, Content).
+
+import_yaml_entry(_, _, []) ->
+    done;
+import_yaml_entry(Table, ObjName, [Entry | Rest]) ->
+    {AttrKey, AttrValue} = Entry,
+
+    FinalAttrValue = convert_value(AttrValue),
+
+    R = {Table, 
+        {list_to_binary(ObjName), 
+         list_to_binary(AttrKey)}, FinalAttrValue},
+
+    db:dirty_write(R), 
+
+    import_yaml_entry(Table, ObjName, Rest).
+
+convert_value(Value) ->
+    lager:info("Value: ~p", [Value]),
+    case Value of 
+        [ListValue | _] when is_list(ListValue) ->
+            lager:info("ListValue: ~p", [ListValue]),
+            case ListValue of
+                [ChildListValue | _] when is_list(ChildListValue) ->
+                    ChildListValue;
+                [ChildListValue | _] when is_tuple(ChildListValue) ->                    
+                    F = fun(E, Acc) ->
+                        lager:info("E: ~p", [E]),
+                        {K, V} = E,
+                        BinaryKey = to_binary(K),
+                        BinaryValue = to_binary(V),
+                        maps:put(BinaryKey, BinaryValue, Acc)
+                    end,
+
+                    [lists:foldl(F, #{}, ListValue)];
+                _ -> 
+                    F = fun(E, Acc) ->
+                            [ list_to_binary(E) | Acc]
+                        end,
+                    lists:foldl(F, [], Value)
+            end;
+
+        List when is_list(List) ->
+            lager:info("List: ~p", [List]),
+            erlang:list_to_binary(List);
+        V -> 
+            V
+    end.
+
+to_binary(V) when is_list(V) -> erlang:list_to_binary(V);
+to_binary(V) -> V.
 
 first(T) ->
     F = fun() -> mnesia:first(T) end,
@@ -213,10 +277,10 @@ test_tables() ->
      {connection, ?UNDEAD, online, none},     
      {connection, ?ANIMAL, online, none},     
      {connection, ?EMPIRE, online, none},     
-     {player, 98, <<"natives">>, <<"123123">>, 0, false, false, true},
-     {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, true},
-     {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, true},
-     {player, ?EMPIRE, <<"Empire">>, <<"123123">>, 0, false, false, true},     
+     {player, 98, <<"natives">>, <<"123123">>, 0, false, false, none, true, #{}},
+     {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, none, true, #{}},
+     {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, none, true, #{}},
+     {player, ?EMPIRE, <<"Empire">>, <<"123123">>, 0, false, false, none, true, #{}},     
      {counter, player, ?NPC_ID},
      {world, time, day},
      %{revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>], [none]},

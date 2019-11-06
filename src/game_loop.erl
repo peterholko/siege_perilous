@@ -306,55 +306,22 @@ do_event(gather, EventData, PlayerPid) ->
     end;
 
 do_event(harvest, EventData, PlayerPid) ->
-    lager:debug("Processing harvest event: ~p", [EventData]),
-    {ObjId, Resource, Pos, NumTicks, Repeat} = EventData,
+    lager:info("Processing harvest event: ~p", [EventData]),
+    {ObjId, StructureId, ResourceType, Pos} = EventData,
 
-    %Check if resource still exists
-    case resource:is_valid(Resource, Pos) of
+    case resource:is_valid_type(ResourceType, Pos) of
         true ->
-            lager:debug("Creating/update item.."),
-
-            %Create/update item
-            case resource:harvest(ObjId, Resource, Pos) of
-                {error, ErrMsg} ->
-                    message:send_to_process(PlayerPid, event_failure, ErrMsg);
-                NewItems ->
-                    case Repeat of
-                        true ->
-                            lager:debug("Repeating harvest event"),
-                            game:add_event(PlayerPid, harvest, EventData, ObjId, NumTicks);
-                        false ->
-                            %Update obj state
-                            lager:debug("Updating obj state to none"),
-                            obj:update_state(ObjId, none)
-                    end,
-                 
-                    lager:debug("Sending new items to player"),
-                    game:send_update_items(ObjId, NewItems, PlayerPid),
-                    message:send_to_process(PlayerPid, event_complete, {harvest, ObjId})
-            end;
+            lager:info("Harvesting resource by type"),
+            
+            resource:gather_by_type(ObjId, StructureId, ResourceType, Pos),
+            message:send_to_process(PlayerPid, event_complete, {gather, ObjId}),
+            obj:update_state(ObjId, none);
         false ->
-            message:send_to_process(PlayerPid, event_failure, {harvest, invalid_resource})
-    end,
-
-    false; 
-
-do_event(sharvest, EventData, _Pid) ->
-    {VillagerId, StructureId} = EventData,
-    Villager = db:read(obj, VillagerId),
-    Structure = db:read(obj, StructureId),
-
-    case structure:harvest(Villager, Structure) of
-        success ->
-            message:send_to_process(global:whereis_name(villager), event_complete, {harvest, VillagerId});
-        {error, ErrMsg} ->
-            lager:debug("sharvest error: ~p", [ErrMsg]),
-            FailureData = StructureId,
-            message:send_to_process(global:whereis_name(villager), event_failure, {harvest, VillagerId, ErrMsg, FailureData})
+            nothing
     end;
 
-do_event(finish_build, EventData, _PlayerPid) ->
-    lager:info("Processing build event: ~p", [EventData]),
+do_event(build, EventData, _PlayerPid) ->
+    lager:debug("Processing build event: ~p", [EventData]),
     {ObjId, StructureId} = EventData,
 
     %Set unit builder state to none
@@ -368,20 +335,22 @@ do_event(finish_build, EventData, _PlayerPid) ->
     obj_attr:set(StructureId, <<"hp">>, BaseHp);
 
 do_event(refine, EventData, PlayerPid) ->
-    lager:debug("Processing refine event: ~p", [EventData]),
+    lager:info("Processing refine event: ~p", [EventData]),
     {StructureId, UnitId, NumTicks} = EventData,
 
     case structure:has_refine_resources(StructureId) of
         true ->
+            lager:info("Refining"),
             NewItems = structure:refine(StructureId),    
             game:send_update_items(StructureId, NewItems, PlayerPid),
             game:add_event(PlayerPid, refine, EventData, UnitId, NumTicks);
         false ->
+            lager:info("Insufficient refining resource"),
             obj:update_state(UnitId, none)
     end;
 
 do_event(craft, EventData, PlayerPid) ->
-    lager:debug("Processing craft event: ~p", [EventData]),
+    lager:info("Processing craft event: ~p", [EventData]),
     {StructureId, UnitId, Recipe} = EventData,
     VillagerId = villager:get_by_structure(StructureId),
 
@@ -461,6 +430,13 @@ do_event(login, EventData, Pid) ->
 
     message:send_to_process(Pid, perception, Perception);
 
+do_event(wait, EventData, Pid) ->
+    lager:info("Processing wait event: ~p", [EventData]),
+    ObjId = EventData,
+
+    message:send_to_process(Pid, event_complete, {wait, ObjId}),
+    false;
+
 do_event(event, EventData, _Pid) ->
     EventData(),
     false; 
@@ -510,7 +486,7 @@ process_rest(NumTick) when ((NumTick rem (?TICKS_SEC * 10)) =:= 0) and (NumTick 
     process_rest_state(NumTick);
 process_rest(_) -> nothing.
 
-process_dead_objs(NumTick) when (NumTick rem (?TICKS_MIN * 1)) =:= 0 ->
+process_dead_objs(NumTick) when (NumTick rem (?TICKS_MIN * 5)) =:= 0 ->
     game:process_dead_objs(NumTick);
 process_dead_objs(_) ->
     nothing. 

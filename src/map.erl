@@ -20,7 +20,7 @@
 -export([add_explored/3]).
 -export([neighbours/1, neighbours/2, get_random_neighbour/1, get_random_from_list/1]).
 -export([cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
--export([movement_cost/1, is_passable/1, is_not_blocked/2, is_river/1, random_location/0, random_location_from/3]).
+-export([movement_cost/1, is_passable/1, is_passable/2, is_not_blocked/2, is_river/1, random_location/0, random_location_from/3]).
 -export([check_distance/4, distance/2]).
 -export([range/2, ring/2, filter_pos/1]).
 -export([spawn_resources/0, tile_name/1, defense_bonus/1, has_sanctuary/1]).
@@ -76,18 +76,27 @@ movement_cost(TileName) when is_binary(TileName) ->
     MoveCost = mc(TileName),
     MoveCost.
 
-is_passable(Pos) when is_tuple(Pos) ->
+is_passable(Pos, Obj) ->
     [Tile] = db:dirty_read(map, Pos),
     TileType = Tile#map.tile,
     TileName = tile_name(TileType),
-    passable_tile(TileName);
-is_passable(TileName) when is_binary(TileName) ->
-    passable_tile(TileName).
+    passable_tile(TileName, 
+                  obj:has_landwalk(Obj),
+                  obj:has_waterwalk(Obj), 
+                  obj:has_mountainwalk(Obj)).
 
-is_not_blocked(SourcePlayer, Pos) ->
+is_passable(TileName) when is_binary(TileName) ->
+    passable_tile(TileName);
+is_passable(Pos) -> %TODO review if this necessary due to need for objs
+    [Tile] = db:dirty_read(map, Pos),
+    TileType = Tile#map.tile,
+    TileName = tile_name(TileType),
+    passable_tile(TileName).
+ 
+is_not_blocked(Pos, SourceObj) ->
     Objs = obj:get_by_pos(Pos),
 
-    F = fun(Obj) -> obj:is_blocking(SourcePlayer, Obj) end,
+    F = fun(Obj) -> obj:is_blocking(SourceObj, Obj) end,
 
     lists:filter(F, Objs) =:= [].
 
@@ -783,6 +792,16 @@ mc(?HILLS_DESERT) -> 3;
 mc(?DECIDUOUS_FOREST) -> 3;
 mc(?RIVER) -> 6;
 mc(_) -> 1.
+
+%Tile, Landwalk, Waterwalk, Mountainwalk
+passable_tile(?OCEAN, _, true, _) -> true;
+passable_tile(?RIVER, _, true, _) -> true;
+passable_tile(?OCEAN, _, false, _) -> false;
+passable_tile(?RIVER, _, false, _) -> false;
+passable_tile(?MOUNTAIN, _, _, true) -> true;
+passable_tile(?MOUNTAIN, _, _, false) -> false;
+passable_tile(_, false, _, _) -> false;
+passable_tile(_, _, _, _) -> true.
 
 passable_tile(?OCEAN) -> false;
 passable_tile(?RIVER) -> false;

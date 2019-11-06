@@ -15,15 +15,15 @@
 -export([start/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([add_obj_create/3, add_obj_delete/3, add_obj_update/4, add_obj_update/5, add_obj_move/5,
-        add_obj_hide/3, add_obj_reveal/3]).
+         add_obj_hide/3, add_obj_reveal/3]).
 -export([add_event/5, has_pre_events/1, has_post_events/1, cancel_event/1]).
 -export([process_dead_objs/1, process_deleting_objs/1]).
 -export([trigger_explored/1]).
--export([get_perception/0, get_explored/0, reset/0]).
--export([get_info_tile/1, get_valid_tiles/1]).
+-export([get_tick/0, get_perception/0, get_explored/0, reset/0]).
+-export([get_info_tile/1, get_valid_tiles/2]).
 -export([hero_dead/2]).
 -export([spawn_shadow/1, spawn_wolf/0]).
--export([new_player/1, login/1]).
+-export([create_new_player/1, login/1]).
 -export([send_update_items/3, 
          send_update_stats/2, 
          send_villager_change/1,
@@ -134,7 +134,7 @@ send_item_transfer(SourceOwnerId, DestOwnerId, SourceItemId, Item, Merged) ->
 
             %TODO item transfer right now can only be between same player objs 
             [Conn] = db:read(connection, obj:player(DestOwnerObj)),
-            message:send_to_process(Conn#connection.process, info_item_transfer, Message);
+            message:send_to_process(Conn#connection.process, item_transfer_result, Message);
         false ->
             nothing
     end.
@@ -195,19 +195,22 @@ get_info_tile(Pos) ->
 
     Info8.
 
-get_valid_tiles({X, Y}) ->
+get_valid_tiles({X, Y}, Obj) ->
     Neighbours = map:neighbours(X, Y),
 
     F = fun(Pos) ->
-        map:is_passable(Pos) and obj:is_empty(Pos)
+        map:is_passable(Pos, Obj) and obj:is_empty(Pos)
     end,
 
     lists:filter(F, Neighbours).
 
-new_player(PlayerId) ->
+create_new_player(PlayerId) ->
     lager:info("Spawning new player: ~p", [PlayerId]),
     %Pos = map:random_location(),
     %AdjPos = map:get_random_neighbour(Pos),
+    [Player] = db:read(player, PlayerId),
+    PlayerStartPos = {16, 36},
+
 
     HeroPos = {16,36},
     VillagerPos = {16,37},
@@ -217,20 +220,23 @@ new_player(PlayerId) ->
 
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
-    HeroId = obj:create(HeroPos, PlayerId, <<"Hero Mage">>),   
+    HeroId = obj:create(HeroPos, PlayerId, Player#player.class),   
+    
     
     %Create 2 corpses
     obj:create({16,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
     obj:create({17,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
 
-    [Player] = db:read(player, PlayerId),
-    NewPlayer = Player#player {hero = HeroId},
+    PlayerData = #{start_pos => PlayerStartPos},
+    NewPlayer = Player#player {hero = HeroId,
+                               data = PlayerData},
     db:write(NewPlayer),
 
     VillagerId = villager:create(0, PlayerId, VillagerPos),
 
     item:create(HeroId, <<"Honeybell Berries">>, 25),
     item:create(HeroId, <<"Spring Water">>, 25),
+    item:create(HeroId, <<"Gold Coins">>, 25),
     item:create(MonolithId, <<"Mana">>, 2500),
     item:create(ShipwreckId, <<"Cragroot Maple Wood">>, 100),
     item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 25),
@@ -268,21 +274,57 @@ new_player(PlayerId) ->
          end,
 
     F2 = fun() ->
-            obj:create({16,35}, ?UNDEAD, <<"Zombie">>)
+            MeagerMerchantId = npc:create({0, 40}, ?EMPIRE, <<"Meager Merchant">>),
+            obj:add_group(MeagerMerchantId, ?MERCHANT),
+            ItemMap = item:create(MeagerMerchantId, <<"Pick Axe">>, 2),
+            item_attr:set(item:id(ItemMap), <<"price">>, 5),
+
+
+            VillagerForHireId = villager:create(0, ?EMPIRE, {-50, -50}),
+            obj_attr:set(VillagerForHireId, <<"wage">>, 24),
+
+            obj_attr:set(MeagerMerchantId, <<"hauling">>, [VillagerForHireId]),
+            obj:update_state(VillagerForHireId, ?ABOARD)
+
          end,
 
     F3 = fun() ->
-            obj:create({17,35}, ?UNDEAD, <<"Zombie">>)
+            TaxCollectorShipId = npc:create({0, 40}, ?EMPIRE, <<"Tax Ship">>),
+            TaxCollectorId = npc:create({-100, -50}, ?EMPIRE, <<"Tax Collector">>),
+            
+            obj_attr:set(TaxCollectorShipId, <<"hauling">>, [TaxCollectorId]),
+            obj:update_state(TaxCollectorId, ?ABOARD),
+
+            Data1 = #{tax_collector => TaxCollectorId,
+                      target_player => PlayerId},
+
+            Data2 = #{tax_collector_ship => TaxCollectorShipId,
+                      target_player => PlayerId},
+
+            npc:set_data(TaxCollectorShipId, Data1),
+            npc:set_data(TaxCollectorId, Data2),
+
+            obj:add_group(TaxCollectorId, ?TAX_COLLECTOR),
+
+            %Set player is_tax_collected to false TODO move to another module
+            [EmpirePlayer] = db:read(player, ?EMPIRE),
+            NewEmpirePlayerData1 = maps:put({PlayerId, is_tax_collected}, false, EmpirePlayer#player.data),
+            NewEmpirePlayerData2 = maps:put({PlayerId, tax_amount_due}, 10, NewEmpirePlayerData1),
+            NewEmpirePlayerData3 = maps:put({PlayerId, landing_pos}, PlayerStartPos, NewEmpirePlayerData2),
+            NewEmpirePlayer = EmpirePlayer#player {data = NewEmpirePlayerData3},
+            db:write(NewEmpirePlayer)
          end,
 
     F4 = fun() ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
-         end.
+         end,
 
-    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10).
-    %game:add_event(none, event, F2, none, 28),
-    %game:add_event(none, event, F3, none, 36),
-    %game:add_event(none, event, F4, none, 40).
+    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    %game:add_event(none, event, F2, none, 15),
+    %game:add_event(none, event, F3, none, 15),
+    %game:add_event(none, event, F4, none, 40),
+
+    lager:info("Game end.").
 
 login(PlayerId) ->
     %Log player in
@@ -337,7 +379,9 @@ process_deleting_objs(CurrentTick) ->
 
     lists:foreach(F, DeletingObjs).
 
-
+get_tick() ->
+    [{counter, tick, CurrentTick}] = db:dirty_read(counter, tick),
+    CurrentTick.
 
 %%
 %% API Functions
@@ -458,6 +502,8 @@ has_post_events(EventSource) ->
 cancel_event(EventSource) ->
     case db:index_read(event, EventSource, #event.source) of
         [Event] ->
+            process_cancel(Event#event.type, Event),
+
             lager:debug("Cancel_event - Deleting event: ~p", [Event]),
             db:delete(event, Event#event.id),
 
@@ -558,3 +604,24 @@ event_ticks(Ticks) ->
         true -> 1;
         false -> Ticks
     end.
+
+process_cancel(build, Event) ->
+    EventData = Event#event.data,
+    {_BuilderId, StructureId} = EventData,
+
+    BuildTime = obj_attr:value(StructureId, <<"build_time">>),
+    EndTime = obj_attr:value(StructureId, <<"end_time">>),
+    CurrentTime = game:get_tick(),
+    lager:info("BuildTime: ~p", [BuildTime]),
+    lager:info("EndTime: ~p", [EndTime]),
+    lager:info("CurrentTime: ~p", [CurrentTime]),
+
+
+    Progress = util:round3(1 - ((EndTime - CurrentTime) / BuildTime)),
+    lager:info("Cancelled Event - progress: ~p", [Progress]),
+
+    obj_attr:set(StructureId, <<"progress">>, Progress),
+
+    game:add_obj_update(self(), StructureId, ?STATE, ?STALLED, 1);
+
+process_cancel(_, _Event) -> nothing.

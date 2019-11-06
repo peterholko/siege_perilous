@@ -5,11 +5,14 @@ import { GameEvent } from "../gameEvent";
 import { TILE } from "../config";
 
 interface SelectedKey {
-  id : any,
-  type : string
+  type : string,
+  id? : integer,
+  x? : integer,
+  y? : integer,
 }
 
 interface SelectBoxProps {
+  pos : integer,
   selectedKey : SelectedKey,
   imageName : string,
   style : React.CSSProperties
@@ -28,7 +31,10 @@ export default class SelectBox extends React.Component<SelectBoxProps, any> {
 
   handleClick() {
     console.log(this.props.selectedKey);
-    Global.gameEmitter.emit(GameEvent.SELECTBOX_CLICK, this.props.selectedKey);
+    var eventData = {'pos' : this.props.pos,
+                     'selectedKey': this.props.selectedKey};
+
+    Global.gameEmitter.emit(GameEvent.SELECTBOX_CLICK, eventData);
   }
 
   render() {

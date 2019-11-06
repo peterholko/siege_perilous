@@ -15,6 +15,7 @@
          get_info_item_name/1,
          get_info_inventory/1,
          get_info_item_transfer/2,
+         get_info_hauling/1,
          get_info_attrs/1,
          get_info_skills/1,
          move/2,
@@ -26,15 +27,19 @@
          explore/1,
          harvest/2,
          loot/2,
+         buy_item/2, 
+         sell_item/3,
+         hire/2,
+         pay_tax/2, 
          item_transfer/2,
          item_split/2,
          structure_list/0,
-         build/2,
+         create_foundation/2,
          upgrade/1,
-         finish_build/2,
+         build/2,
          recipe_list/1,
-         refine/1,
-         craft/2,
+         order_refine/1,
+         order_craft/2,
          equip/1,
          unequip/1,
          rest/1,
@@ -55,6 +60,7 @@
          is_player_owned/2,
          is_player/1,
          is_online/1,
+         is_class/2,
          set_player_online/1,
          get_conn/1]).
 
@@ -75,6 +81,9 @@ is_online(PlayerId) ->
         false ->
             false
     end.
+
+is_class(Player, Class) when is_record(Player, player) ->
+    Player#player.class =:= Class.
 
 set_player_online(PlayerId) ->
     case db:read(connection, PlayerId) of
@@ -185,6 +194,15 @@ get_info_item_transfer(SourceId, TargetId) ->
              <<"sourceitems">> => SourceItems,
              <<"targetid">> => TargetId,
              <<"targetitems">> => TargetItems},
+    Info.
+
+get_info_hauling(SourceId) ->
+    Player = get(player_id),
+    [SourceObj] = db:read(obj, SourceId),
+
+    HaulingObjs = obj:get_info_hauling(Player, SourceObj),
+
+    Info = #{<<"data">> => HaulingObjs},
     Info.
 
 get_info_attrs(Id) ->
@@ -298,7 +316,7 @@ move(SourceId, Pos) ->
               {Obj#obj.class =:= unit, "Obj cannot move"},
               {Obj#obj.state =/= dead, "Unit is dead"}, 
               {map:is_adjacent(Obj#obj.pos, Pos), "Unit is not adjacent to position"},
-              {map:is_passable(Pos), "Tile is not passable"},
+              {map:is_passable(Pos, Obj), "Tile is not passable"},
               {not obj:is_subclass(?VILLAGER, Obj), "Cannot move villager"},
               {obj:is_empty(Obj, Pos), "Position is occupied"},
               {obj:is_hero_nearby(Obj, PlayerId), "Unit not near Hero"}],
@@ -388,7 +406,7 @@ explore(ObjId) ->
             NumTicks = 12,
 
             lager:info("Adding explore event"),
-            EventData = {ObjId, Obj#obj.pos},
+            EventData = ObjId,
             game:add_event(self(), explore, EventData, ObjId, NumTicks),
             
             #{<<"explore_time">> => NumTicks * ?TICKS_SEC};
@@ -396,8 +414,6 @@ explore(ObjId) ->
             lager:info("Exploring error: ~p", [Error]),
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
-
-
 
 harvest(ObjId, Resource) ->
     PlayerId = get(player_id),
@@ -430,8 +446,162 @@ harvest(ObjId, Resource) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
+is_valid_buysell(TargetId, ItemId, Quantity) ->
+    case item:has_price(ItemId) of
+        true ->
+            TargetGold = item:total_gold(TargetId),
+            {TargetGold < (item:price(ItemId) * Quantity), "Insufficent gold"};
+        false ->
+            {false, "Item is not for sale"}
+    end.
+
+buy_item(ItemId, Quantity) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+
+    Item = item:get_rec(ItemId),
+    lager:info("Item: ~p", [Item]),
+    ItemOwnerId = item:owner(Item),
+    ItemOwner = obj:get(ItemOwnerId),
+
+    Checks = [{map:is_adjacent(Hero, ItemOwner), "Item is not nearby"},
+              {Quantity =< item:quantity(Item), "Purchase quantity too large"},
+              is_valid_buysell(obj:id(Hero), ItemId, Quantity)],
+
+    case process_checks(Checks) of
+        true -> 
+            %Transfer gold
+            item:transfer_by_class(obj:id(Hero), 
+                                   ItemOwnerId, 
+                                   ?GOLD_COINS, 
+                                   item:price(ItemId) * Quantity),
+
+            %Transfer purchased item
+            ItemMap = item:transfer(Item#item.id, obj:id(Hero), Quantity),
+
+            %Trigger object transfer hooks
+            obj:item_transfer(Hero, ItemMap),
+
+            SourceItems = obj:get_info_inventory(PlayerId, Hero),
+            TargetItems = obj:get_info_inventory(PlayerId, ItemOwner),
+
+            #{<<"result">> => <<"success">>,
+              <<"sourceid">> => obj:id(Hero),
+              <<"sourceitems">> => SourceItems,
+              <<"targetid">> => ItemOwnerId,
+              <<"targetitems">> => TargetItems};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+sell_item(ItemId, TargetId, Quantity) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+    Target = obj:get(TargetId),
+
+    Item = item:get_rec(ItemId),
+
+    Checks = [{map:is_adjacent(Hero, Target), "Target is not nearby"},
+              {Quantity =< item:quantity(Item), "Sell quantity too large"},
+              is_valid_buysell(TargetId, ItemId, Quantity)],
+
+    case process_checks(Checks) of
+        true -> 
+            %Transfer gold
+            item:transfer_by_class(TargetId, 
+                                   obj:id(Hero), 
+                                   ?GOLD_COINS, 
+                                   item:price(ItemId) * Quantity),
+
+            %Transfer purchased item
+            ItemMap = item:transfer(Item#item.id, TargetId, Quantity),
+
+            %Trigger object transfer hooks
+            obj:item_transfer(TargetId, ItemMap),
+
+            SourceItems = obj:get_info_inventory(PlayerId, Hero),
+            TargetItems = obj:get_info_inventory(PlayerId, Target),
+
+            lager:info("~p", [SourceItems]),
+            lager:info("~p", [TargetItems]),
+
+            #{<<"result">> => <<"success">>,
+              <<"sourceid">> => obj:id(Hero),
+              <<"sourceitems">> => SourceItems,
+              <<"targetid">> => TargetId,
+              <<"targetitems">> => TargetItems};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+is_hire_valid(Hero, TargetId) ->
+    case obj:has_wage(TargetId) of
+        true ->
+            HeroGold = item:total_gold(obj:id(Hero)),
+            {HeroGold < obj:wage(TargetId), "Insufficient gold"};
+        false ->
+            {false, "Target is not for hire"}
+    end.
+
+hire(MerchantId, TargetId) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+    Merchant = obj:get(MerchantId),
+
+    Checks = [{map:is_adjacent(Hero, Merchant), "Merchant is not nearby"},
+              {obj:is_hauling(MerchantId, TargetId), "Target is not being hauled"},
+              is_hire_valid(Hero, TargetId)],
+
+    case process_checks(Checks) of
+        true ->
+            %Transfer gold
+            item:transfer_by_class(obj:id(Hero), 
+                                   MerchantId, 
+                                   ?GOLD_COINS, 
+                                   obj:wage(TargetId)),
+
+            %Remove obj from merchant
+            obj:unload(MerchantId, TargetId),
+
+            %Transfer obj to player
+            obj:transfer(TargetId, PlayerId),
+
+            %Move obj to hero location
+            game:add_obj_move(self(), TargetId, {-50, -50}, obj:pos(Hero), 4),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+pay_tax(TaxCollectorId, Amount) ->
+    PlayerId = get(player_id),
+    Hero = obj:get_hero(PlayerId),
+    TaxCollector = obj:get(TaxCollectorId),
+    HeroGold = item:total_gold(obj:id(Hero)),
+    
+    Checks = [{map:is_adjacent(Hero, TaxCollector), "Tax Collector is not nearby"},
+              {HeroGold >= Amount, "Insufficient gold to pay that amount"}],
+
+    case process_checks(Checks) of
+        true ->
+            %Transfer gold
+            item:transfer_by_class(obj:id(Hero),
+                                   TaxCollectorId, 
+                                   ?GOLD_COINS,
+                                   Amount),
+
+            %Update NPC Player data state
+            npc:pay_tax(PlayerId, Amount),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
 loot(SourceId, ItemId) ->
     Item = item:get_rec(ItemId),
+    %Will fail if item id is invalid
     Owner = Item#item.owner,
 
     item:transfer(ItemId, SourceId),
@@ -441,6 +611,7 @@ loot(SourceId, ItemId) ->
 
 item_transfer(TargetId, ItemId) ->
     Player = get(player_id),
+    %Will fail if item id is invalid
     Item = item:get_rec(ItemId),
     Owner = Item#item.owner,
 
@@ -481,8 +652,9 @@ item_split(ItemId, Quantity) ->
     case process_checks(Checks) of
         true ->
             lager:info("Splitting item"),
-            item:split(ItemId, Quantity),
-            #{<<"result">> => <<"success">>};
+            SourceItem = item:split(ItemId, Quantity),
+            #{<<"result">> => <<"success">>,
+              <<"owner">> => item:owner(SourceItem)};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
@@ -490,7 +662,7 @@ item_split(ItemId, Quantity) ->
 structure_list() ->
     structure:list().
 
-build(BuilderId, StructureName) ->
+create_foundation(BuilderId, StructureName) ->
     PlayerId = get(player_id),
     lager:info("PlayerId: ~p", [PlayerId]),
 
@@ -501,14 +673,15 @@ build(BuilderId, StructureName) ->
     Checks = [{is_player_owned(Builder, PlayerId), "Builder not owned by player"},              
               {structure:valid_location(StructureSubclass, Builder#obj.pos), "Invalid structure location"},
               {Builder#obj.state =:= ?NONE, "Builder is busy"}],
+
     lager:info("Checks: ~p", [Checks]),
     case process_checks(Checks) of
         true ->
             lager:info("Building structure"),
 
-            structure:start_build(PlayerId, 
-                                  Builder#obj.pos, 
-                                  StructureName),
+            structure:create_foundation(PlayerId, 
+                                        Builder#obj.pos, 
+                                        StructureName),
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
@@ -540,65 +713,84 @@ upgrade(StructureId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
   
-finish_build(SourceId, StructureId) ->
+build(BuilderId, StructureId) ->
     PlayerId = get(player_id),
     [Structure] = db:read(obj, StructureId),
 
     lager:info("Structure state: ~p", [Structure#obj.state]),
 
-    finish_build(PlayerId, SourceId, Structure).
+    build(PlayerId, BuilderId, Structure).
 
-finish_build(PlayerId, SourceId, Structure = #obj {state = ?FOUNDED}) -> 
-    [Source] = db:read(obj, SourceId),
+build(PlayerId, BuilderId, Structure = #obj {state = ?FOUNDED}) -> 
+    [Builder] = db:read(obj, BuilderId),
     
-    Checks = [{Source#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
+    Checks = [{obj:pos(Builder) =:= obj:pos(Structure), "Builder must be on the structure"},
               {Structure#obj.player =:= PlayerId, "Structure not owned by player"},
               {structure:has_req(Structure#obj.id), "Structure is missing required items"}],
 
     case process_checks(Checks) of
         true ->
             lager:info("Finishing structure"),
-            game:cancel_event(SourceId),
+            game:cancel_event(BuilderId),
 
-            NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
-            EventData = {SourceId, Structure#obj.id},
+            %Get the build time and calculate the end time
+            BuildTimeTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
+
+            Start = game:get_tick(),
+            End = Start + BuildTimeTicks,
+
+            obj_attr:set(obj:id(Structure), <<"start_time">>, Start),
+            obj_attr:set(obj:id(Structure), <<"end_time">>, End),
+            obj_attr:set(obj:id(Structure), <<"builder">>, BuilderId),
+            obj_attr:set(obj:id(Structure), <<"progress">>, 0),
+
+            EventData = {BuilderId, Structure#obj.id},
 
             %Add obj update state to change to moving state on next tick
-            game:add_obj_update(self(), SourceId, ?STATE, ?BUILDING, 0),
-            game:add_obj_update(self(), obj:id(Structure), ?STATE, ?PROGRESSING, 0),
+            game:add_obj_update(self(), BuilderId, ?STATE, ?BUILDING),
+            game:add_obj_update(self(), obj:id(Structure), ?STATE, ?PROGRESSING),
 
-            game:add_event(self(), finish_build, EventData, SourceId, NumTicks),
+            game:add_event(self(), build, EventData, BuilderId, BuildTimeTicks),
 
-            #{<<"build_time">> => NumTicks * 4};
+            #{<<"build_time">> => trunc(BuildTimeTicks / ?TICKS_SEC)};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
 
-finish_build(PlayerId, SourceId, Structure = #obj {state = ?PROGRESSING}) ->
-    [Source] = db:read(obj, SourceId),
+build(PlayerId, BuilderId, Structure = #obj {state = ?STALLED}) ->
+    [Builder] = db:read(obj, BuilderId),
     
-    Checks = [{Source#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
+    Checks = [{Builder#obj.pos =:= Structure#obj.pos, "Builder must be on the structure"},
               {Structure#obj.player =:= PlayerId, "Structure not owned by player"}],
 
     case process_checks(Checks) of
         true ->
             lager:info("Finishing structure"),
-            game:cancel_event(SourceId),
+            game:cancel_event(BuilderId),
 
-            NumTicks = obj_attr:value(Structure#obj.id, <<"build_time">>),
-            EventData = {SourceId, Structure#obj.id},
+            %Get the build time and calculate the end time
+            BuildTimeTicks = obj_attr:value(obj:id(Structure), <<"build_time">>),
+            Progress = obj_attr:value(obj:id(Structure), <<"progress">>),
 
-            obj:update_state(SourceId, building),
-            obj:update_state(Structure#obj.id, ?PROGRESSING),
+            Start = game:get_tick(),
+            End = Start + (BuildTimeTicks * (1 - Progress)),
 
-            game:add_event(self(), finish_build, EventData, SourceId, NumTicks),
+            obj_attr:set(obj:id(Structure), <<"start_time">>, Start),
+            obj_attr:set(obj:id(Structure), <<"end_time">>, End),
 
-            #{<<"build_time">> => NumTicks * 4};
+            EventData = {BuilderId, Structure#obj.id},
+
+            game:add_obj_update(self(), BuilderId, ?STATE, ?BUILDING),
+            game:add_obj_update(self(), obj:id(Structure), ?STATE, ?PROGRESSING),
+
+            game:add_event(self(), build, EventData, BuilderId, BuildTimeTicks),
+
+            #{<<"build_time">> => trunc(BuildTimeTicks / ?TICKS_SEC)};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
 
-finish_build(_PlayerId, _SourceId, Structure) ->
+build(_PlayerId, _SourceId, Structure) ->
     lager:info("Invalid state of structure: ~p", [Structure#obj.state]).
 
 recipe_list(SourceId) ->
@@ -616,7 +808,7 @@ recipe_list(SourceId) ->
              end,
     Result.
 
-refine(Structure) when is_record(Structure, obj) ->
+order_refine(Structure) when is_record(Structure, obj) ->
     Player = get(player_id),
     Checks = [{not is_event_locked(Structure#obj.id), "Event in progress"},
               {is_player_owned(Structure, Player), "Structure not owned by player"},
@@ -634,19 +826,18 @@ refine(Structure) when is_record(Structure, obj) ->
             lager:info("Refine failed: ~p", [Error]),
             #{<<"errmsg">> => list_to_binary(Error)}
     end;
-refine(StructureId) ->
+order_refine(StructureId) ->
     Structure = obj:get(StructureId),
-    refine(Structure).
+    order_refine(Structure).
 
-craft(StructureId, Recipe) ->
+order_craft(StructureId, Recipe) ->
     Player = get(player_id),
     [Structure] = db:read(obj, StructureId),
 
     Checks = [{not is_event_locked(StructureId), "Event in process"},
               {Player =:= Structure#obj.player, "Structure not owned by player"},
               {villager:has_assigned(StructureId), "Missing assigned villager to structure"},
-              {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"},
-               recipe:is_refine(Recipe), "Cannot craft refine recipe"],
+              {structure:check_recipe_req(StructureId, Recipe), "Missing recipe requirements"}],
 
     case process_checks(Checks) of
         true ->
@@ -757,7 +948,13 @@ assign(SourceId, TargetId) ->
         true ->
             lager:info("Assigning villager"),
             villager:assign(SourceId, TargetId),
-            villager:set_order(SourceId, ?ORDER_HARVEST),
+
+            case obj:subclass(TargetObj) of
+                ?HARVESTER -> villager:set_order(SourceId, ?ORDER_HARVEST);
+                ?CRAFT ->  villager:set_order(SourceId, ?ORDER_REFINE);
+                _ -> none
+            end,
+
             #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}

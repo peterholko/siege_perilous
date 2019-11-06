@@ -24,8 +24,8 @@ login(Name, Pass, Socket)
        is_binary(Pass),
        is_pid(Socket) -> % socket handler process
     
-    PlayerInfo = db:index_read(player, Name, #player.name),
-    login(PlayerInfo, [Name, Pass, Socket]).
+    Player = db:index_read(player, Name, #player.name),
+    process_login(Player, [Name, Pass, Socket]).
 
 remove(PlayerId) ->
     db:delete(player, PlayerId),
@@ -36,8 +36,8 @@ remove(PlayerId) ->
 %% Local Functions
 %%
 
-login([], [Name, Pass, Socket]) ->
-    lager:info("Creating new player..."),
+process_login([], [Name, Pass, Socket]) ->
+    lager:info("Creating init new player..."),
     PlayerId = counter:increment(player),
     
     Player = #player {id = PlayerId,
@@ -50,47 +50,53 @@ login([], [Name, Pass, Socket]) ->
 
     ExploredMap = #explored_map {player = PlayerId,
                                  tiles = [],
-                                 new_tiles = []}, 
+                                 new_tiles = []},
+
+    RelationPlayer = #relation{key = {PlayerId, ?EMPIRE},
+                               score = ?ALLIES},
+
+    RelationEmpire = #relation{key = {?EMPIRE, PlayerId},
+                               score = ?ALLIES},
 
     db:write(Player),
     db:write(Connection),
     db:write(ExploredMap),
+    db:write(RelationPlayer),
+    db:write(RelationEmpire),
    
-    {firstlogin, PlayerId};
+    {first_login, PlayerId};
 
-
-
-login([PlayerInfo], [_Name, Pass,_] = Args)
-  when is_record(PlayerInfo, player) ->
+process_login([Player], [_Name, Pass,_] = Args) ->
     lager:info("Found player - checking player state and connection"),
-    PlayerId = PlayerInfo#player.id,
+    PlayerId = Player#player.id,
+
     PlayerConn = case db:read(connection, PlayerId) of
-                     [P] ->
-                         P;
-                     _ ->
-                         ok = db:delete(connection, PlayerId),
-                         #connection{ player = PlayerId }
+                    [Conn] -> Conn;
+                    _ -> #connection{ player = PlayerId }
                  end,    
 
     %% replace dead ids with none
-    PlayerConn1 = PlayerConn#connection {process = fix_pid(PlayerConn#connection.process)},
+    NewPlayerConn = PlayerConn#connection {process = fix_pid(PlayerConn#connection.process)},
 
     %% check player state and login
-    Condition = check_player(PlayerInfo, PlayerConn1, [Pass], 
+    Condition = check_player(Player, NewPlayerConn, [Pass], 
                              [
+                              fun is_class_not_selected/3,
                               fun is_account_disabled/3,
                               fun is_bad_password/3,
                               fun is_player_online/3,
                               fun is_offline/3
                              ]),    
     
-    {Player2, PlayerInfo1, Result} = login(PlayerInfo, PlayerConn1, Condition, Args),
-    case {db:write(Player2), db:write(PlayerInfo1)} of
-        {ok, ok} ->
-            Result;
-        _ ->
-            {error, ?ERR_UNKNOWN}
-    end.  
+    {NewPlayer, NewPlayerConn2, Result} = login(Player, NewPlayerConn, Condition, Args),
+
+    db:write(NewPlayer),
+    db:write(NewPlayerConn2),
+
+    Result.
+
+login(PlayerInfo, PlayerConn, class_not_selected, _) ->
+    {PlayerInfo, PlayerConn, {select_class, PlayerInfo#player.id}};
 
 login(PlayerInfo, PlayerConn, account_disabled, _) ->
     {PlayerInfo, PlayerConn, {error, ?ERR_ACCOUNT_DISABLED}};
@@ -133,6 +139,10 @@ check_player(PlayerInfo, PlayerConn, Pass, [Guard|Rest]) ->
 check_player(_Info, _PlayerConn, _Args, []) ->
     %% fall through
     unknown_error.
+
+is_class_not_selected(PlayerInfo, _, _) ->
+    lager:info("Class Selected Player: ~p", [PlayerInfo]),
+    {PlayerInfo#player.class =:= none, class_not_selected}.
 
 is_account_disabled(PlayerInfo, _, _) ->
     {PlayerInfo#player.disabled, account_disabled}.

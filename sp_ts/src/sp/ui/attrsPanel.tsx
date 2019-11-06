@@ -6,7 +6,7 @@ interface AttrsPanelProps {
   attrsData,
 }
 
-export default class VillagerPanel extends React.Component<AttrsPanelProps, any> {
+export default class AttrPanel extends React.Component<AttrsPanelProps, any> {
   constructor(props) {
     super(props);
 

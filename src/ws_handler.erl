@@ -7,6 +7,10 @@
 init(Req, Opts) ->
 	{cowboy_websocket, Req, Opts}.
 
+websocket_handle({text, <<"0">>}, State) ->
+    lager:info("Ping Received!"),
+    {reply, {text, <<"1">>}, State};
+
 websocket_handle({text, Msg}, State) ->
     Result = message:decode(Msg),
 	{reply, {text, Result}, State};

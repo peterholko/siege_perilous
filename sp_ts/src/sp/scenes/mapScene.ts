@@ -14,7 +14,6 @@ import { TileState } from '../tileState';
 
 export class MapScene extends Phaser.Scene {
 
-  //private tileset = {};
   private forests = [18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 31];
   private renderToggle = false;
 
@@ -102,6 +101,8 @@ export class MapScene extends Phaser.Scene {
 
     this.load.json('tileset', './static/tileset.json');
     this.load.on('filecomplete-json-tileset', this.tilesetComplete, this)
+
+    this.load.on('complete', this.loadingComplete, this);
   }
 
   tilesetComplete(k, file): void {
@@ -117,14 +118,16 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  loadingComplete() {
+    console.log('Loading complete');
+    Global.gameEmitter.on(NetworkEvent.MAP, this.setRender, this);
+    
+    this.time.addEvent({ delay: 1000, callback: this.processRender, callbackScope: this, loop: true });
+    this.setRender();
+  }
+
   create(): void {
     console.log('Map Scene Create');
-
-    //Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.setRender, this);
-    Global.gameEmitter.on(NetworkEvent.MAP, this.setRender, this);
-
-    this.time.addEvent({ delay: 1000, callback: this.processRender, callbackScope: this, loop: true });
-
 
     this.base = this.add.container(0, 0);
     this.trans = this.add.container(0, 0);
@@ -136,8 +139,6 @@ export class MapScene extends Phaser.Scene {
     this.selectHex.setOrigin(0);
     this.select.add(this.selectHex);
 
-    this.setRender();
-
     var _this = this;
 
     this.input.on('gameobjectdown', function(pointer, gameObject) {
@@ -148,20 +149,14 @@ export class MapScene extends Phaser.Scene {
 
         Global.gameEmitter.emit(GameEvent.TILE_CLICK, gameObject);
       }
-
-      //_this.base.moveTo(_this.selectHex, _this.base.list.length - 1);
-      /*_this.trans.moveTo(_this.selectHex, _this.trans.list.length - 1);
-      _this.extra.moveTo(_this.selectHex, _this.extra.list.length - 1);
-      _this.void.moveTo(_this.selectHex, _this.void.list.length - 1);*/
     });
-
   }
 
   update() : void {
   }
 
   processRender() : void {
-    console.log('processRender' + this.renderToggle);
+    //console.log('processRender' + this.renderToggle);
     if(this.renderToggle) {
       this.drawMap();
       this.renderToggle = false;
@@ -173,7 +168,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   drawMap() : void {
-    console.log('drawMap');
+    //console.log('drawMap');
     this.base.removeAll();
     this.trans.removeAll();
     this.extra.removeAll();
@@ -192,19 +187,17 @@ export class MapScene extends Phaser.Scene {
       var tileState = tileArray[i];
       console.log(tileState);
 
-
       for(var j = 0; j < tileState.tiles.length; j++) {
         var tileTypeId = tileState.tiles[j];
         var imageName = 'tileset'  + tileTypeId;
-        console.log(imageName);
-
-        var offsetX = Global.tileset[tileTypeId].offsetx;
-        var offsetY = Global.tileset[tileTypeId].offsety;
 
         if(tileTypeId < 18) {
+          var offsetX = Global.tileset[tileTypeId].offsetx;
+          var offsetY = Global.tileset[tileTypeId].offsety;
           this.addToBase(tileState, 'tileset' + tileTypeId, offsetX, offsetY);
         } else if(this.forests.indexOf(tileTypeId) == -1) {
-          this.addToBase(tileState, 'tileset49', offsetX, offsetY);
+          //Default to grass as base tile
+          this.addToBase(tileState, 'tileset1', 0, 0);
         }
       }
     }
@@ -285,7 +278,6 @@ export class MapScene extends Phaser.Scene {
     //Extra layer
     for(var i = 0; i < tileArray.length; i++) {
       var tileState = tileArray[i];
-      var pixel = Util.hex_to_pixel(tileState.hexX, tileState.hexY);
 
       for(var j = 0; j < tileState.tiles.length; j++) {
         var tileTypeId = tileState.tiles[j];

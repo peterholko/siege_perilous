@@ -42,7 +42,7 @@
 	]
 },
 {
-	"name": "Hero Mage",
+	"name": "Warrior",
 	"base_hp": 12,
 	"base_stamina": 10000,
 	"base_dmg": 3,
@@ -52,13 +52,38 @@
 	"base_vision": 2,
 	"class": "unit",
 	"subclass": "hero",
-    "template": "Hero Mage",
+  "template": "Warrior",
 	"capacity": 300
 },
 {
-	"_id": {
-		"$oid": "555f986bbecfe3e72e7864f1"
-	},
+	"name": "Ranger",
+	"base_hp": 12,
+	"base_stamina": 10000,
+	"base_dmg": 3,
+	"dmg_range": 8,
+	"base_def": 1,
+	"base_speed": 5,
+	"base_vision": 2,
+	"class": "unit",
+	"subclass": "hero",
+  "template": "Ranger",
+	"capacity": 300
+},
+{
+	"name": "Mage",
+	"base_hp": 12,
+	"base_stamina": 10000,
+	"base_dmg": 3,
+	"dmg_range": 8,
+	"base_def": 1,
+	"base_speed": 5,
+	"base_vision": 2,
+	"class": "unit",
+	"subclass": "hero",
+  "template": "Mage",
+	"capacity": 300
+},
+{
 	"name": "Tent",
 	"base_hp": 50,
 	"base_dmg": 0,
@@ -68,7 +93,7 @@
 	"class": "structure",
 	"subclass": "shelter",
     "template": "Tent",
-	"build_time": 25,
+	"build_time": 240,
 	"level": 0,
 	"req": [
 		{
@@ -78,9 +103,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "5565ccb8becfe3e72e7864f2"
-	},
 	"name": "Smelter",
 	"base_hp": 50,
 	"base_dmg": 0,
@@ -189,9 +211,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "558451f795960a150d4be6d3"
-	},
 	"name": "Quarry",
 	"base_hp": 250,
 	"base_dmg": 0,
@@ -211,9 +230,6 @@
 	]
 },
 {
-	"_id": {
-		"$oid": "5584520295960a150d4be6d4"
-	},
 	"name": "Mine",
 	"base_hp": 250,
 	"base_dmg": 0,
@@ -230,6 +246,10 @@
 	"req": [
 		{
 			"type": "Wood",
+			"quantity": 1
+		},
+		{
+			"type": "Ingot",
 			"quantity": 1
 		}
 	]
@@ -769,6 +789,55 @@
 	"subclass": "poi",
     "template": "Shipwreck",
 	"base_hp": "0"
+},
+{
+	"name": "Meager Merchant",
+	"base_hp": 2000,
+	"base_stamina": 2000,
+	"base_dmg": 5,
+	"dmg_range": 10,
+	"base_def": 10,
+	"base_speed": 4,
+	"class": "unit",
+	"subclass": "npc",
+	"template": "Merchant",
+	"family": "Undead",
+	"base_vision": 3,
+	"order": "merchant",
+	"waterwalk": 1,
+	"landwalk": 0 
+},
+{
+	"name": "Tax Ship",
+	"base_hp": 2000,
+	"base_stamina": 2000,
+	"base_dmg": 5,
+	"dmg_range": 10,
+	"base_def": 10,
+	"base_speed": 4,
+	"class": "unit",
+	"subclass": "npc",
+	"template": "Tax Ship",
+	"base_vision": 3,
+	"order": "tax_collector_ship",
+	"waterwalk": 1,
+	"landwalk": 0 
+},
+{
+	"name": "Tax Collector",
+	"base_hp": 2000,
+	"base_stamina": 2000,
+	"base_dmg": 5,
+	"dmg_range": 10,
+	"base_def": 10,
+	"base_speed": 4,
+	"class": "unit",
+	"subclass": "npc",
+	"template": "Taxcollector",
+	"base_vision": 3,
+	"order": "tax_collector",
+	"waterwalk": 0,
+	"landwalk": 1 
 }
     
     

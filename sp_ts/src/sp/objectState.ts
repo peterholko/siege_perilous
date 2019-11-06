@@ -6,10 +6,12 @@ export interface ObjectState {
     subclass : string;
     template : string;
     state : string;
-    hexX : integer;
-    hexY: integer;
-    prevHexX? : integer;
-    prevHexY? : integer;
+    prevstate : string;
+    groups : Array<string>;
+    x : integer;
+    y : integer;
+    prevX? : integer;
+    prevY? : integer;
     vision : integer;
     image : string;
     op? : string;
