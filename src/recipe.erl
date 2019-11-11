@@ -8,13 +8,12 @@
 -export([craft/2, get_recipes/1, get_recipe/1, is_refine/1]).
 
 is_refine(RecipeName) ->
-    recipe_def:value(RecipeName, <<"class">>) =:= <<"Refine">>.
+    recipe_template:value(RecipeName, <<"class">>) =:= <<"Refine">>.
 
 craft(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
 
     Recipe = get_recipe(RecipeName),
-    RecipeItem = maps:get(<<"item">>, Recipe),
     Class = maps:get(<<"class">>, Recipe),
     ReqList = maps:get(<<"req">>, Recipe),
 
@@ -25,10 +24,10 @@ craft(ObjId, RecipeName) ->
     craft_item(ObjId, Recipe, Class, lists:reverse(MatchReq)).
 
 get_recipes(Structure) ->
-    recipe_def:select(<<"structure">>, Structure).
+    recipe_template:select(<<"structure">>, Structure).
 
 get_recipe(ItemName) ->
-    recipe_def:all_to_map(ItemName).
+    recipe_template:all_to_map(ItemName).
 
 find_match_req(Reqs, Items) ->
     find_match_req(Reqs, Items, []).
@@ -149,4 +148,6 @@ craft_item_name(RecipeName, MatchReqList) ->
     [FirstPart | _] = binary:split(PrimaryReqName, <<" ">>, []),
    
     <<FirstPart/binary, <<" ">>/binary, RecipeName/binary>>.
+
+
 

@@ -337,6 +337,14 @@ do_event(build, EventData, _PlayerPid) ->
     BaseHp = obj_attr:value(StructureId, <<"base_hp">>),
     obj_attr:set(StructureId, <<"hp">>, BaseHp);
 
+do_event(upgrade, EventData, _PlayerPid) ->
+    lager:info("Processing upgrade event: ~p", [EventData]),
+    {ObjId, StructureId} = EventData,
+
+    %TODO Add upgrade structure logic
+
+    game:add_obj_update(self(), StructureId, ?STATE, ?NONE, 1);
+
 do_event(refine, EventData, PlayerPid) ->
     lager:info("Processing refine event: ~p", [EventData]),
     {StructureId, UnitId, NumTicks} = EventData,

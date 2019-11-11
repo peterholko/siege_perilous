@@ -224,6 +224,7 @@ Tile being observed:
 4. Resoure changes revealed number and list of resources
 
 
+<<<<<<< HEAD
 Tax collector:
 
 1. Travels from empire to player's location
@@ -241,8 +242,6 @@ Hero creation:
 
 *Mage
 
-##########
-
 Basic Workshop upgrades go Blacksmith, Mason, alchemist.  Ensures the player can make basic items.
 
 Magical recipes have limited use.
@@ -259,15 +258,6 @@ Dust - enchants items, temporary
 Experimenting:
 
 1. Unlock special recipes by experimenting in the crafting structures.  The experiment action will randomly combine the resources in the structure to discover the special recipe.  
-
-
-
-
-
-
-
-
-
 
 
 
