@@ -256,6 +256,10 @@ Woodcutting -> Herbs
 Gems - full sockets of items (permanent bonus)
 Dust - enchants items, temporary 
 
+Experimenting:
+
+1. Unlock special recipes by experimenting in the crafting structures.  The experiment action will randomly combine the resources in the structure to discover the special recipe.  
+
 
 
 
