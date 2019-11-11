@@ -14,7 +14,7 @@
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, 
          is_class/2, is_subclass/2]).
 -export([get_total_weight/1, total_gold/1, weight/2]).
--export([id/1, owner/1, quantity/1, price/1]).
+-export([id/1, owner/1, quantity/1, price/1, image/1]).
 -export([match_req/3]).
 
 id(Item) when is_map(Item) -> maps:get(<<"id">>, Item);
@@ -25,6 +25,9 @@ owner(Item) -> Item#item.owner.
 
 quantity(Item) when is_map(Item) -> maps:get(<<"quantity">>, Item);
 quantity(Item) -> Item#item.quantity.
+
+image(Item) when is_map(Item) -> map:get(<<"image">>, Item);
+image(Item) -> Item#item.image.
 
 price(ItemId) ->
     item_attr:value(ItemId, <<"price">>).
@@ -386,6 +389,7 @@ create(ItemMap) ->
                     name = maps:get(<<"name">>, ItemMap),
                     quantity = maps:get(<<"quantity">>, ItemMap),
                     owner = maps:get(<<"owner">>, ItemMap),
+                    image = maps:get(<<"image">>, ItemMap),
                     class = maps:get(<<"class">>, ItemMap),
                     subclass = maps:get(<<"subclass">>, ItemMap),
                     weight = maps:get(<<"weight">>, ItemMap, 0)},

@@ -223,11 +223,3 @@ Tile being observed:
 4. Resoure changes revealed number and list of resources
 
 
-
-
-
-
-
-
-
-

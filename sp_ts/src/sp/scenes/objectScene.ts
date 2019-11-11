@@ -52,10 +52,8 @@ export class ObjectScene extends Phaser.Scene {
     this.onMoveComplete = this.onMoveComplete.bind(this);
     this.onDmgTextComplete = this.onDmgTextComplete.bind(this);
 
-    Global.gameEmitter.on("VISIBLE", this.drawAllObjects, this);
 
-    Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.drawInit, this);
-    Global.gameEmitter.on(NetworkEvent.CHANGES, this.setRender, this);
+    Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.renderInit, this);
     Global.gameEmitter.on(NetworkEvent.IMAGE_DEF, this.processImageDefMessage, this);
     Global.gameEmitter.on(NetworkEvent.DMG, this.processDmgMessage, this);
     Global.gameEmitter.on(NetworkEvent.SPEECH, this.processSpeech, this);
@@ -112,11 +110,28 @@ export class ObjectScene extends Phaser.Scene {
     }
   }
 
+  renderInit() : void {
+    console.log('renderInit');
+    var objStates = Object.assign({}, Global.objectStates);
+
+    for(var objId in objStates) {
+      var objState = objStates[objId];
+      objState.op = 'added';
+    }
+
+    this.drawObjects(objStates);
+
+    Global.gameEmitter.on(NetworkEvent.CHANGES, this.setRender, this);
+    Global.gameEmitter.on("VISIBLE", this.drawAllObjects, this);
+    
+    this.time.addEvent({ delay: 200, callback: this.processRender, callbackScope: this, loop: true });
+  }
+
   processRender() : void {
     console.log('processRender');
     if(this.renderToggle) {
       console.log('Draw Objects');
-      this.drawObjects()
+      this.drawObjects(Global.objectStates)
       this.renderToggle = false;
     }
   }
@@ -126,16 +141,7 @@ export class ObjectScene extends Phaser.Scene {
     this.renderToggle = true;
   }
 
-  drawInit() : void {
-    console.log('drawInit');
-    //TODO revisit this hack, possible issue if the 'added' is overwritten during drawing
-    this.drawAllObjects();
-    this.drawObjects();
-
-    this.time.addEvent({ delay: 200, callback: this.processRender, callbackScope: this, loop: true });
-  }
-
-  drawAllObjects() : void {
+   drawAllObjects() : void {
     //Clear all objects
     for(var key in this.objectList) {
       var obj = this.objectList[key];
@@ -150,13 +156,13 @@ export class ObjectScene extends Phaser.Scene {
     this.setRender();
   }
 
-  drawObjects() : void {
+  drawObjects(objectStates : Record<string, ObjectState> ) : void {
     //Clear visibleTiles & shroud
     Global.visibleTiles = [];
     this.clearShroud();
 
-    for(var objectId in Global.objectStates) {
-        var objectState = Global.objectStates[objectId] as ObjectState;
+    for(var objectId in objectStates) {
+        var objectState = objectStates[objectId] as ObjectState;
 
         if(objectState.op == 'added') {
           console.log('Object Added');

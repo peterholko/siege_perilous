@@ -52,10 +52,10 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(item_template, [{ram_copies, [node()]}, {attributes, record_info(fields, item_template)}]), 
     {atomic, ok} = mnesia:create_table(recipe, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe)}]),    
     {atomic, ok} = mnesia:create_table(recipe_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe_attr)}]),    
-    {atomic, ok} = mnesia:create_table(recipe_def, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe_def)}]),    
+    {atomic, ok} = mnesia:create_table(recipe_template, [{ram_copies, [node()]}, {attributes, record_info(fields, recipe_template)}]),    
     {atomic, ok} = mnesia:create_table(skill, [{ram_copies, [node()]}, {attributes, record_info(fields, skill)}]),    
     {atomic, ok} = mnesia:create_table(skill_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, skill_attr)}]),    
-    {atomic, ok} = mnesia:create_table(skill_def, [{ram_copies, [node()]}, {attributes, record_info(fields, skill_def)}]),    
+    {atomic, ok} = mnesia:create_table(skill_template, [{ram_copies, [node()]}, {attributes, record_info(fields, skill_template)}]),    
     {atomic, ok} = mnesia:create_table(action, [{ram_copies, [node()]}, {attributes, record_info(fields, action)}]),    
     {atomic, ok} = mnesia:create_table(resource_def, [{ram_copies, [node()]}, {attributes, record_info(fields, resource_def)}]),
     {atomic, ok} = mnesia:create_table(poi_def, [{ram_copies, [node()]}, {attributes, record_info(fields, poi_def)}]),
@@ -166,6 +166,7 @@ import_yaml_entry(Table, ObjName, [Entry | Rest]) ->
 
 convert_value(Value) ->
     lager:info("Value: ~p", [Value]),
+
     case Value of 
         [ListValue | _] when is_list(ListValue) ->
             lager:info("ListValue: ~p", [ListValue]),
@@ -190,8 +191,14 @@ convert_value(Value) ->
             end;
 
         List when is_list(List) ->
-            lager:info("List: ~p", [List]),
-            erlang:list_to_binary(List);
+            case io_lib:printable_list(List) of
+                true ->
+                    lager:info("Printable List: ~p", [List]),
+                    erlang:list_to_binary(List);
+                false ->
+                    lager:info("List: ~p", [List]),
+                    List
+            end;
         V -> 
             V
     end.

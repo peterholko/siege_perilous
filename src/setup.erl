@@ -21,12 +21,14 @@ start() ->
     lager:info("Import data"),
     %db:import("obj_template"),
     %db:import("item_template"),
-    db:import("recipe_def"),
+    %db:import("recipe_def"),
     db:import("resource_def"),
-    db:import("skill_def"),
+    %db:import("skill_def"),
 
     db:import_yaml("obj_template"),
     db:import_yaml("item_template"),
+    db:import_yaml("recipe_template"),
+    db:import_yaml("skill_template"),
     
 
     lager:info("Starting game process..."),

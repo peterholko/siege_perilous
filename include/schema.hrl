@@ -123,6 +123,7 @@
                owner,
                class,
                subclass,
+               image,
                weight,
                durability, 
                equip = <<"false">>}).
@@ -139,17 +140,19 @@
 -record(recipe_attr, {key, % {id, attr}
                       value}).
 
--record(recipe_def, {key, % {name, attr}
+-record(recipe_template, {key, % {name, attr}
                      value}).
 
 -record(skill, {key, % {id, name}
-                value}).
+                name,
+                level = 0,
+                xp}).
 
 -record(skill_attr, {key, % {id, attr}
                      value}).
 
--record(skill_def, {key, % {name, attr}
-                    value}).
+-record(skill_template, {key, % {name, attr}
+                         value}).
 
 -record(charge_time, {unit_id,
                       charge_time}).
