@@ -6,17 +6,18 @@
 	{modules, []},
 	{registered, [sp_sup]},
 	{applications, [
-        lager,
+    lager,
 		kernel,
-        crypto,
-	stdlib,
-        mnesia,
-        compiler,
-        syntax_tools,
+    crypto,
+		stdlib,
+    mnesia,
+    compiler,
+    syntax_tools,
 		cowboy,
-        jsx,
-        parsexml,
-        pqueue
+    jsx,
+    parsexml,
+    pqueue,
+		yamerl
 	]},
 	{mod, {sp_app, []}},
 	{env, []}

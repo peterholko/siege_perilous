@@ -53,6 +53,8 @@
 -define(BASE_FOCUS_TIRED, 3000).
 -define(BASE_FOCUS_EXHAUSTED, 6000).
 
+-define(PLAYER, <<"player">>).
+
 %STATES
 -define(STATE, <<"state">>).
 -define(NONE, none).
@@ -60,6 +62,7 @@
 -define(DELETING, deleting).
 -define(FOUNDED, founded).
 -define(PROGRESSING, progressing).
+-define(STALLED, stalled).
 -define(EXPLORING, exploring).
 -define(GATHERING, gathering).
 -define(HARVESTING, harvesting).
@@ -73,6 +76,7 @@
 -define(DRINKING, drinking).
 -define(RESTING, resting).
 -define(DISABLED, disabled).
+-define(ABOARD, aboard).
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
@@ -105,6 +109,7 @@
 -define(CRAFT, <<"craft">>).
 -define(STORAGE, <<"resource">>).
 -define(SHELTER, <<"shelter">>).
+-define(TRADE, <<"trade">>).
 
 -define(QUICK, <<"quick">>).
 -define(PRECISE, <<"precise">>).
@@ -169,6 +174,8 @@
 
 -define(EXPOSE_ARMOR_DEF, -0.05).
 
+-define(MERCHANT, <<"Merchant">>).
+
 %ORDERS
 -define(ORDER_ATTACK, <<"Attack">>).
 -define(ORDER_GUARD, <<"Guard">>).
@@ -179,6 +186,10 @@
 -define(ORDER_REFINE, <<"Refine">>).
 -define(ORDER_CRAFT, <<"Craft">>).
 -define(ORDER_BUILD, <<"Build">>).
+
+%ORDERS NPC
+-define(ORDER_TAX_COLLECT, <<"Tax Collect">>).
+
 
 %ACTIVITIES
 -define(ACTIVITY_ATTACK, <<"Attacking target">>).
@@ -218,6 +229,9 @@
 -define(SPIRIT, <<"Spirit">>).
 -define(CREATIVITY, <<"Creativity">>).
 
+%OBJ ATTR
+-define(WAGE, <<"wage">>).
+
 %RESOURCE TYPES
 -define(ORE, <<"Ore">>).
 -define(WOOD, <<"Wood">>).
@@ -228,6 +242,13 @@
 -define(MANA, <<"Mana">>).
 -define(FOOD, <<"Food">>).
 
+%STRUCTURE RESOURCE TYPES
+-define(MINE, <<"Mine">>).
+-define(QUARRY, <<"Quarry">>).
+-define(TRAPPER, <<"Trapper">>).
+-define(LUMBERMILL, <<"Lumbermill">>).
+-define(FARM, <<"Farm">>).
+
 %SKILLS
 -define(MINING, <<"Mining">>).
 -define(WOODCUTTING, <<"Woodcutting">>).
@@ -235,6 +256,9 @@
 -define(HUNTING, <<"Hunting">>).
 -define(FORAGING, <<"Foraging">>).
 -define(FARMING, <<"Farming">>).
+
+%ITEM CLASSES
+-define(GOLD_COINS, <<"Gold Coins">>).
 
 %ITEM SUBCLASSES
 -define(PICK_AXE, <<"Pick Axe">>).
@@ -250,7 +274,6 @@
 -define(SWORD, <<"Sword">>).
 -define(HAMMER, <<"Hammer">>).
 -define(SPEAR, <<"Spear">>).
-
 
 %RESOURCE TRAITS
 -define(AXE_DMG_P, <<"Axe Damage %">>).
@@ -275,6 +298,14 @@
 -define(RAISE_DEAD, <<"Raise Dead">>).
 -define(SHADOW_BOLT, <<"Shadow Bolt">>).
 
+%RELATIONS
+-define(ALLIES, 10).
+-define(NEUTRAL, 0).
+-define(ENEMIES, -10).
+
+%EMPIRE
+-define(EMPIRE_POS, {-100, -50}).
+-define(TAX_COLLECTOR, <<"Tax Collector">>).
 
 -define(INFO(MSG), log4erl:info("{~w} ~s", [?MODULE, MSG])).
 -define(INFO(MSG, DATA), log4erl:info("{~w} ~s ~w", [?MODULE, MSG, DATA])).

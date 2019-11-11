@@ -11,7 +11,7 @@ export class Obj {
     for(var objId in Global.objectStates) {
         var objectState = Global.objectStates[objId];
 
-        if(objectState.hexX == hexX && objectState.hexY == hexY) {
+        if(objectState.x == hexX && objectState.y == hexY) {
           objsAt.push(objId);
         }
     }

@@ -1,5 +1,6 @@
 import * as React from "react";
-import exitbutton from "ui_comp/exitbutton.png"
+import exitbutton from "ui_comp/exitbutton.png";
+import halfpanel from "ui_comp/halfpanel.png";
 import { Global } from "../global";
 import { GameEvent } from "../gameEvent";
 
@@ -72,7 +73,7 @@ export default class HalfPanel extends React.Component<HalfPanelProps, any> {
 
     return (
       <div style={halfPanelStyle}>
-          <img src='/static/art/ui/halfpanel.png'/>
+          <img src={halfpanel}/>
 
           {!this.props.hideExitButton && 
               <img src={exitbutton} 

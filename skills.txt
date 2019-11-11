@@ -101,6 +101,25 @@ Water Magic
 Reagent Conservation
 
 
+#####################
+
+Skills Revision Oct 2019
+
+Ex: 
+Basic Mining 
+
+100xp to Skill 1
+250xp to Skill 2
+500xp to Skill 3
+etc...
+X xp to Skill 100
+
+Adept Mining 
+
+Repeat
+
+
+
 
 
 

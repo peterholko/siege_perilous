@@ -1,16 +1,16 @@
 
 import * as React from "react";
-import selectbox from "ui_comp/selectbox.png";
-import { Global } from "../global";
-import { GameEvent } from "../gameEvent";
+import styles from "./../ui.css";
 
 interface InvItemProps {
   ownerId,
   itemName,
   itemId,
+  quantity,
   xPos,
   yPos,
-  handleSelect
+  index?,
+  handleSelect?
 }
 
 export default class InventoryItem extends React.Component<InvItemProps, any> {
@@ -25,24 +25,43 @@ export default class InventoryItem extends React.Component<InvItemProps, any> {
       ownerId: this.props.ownerId,
       itemId: this.props.itemId,
       itemName: this.props.itemName,
-      xPos: this.props.xPos,
-      yPos: this.props.yPos
+      index: this.props.index,
     }
     this.props.handleSelect(eventData)
   }
 
+  formatQuantity(quantity) {
+    if(quantity > 1000000) {
+      return (quantity / 1000000).toFixed(2) + 'M';
+    } else if(quantity > 1000) {
+      return (quantity / 1000).toFixed(2) + 'K';
+    } else {
+      return quantity;
+    }
+  }
+
   render() {
-    const itemStyle = {
+    var quantityStr = this.formatQuantity(this.props.quantity);
+
+    //31px -286px
+    const divStyle = {
       transform: 'translate(' + this.props.xPos + 'px, ' + this.props.yPos + 'px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const itemStyle = {
+      transform: 'translate(0px, 0px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const imageName = this.props.itemName.replace(/\s/g, '').toLowerCase();
 
     return (
-      <img src={'/static/art/' + imageName + '.png'}
-           style={itemStyle}
-           onClick={this.handleClick}/>
+      <div style={divStyle} onClick={this.props.handleSelect != null ? this.handleClick : null}>
+        <img src={'/static/art/items/' + imageName + '.png'}
+            style={itemStyle}/>
+        <span id="itemquantity" className={styles.itemquantity}>{quantityStr}</span>
+      </div>
     );
   }
 }

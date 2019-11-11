@@ -259,22 +259,24 @@ free_structure(Villager, StructureClass, StructureTypes) ->
     Result.
 
 structure_not_full(Villager) ->
-    Capacity = obj:get_capacity(Villager#villager.structure),
+    {StructureId, _StructurePos, _StructureName} = Villager#villager.structure,
+    Capacity = obj:get_capacity(StructureId),
     
     %Assume "full" is 85% of capacity or over
     %and if 15% of capacity cannot fit, structure is full
     Capacity15 = erlang:trunc(Capacity * 0.15),
 
-    obj:has_space(Villager#villager.structure, Capacity15).
+    obj:has_space(StructureId, Capacity15).
 
 storage_not_full(Villager) ->
-    Capacity = obj:get_capacity(Villager#villager.storage),
+    {StorageId, _StoragePos, _StorageName} = Villager#villager.storage,
+    Capacity = obj:get_capacity(StorageId),
     
     %Assume "full" is 85% of capacity or over
     %and if 15% of capacity cannot fit, structure is full
     Capacity15 = erlang:trunc(Capacity * 0.10),
 
-    obj:has_space(Villager#villager.storage, Capacity15).
+    obj:has_space(StorageId, Capacity15).
 
 
 not_hauling(Villager) ->
@@ -384,6 +386,7 @@ set_pos_shelter(Villager) ->
     Villager#villager {dest = Pos, task_state = completed}.
 
 set_pos_structure(Villager) ->
+    lager:debug("Villager: ~p", [Villager]),
     {_Id, Pos, _Name} = Villager#villager.structure,
     Villager#villager {dest = Pos, task_state = completed}.
 
@@ -434,21 +437,23 @@ move_to(Villager, Pos) ->
 
     %If dest is set and dest does not equal villager current pos
     FinalVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
-                      true ->
-                         Path = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
+                        true ->
+                            PathResult = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
 
-                         case Path of
-                             [] -> 
-                                 %No path, move task completed
-                                 NewVillager#villager {task_state = completed};
-                             _ -> 
-                                 %Move to next path location
-                                 move_unit(VillagerObj, lists:nth(2, Path)),
-                                 NewVillager#villager {task_state = running, path = Path}
-                         end;
-                      false ->
-                         lager:info("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
-                         NewVillager#villager {task_state = skipped}
+                            case PathResult of
+                                {success, Path} -> 
+                                    %Move to next path location
+                                    move_unit(VillagerObj, lists:nth(2, Path)),
+                                    NewVillager#villager {task_state = running, path = Path};
+                                {nearby, _Dist, _Closest} ->
+                                    NewVillager#villager {task_state = completed};
+                                {failure, _} -> 
+                                    %No path, move task completed
+                                    NewVillager#villager {task_state = completed}
+                            end;
+                        false ->
+                            lager:debug("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
+                            NewVillager#villager {task_state = skipped}
                  end,
     FinalVillager.
 
@@ -459,29 +464,31 @@ move_to_pos(Villager) ->
 
     %If dest is set and dest does not equal villager current pos
     NewVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
-                      true ->
-                         Path = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
-                         lager:info("Path: ~p", [Path]),
+                    true ->
+                        PathResult = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
 
-                         case Path of
-                             [] -> 
-                                 %No path, move task completed
-                                 Villager#villager {task_state = completed};
-                             _ -> 
+                        case PathResult of
+                             {success, Path} ->
                                  %Move to next path location
                                  move_unit(VillagerObj, lists:nth(2, Path)),
-                                 Villager#villager {task_state = running, path = Path}
-                         end;
-                      false ->
-                         lager:info("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
-                         Villager#villager {task_state = completed}
-                 end,
+                                 Villager#villager {task_state = running, path = Path};
+                             {nearby, _Dist, _Closest} ->
+                                 %No path, move task completed
+                                 Villager#villager {task_state = completed};
+                             {failure, _} -> 
+                                 %No path, move task completed
+                                 Villager#villager {task_state = completed}
+                        end;
+                    false ->
+                        lager:debug("Dest: ~p Pos: ~p", [Dest, VillagerObj#obj.pos]),
+                        Villager#villager {task_state = completed}
+                  end,
     NewVillager.
 
 move_random_pos(Villager) ->
     [VillagerObj] = db:read(obj, Villager#villager.id),
 
-    NewVillager = case game:get_valid_tiles(VillagerObj#obj.pos) of
+    NewVillager = case game:get_valid_tiles(VillagerObj#obj.pos, VillagerObj) of
                       [] -> 
                           Villager;
                       Tiles -> 
@@ -508,7 +515,8 @@ move_to_target(Villager) ->
 
                           case IsAdjacent of
                               false ->
-                                  Path = astar:astar(VillagerObj#obj.pos, TargetObj#obj.pos, VillagerObj),
+                                  %Assume path is found due to adjacent obj
+                                  {success, Path} = astar:astar(VillagerObj#obj.pos, TargetObj#obj.pos, VillagerObj),
 
                                   move_next_path(VillagerObj, Path),
                                   Villager#villager {path = Path,
@@ -549,9 +557,50 @@ melee_attack(Villager) ->
     end.
 
 harvest(Villager) ->
-    EventData = {Villager#villager.id, Villager#villager.structure},
-    NumTicks = ?TICKS_SEC * 8,
-    game:add_event(self(), sharvest, EventData, Villager#villager.id, NumTicks),
+    {StructureId, _, _} = Villager#villager.structure,
+
+    VillagerObj = obj:get(Villager#villager.id),
+    StructureObj = obj:get(StructureId),
+
+    ResourceType = structure:resource_type(StructureObj),
+
+    SkillType = structure:to_skill(StructureObj),
+
+    SkillTypeLower = string:lowercase(SkillType),
+    SkillTypeAtom = binary_to_atom(SkillTypeLower, latin1),
+
+    obj:update_state(Villager#villager.id, SkillTypeAtom),
+
+    EventData = {Villager#villager.id, 
+                 StructureId,
+                 ResourceType,
+                 obj:pos(VillagerObj)},
+
+    NumTicks = ?TICKS_SEC * 10,
+
+    lager:info("Added harvest event"),
+    game:add_event(self(), harvest, EventData, Villager#villager.id, NumTicks),
+
+    Villager#villager {task_state = running}.
+
+gather(Villager) ->
+    lager:info("Villager gather"),
+    VillagerObj = obj:get(Villager#villager.id),
+    ResType = maps:get(restype, Villager#villager.data),
+
+    EventData =  {Villager#villager.id, 
+                  ResType,
+                  obj:pos(VillagerObj)},
+    
+    SkillType = resource:type_to_skill(ResType),
+
+    %TODO remove once obj states are converted to binary instead of atoms
+    SkillTypeLower = string:lowercase(SkillType),
+    SkillTypeAtom = binary_to_atom(SkillTypeLower, latin1),
+
+    obj:update_state(Villager#villager.id, SkillTypeAtom),
+
+    game:add_event(self(), gather, EventData, Villager#villager.id, ?TICKS_SEC * 10),
 
     Villager#villager {task_state = running}.
 
@@ -635,8 +684,9 @@ transfer_water(Villager) -> transfer_item_by_class(Villager, ?WATER).
 transfer_food(Villager) -> transfer_item_by_class(Villager, ?FOOD).
 
 transfer_item_by_class(Villager, ItemClass) ->
+    {StorageId, _StoragePos, _StorageName} = Villager#villager.storage,
     %TODO check weight and capacity
-    case item:get_by_class(Villager#villager.storage, ItemClass) of
+    case item:get_by_class(StorageId, ItemClass) of
         [Item | _Rest] -> 
             item:transfer(item:id(Item), Villager#villager.id);
         _ -> 
@@ -658,27 +708,6 @@ explore(Villager) ->
 
     Villager#villager {task_state = running}.
 
-gather(Villager) ->
-    lager:info("Villager gather"),
-    VillagerObj = obj:get(Villager#villager.id),
-    ResType = maps:get(restype, Villager#villager.data),
-
-    EventData =  {Villager#villager.id, 
-                  ResType,
-                  obj:pos(VillagerObj)},
-    
-    SkillType = resource:type_to_skill(ResType),
-
-    %TODO remove once obj states are converted to binary instead of atoms
-    SkillTypeLower = string:lowercase(SkillType),
-    SkillTypeAtom = binary_to_atom(SkillTypeLower, latin1),
-
-    obj:update_state(Villager#villager.id, SkillTypeAtom),
-
-    game:add_event(self(), gather, EventData, Villager#villager.id, ?TICKS_SEC * 10),
-
-    Villager#villager {task_state = running}.
-
 build(Villager) ->
     lager:info("Villager build"),
     EventData = Villager#villager.id,
@@ -692,12 +721,13 @@ build(Villager) ->
     game:add_obj_update(self(), Villager#villager.id, ?STATE, ?BUILDING, 0),
     game:add_obj_update(self(), StructureId, ?STATE, ?PROGRESSING, 0),
 
-    game:add_event(self(), finish_build, EventData, Villager#villager.id, NumTicks).
+    game:add_event(self(), build, EventData, Villager#villager.id, NumTicks).
 
 refine(Villager) ->
     lager:info("Villager refine"),
-    
-    EventData = {Villager#villager.structure, 
+    {StructureId, _StructurePos, _StructureName} = Villager#villager.structure,
+
+    EventData = {StructureId, 
                  Villager#villager.id, 
                  ?TICKS_SEC * 10},
 
@@ -710,7 +740,9 @@ craft(Villager) ->
     lager:info("Villager crafting"),
     RecipeName = maps:get(recipe, Villager#villager.data),
     
-    EventData = {Villager#villager.structure, 
+    {StructureId, _StructurePos, _StructureName} = Villager#villager.structure,
+    
+    EventData = {StructureId, 
                  Villager#villager.id, 
                  RecipeName},
 
@@ -785,7 +817,9 @@ handle_cast({set_behavior, VillagerId, Behavior}, Data) ->
 
 handle_cast({assign, VillagerId, TargetId}, Data) ->
     Villager = maps:get(VillagerId, Data),
-    NewVillager = Villager#villager{structure = TargetId},
+    StructureObj = obj:get(TargetId),
+    Structure = {TargetId, obj:pos(StructureObj), obj:name(StructureObj)},
+    NewVillager = Villager#villager{structure = Structure}, 
     NewData = maps:update(VillagerId, NewVillager, Data),
 
     {noreply, NewData};
@@ -840,16 +874,21 @@ handle_call({create, Level, Player, Pos}, _From, Data) ->
     {reply, VillagerId, NewData};
 
 handle_call({info, VillagerId}, _From, Data) ->
-    Villager = maps:get(VillagerId, Data),
+    Villager = maps:get(VillagerId, Data, none),
     {reply, Villager, Data};
 
 handle_call({has_assigned, StructureId}, _From, Data) ->
     F = fun(_VillagerId, Villager, Acc) ->
-            case Villager#villager.structure =:= StructureId of
-                true ->
-                    [Villager | Acc];
-                false ->    
-                    Acc
+
+            case Villager#villager.structure of
+                none -> Acc;
+                {AssignedId, _Pos, _Name} ->
+                    case AssignedId =:= StructureId of
+                        true ->
+                            [Villager | Acc];
+                        false ->    
+                            Acc
+                    end
             end
         end,
 
@@ -865,9 +904,8 @@ handle_call({assign_list, Player}, _From, Data) ->
                     lager:info("Villager structure: ~p", [Villager#villager.structure]),
                     StructureName = case Villager#villager.structure of
                                         none -> <<"unassigned">>;
-                                        StructureId ->
-                                            StructureObj = obj:get(StructureId),
-                                            obj:name(StructureObj)
+                                        {_Id, _Pos, Name} ->  
+                                            Name
                                     end,
 
                     [#{<<"id">> => VillagerId,
@@ -886,7 +924,8 @@ handle_call({assign_list, Player}, _From, Data) ->
 
 handle_call({get_by_structure, StructureId}, _From, Data) ->
     F = fun(_VillagerId, Villager) ->
-            Villager#villager.structure =:= StructureId
+            {Id, _Pos, _Name} = Villager#villager.structure,
+            Id =:= StructureId
         end,
 
     Filtered = maps:filter(F, Data),
@@ -1035,7 +1074,7 @@ process_plan(Villager, Tick) ->
     {PlanLabel, NewPlan} = htn:plan(NewVillager#villager.behavior, 
                                     NewVillager, 
                                     villager),
-    lager:info("NewPlan: ~p CurrentPlan: ~p", [NewPlan, CurrentPlan]),
+    %lager:info("NewPlan: ~p CurrentPlan: ~p", [NewPlan, CurrentPlan]),
     case NewPlan =:= CurrentPlan of
         false ->
             %New plan cancel current event
@@ -1091,11 +1130,13 @@ process_task_state(completed, Villager) ->
     PlanLength = length(Villager#villager.plan),
 
     NextTask = get_next_task(TaskIndex, PlanLength),
+    lager:debug("V - NextTask: ~p", [NextTask]),
 
     NewerVillager = case NextTask of
                         {next_task, NextTaskIndex} ->
                             {TaskName, TaskArgs} = get_task_by_index(Villager, NextTaskIndex),
 
+                            lager:debug("V - TaskName: ~p TaskArgs: ~p", [TaskName, TaskArgs]),
                             NewVillager = erlang:apply(villager, TaskName, TaskArgs),
                             NewVillager#villager{task_index = NextTaskIndex};
                         plan_completed ->
@@ -1125,11 +1166,11 @@ process_task_state(running, Villager) ->
     Villager.
 
 process_event_complete(Villager) ->
-    lager:info("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
+    lager:debug("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
 
     {TaskName, TaskArgs} = get_task_by_index(Villager, Villager#villager.task_index),
 
-    lager:info("Villager Task: ~p", [TaskName]),
+    lager:debug("Villager Task: ~p", [TaskName]),
 
     case TaskName of
         move_to -> process_move_to_complete(TaskArgs);
@@ -1190,6 +1231,7 @@ find_enemies(VillagerObj, [PerceptionObjId | Rest], Enemies) ->
 filter_objs(_VillagerPlayer, #obj{state = State}, Enemies) when State =:= ?DEAD -> Enemies;
 filter_objs(_VillagerPlayer, #obj{class = Class}, Enemies) when Class =:= ?CORPSE -> Enemies;
 filter_objs(VillagerPlayer, #obj{player = ObjPlayer}, Enemies) when VillagerPlayer =:= ObjPlayer -> Enemies;
+filter_objs(_VillagerPlayer, #obj{player = ObjPlayer}, Enemies) when ObjPlayer =:= ?EMPIRE -> Enemies;  %TODO add relationship logic
 filter_objs(_VillagerPlayer, Obj, Enemies) -> [Obj | Enemies].
 
 find_structure(Villager, Type) ->       
@@ -1224,12 +1266,12 @@ get_next_task(_TaskIndex, _PlanLength) ->
         plan_completed.
 
 move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) ->
-    lager:info("Pos: ~p NewPos: ~p", [Pos, NewPos]),
+    lager:debug("Pos: ~p NewPos: ~p", [Pos, NewPos]),
 
     SourcePos = Pos,
     DestPos = NewPos,
     MoveTicks = obj:movement_cost(Obj, DestPos),
-    lager:info("Move ticks: ~p", [MoveTicks]),
+    lager:debug("Move ticks: ~p", [MoveTicks]),
 
     %Add obj update state to change to moving state on next tick
     game:add_obj_update(self(), Id, ?STATE, ?MOVING, 1),
@@ -1356,5 +1398,6 @@ order_speech(?ORDER_FOLLOW) -> "Yes sir, following!";
 order_speech(?ORDER_EXPLORE) -> "Yes sir, exploring this area!";
 order_speech(?ORDER_GATHER) -> "Yes sir, gathering resources!";
 order_speech(?ORDER_HARVEST) -> "Yes sir, harvesting resources!";
+order_speech(?ORDER_REFINE) -> "Yes sir, refining resources!";
 order_speech(_) -> "Not sure what to say for this order".
 

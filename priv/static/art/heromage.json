@@ -4,12 +4,32 @@
         "height": 72
     },
     "animations": {
-        "die": [0,3,"dead",0.05],
+        "die": {
+            "frames": [0,1,2,3],
+            "repeat": 0,
+            "speed": 1500
+        },
         "dead": [3],
-        "harvesting": [4,9,"harvesting",0.4],
-        "crafting": [4,9,"crafting",0.4],
-        "attack": [4,9, "none", 0.1],
+        "harvesting": {
+            "frames": [4,5,6,7,8,9],
+            "repeat": -1,
+            "speed": 1000
+        },
+        "crafting": {
+            "frames": [4,5,6,7,8,9],
+            "repeat": -1,
+            "speed": 1000
+        },
+        "attack": {
+            "frames": [4,5,6,7,8,9],
+            "repeat": 0,
+            "speed": 1000
+        },
         "none": [9],
-        "moving": [8,9, "moving", 0.1]
+        "moving": {
+            "frames": [8,9],
+            "repeat": -1,
+            "speed": 500
+        }
     }
 }

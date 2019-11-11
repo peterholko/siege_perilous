@@ -1,0 +1,218 @@
+# item_template.yaml
+
+##################
+###### ORES ######
+##################
+
+- name: Valleyrun Copper Ore
+  class: Ore
+  subclass: Copper Ore
+  weight: 10
+  produces:
+    - Valleyrun Copper Ingot
+    - Valleyrun Copper Dust
+
+- name: Flowstate Copper Ore
+  class: Ore
+  subclass: Copper Ore
+  weight: 10
+  produces:
+    - Flowstate Copper Ingot
+    - Flowstate Copper Dust
+
+- name: Piercefield Copper Ore
+  class: Ore
+  subclass: Copper Ore
+  weight: 10
+  produces:
+    - Piercefield Copper Ingot
+    - Piercefield Copper Dust
+
+- name: Quickforge Iron Ore
+  class: Ore
+  subclass: Iron Ore
+  weight: 10
+  produces:
+    - Quickforge Iron Ingot
+    - Quickforge Iron Dust
+
+- name: Mistvale Iron Ore
+  class: Ore
+  subclass: Iron Ore
+  weight: 10
+  produces:
+    - Mistvale Iron Ingot
+    - Mistvale Iron Dust
+
+- name: Slateback Iron Ore
+  class: Ore
+  subclass: Iron Ore
+  weight: 10
+  produces:
+    - Slateback Iron Ingot
+    - Slateback Iron Dust
+
+- name:  Thrakan Iron Ore
+  class: Ore
+  subclass: Iron Ore
+  weight: 10
+  produces:
+    - Thrakan Iron Ingot
+    - Thrakan Iron Dust
+
+- name:  Wraithforge Mithril Ore
+  class: Ore
+  subclass: Mithril Ore
+  weight: 10
+  produces:
+    - Wraithforge Mithril Ingot
+    - Wraighforge Mithril Dust
+
+##################
+###### ORES ######
+##################
+
+- name:  Valleyrun Copper Ingot
+  class: Ingot
+  subclass: Copper Ingot
+  weight: 5
+
+- name:  Piercefield Copper Ingot
+  class: Ingot
+  subclass: Copper Ingot
+  weight: 5
+
+- name:  Quickforge Iron Ingot
+  class: Ingot
+  subclass: Iron Ingot
+  weight: 5
+
+##################
+###### DUST ######
+##################
+
+- name:  Valleyrun Copper Dust
+  class: Dust
+  subclass: Copper Dust
+  weight: 10
+
+##################
+###### WOOD ######
+##################
+
+- name:  Cragroot Maple Wood
+  class: Wood
+  subclass: Maple Wood
+  weight: 10
+  produces: 
+    - Cragroot Maple Timber
+
+- name:  Springbranch Maple Wood
+  class: Wood
+  subclass: Maple Wood
+  weight: 10
+  produces: 
+    - Springbranch Maple Timber
+
+- name:  Redvale Maple Wood
+  class: Wood
+  subclass: Maple Wood
+  weight: 10
+  produces: 
+    - Redvale Maple Timber
+
+##################
+##### TIMBER #####
+##################
+
+- name:  Cragroot Maple Timber
+  class: Timber
+  subclass: Maple Timber
+  weight: 1
+
+- name:  Springbranch Maple Timber
+  class: Timber
+  subclass: Maple Timber
+  weight: 1
+
+- name:  Redvale Maple Timber
+  class: Timber
+  subclass: Maple Timber
+  weight: 1
+
+- name:  Wrapwood Birch Timber
+  class: Timber
+  subclass: Birch Timber
+  weight: 1
+
+- name:  Shivering Birch Timber
+  class: Timber
+  subclass: Birch Timber
+  weight: 1
+
+- name:  Razor Birch Timber
+  class: Timber
+  subclass: Birch Timber
+  weight: 1
+
+##################
+##### FOOD #####
+##################
+
+- name: Spring Water
+  class: Water
+  subclass: Spring Water
+  weight: 1
+
+- name: Honeybell Berries
+  class: Food
+  subclass: Berries
+  weight: 1
+
+- name: Amitanian Grape
+  class: Raw
+  subclass: Food
+  weight: 1
+
+- name: bones
+  class: Raw
+  subclass: bones
+  weight: 10
+
+- name: Gold Coins
+  class: Gold Coins
+  subclass: Gold Coins
+  weight: 0.01
+
+- name: Pick Axe
+  class: Gathering
+  subclass: Pick Axe
+  weight: 5
+
+- name: Mana
+  class: Resource
+  subclass: Mana
+  weight: 1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

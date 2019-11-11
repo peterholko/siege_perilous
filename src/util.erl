@@ -28,8 +28,8 @@
          get_app/1,
          bin_to_hex/1,
          hex_to_bin/1,
-         console_on/0,
-         console_off/0,
+         on/0,
+         off/0,
          debug/1,
          capfirst/1,
          get_id/0,
@@ -123,9 +123,9 @@ hex_to_bin(BinStr) when is_binary(BinStr) ->
 hex_to_bin(Str) -> 
     {<< << (list_to_integer([H], 16)):4 >> || H <- Str >>}.
 
-console_off() ->
+off() ->
     lager:set_loglevel(lager_console_backend, none).
-console_on() ->
+on() ->
     lager:set_loglevel(lager_console_backend, info).
 
 debug(true) -> lager:set_loglevel(lager_console_backend, debug);

@@ -145,7 +145,6 @@ convert_event(#obj_move{obj = Obj, source_pos = {X, Y}}) ->
 check_event_visible(Event, Observers) ->
     F = fun(Observer, AllEvents) ->
             
-
             NewAllEvents = add_observed_event(Observer, Event, AllEvents),
             NewAllEvents
         end,
@@ -215,7 +214,7 @@ add_observed_event(Observer, Event = #obj_reveal{obj = Obj}, AllEvents) ->
 add_observed_event(Observer, Event = #obj_delete{obj = Obj, source_pos = SourcePos}, AllEvents) ->
     Result = {is_visible_by_observer(Observer, Obj),
               check_distance(Observer, SourcePos)},
-
+    lager:info("ObjDelete: ~p", [Result]),
     case Result of
         {_, false} ->
             AllEvents; %Obj deleted is not seen by observer

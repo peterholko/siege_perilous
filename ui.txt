@@ -58,3 +58,92 @@ Hero Actions:
 
 214 x 314 - Small Frame Shrink x3
 341 x 341 
+
+def: 0
+mc: 1
+name: "Grasslands"
+packet: "info_tile"
+passable: true
+resources: []
+sanctuary: false
+unrevealed: 2
+wildness: "Savage"
+x: 16
+y: 37
+
+base_def: 0
+base_dmg: 0
+base_hp: 50
+base_speed: 0
+build_time: 25
+class: "structure"
+dmg_range: 0
+level: 0
+name: "Tent"
+req: Array(1)
+0: {quantity: 1, type: "Wood"}
+length: 1
+__proto__: Array(0)
+subclass: "shelter"
+template: "Tent"
+__proto__: Object
+
+class: "Ore"
+effects: Array(2)
+0: {type: "Spear Damage %", value: 0.37}
+1: {type: "Axe Damage %", value: -0.27}
+length: 2
+__proto__: Array(0)
+equip: "false"
+id: 16
+name: "Valleyrun Copper Ore"
+owner: 6
+packet: "info_item"
+produces: Array(2)
+0: "Valleyrun Copper Ingot"
+1: "Valleyrun Copper Dust"
+length: 2
+__proto__: Array(0)
+quantity: 100
+subclass: "Copper Ore"
+weight: 10
+__proto__: Object
+
+
+destid: 7
+item: {class: "Wood", equip: "false", id: 22, name: "Cragroot Maple Wood", owner: 7, …}
+merged: true
+packet: "info_item_transfer"
+sourceid: 20
+sourceitemid: 21
+
+
+
+
+
+destid: 7
+item: {class: "Wood", equip: "false", id: 14, name: "Cragroot Maple Wood", owner: 7, …}
+merged: false
+packet: "info_item_transfer"
+sourceid: 20
+sourceitemid: 14
+
+FOUNDED => Progress 0
+PROGRESSING => Progress X + timer
+STALLED => Progress X
+NONE => Progress hide
+
+
+
+class: "Weapon"
+damage: 10
+item: "Copper Training Axe"
+name: "Copper Training Axe"
+req: (2) [{…}, {…}]
+skill_req: 0
+slot: "Main Hand"
+speed: 5
+stamina_req: 10
+structure: "Blacksmith"
+subclass: "Axe"
+__proto__: Objec

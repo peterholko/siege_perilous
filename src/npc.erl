@@ -22,12 +22,16 @@
 -export([is_not_structure_inspected/1]).
 -export([set_pos_flee/1, set_pos_guard/1, set_pos_order/1,
          move_random_pos/1, move_to_target/1, attack/1, move_to_pos/1]).
--export([get_player_id/1]).
--export([has_mana/2, phase_id/2, corpses_nearby/1, move_in_range/1, cast_raise_dead/1, 
+-export([get_player_id/1, pay_tax/2]).
+-export([has_mana/2, has_order/2, phase_id/2, corpses_nearby/1, move_in_range/1, cast_raise_dead/1, 
          cast_shadow_bolt/1, set_pos_mausoleum/1, hide/1, reveal/1, next_phase/1]).
 -export([mausoleum_corpses_nearby/1, mausoleum_guardian_dead/1, has_minions/3, are_minions_dead/1, swarm_attack/1]).
 -export([say_guard_text/1]).
--export([idle/1]).
+-export([wait/2, idle/1]).
+-export([find_trade_pos/1, set_pos_empire/1, set_pos_landing/1]).
+-export([is_hauling_collector/1, unload_tax_collector/1, is_tax_collected/1, say_demand_tax/1,
+         is_ship_adjacent/1, at_landing_pos/1, is_in_empire/1]).
+-export([board_ship/1, wait_count/3, find_item/1, take_item/1]).
 %% ====================================================================
 %% External functions
 %% ====================================================================
@@ -72,6 +76,22 @@ set_data(Id, Data) ->
 get_player_id(NPCType) ->
     [NPCPlayer] = db:index_read(player, NPCType, #player.name),
     NPCPlayer#player.id.
+
+%TODO move to empire module
+pay_tax(PlayerId, PayAmount) ->
+    [EmpirePlayer] = db:read(player, ?EMPIRE),
+    TaxAmountDue = maps:get({PlayerId, tax_amount_due}, EmpirePlayer#player.data),
+
+    NewData = case TaxAmountDue =< PayAmount of
+                true ->
+                    D1 = maps:put({PlayerId, is_tax_collected}, true, EmpirePlayer#player.data),
+                    maps:put({PlayerId, tax_amount_due}, 0, D1);
+                false ->
+                    maps:put({PlayerId, tax_amount_due}, TaxAmountDue - PayAmount, EmpirePlayer#player.data)
+                end,
+    
+    NewEmpirePlayer = EmpirePlayer#player{data = NewData},
+    db:write(NewEmpirePlayer).
 
 %% HTN Conditions %%%
 
@@ -177,6 +197,51 @@ is_not_structure_inspected(NPC) ->
     Inspected = obj_attr:value(GuardingStructureId, <<"inspected">>, false),
     not Inspected.
 
+is_hauling_collector(NPC) ->
+    obj_attr:value(NPC#npc.id, <<"hauling">>) =/= [].
+
+is_tax_collected(NPC) ->
+    TargetPlayer = maps:get(target_player, NPC#npc.data),
+    [EmpirePlayer] = db:read(player, ?EMPIRE),
+    maps:get({TargetPlayer, is_tax_collected}, EmpirePlayer#player.data).
+
+is_ship_adjacent(NPC) ->
+    NPCObj = obj:get(NPC#npc.id),
+    ShipId = maps:get(tax_collector_ship, NPC#npc.data),
+    ShipObj = obj:get(ShipId),
+
+    Adjacent = map:is_adjacent(NPCObj, ShipObj),
+    lager:info("Adjacent: ~p", [Adjacent]),
+    Adjacent.
+
+at_landing_pos(NPC) ->
+    NPCObj = obj:get(NPC#npc.id),
+
+    TargetPlayerId = maps:get(target_player, NPC#npc.data),
+    [EmpirePlayer] = db:read(player, ?EMPIRE),
+    LandingPos = maps:get({TargetPlayerId, landing_pos}, EmpirePlayer#player.data),
+    
+    obj:pos(NPCObj) =:= LandingPos.
+
+wait_count(NPC, Operator, Value) ->
+    lager:info("Wait count"),
+    WaitCount = maps:get(wait_count, NPC#npc.data, 0),
+
+    lager:info("Wait count ~p ~p ~p", [WaitCount, Operator, Value]),
+    Result = case Operator of
+        less -> WaitCount < Value;
+        moreorequal -> WaitCount >= Value
+    end,
+    lager:info("Wait Count result: ~p", [Result]),
+    Result.
+
+has_order(NPC, Order) ->
+    NPC#npc.order =:= Order.
+
+is_in_empire(NPC) ->
+    [NPCObj] = db:read(obj, NPC#npc.id),
+    obj:pos(NPCObj) =:= ?EMPIRE_POS.
+
 %%% HTN Primitives %%%
 
 set_pos_guard(NPC) ->
@@ -222,11 +287,24 @@ move_to_target(NPC) ->
 
             case IsAdjacent of
                 false ->
-                    Path = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos, NPCObj),
-                    move_next_path(NPCObj, Path),
+                    PathResult = astar:astar(NPCObj#obj.pos, TargetObj#obj.pos, NPCObj),
 
-                    NPC#npc {task_state = running,
-                             path = Path};
+                    {TaskState, NewPath} = 
+                        case PathResult of
+                            {success, Path} ->
+                                move_next_path(NPCObj, Path),
+                                {running, Path};
+                            {nearby, _Dist, Closest} ->
+                                %Safe to assume successful path found to Closest
+                                {success, NearbyPath} = astar:astar(obj:pos(NPCObj), Closest, NPCObj),
+                                move_next_path(NPCObj, NearbyPath),
+                                {running, NearbyPath};
+                            {failed, _} ->
+                                {complete, []}
+                        end,
+
+                    NPC#npc {task_state = TaskState,
+                             path = NewPath};
                 true ->
                     obj:update_state(NPC#npc.id, none),
                     NPC#npc {task_state = completed}
@@ -275,21 +353,37 @@ move_to_pos(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
 
     Dest = NPC#npc.dest,
+    lager:info("NPC Id: ~p Curr: ~p Dest: ~p ", [NPC#npc.id, NPCObj#obj.pos, Dest]),    
 
     %If dest is set and dest does not equal villager current pos
     NewNPC = case (Dest =/= none) and (Dest =/= NPCObj#obj.pos) of
                   true ->
-                     Path = astar:astar(NPCObj#obj.pos, Dest, NPCObj),
+                    PathResult = astar:astar(NPCObj#obj.pos, 
+                                             Dest, 
+                                             NPCObj),
+                    lager:info("PathResult: ~p", [PathResult]),
 
-                     case Path of
-                         [] -> 
-                             %No path, move task completed
-                             NPC#npc {task_state = completed};
-                         _ -> 
-                             %Move to next path location
-                             move_unit(NPCObj, lists:nth(2, Path)),
-                             NPC#npc {task_state = running, path = Path}
-                     end;
+                    {TaskState, NewPath} = 
+                        case PathResult of
+                            {success, Path} ->
+                                move_next_path(NPCObj, Path),
+                                {running, Path};
+                            {nearby, _Dist, Closest} ->
+                                %Safe to assume successful path found to Closest
+                                case Closest =:= obj:pos(NPCObj) of
+                                    true -> 
+                                        {completed, []};
+                                    false -> 
+                                        {success, NearbyPath} = astar:astar(obj:pos(NPCObj), Closest, NPCObj),
+                                        move_next_path(NPCObj, NearbyPath),
+                                        {running, NearbyPath}
+                                end;
+                            {failed, _} ->
+                                {completed, []}
+                        end,
+
+                    lager:info("TaskState: ~p NewPath: ~p", [TaskState, NewPath]),
+                    NPC#npc {task_state = TaskState, path = NewPath};
                   false ->
                      obj:update_state(NPC#npc.id, none),
                      NPC#npc {task_state = completed}
@@ -319,8 +413,9 @@ move_in_range(NPC) ->
                         none ->
                             obj:update_state(NPC#npc.id, none),
                             NPC#npc {task_state = completed};
-                        ClosestPos ->                          
-                            Path = astar:astar(NPCObj#obj.pos, ClosestPos, NPCObj),
+                        ClosestPos ->     
+                            %Assume there is a path TODO reconsider                     
+                            {success, Path} = astar:astar(NPCObj#obj.pos, ClosestPos, NPCObj),
                             move_next_path(NPCObj, Path),
             
                             NPC#npc {task_state = running, path = Path}
@@ -405,6 +500,125 @@ swarm_attack(NPC) ->
     lists:foreach(F, Minions),
     NPC#npc{task_state = completed}.
 
+find_trade_pos(NPC) ->
+    %TODO find player positions
+    lager:info("Find trade pos"),
+    LandingPos = {15, 37},
+    NewData = maps:put(landing_pos, {15,38}, NPC#npc.data),
+
+    NPC#npc{dest = LandingPos, data = NewData, task_state = completed}.
+
+wait(NPC, Time) ->
+    lager:info("NPC Wait ~p", [Time]),
+    game:add_event(self(), wait, NPC#npc.id, NPC#npc.id, Time),
+
+    WaitCount = maps:get(wait_count, NPC#npc.data, 0),
+    NewData = maps:put(wait_count, WaitCount + 1, NPC#npc.data),
+
+    NPC#npc{data = NewData,
+            task_state = running}.
+
+set_pos_empire(NPC) -> 
+    %TODO define empire location
+    NPC#npc{dest = {0, 40}, task_state = completed}.
+
+unload_tax_collector(NPC) ->
+    lager:info("Unloading tax collector"),
+    TaxCollectorId = maps:get(tax_collector, NPC#npc.data),
+    
+    %Get landing pos
+    TargetPlayerId = maps:get(target_player, NPC#npc.data),
+    [EmpirePlayer] = db:read(player, ?EMPIRE),
+    LandingPos = maps:get({TargetPlayerId, landing_pos}, EmpirePlayer#player.data),
+ 
+    %Unload tax collector
+    obj:unload(NPC#npc.id, TaxCollectorId),
+
+    %Move tax collector to landing pos
+    game:add_obj_move(self(), TaxCollectorId, ?EMPIRE_POS, LandingPos, 4),
+    NPC#npc{task_state = completed}.
+
+set_pos_landing(NPC) ->
+    TargetPlayerId = maps:get(target_player, NPC#npc.data),
+    [EmpirePlayer] = db:read(player, ?EMPIRE),
+    LandingPos = maps:get({TargetPlayerId, landing_pos}, EmpirePlayer#player.data),
+
+    NPC#npc{dest = LandingPos, task_state = completed}.
+
+board_ship(NPC) ->
+    NPCObj = obj:get(NPC#npc.id),
+
+    TaxCollectorShipId = maps:get(tax_collector_ship, NPC#npc.data),
+    %TODO Check if the tax collector is actually nearby to board
+
+    Text = "Farewell, until next tax season!",
+    sound:talk(NPC#npc.id, Text),
+
+    obj_attr:set(TaxCollectorShipId, <<"hauling">>, [NPC#npc.id]),
+    obj:update_state(NPC#npc.id, ?ABOARD),
+
+    game:add_obj_move(self(), NPC#npc.id, obj:pos(NPCObj), ?EMPIRE_POS, 4),
+    
+    NPC#npc{task_state = completed}.
+
+find_item(NPC) ->
+    NPCObj = obj:get(NPC#npc.id),
+    TargetPlayer = maps:get(target_player, NPC#npc.data),
+    TargetObjs = obj:get_by_player(TargetPlayer),
+
+    %Returns {none, none} if no valid nearby item
+    {FinalData, Dest} = case find_nearest_item(NPCObj, TargetObjs) of
+                        {none, none} -> 
+                            {NPC#npc.data, none};
+                        {TargetObj, TargetItem} ->  
+                            NewData = maps:put(take_item, 
+                                               item:id(TargetItem), 
+                                               NPC#npc.data),
+                            {NewData, obj:pos(TargetObj)}
+                      end,
+
+    NPC#npc{dest = Dest,
+            data = FinalData,
+            task_state = completed}. 
+
+take_item(NPC) ->
+    lager:info("Take Item"),
+    NPCObj = obj:get(NPC#npc.id),
+
+    TakeItemId = maps:get(take_item, NPC#npc.data),
+    Item = item:get_rec(TakeItemId),
+    ItemOwner = obj:get(item:owner(Item)),
+    
+    IsAdjacent = map:is_adjacent(obj:pos(NPCObj), obj:pos(ItemOwner)),
+    SamePos = obj:pos(NPCObj) =:= obj:pos(ItemOwner),
+
+    NewData = case IsAdjacent orelse SamePos of
+                true -> 
+                    Text = "No gold? Poor rabble! Forfeiture time!",
+                    sound:talk(NPC#npc.id, Text),
+
+                    item:transfer(TakeItemId, NPC#npc.id),
+
+                    %TODO calculate item value
+
+                    %TODO move to another module, set the is_tax_collected to true
+                    TargetPlayer = maps:get(target_player, NPC#npc.data),
+
+                    [EmpirePlayer] = db:read(player, ?EMPIRE),
+                    NewEmpirePlayerData = maps:put({TargetPlayer, is_tax_collected}, true, EmpirePlayer#player.data),
+                    NewEmpirePlayer = EmpirePlayer#player {data = NewEmpirePlayerData},
+                    db:write(NewEmpirePlayer),
+
+                    NPC#npc.data; 
+                false -> 
+                    lager:info("Cannot transfer item ~p, (~p) (~p)", 
+                            [obj:pos(NPCObj), obj:pos(ItemOwner)]),
+                    NPC#npc.data
+              end,
+
+    NPC#npc{data = NewData,
+            task_state = completed}.
+
 idle(NPC) ->
     NPC.
 
@@ -414,6 +628,13 @@ say_guard_text(NPC) ->
 
     NPC#npc{task_state = completed}.
 
+say_demand_tax(NPC) ->
+    Text = "Taxes! Taxes! 50 gp or asset forfeiture!",
+    sound:talk(NPC#npc.id, Text),
+
+    NPC#npc{task_state = completed}.
+
+   
 
 %% ====================================================================
 %% Server functions
@@ -462,6 +683,7 @@ handle_cast({set_order, NPCId, Order, NPCData}, Data) ->
 handle_cast({set_data, NPCId, NPCData}, Data) ->
     NPC = maps:get(NPCId, Data),
     
+    %Overrides any keys from NPCData
     NewNPCData = maps:merge(NPC#npc.data, NPCData),
 
     NewNPC = NPC#npc {data = NewNPCData},
@@ -487,6 +709,7 @@ handle_call({create, Pos, Template}, _From, Data) ->
                last_run = ?MAX_INT},
 
     NewData = maps:put(NPCId, NPC, Data),
+    lager:info("Create completed..."),
 
     {reply, NPCId, NewData};
 
@@ -501,6 +724,7 @@ handle_call({create, Pos, PlayerId, Template}, _From, Data) ->
                last_run = ?MAX_INT},
 
     NewData = maps:put(NPCId, NPC, Data),
+    lager:info("Create completed..."),
 
     {reply, NPCId, NewData};
 
@@ -615,7 +839,7 @@ process_plan(NPC, Tick) ->
     NewNPC = process_perception(NPC),
 
     CurrentPlan = NewNPC#npc.plan,    
-    {_PlanLabel, NewPlan} = htn:plan(NewNPC#npc.order, NewNPC, npc),    
+    {_PlanLabel, NewPlan} = htn:plan(NewNPC#npc.order, NewNPC, npc),   
 
     case NewPlan =:= CurrentPlan of
         false ->
@@ -640,9 +864,17 @@ process_run_plan(NPC, Tick) ->
             NewNPC#npc{last_run = Tick}
     end.
 
+get_task_by_index(NPC, TaskIndex) ->
+    TaskData = lists:nth(TaskIndex, NPC#npc.plan),
+    process_task_data(NPC, TaskData).
+
+process_task_data(NPC, {TaskName, TaskArgs}) -> {TaskName, [NPC, TaskArgs]};
+process_task_data(NPC, TaskName) -> {TaskName, [NPC]}.
+
 process_task_state(init, NPC) ->
-    TaskToRun = lists:nth(1, NPC#npc.plan),
-    NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
+    {TaskName, TaskArgs} = get_task_by_index(NPC, 1),
+
+    NewNPC = erlang:apply(npc, TaskName, TaskArgs),
     NewNPC;
 process_task_state(completed, NPC) ->
     TaskIndex = NPC#npc.task_index,
@@ -652,8 +884,9 @@ process_task_state(completed, NPC) ->
 
     case NextTask of
         {next_task, NextTaskIndex} ->
-            TaskToRun = lists:nth(NextTaskIndex, NPC#npc.plan),
-            NewNPC = erlang:apply(npc, TaskToRun, [NPC]),
+            {TaskName, TaskArgs} = get_task_by_index(NPC, NextTaskIndex),
+
+            NewNPC = erlang:apply(npc, TaskName, TaskArgs),
             NewNPC#npc{task_index = NextTaskIndex};
         plan_completed -> 
             NPC#npc{task_state = init, task_index = 1}
@@ -675,13 +908,15 @@ get_next_task(_TaskIndex, _PlanLength) ->
 move_next_path(_NPCObj, []) -> nothing;
 move_next_path(NPCObj, Path) -> move_unit(NPCObj, lists:nth(2, Path)).
 
-move_unit(Obj = #obj {id = Id, pos = Pos}, NewPos) when is_tuple(NewPos) ->
+move_unit(Obj = #obj{id = Id, pos = Pos}, NewPos) when is_tuple(NewPos) ->
+    lager:info("Move Unit: ~p ~p ~p", [Obj, Pos, NewPos]),
     SourcePos = Pos,
     DestPos = NewPos,
     MoveTicks = event_ticks(obj:movement_cost(Obj, DestPos)),
+    lager:info("Move Ticks: ~p", [MoveTicks]),
 
     %Add obj update state to change to moving state on next tick
-    game:add_obj_update(self(), Id, ?STATE, ?MOVING, 0),
+    game:add_obj_update(self(), Id, ?STATE, ?MOVING, 1),
                 
     %Add obj move event to execute in MoveTicks
     game:add_obj_move(self(), Id, SourcePos, DestPos, MoveTicks);    
@@ -744,13 +979,13 @@ get_wander_pos(NPCObj, false,  _, Neighbours) ->
 
     get_wander_pos(NPCObj, IsAvailable, RandomPos, NewNeighbours).
 
-is_pos_available(#obj{player = Player}, RandomPos) when Player =:= ?UNDEAD ->
+is_pos_available(Obj = #obj{player = Player}, RandomPos) when Player =:= ?UNDEAD ->
     IsAvailable = obj:is_empty(RandomPos) andalso
-                  map:is_passable(RandomPos) andalso
+                  map:is_passable(RandomPos, Obj) andalso
                   not effect:has_effect({tile, RandomPos}, ?SANCTUARY),
     IsAvailable;
-is_pos_available(_, RandomPos) ->
-    obj:is_empty(RandomPos) and map:is_passable(RandomPos).
+is_pos_available(Obj, RandomPos) ->
+    obj:is_empty(RandomPos) and map:is_passable(RandomPos, Obj).
 
 check_wall(#obj{id = Id} = EnemyUnit) ->    
     case effect:get_effect_data(Id, ?FORTIFIED) of
@@ -761,8 +996,8 @@ check_wall(_) ->
     none.
 
 find_target(NPCObj, AllEnemyUnits) ->
-    Int = obj_attr:value(NPCObj#obj.id, <<"int">>),
-    Aggression = obj_attr:value(NPCObj#obj.id, <<"aggression">>),
+    Int = obj_attr:value(NPCObj#obj.id, <<"int">>, none),
+    Aggression = obj_attr:value(NPCObj#obj.id, <<"aggression">>, none),
     find_target(NPCObj, Int, Aggression, AllEnemyUnits).
 
 find_target(_NPCObj, _, _, []) ->
@@ -775,7 +1010,9 @@ find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
 find_target(NPCObj, <<"animal">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_poi(remove_structures(remove_dead(remove_fortified(AllEnemyUnits)))),
     EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
-    return_target(EnemyUnit). 
+    return_target(EnemyUnit);
+find_target(_NPCObj, _, _, _) ->
+    none.
 
 return_target(Target) when is_record(Target, obj) ->
     Target#obj.id;
@@ -813,7 +1050,7 @@ process_perception(NPC) ->
 process_complete(false, Data) -> Data;
 process_complete(NPC, Data) ->
     Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
-
+    lager:info("Process complete Task: ~p", [Task]),
 
     NewNPC = case Task of
                  move_random_pos -> complete_task(NPC);
@@ -823,6 +1060,7 @@ process_complete(NPC, Data) ->
                  attack -> complete_task(NPC);
                  cast_raise_dead -> complete_task(NPC);
                  cast_shadow_bolt -> complete_task(NPC);
+                 {wait, _} -> lager:info("Completing Wait Task"), complete_task(NPC);
                  _ -> NPC
              end,
 
@@ -836,6 +1074,62 @@ compare_dist_range(Dist, Range) when Dist =/= Range -> out_of_range.
 
 event_ticks(Ticks) ->
     case ?FAST_EVENTS of
-        true -> 1;
+        true -> 2;
         false -> Ticks
     end.
+
+%TODO move to another module
+
+%find_item_from_objs(Objs) ->
+%    find_item_from_objs(Objs, false).
+%find_item_from_objs(_, {Owner, FoundItem}) ->
+%    {Owner, FoundItem};
+%find_item_from_objs([], _) ->
+%    false;
+%find_item_from_objs([Obj | Rest], false) ->
+%    lager:info("~p", [Obj]),
+
+
+%    FoundItem = case item:get_by_owner(obj:id(Obj)) of
+%                    [Item | _] -> {Obj, Item};
+%                    [] -> false
+%                end,
+
+%    lager:info("~p", [FoundItem]),
+%    find_item_from_objs(Rest, FoundItem).
+
+
+
+
+find_nearest_item(NPCObj, Objs) ->
+    %Initial distance 9999
+    find_nearest_item(NPCObj, Objs, {none, none, 9999}).
+
+find_nearest_item(_NPCObj, [], {TargetObj, TargetItem, _TargetDistance}) ->
+    {TargetObj, TargetItem};
+find_nearest_item(NPCObj, [Obj | Rest], {TargetObj, TargetItem, TargetDistance}) ->
+    NewTargetDistance = map:distance(obj:pos(NPCObj), obj:pos(Obj)),
+
+    NewTarget = case NewTargetDistance < TargetDistance of
+                        true -> 
+                            case astar:astar(obj:pos(NPCObj), 
+                                             obj:pos(Obj), 
+                                             NPCObj) of
+                                {success, _Path} ->
+                                    case item:get_by_owner(obj:id(Obj)) of
+                                        [Item | _] -> {Obj, Item, NewTargetDistance};
+                                        _ -> {TargetObj, TargetItem, TargetDistance}
+                                    end;
+                                {nearby, Dist, _Closest} when Dist =:= 1 -> %Adjacent
+                                    case item:get_by_owner(obj:id(Obj)) of
+                                        [Item | _] -> {Obj, Item, NewTargetDistance};
+                                        _ -> {TargetObj, TargetItem, TargetDistance}
+                                    end;
+                                {_, _} -> 
+                                    {TargetObj, TargetItem, TargetDistance}
+                            end;
+                        false -> 
+                            {TargetObj, TargetItem, TargetDistance}
+                   end,
+
+    find_nearest_item(NPCObj, Rest, NewTarget).

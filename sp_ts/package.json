@@ -23,6 +23,8 @@
     "@types/react-dom": "16.8.5",
     "@types/react-redux": "^7.0.8",
     "jest": "^24.8.0",
+    "overlayscrollbars": "^1.10.0",
+    "overlayscrollbars-react": "^0.2.0",
     "phaser": "^3.18.1",
     "react": "^16.9.0",
     "react-css-modules": "^4.7.11",
@@ -30,6 +32,7 @@
     "react-redux": "^7.0.2",
     "react-scripts": "^3.0.0",
     "redux": "^4.0.1",
+    "simplebar-react": "^2.0.5",
     "typescript": "3.5.3"
   },
   "scripts": {

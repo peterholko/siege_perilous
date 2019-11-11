@@ -39,7 +39,7 @@ spawn_random_npc(TileName, Pos) ->
     NPCList = npc_list(TileName),
     Random = util:rand(length(NPCList)),
     NPCName = lists:nth(Random, NPCList),
-    Tiles = game:get_valid_tiles(Pos),
+    Tiles = game:get_valid_tiles(Pos), %TODO FIX get valid tiles
 
     case Tiles of
         [] -> nothing; %No valid tiles

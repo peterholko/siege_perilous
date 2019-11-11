@@ -1,4 +1,5 @@
 import { Global } from './global';
+import { SPRITE, CONTAINER, IMAGE } from './config';
 
 export class Util {
 
@@ -63,6 +64,32 @@ export class Util {
     return Util.cube_to_odd_q(cube.x, cube.y, cube.z);
   }
 
+  static range(srcX, srcY, dist) {
+
+    var srcCube = Util.odd_q_to_cube(srcX, srcY);
+    var results = [];
+
+    for(var x = -1 * dist; x <= dist; x++) {
+        for(var y = -1 * dist; y <= dist; y++) {
+            for(var z = -1 * dist; z <= dist; z++) {
+
+                if((x + y + z) == 0) {
+                    var cube = {x: 0, y: 0, z: 0};
+
+                    cube.x = srcCube.x + x;
+                    cube.y = srcCube.y + y;
+                    cube.z = srcCube.z + z;
+
+                    var oddq = Util.cube_to_odd_q(cube.x, cube.y, cube.z);
+                    results.push(oddq);
+                }
+            }
+        }
+    }
+
+    return results;
+  };
+
   static getNeighbours(Q, R) {
     var conversion = [ [1, -1, 0], [1, 0, -1], [0, 1, -1], [-1, 1, 0], [-1, 0, 1], [0, -1, 1] ];
     var cube = Util.odd_q_to_cube(Q, R);
@@ -99,7 +126,7 @@ export class Util {
     for(var objId in Global.objectStates) {
       var objectState = Global.objectStates[objId];
 
-      if(objectState.hexX == hexX && objectState.hexY == hexY) {
+      if(objectState.x == hexX && objectState.y == hexY) {
         objsAt.push(Global.objectStates[objId]);
       }
     }
@@ -117,25 +144,81 @@ export class Util {
     }
   }
 
-  static isSprite(imageName) : Boolean {
-    return 'animations' in Global.imageDefList[imageName];
+  static getImageType(imageName: string) : string { 
+    if(imageName in Global.imageDefList) {
+      if('animations' in Global.imageDefList[imageName]) {
+        return SPRITE;
+      } else if('images' in Global.imageDefList[imageName]) {
+        return CONTAINER;
+      } else {
+        return IMAGE;
+      }
+    }
   }
 
-  static createImage(src : string) {
+  static isSprite(imageName) : Boolean {
+    if(imageName in Global.imageDefList) {
+      return 'animations' in Global.imageDefList[imageName];
+    } else {
+      return false;
+    }
+  }
+
+  static isImage(imageName) : Boolean {
+    if(imageName in Global.imageDefList) {
+      return !('animations' in Global.imageDefList[imageName]);
+    }
+  }
+
+  static isContainer(imageName) : Boolean {
+    if(imageName in Global.imageDefList) {
+      //More than 1 image requires a container
+      return Global.imageDefList[imageName].images.length > 1;
+    }
+  }
+
+  static isVisible(srcX: integer, srcY: integer): boolean {
+    for(var i = 0; i < Global.visibleTiles.length; i++) {
+      var visibleTile = Global.visibleTiles[i];
+
+      if(srcX == visibleTile.q && 
+         srcY == visibleTile.r) {
+          return true;
+      }
+    }
+
+    return false;
+  }
+
+  static createImage(src: string) {
     var image = document.createElement('img');
     image.src = src;
     return image;
   }
   
-  static isPlayerObj(objId : integer) : boolean {
+  static isPlayerObj(objId: integer): boolean {
     return Global.objectStates[objId].player == Global.playerId
   }
-  static isSubclass(objId : integer, subclass : string) : boolean {
+
+  static isClass(objId: integer, _class: string) : boolean {
+    return Global.objectStates[objId].class == _class;
+  }
+
+  static isSubclass(objId: integer, subclass: string) : boolean {
     return Global.objectStates[objId].subclass == subclass;
   }
 
-  static isState(objId : integer, state : string) : boolean {
+  static isState(objId: integer, state: string) : boolean {
     return Global.objectStates[objId].state == state;
+  }
+
+  static isTemplate(objId: integer, template: string) : boolean {
+    return Global.objectStates[objId].template == template;
+  }
+
+  static hasGroup(objId: integer, group: string) : boolean {
+    let groups : Array<string> = Global.objectStates[objId].groups;
+    return groups.includes(group);
   }
 
 }
