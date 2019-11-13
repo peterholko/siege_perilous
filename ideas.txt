@@ -257,8 +257,37 @@ Dust - enchants items, temporary
 
 Experimenting:
 
-1. Unlock special recipes by experimenting in the crafting structures.  The experiment action will randomly combine the resources in the structure to discover the special recipe.  
+1. Unlock special recipes by experimenting in the crafting structures.  The experiment action will randomly combine the resources in the structure to discover the special recipe.  Not sure now???
+
+Experimenting Potential Results:
+1. Unlock recipes
+2. Improve base stats / reduce costs or penalties
+3. Generate craft points ???
+
+Crafting Redesign:
+
+1. Quality Levels - Poor/Normal/Good/Superior/Exceptional/Masterful => Determine by by crafting skill & roll
+   Quality level can attempted to be improved (at the cost of durability and resources or the same class of item?)
+
+2. Resources - Copper Ore
+	       Uncommon Copper Ore
+	       Rare Copper Ore
+
+3. Recipes - Standard 
+	     Magical 
+
+4. Actions - Gathering
+	   - Refining
+	   - Crafting
+	   - Improving
+	   - Enchant
+	   - Transmute (maybe?)
+
+ 
+
+
+ 
 
 
 
-
+2. 

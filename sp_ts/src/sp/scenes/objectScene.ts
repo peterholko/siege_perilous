@@ -43,10 +43,20 @@ export class ObjectScene extends Phaser.Scene {
     this.load.image('selecthex', './static/art/hover-hex.png');
     this.load.image('foundation', './static/art/foundation.png');
     this.load.image('shroud', './static/art/shroud.png');
+    this.load.spritesheet('shadowbolt', './static/art/shadowbolt.png', { frameWidth: 72, frameHeight: 72, endFrame: 5});
+
   }
 
   create(): void {
     console.log('Object Scene Create');
+
+    var shadowBoltConfig = {
+      key: 'shadowboltanim',
+      frames: this.anims.generateFrameNumbers('shadowbolt', {start: 0, end: 5, first: 0}),
+      frameRate: 10
+    }
+
+    this.anims.create(shadowBoltConfig);
    
     this.onJumpComplete = this.onJumpComplete.bind(this);
     this.onMoveComplete = this.onMoveComplete.bind(this);
@@ -640,26 +650,50 @@ export class ObjectScene extends Phaser.Scene {
         this.cameras.main.stopFollow();
       }
 
-      console.log('Play attack');
-      source.play(source.imageName + '_attack');
-      source.anims.chain(source.imageName + '_none');
+      if(message.attacktype == 'Shadow Bolt') {
+        source.play(source.imageName + '_cast');
+        source.anims.chain(source.imageName + '_none');
 
-      var diffX = (target.x - source.x) * 0.5;
-      var diffY = (target.y - source.y) * 0.5;
+        var shadowBolt = this.add.sprite(source.x, source.y, 'shadowbolt');
+        shadowBolt.anims.play('shadowboltanim');
 
-      var destX = source.x + diffX;
-      var destY = source.y + diffY;
+        var diffX = (target.x - source.x) * 0.5;
+        var diffY = (target.y - source.y) * 0.5;
 
-      var tween = this.tweens.add({
-        targets: source,
-        x: destX,
-        y: destY,
-        ease: 'Power2',
-        duration: 750,
-        onComplete: this.onJumpComplete
-      });
+        var destX = target.x;
+        var destY = target.y;
 
-      tween.play();
+        var tween = this.tweens.add({
+          targets: shadowBolt,
+          x: destX,
+          y: destY,
+          ease: 'Power2',
+          duration: 1000,
+        });
+
+      } else {
+
+        console.log('Play attack');
+        source.play(source.imageName + '_attack');
+        source.anims.chain(source.imageName + '_none');
+
+        var diffX = (target.x - source.x) * 0.5;
+        var diffY = (target.y - source.y) * 0.5;
+
+        var destX = source.x + diffX;
+        var destY = source.y + diffY;
+
+        var tween = this.tweens.add({
+          targets: source,
+          x: destX,
+          y: destY,
+          ease: 'Power2',
+          duration: 750,
+          onComplete: this.onJumpComplete
+        });
+
+        tween.play();
+      }
 
       var dmgText = this.add.text(target.x + 36, target.y - 5, message.dmg, { fontFamily: 'Verdana', fontSize: 24, color: '#FF0000' });
       dmgText.setDepth(10);

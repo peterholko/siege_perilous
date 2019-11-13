@@ -1019,8 +1019,8 @@ generate(Level, PlayerId, Pos) ->
     obj_attr:set(Id, ?SPIRIT, util:rand(10 + Level)),
     obj_attr:set(Id, ?CREATIVITY, util:rand(10 + Level)),
 
-    GSkills = skill_def:select(<<"class">>, <<"Gathering">>),
-    CSkills = skill_def:select(<<"class">>, <<"Crafting">>),
+    GSkills = skill_template:select(<<"class">>, <<"Gathering">>),
+    CSkills = skill_template:select(<<"class">>, <<"Crafting">>),
     AllSkills = GSkills ++ CSkills,
 
     Skill1 = lists:nth(util:rand(length(AllSkills)), AllSkills),
