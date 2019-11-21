@@ -59,10 +59,6 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
   }
 
   render() {
-
-    console.log('this.props.leftInventoryData.id: ' + this.props.leftInventoryData.id);
-    console.log('this.props.rightInventoryData.id: ' + this.props.rightInventoryData.id);
-
     const transferStyle = {
       top: '50%',
       left: '50%',
@@ -74,15 +70,17 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
 
     return (
       <div>
-        <BaseInventoryPanel left={true} 
-                            inventoryData={this.props.leftInventoryData} 
+        <BaseInventoryPanel left={true}
+                            id={this.props.leftInventoryData.id} 
+                            items={this.props.leftInventoryData.items} 
                             panelType={'itemTransfer'}
                             hideExitButton={true}
                             hideSelect={this.state.hideLeftSelect}
                             handleSelect={this.handleSelect} />
 
-        <BaseInventoryPanel left={false} 
-                            inventoryData={this.props.rightInventoryData} 
+        <BaseInventoryPanel left={false}
+                            id={this.props.rightInventoryData.id} 
+                            items={this.props.rightInventoryData.items} 
                             panelType={'itemTransfer'}
                             hideExitButton={false}
                             hideSelect={this.state.hideRightSelect}

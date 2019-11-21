@@ -51,6 +51,7 @@ import MerchantQuantityPanel from './ui/merchantQuantityPanel';
 import ResourcePanel from './ui/resourcePanel';
 import HeroFrame from './ui/heroFrame';
 import MerchantHirePanel from './ui/merchantHirePanel';
+import ExperimentPanel from './ui/experimentPanel';
 
 interface UIState {
   selectBoxes : [],
@@ -75,6 +76,7 @@ interface UIState {
   hideMerchantQuantityPanel : boolean,
   hideMerchantHirePanel : boolean,
   hideResourcePanel : boolean,
+  hideExperimentPanel : boolean,
   leftInventoryId : integer,
   leftInventoryData: [],
   rightInventoryId : integer,
@@ -93,6 +95,7 @@ interface UIState {
   itemMerchantQuantityData : any,
   resourceData : any,
   hireData : any,
+  expData : any,
   merchantAction : any, 
   selectedTile : Tile,
   selectedBoxPos : integer,
@@ -130,6 +133,7 @@ export default class UI extends React.Component<any, UIState>{
       hideMerchantQuantityPanel : true,
       hideMerchantHirePanel : true,
       hideResourcePanel : true,
+      hideExperimentPanel : true,
       leftInventoryId: -1,
       leftInventoryData: [],
       rightInventoryId: -1,
@@ -148,6 +152,7 @@ export default class UI extends React.Component<any, UIState>{
       itemMerchantQuantityData : {},
       resourceData : {},
       hireData : {},
+      expData: {},
       merchantAction : 'buy',
       selectedTile: null,
       selectedBoxPos: 0,
@@ -195,6 +200,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.INFO_ATTRS, this.handleInfoAttrs, this);
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
     Global.gameEmitter.on(NetworkEvent.INFO_HAULING, this.handleInfoHauling, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_EXPERIMENT, this.handleInfoExperiment, this);
     Global.gameEmitter.on(NetworkEvent.ITEM_TRANSFER, this.handleItemTransfer, this);
     Global.gameEmitter.on(NetworkEvent.BUYSELL_ITEM, this.handleBuySellItem, this);
     Global.gameEmitter.on(NetworkEvent.STRUCTURE_LIST, this.handleStructureList, this);
@@ -292,6 +298,8 @@ export default class UI extends React.Component<any, UIState>{
       this.setState({hideResourcePanel: true});
     } else if(event.panelType == 'hire') {
       this.setState({hideMerchantHirePanel: true});
+    } else if(event.panelType == 'experiment') {
+      this.setState({hideExperimentPanel: true});
     } 
   }
 
@@ -457,6 +465,11 @@ export default class UI extends React.Component<any, UIState>{
       this.setState({hideErrorPanel : false,
                      errmsg : "No hires availables"});
     }
+  }
+
+  handleInfoExperiment(message) {
+    console.log("UI handleInfoExperiment");
+    this.setState({hideExperimentPanel: false, expData: message});
   }
 
   handleItemTransfer(message) {
@@ -656,6 +669,9 @@ export default class UI extends React.Component<any, UIState>{
 
           {!this.state.hideMerchantHirePanel && 
             <MerchantHirePanel hireData={this.state.hireData} />}
+
+          {!this.state.hideExperimentPanel && 
+            <ExperimentPanel expData={this.state.expData} />}
 
           {!this.state.hideErrorPanel && 
             <ErrorPanel errmsg={this.state.errmsg} />}

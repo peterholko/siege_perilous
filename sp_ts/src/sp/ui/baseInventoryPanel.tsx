@@ -9,7 +9,8 @@ import { Util } from "../util";
 
 interface BaseInventoryProps {
   left : boolean,
-  inventoryData,
+  id: integer,
+  items: any,
   panelType : string,
   hideExitButton : boolean,
   hideSelect : boolean,
@@ -50,7 +51,7 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
   }
 
   render() {
-    const objId = this.props.inventoryData.id;
+    const objId = this.props.id;
     const itemFrames = []
     const items = []
 
@@ -77,11 +78,11 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
       itemFrames.push(<img src={itemframe} key={i} style={itemFrameStyle}/> )
     }
 
-    for(var i = 0; i < this.props.inventoryData.items.length; i++) {
-      console.log('Item: ' + this.props.inventoryData.items[i]);
-      var itemId = this.props.inventoryData.items[i].id;
-      var itemName = this.props.inventoryData.items[i].name;
-      var quantity = this.props.inventoryData.items[i].quantity;
+    for(var i = 0; i < this.props.items.length; i++) {
+      console.log('Item: ' + this.props.items[i]);
+      var itemId = this.props.items[i].id;
+      var itemName = this.props.items[i].name;
+      var quantity = this.props.items[i].quantity;
 
       var xPos = 31 + ((i % 5) * 53);
       var yPos = -286 + (Math.floor(i / 5) * 53);

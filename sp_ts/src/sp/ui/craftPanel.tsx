@@ -53,7 +53,7 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
   }
 
   render() {
-    var imageName = this.state.recipe.item.toLowerCase().replace(/\s/g, '') + '.png';
+    var imageName = this.state.recipe.image.toLowerCase().replace(/\s/g, '') + '.png';
 
     const reqs = [];
 

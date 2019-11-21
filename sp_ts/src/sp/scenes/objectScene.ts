@@ -660,8 +660,8 @@ export class ObjectScene extends Phaser.Scene {
         var diffX = (target.x - source.x) * 0.5;
         var diffY = (target.y - source.y) * 0.5;
 
-        var destX = target.x;
-        var destY = target.y;
+        var destX = target.x + 36;
+        var destY = target.y + 36;
 
         var tween = this.tweens.add({
           targets: shadowBolt,

@@ -3,22 +3,26 @@
 %% Description: Handles access to item data
 -module(item).
 
+-include("common.hrl").
 -include("schema.hrl").
 
 -export([get_rec/1, get_map/1, get_all_attr/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1,
-         get_weapon_range/1, get_by_class/2]).
+         get_weapon_range/1, get_by_class/2, get_exp_res_by_subclass/2]).
 -export([transfer/2, transfer/3, transfer_by_class/4,
          split/2, update/2, create/1, create/3, create/4, equip/1, unequip/1]).
 -export([has_by_class/2, has_by_subclass/2, has_price/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, 
-         is_class/2, is_subclass/2]).
+         is_class/2, is_subclass/2, is_resource/1]).
 -export([get_total_weight/1, total_gold/1, weight/2]).
--export([id/1, owner/1, quantity/1, price/1, image/1]).
+-export([id/1, name/1, owner/1, quantity/1, price/1, image/1]).
 -export([match_req/3]).
 
 id(Item) when is_map(Item) -> maps:get(<<"id">>, Item);
 id(Item) -> Item#item.id.
+
+name(Item) when is_map(Item) -> maps:get(<<"name">>, Item);
+name(Item) -> Item#item.name.
 
 owner(Item) when is_map(Item) -> maps:get(<<"owner">>, Item);
 owner(Item) -> Item#item.owner.
@@ -26,7 +30,7 @@ owner(Item) -> Item#item.owner.
 quantity(Item) when is_map(Item) -> maps:get(<<"quantity">>, Item);
 quantity(Item) -> Item#item.quantity.
 
-image(Item) when is_map(Item) -> map:get(<<"image">>, Item);
+image(Item) when is_map(Item) -> maps:get(<<"image">>, Item);
 image(Item) -> Item#item.image.
 
 price(ItemId) ->
@@ -116,7 +120,22 @@ get_total_weight(ObjId) ->
         end,
 
     TotalWeight = lists:foldl(F, 0, AllItems),
-    TotalWeight.   
+    TotalWeight. 
+
+get_exp_res_by_subclass(StructureId, SubClass) ->
+    AllItems = get_by_owner(StructureId),
+
+    F = fun(Item) ->
+            item_attr:value(item:id(Item), ?EXP_RESOURCE_ITEM, none) =:= ?TRUE
+        end,
+
+    ExpResources = lists:filter(F, AllItems),
+
+    G = fun(ItemMap) -> 
+            maps:get(<<"subclass">>, ItemMap) =:= SubClass
+        end,
+
+    lists:filter(G, ExpResources).
 
 total_gold(ObjId) ->
     AllItems = db:dirty_index_read(item, ObjId, #item.owner),
@@ -181,6 +200,20 @@ is_valid_split(Player, ItemId, Quantity) when Quantity > 0 ->
         [] -> false
     end;
 is_valid_split(_, _, _) -> false.
+
+is_resource(Item) when is_map(Item) -> 
+    Class = maps:get(<<"class">>, Item),
+    is_resource_from_class(Class);
+is_resource(Item) ->
+    is_resource_from_class(Item#item.class).
+
+is_resource_from_class(?ORE) -> true;
+is_resource_from_class(?WOOD) -> true;
+is_resource_from_class(?STONE) -> true;
+is_resource_from_class(?INGOT) -> true;
+is_resource_from_class(?TIMBER) -> true;
+is_resource_from_class(?BLOCK) -> true;
+is_resource_from_class(_) -> false.
 
 weight(ItemName, ItemQuantity) ->
     ItemWeight = item_template:value(ItemName, <<"weight">>),

@@ -63,15 +63,17 @@ export default class MerchantPanel extends React.Component<MPProps, any> {
 
     return (
       <div>
-        <BaseInventoryPanel left={true} 
-                            inventoryData={this.props.leftInventoryData} 
+        <BaseInventoryPanel left={true}
+                            id={this.props.leftInventoryData.id} 
+                            items={this.props.leftInventoryData.items} 
                             panelType={'merchant'}
                             hideExitButton={true}
                             hideSelect={this.state.hideLeftSelect}
                             handleSelect={this.handleSelect} />
 
         <BaseInventoryPanel left={false} 
-                            inventoryData={this.props.rightInventoryData} 
+                            id={this.props.rightInventoryData.id}
+                            items={this.props.rightInventoryData.items} 
                             panelType={'merchant'}
                             hideExitButton={false}
                             hideSelect={this.state.hideRightSelect}

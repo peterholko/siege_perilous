@@ -267,16 +267,15 @@ do_event(cast, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {cast, SourceId}),
     false;
 
-do_event(ford, EventData, PlayerPid) ->
+do_event(ford, EventData, _PlayerPid) ->
     lager:debug("Processing ford event: ~p", [EventData]),
-    {_Player, Id, Pos, NewPos} = EventData,
+    %{_Player, Id, Pos, NewPos} = EventData,
 
-    case map:get_ford_pos(Pos, NewPos) of
-        none -> nothing;
-        NextPos -> obj:move(Id, NextPos)
-    end,
+    %case map:get_ford_pos(Pos, NewPos) of
+    %    none -> nothing;
+    %    NextPos -> nothing %TODO FIX FORD
+    %end,
 
-    message:send_to_process(PlayerPid, event_complete, {move, Id}),
     true;
 
 do_event(explore, EventData, PlayerPid) ->
@@ -362,24 +361,43 @@ do_event(refine, EventData, PlayerPid) ->
 
 do_event(craft, EventData, PlayerPid) ->
     lager:info("Processing craft event: ~p", [EventData]),
-    {StructureId, UnitId, Recipe} = EventData,
-    VillagerId = villager:get_by_structure(StructureId),
+    {StructureId, VillagerId, Recipe} = EventData,
 
-    case structure:check_recipe_req(StructureId, Recipe) of
+    case villager:has_assigned(StructureId, VillagerId) of
         true ->
-            %Craft items
-            NewItems = recipe:craft(StructureId, Recipe),
-            
-            %Send update to player
-            game:send_update_items(StructureId, NewItems, PlayerPid),
-            
-            %Send event_complete to villager
-            message:send_to_process(global:whereis_name(villager), event_complete, {craft, VillagerId});
+            case structure:check_recipe_req(StructureId, Recipe) of
+                true ->
+                    %Craft items
+                    NewItems = recipe:craft(StructureId, Recipe),
+                    
+                    %Send update to player
+                    game:send_update_items(StructureId, NewItems, PlayerPid),
+                    
+                    %Send event_complete to villager
+                    message:send_to_process(global:whereis_name(villager), 
+                                            event_complete, 
+                                            {craft, VillagerId});
+
+                false ->
+                    nothing
+            end;
         false ->
             nothing
     end,
 
-    obj:update_state(UnitId, none);
+    obj:update_state(VillagerId, none);
+
+do_event(experiment, EventData, PlayerPid) ->
+    lager:info("Processing experiment event: ~p", [EventData]),
+    {StructureId, VillagerId} = EventData,
+
+    case structure:check_experiment_req(StructureId) of
+        true ->
+            structure:experiment(StructureId),
+            game:add_event(PlayerPid, experiment, EventData, VillagerId, 10);
+        false ->
+            lager:info("check_experiment_req failed.")
+    end;
 
 do_event(?DRINKING, EventData, _PlayerPid) ->
     lager:info("Processing drink event: ~p", [EventData]),
@@ -679,7 +697,7 @@ check_random_event(NumTick, Obj = #obj{subclass = Subclass}) when Subclass =:= <
             REvent = revent:create(),
             REventMap = revent:to_map(REvent),
             
-            obj:update_state(Obj, revent, REvent#revent.id),
+            %obj:update_state(Obj, revent, REvent#revent.id),
 
             game:send_revent(Obj#obj.player, REventMap);
         false -> nothing

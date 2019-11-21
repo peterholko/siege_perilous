@@ -7,6 +7,8 @@
 -define(FAST_EVENTS, false).
 -endif.
 
+-define(TRUE, <<"true">>).
+
 -define(ERR_UNKNOWN, 0).
 -define(ERR_BAD_LOGIN, 1).
 -define(ERR_ACCOUNT_DISABLED, 2).
@@ -77,6 +79,9 @@
 -define(RESTING, resting).
 -define(DISABLED, disabled).
 -define(ABOARD, aboard).
+-define(REFINING, refining).
+-define(CRAFTING, crafting).
+-define(EXPERIMENTING, experimenting).
 
 -define(NATIVES, 98).
 -define(UNDEAD, 99).
@@ -186,6 +191,7 @@
 -define(ORDER_REFINE, <<"Refine">>).
 -define(ORDER_CRAFT, <<"Craft">>).
 -define(ORDER_BUILD, <<"Build">>).
+-define(ORDER_EXPERIMENT, <<"Experiment">>).
 
 %ORDERS NPC
 -define(ORDER_TAX_COLLECT, <<"Tax Collect">>).
@@ -242,6 +248,11 @@
 -define(MANA, <<"Mana">>).
 -define(FOOD, <<"Food">>).
 
+%REFINED TYPES
+-define(INGOT, <<"Ingot">>).
+-define(TIMBER, <<"Timber">>).
+-define(BLOCK, <<"Block">>).
+
 %STRUCTURE RESOURCE TYPES
 -define(MINE, <<"Mine">>).
 -define(QUARRY, <<"Quarry">>).
@@ -288,6 +299,10 @@
 -define(DAGGER_SPD_P, <<"Dagger Speed %">>).
 -define(SPEAR_SPD_P, <<"Spear Speed %">>).
 
+%EXPERIMENT
+-define(EXP_ITEM, <<"exp_item">>).
+-define(EXP_RESOURCE_ITEM, <<"exp_resource">>).
+
 %EVENTS
 -define(NECRO_PHASE1, 1).
 -define(NECRO_PHASE2, 2).
@@ -302,6 +317,8 @@
 -define(ALLIES, 10).
 -define(NEUTRAL, 0).
 -define(ENEMIES, -10).
+
+
 
 %EMPIRE
 -define(EMPIRE_POS, {-100, -50}).

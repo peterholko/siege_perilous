@@ -1,0 +1,74 @@
+# recipe_template.yaml
+
+##################
+##### RECIPE #####
+##################
+
+- name: Copper Training Axe
+  image: Training Axe
+  structure: Blacksmith
+  class: Weapon
+  subclass: Axe
+  slot: Main Hand
+  damage: 10
+  speed: 5
+  stamina_req: 10
+  skill_req: 0
+  weight: 10
+  req: 
+    - type: Copper Ingot
+      quantity: 1
+    - type: Maple Timber
+      quantity: 1
+
+- name: Copper Board Axe
+  image: Board Axe
+  structure: Blacksmith
+  class: Weapon
+  subclass: Axe
+  slot: Main Hand
+  damage: 30
+  speed: 4.5
+  stamina_req: 12
+  skill_req: 10
+  weight: 10
+  req: 
+    - type: Copper Ingot
+      quantity: 40
+    - type: Maple Timber
+      quantity: 15
+  exp_req_mod: 2
+
+- name: Copper Heavy Axe
+  image: Heavy Axe
+  structure: Blacksmith
+  class: Weapon
+  subclass: Axe
+  slot: Main Hand
+  damage: 35
+  speed: 4.5
+  stamina_req: 12
+  skill_req: 25
+  weight: 10
+  req: 
+    - type: Copper Ingot
+      quantity: 75
+    - type: Maple Timber
+      quantity: 25
+  exp_req_mod: 2
+
+- name: Pick Axe
+  image: Pick Axe
+  structure: Blacksmith
+  class: Weapon
+  subclass: Axe
+  slot: Main Hand
+  weight: 10
+  req: 
+    - type: Ingot
+      quantity: 5
+    - type: Wood
+      quantity: 2
+
+
+

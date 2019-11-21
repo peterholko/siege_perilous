@@ -175,7 +175,7 @@ do_move(Obj, Pos) ->
 
     %Check if player triggered encounter
     case is_player(NewObj) of
-        true -> encounter:check(Pos);
+        true -> encounter:check(NewObj);
         false -> nothing
     end,
 

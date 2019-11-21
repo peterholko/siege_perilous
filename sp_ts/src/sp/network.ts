@@ -87,6 +87,15 @@ export class Network {
     };
     Global.socket.sendMessage(JSON.stringify(m));
   }
+  
+  public static sendInfoExperiment(structureId) {
+     var m = {
+      cmd: 'info_experiment',
+      structureid: structureId
+    };
+    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
 
   public static sendInfoAttrs(id) {
     var m = '{"cmd": "info_attrs", "id": ' + id + '}';
@@ -247,6 +256,29 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
+  public static sendSetExpItem(itemId) {
+    var m = {
+      cmd: "set_exp_item",
+      itemid: itemId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendSetExpResource(itemId) {
+    var m = {
+      cmd: "set_exp_resource",
+      itemid: itemId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendOrderExperiment(structureId) {
+    var m = {
+      cmd: "order_experiment",
+      structureid: structureId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
 
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
@@ -329,6 +361,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_ATTRS, jsonData);
       } else if(jsonData.packet == "info_skills") {
         Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData);
+      } else if(jsonData.packet == "info_experiment") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
       } else if(jsonData.packet == "structure_list") {
         Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData);
       } else if(jsonData.packet == 'build') {
@@ -348,6 +382,10 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.BUYSELL_ITEM, jsonData);
       } else if(jsonData.packet == 'info_hauling') {
         Global.gameEmitter.emit(NetworkEvent.INFO_HAULING, jsonData);
+      } else if(jsonData.packet == 'set_exp_item') {
+        Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
+      } else if(jsonData.packet == 'set_exp_resource') {
+        Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
       }  
     }
   }

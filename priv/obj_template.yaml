@@ -311,6 +311,24 @@
 ### STRUCTURES ###
 ##################
 
+#### CRAFTING ####
+
+- name: Mine
+  class: structure
+  subclass: resource
+  template: Mine
+  base_hp: 250
+  base_def: 0
+  build_time: 5
+  level: 0
+  capacity: 21
+  profession: the Miner
+  req: 
+    - type: Wood
+      quantity: 1
+
+
+
 - name: Tent
   class: structure
   subclass: shelter
@@ -378,20 +396,6 @@
   req: 
     - type: Wood
       quantity: 40
-
-- name: Mine
-  class: structure
-  subclass: resource
-  template: Mine
-  base_hp: 250
-  base_def: 0
-  build_time: 5
-  level: 0
-  capacity: 21
-  profession: the Miner
-  req: 
-    - type: Wood
-      quantity: 1
 
 - name: Tavern
   class: structure

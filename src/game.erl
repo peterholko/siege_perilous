@@ -237,6 +237,8 @@ create_new_player(PlayerId) ->
     item:create(HeroId, <<"Honeybell Berries">>, 25),
     item:create(HeroId, <<"Spring Water">>, 25),
     item:create(HeroId, <<"Gold Coins">>, 25),
+    item:create(HeroId, <<"Valleyrun Copper Ingot">>, 50),
+    item:create(HeroId, <<"Cragroot Maple Timber">>, 33),
     item:create(MonolithId, <<"Mana">>, 2500),
     item:create(ShipwreckId, <<"Cragroot Maple Wood">>, 100),
     item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 25),
@@ -319,7 +321,7 @@ create_new_player(PlayerId) ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
          end,
 
-    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
     %game:add_event(none, event, F2, none, 15),
     %game:add_event(none, event, F3, none, 15),
     %game:add_event(none, event, F4, none, 40),

@@ -259,22 +259,50 @@ Experimenting:
 
 1. Unlock special recipes by experimenting in the crafting structures.  The experiment action will randomly combine the resources in the structure to discover the special recipe.  Not sure now???
 
-Experimenting Potential Results:
+Experimenting Results:
 1. Unlock recipes
-2. Improve base stats / reduce costs or penalties
-3. Generate craft points ???
+2. Improve quality of recipe 
+
+Each structure will have an Experiment Panel which will have a primary
+item slot and "other X slots" (increases with the structure tier)
+
+The primary item slot will define which recipe class to focus the experimentation on.
+
+Examples
+--------
+
+Structure: Blacksmith Level 1
+Primary Slot: Copper Training Axe
+
+Other Slots (2): Copper Ingot (25) & Maple Timber (15)
+
+Flow
+----
+1. Player transfers items into Blacksmith
+2. Player orders experiment actions
+3. Villager starts experimenting 
+4. First experiment action is executed and starts the experiment progress state.  
+   -Recipe to unlock is determined at this point based off the class of primary item and resources in slots
+   -The amount of resources required will be a minimum X + some random unknown Y based off Recipe Skill/Crafting Skill/Structure Tier
+   
+5. Each experiment action completion, X resources are consumed until the min experiment reqs have been reached.  
+6. After which a cummulative probability will determine if the recipe is unlocked consuming resources each time.
+
 
 Crafting Redesign:
 
-1. Quality Levels - Poor/Normal/Good/Superior/Exceptional/Masterful => Determine by by crafting skill & roll
+1. Quality Levels - Normal/Good/Superior/Exceptional/Masterful => Determine by crafting skill & roll
    Quality level can attempted to be improved (at the cost of durability and resources or the same class of item?)
 
 2. Resources - Copper Ore
 	       Uncommon Copper Ore
 	       Rare Copper Ore
 
-3. Recipes - Standard 
-	     Magical 
+   Keep regional variants which grant 
+
+
+3. Recipes - Standard - 
+	   - Magical - Has limited number of use 
 
 4. Actions - Gathering
 	   - Refining
@@ -283,11 +311,15 @@ Crafting Redesign:
 	   - Enchant
 	   - Transmute (maybe?)
 
- 
+
+Recipes:
+
+1. Buy from Empire - Convert resources/items into Recipes 
+2. Acquire from Experiment - Convert resources/items into Recipes
 
 
- 
 
 
 
-2. 
+
+

@@ -18,6 +18,7 @@
          get_info_hauling/1,
          get_info_attrs/1,
          get_info_skills/1,
+         get_info_experiment/1,
          move/2,
          ford/2,
          combo/2,
@@ -46,12 +47,15 @@
          hide/1,
          assign_list/0,
          assign/2,
+         set_exp_item/1,
+         set_exp_resource/1,
          order_follow/1,
          order_explore/1,
          order_harvest/1,
          order_gather/2,
          order_attack/2,
          order_build/2,
+         order_experiment/1,
          clear/1,
          cancel/1,
          revent_response/1,
@@ -206,8 +210,8 @@ get_info_hauling(SourceId) ->
     Info.
 
 get_info_attrs(Id) ->
-    [Obj] = db:read(obj, Id),
     Player = get(player_id),
+    [Obj] = db:read(obj, Id),
 
     Info = case Player =:= Obj#obj.player of
                 true ->
@@ -218,12 +222,26 @@ get_info_attrs(Id) ->
     Info.
 
 get_info_skills(Id) ->
-    [Obj] = db:read(obj, Id),
     Player = get(player_id),
+    [Obj] = db:read(obj, Id),
 
     Info = case Player =:= Obj#obj.player of
                 true ->
                     obj:get_info_skills(Obj);
+                false ->
+                    #{<<"errmsg">> => "Obj is not owned by player"}
+           end,
+    Info.
+
+get_info_experiment(StructureId) ->
+    Player = get(player_id),
+    [Obj] = db:read(obj, StructureId),
+
+    Info = case Player =:= Obj#obj.player of
+                true ->
+                    R = structure:get_info_experiment(StructureId),
+                    lager:info("R: ~p", [R]),
+                    R;
                 false ->
                     #{<<"errmsg">> => "Obj is not owned by player"}
            end,
@@ -436,7 +454,7 @@ harvest(ObjId, Resource) ->
             game:add_obj_update(self(), ObjId, ?STATE, ?HARVESTING),
 
             %Check for encounter
-            encounter:check(Obj#obj.pos),
+            encounter:check(Obj),
 
             EventData = {ObjId, Resource, Obj#obj.pos, NumTicks, AutoHarvest},
             game:add_event(self(), harvest, EventData, ObjId, NumTicks),
@@ -960,6 +978,49 @@ assign(SourceId, TargetId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
+set_exp_item(ItemId) ->
+    Player = get(player_id),
+    %Will fail if item id is invalid
+    Item = item:get_rec(ItemId),
+    Owner = Item#item.owner,
+
+    OwnerObj = obj:get(Owner),   
+
+    Checks = [{is_player_owned(OwnerObj, Player), "Item not owned by player"},
+              {not item:is_resource(Item), "Cannot set resource item as experiment source"}],
+
+    case process_checks(Checks) of
+        true ->
+            lager:info("Setting experiment item"),
+            
+            item_attr:set(ItemId, ?EXP_ITEM, ?TRUE),
+
+            structure:get_info_experiment(obj:id(OwnerObj));
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+set_exp_resource(ItemId) ->
+    Player = get(player_id),
+    %Will fail if item id is invalid
+    Item = item:get_rec(ItemId),
+    Owner = Item#item.owner,
+
+    OwnerObj = obj:get(Owner),   
+
+    Checks = [{is_player_owned(OwnerObj, Player), "Item not owned by player"},
+              {item:is_resource(Item), "Experiment reagants must be resources"}],
+
+    case process_checks(Checks) of
+        true ->
+            lager:info("Setting experiment resource"),
+            item_attr:set(ItemId, ?EXP_RESOURCE_ITEM, ?TRUE),
+
+            structure:get_info_experiment(obj:id(OwnerObj));
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
 order_follow(VillagerId) ->
     Player = get(player_id),
     VillagerObj = obj:get(VillagerId),
@@ -1079,6 +1140,24 @@ order_build(VillagerId, StructureId) ->
         true ->
             OrderData = #{structure => StructureId},           
             villager:set_order(VillagerId, ?ORDER_BUILD, OrderData),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+order_experiment(StructureId) ->
+    Player = get(player_id),
+    StructureObj = obj:get(StructureId),
+
+    Checks = [{obj:player(StructureObj) =:= Player, "Structure not owned by player"},
+              {villager:has_assigned(StructureId), "Missing assigned villager to structure"}],
+
+    case process_checks(Checks) of
+        true ->
+            %TODO check if any villager is assigned
+            VillagerId = villager:get_by_structure(StructureId),
+            villager:set_order(VillagerId, ?ORDER_EXPERIMENT, #{}),
 
             #{<<"result">> => <<"success">>};
         {false, Error} ->

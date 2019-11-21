@@ -1,0 +1,41 @@
+# skill_template.yaml
+
+###################
+#### GATHERING ####
+###################
+
+- name: Mining
+  class: Gathering
+  xp: [100, 200, 400, 600, 1000, 1600, 2600]
+
+- name: Stonecutting
+  class: Gathering
+  xp: [100, 200, 400, 600, 1000, 1600, 2600]
+
+- name: Woodcutting
+  class: Gathering
+  xp: [100, 200, 400, 600, 1000, 1600, 2600]
+
+- name: Hunting
+  class: Gathering
+  xp: [100, 200, 400, 600, 1000, 1600, 2600]
+
+- name: Foraging
+  class: Gathering
+  xp: [100, 200, 400, 600, 1000, 1600, 2600]
+
+- name: Farming
+  class: Gathering
+  xp: [100, 200, 400, 600, 1000, 1600, 2600]
+
+- name: Weaponsmithing
+  class: Crafting
+  xp: [100, 200, 400, 600, 1000, 1600, 2600]
+
+- name: Armorsmithing
+  class: Crafting
+  xp: [100, 200, 400, 600, 1000, 1600, 2600]
+
+
+
+

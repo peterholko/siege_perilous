@@ -8,7 +8,8 @@
 
 -export([check/1, get_wildness/1, spawn_npc/2, generate_loot/1]).
 
-check(Pos) ->
+check(TriggerObj) ->
+    Pos = obj:pos(TriggerObj),
     [Tile] = map:get_tile(Pos),
     TileName = map:tile_name(Tile#map.tile),
 
@@ -23,7 +24,7 @@ check(Pos) ->
     lager:info("~p ~p", [Random, EffectiveSpawnRate]),
 
     case Random < EffectiveSpawnRate of
-        true -> spawn_random_npc(TileName, Pos);
+        true -> spawn_random_npc(TileName, TriggerObj);
         false -> nothing
     end.
 
@@ -35,11 +36,11 @@ get_wildness(Pos) ->
             wildness(0)
     end.
 
-spawn_random_npc(TileName, Pos) ->
+spawn_random_npc(TileName, TriggerObj) ->
     NPCList = npc_list(TileName),
     Random = util:rand(length(NPCList)),
     NPCName = lists:nth(Random, NPCList),
-    Tiles = game:get_valid_tiles(Pos), %TODO FIX get valid tiles
+    Tiles = game:get_valid_tiles(obj:pos(TriggerObj), TriggerObj), 
 
     case Tiles of
         [] -> nothing; %No valid tiles
@@ -53,8 +54,8 @@ spawn_random_npc(TileName, Pos) ->
             increase_num(NPCPos)
     end.
 
-spawn_npc(NPCName, Pos) ->
-    Tiles = game:get_valid_tiles(Pos),
+spawn_npc(NPCName, Obj) ->
+    Tiles = game:get_valid_tiles(obj:pos(Obj), Obj),
 
     case Tiles of
         [] -> nothing; %No valid tiles

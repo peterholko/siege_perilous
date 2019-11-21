@@ -28,8 +28,9 @@ export default class SingleInventoryPanel extends React.Component<any, any> {
 
     return (
       <div>
-        <BaseInventoryPanel left={true} 
-                        inventoryData={this.props.inventoryData}
+        <BaseInventoryPanel left={true}
+                        id={this.props.inventoryData.id} 
+                        items={this.props.inventoryData.items}
                         panelType={'inventory'} 
                         hideExitButton={false}
                         hideSelect={this.state.hideSelect}

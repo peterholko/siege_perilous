@@ -60,7 +60,7 @@ apply_random(ObjId, SelectedEffect) ->
             lager:info("Spawning npc..."),
             SpawnType = element(3, SelectedEffect),
             [Obj] = db:read(obj, ObjId),            
-            encounter:spawn_npc(SpawnType, Obj#obj.pos),
+            encounter:spawn_npc(SpawnType, Obj),
             
             effect_text(spawn, SpawnType); 
         loot ->

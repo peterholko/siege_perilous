@@ -16,7 +16,7 @@
 %% --------------------------------------------------------------------
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([has_assigned/1, assign/2, remove_structure/1, get_by_structure/1]).
+-export([has_assigned/1, has_assigned/2, assign/2, remove_structure/1, get_by_structure/1]).
 -export([process/1, set_behavior/2]).
 -export([enemy_visible/1, move_to/2, move_to_pos/1, move_random_pos/1, hero_nearby/1]).
 -export([set_pos_shelter/1, set_pos_hero/1, set_pos_structure/1, set_pos_gather/1]).
@@ -31,7 +31,7 @@
 -export([set_activity/2]).
 -export([has_resources/1, has_food/1, has_food_storage/1, find_food_storage/1, transfer_food/1,
          has_water/1, has_water_storage/1, find_water_storage/1, transfer_water/1, has_tools/1]).
--export([idle/1, explore/1, gather/1, build/1, refine/1, craft/1, eat/1, drink/1, sleep/1]).
+-export([idle/1, explore/1, gather/1, build/1, refine/1, craft/1, experiment/1, eat/1, drink/1, sleep/1]).
 -export([move_to_target/1, melee_attack/1, is_full/1]).
 -export([has_order_follow/1, has_order_attack/1, has_order_guard/1, has_order_harvest/1, 
          has_order_refine/1, has_order_craft/1, has_order_experiment/1]).
@@ -64,6 +64,8 @@ info(VillagerId) ->
 
 has_assigned(StructureId) ->
     gen_server:call({global, villager}, {has_assigned, StructureId}).
+has_assigned(StructureId, VillagerId) ->
+    gen_server:call({global, villager}, {has_assigned, StructureId, VillagerId}).
 
 get_by_structure(StructureId) ->
     gen_server:call({global, villager}, {get_by_structure, StructureId}).
@@ -220,7 +222,7 @@ has_order_craft(Villager) ->
     Villager#villager.order =:= ?ORDER_CRAFT.
 
 has_order_experiment(Villager) ->
-    Villager#villager.order =:= experiment.
+    Villager#villager.order =:= ?ORDER_EXPERIMENT.
 
 shelter_needed(Villager) ->
     Villager#villager.shelter =:= none.
@@ -731,7 +733,7 @@ refine(Villager) ->
                  Villager#villager.id, 
                  ?TICKS_SEC * 10},
 
-    obj:update_state(Villager#villager.id, refining),
+    obj:update_state(Villager#villager.id, ?REFINING),
     game:add_event(self(), refine, EventData, Villager#villager.id, ?TICKS_SEC * 10),
 
     Villager#villager {task_state = running}.
@@ -747,8 +749,27 @@ craft(Villager) ->
                  RecipeName},
 
     lager:info("Craft event_data: ~p", [EventData]),
-    obj:update_state(Villager#villager.id, crafting),
+    obj:update_state(Villager#villager.id, ?CRAFTING),
     game:add_event(self(), craft, EventData, Villager#villager.id, ?TICKS_SEC * 10),
+
+    Villager#villager {task_state = running}.
+
+experiment(Villager) ->
+    lager:info("Villager experimenting"),
+    {StructureId, _StructurePos, _StructureName} = Villager#villager.structure,
+
+    case structure:has_exp_item(StructureId) of
+        false ->
+            structure:set_exp_item(StructureId, Villager#villager.id);
+        true ->
+            none
+    end,
+
+    EventData = {StructureId,
+                 Villager#villager.id},
+
+    obj:update_state(Villager#villager.id, ?EXPERIMENTING),
+    game:add_event(self(), experiment, EventData, Villager#villager.id, ?TICKS_SEC * 10),
 
     Villager#villager {task_state = running}.
 
@@ -892,9 +913,19 @@ handle_call({has_assigned, StructureId}, _From, Data) ->
             end
         end,
 
-    Result = maps:fold(F, #{}, Data),
+    Result = maps:fold(F, [], Data),
 
     {reply, Result =/= [], Data};
+
+handle_call({has_assigned, StructureId, VillagerId}, _From, Data) ->
+    Result = case maps:get(VillagerId, Data, none) of
+                none -> 
+                    false;
+                Villager -> 
+                    {AssignedId, _Pos, _Name} = Villager#villager.structure,
+                    AssignedId =:= StructureId
+             end,
+    {reply, Result, Data};
 
 handle_call({assign_list, Player}, _From, Data) ->
     F = fun(VillagerId, Villager, Acc) ->
@@ -933,7 +964,6 @@ handle_call({get_by_structure, StructureId}, _From, Data) ->
     [VillagerId] = Keys,
 
     {reply, VillagerId, Data};
-
 
 handle_call(Event, From, Data) ->
     error_logger:info_report([{module, ?MODULE}, 

@@ -8,6 +8,7 @@
 -include("common.hrl").
 -include("schema.hrl").
 
+-export([get_info_experiment/1]).
 -export([create_foundation/3, valid_location/2, upgrade/1]).
 -export([list/0, recipe_list/1, refine/1]).
 -export([has_req/1, has_upgrade_req/1, has_refine_resources/1, check_recipe_req/2]).
@@ -18,8 +19,113 @@
 -export([recipe_name/1]).
 -export([get_nearby_bones/1]).
 -export([resource_type/1, to_skill/1]).
+-export([has_exp_item/1, set_exp_item/2, check_experiment_req/1, experiment/1]).
 
 recipe_name(Recipe) -> maps:get(<<"item">>, Recipe).
+
+check_experiment_req(StructureId) ->
+    ExpReqList = obj_attr:value(StructureId, <<"exp_req">>),
+    ResRateList = [{<<"Copper Ingot">>, 1.75},
+                   {<<"Maple Timber">>, 0.35}],
+
+    F = fun({ReqSubclass, _ReqQuantity}) ->
+                ExpResources = item:get_exp_res_by_subclass(StructureId, ReqSubclass),
+                case ExpResources of
+                    [] ->
+                        lager:info("No item of that subclass"), 
+                        false; 
+                    [ExpResource | _Rest] -> %Assume only 1 match 
+                        {_, ResRate} = lists:keyfind(ReqSubclass, 1, ResRateList),
+                        lager:info("ItemQuantity: ~p ResRate: ~p", [item:quantity(ExpResource), ResRate]),
+                        item:quantity(ExpResource) > ResRate
+                end
+        end,
+
+    lists:all(F, ExpReqList).
+
+experiment(StructureId) ->
+    lager:info("Processing experiment"),
+    ResRateList = [{<<"Copper Ingot">>, 1.75},
+                   {<<"Maple Timber">>, 0.35}],
+
+    ExpReqList = obj_attr:value(StructureId, <<"exp_req">>),
+
+    F = fun({ReqSubclass, ReqQuantity}, Acc) ->
+            {_, ResRate} = lists:keyfind(ReqSubclass, 1, ResRateList),
+
+            NewQuantity = ReqQuantity - ResRate,
+            lager:info("NewQuantity: ~p ReqQuantity: ~p", [NewQuantity, ReqQuantity]),
+
+            ExpResources = item:get_exp_res_by_subclass(StructureId, ReqSubclass),
+            [ExpResource | _Rest] = ExpResources, %Assume only 1 match TODO reconsider
+
+            %To deal with the fact that items are only integers 
+            ResDecrease = trunc(ReqQuantity) - trunc(NewQuantity),
+
+            NewExpResQuantity = item:quantity(ExpResource) - ResDecrease,
+            lager:info("NewExpRes ~p: ~p ~p", [item:name(ExpResource), NewExpResQuantity, ResDecrease]),
+            item:update(item:id(ExpResource), NewExpResQuantity),
+
+            [{ReqSubclass, NewQuantity} | Acc]
+        end,
+
+    NewExpReqList = lists:foldl(F, [], ExpReqList),
+    lager:info("NewExpMinReqList: ~p", [NewExpReqList]),
+
+    G = fun({_ReqSubclass, ReqQuantity}) -> ReqQuantity =< 0 end,
+
+    ReachedMinExpReq = lists:all(G, NewExpReqList),
+
+    case ReachedMinExpReq of
+        true ->
+            lager:info("Chance at New Discovery!"),
+            case util:rand(100) < 25 of 
+                true -> lager:info("New Discovery!");
+                false -> lager:info("Failed to discover this time...")
+            end;
+        false ->
+            lager:info("Min Experimentation not reached yet")
+    end,
+
+    obj_attr:set(StructureId, <<"exp_req">>, NewExpReqList).
+
+has_exp_item(StructureId) ->
+    obj_attr:value(StructureId, <<"exp_item">>, false) =/= false.
+
+set_exp_item(StructureId, _VillagerId) ->
+    ExpReq = [{<<"Copper Ingot">>, 25.0},
+              {<<"Maple Timber">>, 5.0}],
+
+    obj_attr:set(StructureId, <<"exp_item">>, <<"Copper Training Axe">>),
+    obj_attr:set(StructureId, <<"exp_req">>, ExpReq).
+
+get_info_experiment(StructureId) ->
+    Items = item:get_by_owner(StructureId),
+
+    F = fun(Item) ->
+            item_attr:value(item:id(Item), ?EXP_ITEM, none) =:= ?TRUE
+        end,
+
+    ExperimentItem = lists:filter(F, Items),
+
+    G = fun(Item) ->
+            item_attr:value(item:id(Item), ?EXP_RESOURCE_ITEM, none) =:= ?TRUE
+        end,
+
+    ExperimentResources = lists:filter(G, Items),
+
+    H = fun(Item) ->
+            IsNotItem = item_attr:value(item:id(Item), ?EXP_ITEM, none) =/= ?TRUE,
+            IsNotResource = item_attr:value(item:id(Item), ?EXP_RESOURCE_ITEM, none) =/= ?TRUE,
+            IsNotItem and IsNotResource
+        end,
+
+    ValidResources = lists:filter(H, Items),
+
+    #{<<"id">> => StructureId,
+      <<"expitem">> => ExperimentItem,
+      <<"expresources">> => ExperimentResources,
+      <<"validresources">> => ValidResources}.
 
 get_harvesters(Player) ->
     Objs = db:index_read(obj, Player, #obj.player),

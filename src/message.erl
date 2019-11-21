@@ -346,6 +346,15 @@ message_handle(<<"order_build">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"order_build">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"order_experiment">>, Message) ->
+    lager:info("message: order_experiment"),
+
+    StructureId = m_get(<<"structureid">>, Message),
+
+    Return = player:order_experiment(StructureId),
+    FinalReturn = maps:put(<<"packet">>, <<"order_experiment">>, Return),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"clear">>, Message) ->
     lager:info("message: clear"),
     SourceId = m_get(<<"sourceid">>, Message),
@@ -436,6 +445,13 @@ message_handle(<<"info_hauling">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_hauling">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_experiment">>, Message) ->
+    lager:info("message: info_experiment"),
+    StructureId = m_get(<<"structureid">>, Message),
+    InfoMaps = player:get_info_experiment(StructureId),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_experiment">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
 message_handle(<<"ford">>, Message) ->
     lager:info("message: ford"),
     Id = m_get(<<"id">>, Message),
@@ -489,6 +505,22 @@ message_handle(<<"pay_tax">>, Message) ->
     Amount = m_get(<<"amount">>, Message),
     Return = player:pay_tax(TaxCollectorId, Amount),
     FinalReturn = maps:put(<<"packet">>, <<"pay_tax">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"set_exp_item">>, Message) ->
+    lager:info("message: set experiment item"),
+    ItemId = m_get(<<"itemid">>, Message),
+
+    Return = player:set_exp_item(ItemId),
+    FinalReturn = maps:put(<<"packet">>, <<"set_exp_item">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"set_exp_resource">>, Message) ->
+    lager:info("message: set experiment resource"),
+    ItemId = m_get(<<"itemid">>, Message),
+
+    Return = player:set_exp_resource(ItemId),
+    FinalReturn = maps:put(<<"packet">>, <<"set_exp_resource">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(_Cmd, Message) ->

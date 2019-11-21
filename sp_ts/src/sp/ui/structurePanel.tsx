@@ -6,6 +6,7 @@ import buildbutton from "ui_comp/buildbutton.png";
 import deletebutton from "ui_comp/deletebutton.png";
 import assignbutton from "ui_comp/assignbutton.png";
 import refinebutton from "ui_comp/refinebutton.png";
+import experimentbutton from "ui_comp/experimentbutton.png";
 import { Network } from "../network";
 import '../ui.css';
 import { FOUNDED, PROGRESSING, STALLED, NONE, CRAFT} from "../config";
@@ -42,6 +43,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     this.handleBuildClick = this.handleBuildClick.bind(this);
     this.handleAssignClick = this.handleAssignClick.bind(this);
     this.handleDeleteClick = this.handleDeleteClick.bind(this);
+    this.handleExperimentClick = this.handleExperimentClick.bind(this);
   
     this.startTimer = this.startTimer.bind(this)
     this.stopTimer = this.stopTimer.bind(this)
@@ -68,6 +70,10 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
   handleRefineClick() {
     Network.sendOrderRefine(this.state.structureData.id);
+  }
+
+  handleExperimentClick() {
+    Network.sendInfoExperiment(this.state.structureData.id);
   }
 
   handleBuildClick() {
@@ -124,8 +130,11 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     const showRefineButton = (this.state.structureData.state == NONE &&
                               this.state.structureData.name == 'Blacksmith');
 
+    const showExperimentButton = (this.state.structureData.state == NONE &&
+                                  this.state.structureData.subclass == CRAFT);
+
     const showBuildButton = (this.state.structureData.state == FOUNDED ||
-                             this.state.structureData.state == STALLED);
+                             this.state.structureData.state == STALLED);                             
 
     const showProgress = (this.state.structureData.state == FOUNDED ||
                           this.state.structureData.state == PROGRESSING ||
@@ -181,7 +190,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     } as React.CSSProperties
 
     const divReqsStyle = {
-      transform: 'translate(-110px, 15px)',
+      transform: 'translate(-100px, 15px)',
       position: 'fixed',
       color: 'white',
       fontFamily: 'Verdana',
@@ -205,6 +214,11 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
     const assignStyle = {
       transform: 'translate(-162px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const experimentStyle = {
+      transform: 'translate(-312px, 295px)',
       position: 'fixed'
     } as React.CSSProperties
 
@@ -279,8 +293,12 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
           <img src={refinebutton}
                style={refineStyle}
                onClick={this.handleRefineClick} />}
+
+        {showExperimentButton && 
+          <img src={experimentbutton}
+               style={experimentStyle}
+               onClick={this.handleExperimentClick} />}
  
-       
         {showBuildButton && 
           <img src={buildbutton} 
                style={buildStyle} 
