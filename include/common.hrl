@@ -302,6 +302,14 @@
 %EXPERIMENT
 -define(EXP_ITEM, <<"exp_item">>).
 -define(EXP_RESOURCE_ITEM, <<"exp_resource">>).
+-define(EXP_REQ, <<"exp_req">>).
+-define(EXP_STATE, <<"exp_state">>).
+-define(EXP_STATE_NONE, <<"Not started">>).
+-define(EXP_STATE_PROGRESS, <<"Progressing">>).
+-define(EXP_STATE_NEAR, <<"Near breakthrough">>).
+-define(EXP_STATE_DISCOVERY, <<"Eureka!">>).
+-define(EXP_RECIPE, <<"recipe">>).
+-define(EXP_RECIPE_NONE, -1).
 
 %EVENTS
 -define(NECRO_PHASE1, 1).

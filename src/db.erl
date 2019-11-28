@@ -102,6 +102,7 @@ create_schema() ->
     mnesia:add_table_index(villager, next_run),
     mnesia:add_table_index(active_info, player),
     mnesia:add_table_index(active_info, id),
+    mnesia:add_table_index(recipe, owner_structure),
 
     mnesia:stop().
 

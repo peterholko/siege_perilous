@@ -6,9 +6,11 @@ import { Global } from "../global";
 import HalfPanel from "./halfPanel";
 import itemframe from "ui_comp/itemframe.png";
 import experimentbutton from "ui_comp/experimentbutton.png";
-import { exportAllDeclaration } from "@babel/types";
+import recipe from "art_comp/items/recipe.png";
 import { Network } from "../network";
 import InventoryItem from "./inventoryItem";
+import { EXP_RECIPE_NONE } from "../config";
+import selectitemborder from "ui_comp/selectitemborder.png";
 
 interface ETPProps {
   expData
@@ -21,19 +23,47 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     Global.selectedItemId = -1;
     Global.selectedItemOwnerId = -1;
 
+    const selectExpResStyle = {
+      position: "fixed"
+    } as React.CSSProperties
+
     this.state = {
       hideLeftSelect: true,
-      hideRightSelect: true
+      hideRightSelect: true,
+      hideSelectExpRes: true,
+      selectExpResStyle: selectExpResStyle
     };
   
     this.handleSelect = this.handleSelect.bind(this);
+    this.handleExpResSelect = this.handleExpResSelect.bind(this);
+    this.handleSelect = this.handleSelect.bind(this);
+
     this.handleSetExpItemClick = this.handleSetExpItemClick.bind(this);
     this.handleSetExpResourceClick = this.handleSetExpResourceClick.bind(this);
     this.handleExperimentClick = this.handleExperimentClick.bind(this);
   }
 
   handleSelect() {
-    this.setState({hideLeftSelect: false});
+    this.setState({hideLeftSelect: false,
+                   hideSelectExpRes: true});
+  }
+
+  handleExpResSelect(eventData) {
+    console.log('handleExpResSelect ' + eventData);
+    var xPos = -215 + ((eventData.index % 5) * 60);
+    var yPos = 140 + (Math.floor(eventData.index / 5) * 53);
+
+    const selectStyle = {
+      transform: 'translate(' + xPos + 'px, ' + yPos + 'px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    Global.selectedItemOwnerId = eventData.ownerId;
+    Global.selectedItemId = eventData.itemId;
+
+    this.setState({hideSelectExpRes: false,
+                   hideLeftSelect: true,
+                   selectExpResStyle: selectStyle});
   }
 
   handleSetExpItemClick() {
@@ -55,18 +85,20 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     var itemFrameResources = [];
     var itemExpResources = [];
 
+    var showNewRecipe = this.props.expData.recipe != EXP_RECIPE_NONE;
+
     const sourceTransferStyle = {
-      transform: 'translate(-250px, 75px)',
+      transform: 'translate(-250px, 50px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const reagentsTransferStyle = {
-      transform: 'translate(-280px, 175px)',
+      transform: 'translate(-280px, 140px)',
       position: 'fixed'
     } as React.CSSProperties 
 
     const sourceStyle = {
-      transform: 'translate(-323px, 50px)',
+      transform: 'translate(-323px, 25px)',
       position: 'fixed',
       textAlign: 'center',
       color: 'white',
@@ -76,7 +108,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     } as React.CSSProperties
 
     const reagentsStyle = {
-      transform: 'translate(-323px, 150px)',
+      transform: 'translate(-323px, 115px)',
       position: 'fixed',
       textAlign: 'center',
       color: 'white',
@@ -86,13 +118,38 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     } as React.CSSProperties
 
     const expItemStyle = {
-      transform: 'translate(-185px, 75px)',
+      transform: 'translate(-185px, 50px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const expButtonStyle = {
       transform: 'translate(-185px, 290px)',
       position: 'fixed'
+    } as React.CSSProperties
+   
+    const recipeStyle = {
+      transform: 'translate(-280px, 225px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const recipeNameStyle = {
+      transform: 'translate(-200px, 235px)',
+      position: 'fixed',
+      textAlign: 'left',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+      width: '200px'
+    } as React.CSSProperties
+
+    const expStateStyle = {
+      transform: 'translate(-323px, 230px)',
+      position: 'fixed',
+      textAlign: 'center',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+      width: '323px'
     } as React.CSSProperties
 
     if(this.props.expData.expitem.length > 0) {
@@ -118,7 +175,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
 
     for(var i = 0; i < 2; i++) {
       var xPos = i * 60 - 215;
-      var yPos = 175;
+      var yPos = 140;
 
       var itemFrameResource = {
         transform: 'translate(' + xPos + 'px, ' + yPos + 'px',
@@ -132,7 +189,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
 
     for(var i = 0; i < this.props.expData.expresources.length; i++) {
       var xPos = i * 60 + 109;
-      var yPos = -187;
+      var yPos = -220;
 
       var itemId = this.props.expData.expresources[i].id;
       var itemName = this.props.expData.expresources[i].name;
@@ -147,7 +204,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
                        index={i}
                        xPos={xPos}
                        yPos={yPos}
-                       handleSelect={this.handleSelect} />
+                       handleSelect={this.handleExpResSelect} />
       );
     }
 
@@ -165,7 +222,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
                  panelType={'experiment'} 
                  hideExitButton={false}>
           
-          <span style={sourceStyle}>Source</span>
+          <span style={sourceStyle}>Source Item</span>
           <img src={itemframe} style={expItemStyle}/>
 
           {itemExperiment}
@@ -182,7 +239,22 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
           {itemFrameResources}
           {itemExpResources}
 
-          <img src={experimentbutton} 
+          {showNewRecipe && 
+            [
+              <img key={1} src={recipe} style={recipeStyle} />,
+              <span key={2} style={recipeNameStyle}>{this.props.expData.recipe.name}</span> 
+            ] 
+          }
+
+          {!showNewRecipe && 
+              <span style={expStateStyle}>{this.props.expData.expstate}</span> 
+          }
+
+          {!this.state.hideSelectExpRes && 
+            <img src={selectitemborder} style={this.state.selectExpResStyle} /> 
+          }
+          
+          <img src={experimentbutton}
                style={expButtonStyle}
                onClick={this.handleExperimentClick}  /> 
         </HalfPanel>

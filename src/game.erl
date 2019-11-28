@@ -25,7 +25,8 @@
 -export([spawn_shadow/1, spawn_wolf/0]).
 -export([create_new_player/1, login/1]).
 -export([send_update_items/3, 
-         send_update_stats/2, 
+         send_update_stats/2,
+         send_update_experiment/2, 
          send_villager_change/1,
          send_tile_update/3,
          send_item_update/3,
@@ -55,6 +56,15 @@ send_update_stats(PlayerId, ObjId) when PlayerId > ?NPC_ID ->
 send_update_stats(_, _) -> 
     nothing.
 
+send_update_experiment(StructureId, InfoExperiment) ->
+    [StructureObj] = db:read(obj, StructureId),
+
+    case player:is_online(obj:player(StructureObj)) of
+        false -> nothing;
+        Conn ->
+            message:send_to_process(Conn#connection.process, info_experiment, InfoExperiment)
+    end.
+
 send_villager_change(Villager) ->
     %Check if being villager is observed
     Index = {villager:player(Villager), obj, villager:id(Villager)},
@@ -77,7 +87,6 @@ send_villager_change(Villager) ->
     end.
 
 send_tile_update(Pos, Attr, Value) ->    
-
     case db:index_read(active_info, Pos, #active_info.id) of
         [] -> nothing;
         ActiveInfoList ->
@@ -240,7 +249,7 @@ create_new_player(PlayerId) ->
     item:create(HeroId, <<"Valleyrun Copper Ingot">>, 50),
     item:create(HeroId, <<"Cragroot Maple Timber">>, 33),
     item:create(MonolithId, <<"Mana">>, 2500),
-    item:create(ShipwreckId, <<"Cragroot Maple Wood">>, 100),
+    item:create(HeroId, <<"Cragroot Maple Wood">>, 100),
     item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 25),
     item:create(ShipwreckId, <<"Valleyrun Copper Ore">>, 100),
 
@@ -253,6 +262,13 @@ create_new_player(PlayerId) ->
     item:create(VillagerId, <<"Honeybell Berries">>, 50, <<"true">>),
     item:create(VillagerId, <<"Spring Water">>, 50, <<"true">>),
     item:create(VillagerId, <<"Pick Axe">>, 2, <<"true">>),
+
+    % Recipe initial
+    recipe:create(PlayerId, <<"Copper Training Axe">>),
+    recipe:create(PlayerId, <<"Copper Training Sword">>),
+    recipe:create(PlayerId, <<"Copper Training Club">>),
+    recipe:create(PlayerId, <<"Training Pick Axe">>),
+    recipe:create(PlayerId, <<"Training Bow">>),
 
     F1 = fun() ->
             MausoleumPos = {16,32},

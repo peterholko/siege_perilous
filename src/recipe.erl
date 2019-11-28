@@ -5,12 +5,14 @@
 
 -include("schema.hrl").
 
--export([craft/2, get_recipes/1, get_recipe/1, is_refine/1]).
+-export([get_recipes/1, get_recipe/1, get_by_structure/2]).
+-export([craft_item/2, is_refine/1]).
+-export([create/2]).
 
 is_refine(RecipeName) ->
     recipe_template:value(RecipeName, <<"class">>) =:= <<"Refine">>.
 
-craft(ObjId, RecipeName) ->
+craft_item(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
 
     Recipe = get_recipe(RecipeName),
@@ -149,5 +151,40 @@ craft_item_name(RecipeName, MatchReqList) ->
    
     <<FirstPart/binary, <<" ">>/binary, RecipeName/binary>>.
 
+create(OwnerId, Name) ->
+    Id = util:get_id(),
+
+    create_recipe_attr(Id, Name),
+
+    Structure = recipe_template:value(Name, <<"structure">>),
+
+    Recipe = #recipe{id = Id,
+                     owner = OwnerId,
+                     owner_structure = {OwnerId, Structure},
+                     name = Name},
+
+    db:write(Recipe),
+
+    recipe_attr:all_to_map(Recipe#recipe.id).
+
+create_recipe_attr(Id, Name) ->
+    AllRecipeDef = recipe_template:all(Name),
+    
+    F = fun(RecipeDef) -> 
+            {_Name, Attr} = recipe_template:key(RecipeDef),
+            Value = recipe_template:value(RecipeDef),
+            recipe_attr:add(Id, Attr, Value)
+        end,
+
+    lists:foreach(F, AllRecipeDef).
+
+get_by_structure(Owner, Structure) ->
+    Recipes = db:index_read(recipe, {Owner, Structure}, #recipe.owner_structure),
+
+    F = fun(Recipe, Acc) -> 
+            [recipe_attr:all_to_map(Recipe#recipe.id) | Acc]
+        end,
+
+    lists:foldl(F, [], Recipes).
 
 

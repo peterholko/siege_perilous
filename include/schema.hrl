@@ -135,6 +135,8 @@
                         value}).
 
 -record(recipe, {id,
+                 owner,
+                 owner_structure, % {owner, structure}
                  name}).
 
 -record(recipe_attr, {key, % {id, attr}

@@ -212,7 +212,7 @@ message_handle(<<"build">>, Message) ->
 message_handle(<<"recipe_list">>, Message) ->
     lager:info("message: recipe_list"),
     
-    SourceId = m_get(<<"sourceid">>, Message),
+    SourceId = m_get(<<"structureid">>, Message),
 
     RecipeList = player:recipe_list(SourceId),
 
@@ -573,6 +573,9 @@ prepare(info_item_update, Message) ->
 
 prepare(item_transfer_result, Message) ->
     maps:put(<<"packet">>, <<"item_transfer_result">>, Message);
+
+prepare(info_experiment, Message) ->
+    maps:put(<<"packet">>, <<"info_experiment">>, Message);
 
 prepare(villager_change, Message) ->
     maps:put(<<"packet">>, <<"villager_change">>, Message);

@@ -478,6 +478,7 @@ create_item_attr(Id, Name) ->
     
     F = fun(ItemDef) -> 
             {Name, Attr} = item_template:key(ItemDef),
+            %TODO why the case statement ?
             case item_template:key(ItemDef) of
                 {Name, Attr} ->
                     AttrKey = {Id, Attr},

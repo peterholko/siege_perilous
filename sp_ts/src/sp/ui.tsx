@@ -388,8 +388,6 @@ export default class UI extends React.Component<any, UIState>{
                    errmsg : message.errmsg});
   }
 
-  
-
   handleResourceClick(eventData) {
     this.setState({hideResourcePanel: false,
                    resourceData: eventData});
@@ -406,7 +404,6 @@ export default class UI extends React.Component<any, UIState>{
         this.setState({hideStructurePanel: false, structureData: message});
       } 
     }
-    //this.setState({hideHeroPanel: false, heroData: message});
   }
 
   handleInfoTile(message) {

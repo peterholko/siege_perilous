@@ -215,7 +215,7 @@ export class Network {
   public static sendGetRecipeList(structureId) {
     var m = {
       cmd: "recipe_list",
-      sourceid: structureId
+      structureid: structureId
     }
     Global.socket.sendMessage(JSON.stringify(m));
   }
@@ -386,7 +386,7 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
       } else if(jsonData.packet == 'set_exp_resource') {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
-      }  
+      } 
     }
   }
 

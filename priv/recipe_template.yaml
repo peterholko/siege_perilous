@@ -21,8 +21,8 @@
     - type: Maple Timber
       quantity: 1
 
-- name: Copper Board Axe
-  image: Board Axe
+- name: Copper Broad Axe
+  image: Broad Axe
   structure: Blacksmith
   class: Weapon
   subclass: Axe
@@ -37,7 +37,6 @@
       quantity: 40
     - type: Maple Timber
       quantity: 15
-  exp_req_mod: 2
 
 - name: Copper Heavy Axe
   image: Heavy Axe
@@ -55,9 +54,42 @@
       quantity: 75
     - type: Maple Timber
       quantity: 25
-  exp_req_mod: 2
 
-- name: Pick Axe
+- name: Copper Training Sword
+  image: Sword
+  structure: Blacksmith
+  class: Weapon
+  subclass: Sword
+  slot: Main Hand
+  damage: 5
+  speed: 4.5
+  stamina_req: 12
+  skill_req: 0
+  weight: 10
+  req: 
+    - type: Copper Ingot
+      quantity: 75
+    - type: Maple Timber
+      quantity: 25
+ 
+- name: Copper Training Club
+  image: Club
+  structure: Blacksmith
+  class: Weapon
+  subclass: Hammer
+  slot: Main Hand
+  damage: 5
+  speed: 4.5
+  stamina_req: 12
+  skill_req: 0
+  weight: 10
+  req: 
+    - type: Copper Ingot
+      quantity: 75
+    - type: Maple Timber
+      quantity: 25
+ 
+- name: Training Pick Axe
   image: Pick Axe
   structure: Blacksmith
   class: Weapon
@@ -70,5 +102,15 @@
     - type: Wood
       quantity: 2
 
+- name: Training Bow
+  image: Bow
+  structure: Carpenter
+  class: Weapon
+  subclass: Bow
+  slot: Main Hand
+  weight: 10
+  req:
+    - type: Timber
+      quantity: 5
 
 

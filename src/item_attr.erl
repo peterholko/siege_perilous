@@ -6,7 +6,7 @@
 -include("schema.hrl").
 
 -export([all/1, all_to_map/1, value/2, value/3]).
--export([has/2, set/3, update/3, copy/2, delete/1]). 
+-export([has/2, set/3, update/3, copy/2, delete/2]). 
 
 all(Id) ->
     db:dirty_match_object({item_attr, {Id, '_'}, '_'}).
@@ -71,6 +71,8 @@ copy(SourceId, TargetId) ->
 
     lists:foreach(F, All).
 
-delete(Id) ->
+delete(Id, Attr) ->
     %TODO delete match object
-    lager:info("delete").
+    lager:info("item attr delete"),
+    db:dirty_delete(item_attr, {Id, Attr}).
+

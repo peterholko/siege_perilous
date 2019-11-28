@@ -76,18 +76,47 @@ experiment(StructureId) ->
 
     ReachedMinExpReq = lists:all(G, NewExpReqList),
 
-    case ReachedMinExpReq of
-        true ->
-            lager:info("Chance at New Discovery!"),
-            case util:rand(100) < 25 of 
-                true -> lager:info("New Discovery!");
-                false -> lager:info("Failed to discover this time...")
-            end;
-        false ->
-            lager:info("Min Experimentation not reached yet")
-    end,
+    obj_attr:set(StructureId, <<"exp_req">>, NewExpReqList),
 
-    obj_attr:set(StructureId, <<"exp_req">>, NewExpReqList).
+    Result = 
+        case ReachedMinExpReq of
+            true ->
+                set_exp_state_near(StructureId),
+
+                lager:info("Chance at New Discovery!"),
+                case util:rand(100) < 25 of 
+                    true -> 
+                        lager:info("New Discovered Recipe"),
+                        obj_attr:set(StructureId, ?EXP_STATE, ?EXP_STATE_DISCOVERY),
+
+                        StructureObj = obj:get(StructureId),
+
+                        NewRecipe = recipe:create(obj:player(StructureObj), 
+                                                  <<"Copper Broad Axe">>),
+                        
+                        obj_attr:set(StructureId, ?EXP_RECIPE, NewRecipe),
+                        
+                        obj_attr:delete(StructureId, <<"exp_req">>),
+                        obj_attr:delete(StructureId, <<"exp_item">>),
+
+                        {true, NewRecipe};
+                    false -> 
+                        lager:info("Failed to discover this time..."),
+                        false
+                end;
+            false ->
+                lager:info("Min Experimentation not reached yet"),
+                false
+        end,
+
+    %Get updated info experiment
+    InfoExperiment = get_info_experiment(StructureId),
+
+    %Send to client
+    game:send_update_experiment(StructureId, InfoExperiment),
+
+    %Return discovery result for event repeat
+    Result.
 
 has_exp_item(StructureId) ->
     obj_attr:value(StructureId, <<"exp_item">>, false) =/= false.
@@ -96,8 +125,16 @@ set_exp_item(StructureId, _VillagerId) ->
     ExpReq = [{<<"Copper Ingot">>, 25.0},
               {<<"Maple Timber">>, 5.0}],
 
-    obj_attr:set(StructureId, <<"exp_item">>, <<"Copper Training Axe">>),
-    obj_attr:set(StructureId, <<"exp_req">>, ExpReq).
+    obj_attr:set(StructureId, ?EXP_STATE, ?EXP_STATE_PROGRESS),
+    obj_attr:set(StructureId, ?EXP_REQ, ExpReq).
+
+set_exp_state_near(StructureId) ->
+    case obj_attr:value(StructureId, ?EXP_STATE) =/= ?EXP_STATE_NEAR of
+        true -> 
+            obj_attr:set(StructureId, ?EXP_STATE, ?EXP_STATE_NEAR);
+        false -> 
+            nothing
+    end.
 
 get_info_experiment(StructureId) ->
     Items = item:get_by_owner(StructureId),
@@ -122,10 +159,15 @@ get_info_experiment(StructureId) ->
 
     ValidResources = lists:filter(H, Items),
 
+    ExpState = obj_attr:value(StructureId, ?EXP_STATE, ?EXP_STATE_NONE),
+    ExpRecipe = obj_attr:value(StructureId, ?EXP_RECIPE, ?EXP_RECIPE_NONE),
+
     #{<<"id">> => StructureId,
       <<"expitem">> => ExperimentItem,
       <<"expresources">> => ExperimentResources,
-      <<"validresources">> => ValidResources}.
+      <<"validresources">> => ValidResources,
+      <<"expstate">> => ExpState,
+      <<"recipe">> => ExpRecipe}.
 
 get_harvesters(Player) ->
     Objs = db:index_read(obj, Player, #obj.player),

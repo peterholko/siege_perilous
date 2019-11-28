@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([all/1, all_to_map/1, select/2, value/2]).
+-export([all/1, all_to_map/1, key/1, select/2, value/2, value/1]).
 
 all(Name) ->
     db:dirty_match_object({recipe_template, {Name, '_'}, '_'}).
@@ -32,6 +32,9 @@ to_map(All) ->
         end,
     lists:foldl(F, #{}, All).
 
+key(RecipeTemplate) ->
+    RecipeTemplate#recipe_template.key.
+
 value(All, Attr) when is_list(All) ->
     [H | _Rest] = All,
     Key = H#recipe_template.key,
@@ -43,3 +46,5 @@ value(Name, Attr) ->
     [RecipeTemplate] = db:dirty_read(recipe_template, {Name, Attr}),
     RecipeTemplate#recipe_template.value.
 
+value(RecipeTemplate) ->
+    RecipeTemplate#recipe_template.value.

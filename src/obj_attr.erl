@@ -1,12 +1,12 @@
 %% Author: Peter
-%% Created: Feb 15, 2009
+%% Created: Feb 15, 2015
 %% Description: Implements simple persistent counter using mnesia
 -module(obj_attr).
 
 -include("schema.hrl").
 
 -export([all/1, all_to_map/1, value/2, value/3, has/2]).
--export([set/3, update/3]). 
+-export([set/3, update/3, delete/2]). 
 
 all(Id) ->
     db:dirty_match_object({obj_attr, {Id, '_'}, '_'}).
@@ -55,3 +55,6 @@ update(Id, Attr, Value) ->
     NewValue = ObjAttr#obj_attr.value + Value,
     NewObjAttr = ObjAttr#obj_attr {value = NewValue},
     db:dirty_write(NewObjAttr).
+
+delete(Id, Attr) ->
+    db:dirty_delete(obj_attr, {Id, Attr}).

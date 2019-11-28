@@ -28,3 +28,5 @@ export const TILE = 'tile';
 export const WALL = 'Wall';
 
 export const WEAPON = 'Weapon';
+
+export const EXP_RECIPE_NONE = -1;

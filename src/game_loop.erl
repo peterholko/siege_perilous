@@ -368,7 +368,7 @@ do_event(craft, EventData, PlayerPid) ->
             case structure:check_recipe_req(StructureId, Recipe) of
                 true ->
                     %Craft items
-                    NewItems = recipe:craft(StructureId, Recipe),
+                    NewItems = recipe:craft_item(StructureId, Recipe),
                     
                     %Send update to player
                     game:send_update_items(StructureId, NewItems, PlayerPid),
@@ -393,8 +393,12 @@ do_event(experiment, EventData, PlayerPid) ->
 
     case structure:check_experiment_req(StructureId) of
         true ->
-            structure:experiment(StructureId),
-            game:add_event(PlayerPid, experiment, EventData, VillagerId, 10);
+            case structure:experiment(StructureId) of
+                {true, _Recipe} ->
+                    nothing;
+                false ->
+                    game:add_event(PlayerPid, experiment, EventData, VillagerId, 10)
+            end;
         false ->
             lager:info("check_experiment_req failed.")
     end;

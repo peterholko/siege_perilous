@@ -811,20 +811,20 @@ build(PlayerId, BuilderId, Structure = #obj {state = ?STALLED}) ->
 build(_PlayerId, _SourceId, Structure) ->
     lager:info("Invalid state of structure: ~p", [Structure#obj.state]).
 
-recipe_list(SourceId) ->
+recipe_list(StructureId) ->
     Player = get(player_id),
-    [Obj] = db:read(obj, SourceId),
+    [Structure] = db:read(obj, StructureId),
 
-    lager:info("Player: ~p Obj.player: ~p", [Player, Obj#obj.player]),
-    ValidPlayer = Player =:= Obj#obj.player,
+    Checks = [{is_player_owned(Structure, Player), "Structure not owned by player"}],
 
-    Result = case ValidPlayer of
-                true ->
-                    structure:recipe_list(Obj);
-                false ->
-                    <<"Source not owned by player">>
-             end,
-    Result.
+    case process_checks(Checks) of
+        true ->
+            Template = obj:template(Structure),
+            recipe:get_by_structure(Player, Template);
+        {false, Error} -> 
+            lager:info("Recipe list failed: ~p", [Error]),
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
 
 order_refine(Structure) when is_record(Structure, obj) ->
     Player = get(player_id),
@@ -982,20 +982,32 @@ set_exp_item(ItemId) ->
     Player = get(player_id),
     %Will fail if item id is invalid
     Item = item:get_rec(ItemId),
-    Owner = Item#item.owner,
+    StructureId = Item#item.owner,
 
-    OwnerObj = obj:get(Owner),   
+    StructureObj = obj:get(StructureId),   
 
-    Checks = [{is_player_owned(OwnerObj, Player), "Item not owned by player"},
+    Checks = [{is_player_owned(StructureObj, Player), "Item not owned by player"},
               {not item:is_resource(Item), "Cannot set resource item as experiment source"}],
 
     case process_checks(Checks) of
         true ->
             lager:info("Setting experiment item"),
-            
-            item_attr:set(ItemId, ?EXP_ITEM, ?TRUE),
+            case item_attr:value(ItemId, ?EXP_ITEM, none) of
+                none ->
+                    %Set experiment item flag on item
+                    item_attr:set(ItemId, ?EXP_ITEM, ?TRUE),
 
-            structure:get_info_experiment(obj:id(OwnerObj));
+                    %Set experiment item name on structure
+                    obj_attr:set(StructureId, ?EXP_ITEM, item:name(Item));
+                _ ->
+                    %Remove experiment item attribute
+                    item_attr:delete(ItemId, ?EXP_ITEM),
+
+                    %Remove experiment item from structure
+                    obj_attr:delete(StructureId, ?EXP_ITEM)
+            end,
+
+            structure:get_info_experiment(StructureId);
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
@@ -1004,19 +1016,24 @@ set_exp_resource(ItemId) ->
     Player = get(player_id),
     %Will fail if item id is invalid
     Item = item:get_rec(ItemId),
-    Owner = Item#item.owner,
+    StructureId = Item#item.owner,
 
-    OwnerObj = obj:get(Owner),   
+    StructureObj = obj:get(StructureId),   
 
-    Checks = [{is_player_owned(OwnerObj, Player), "Item not owned by player"},
+    Checks = [{is_player_owned(StructureObj, Player), "Item not owned by player"},
               {item:is_resource(Item), "Experiment reagants must be resources"}],
 
     case process_checks(Checks) of
         true ->
             lager:info("Setting experiment resource"),
-            item_attr:set(ItemId, ?EXP_RESOURCE_ITEM, ?TRUE),
+            case item_attr:value(ItemId, ?EXP_RESOURCE_ITEM, none) of
+                none ->
+                    item_attr:set(ItemId, ?EXP_RESOURCE_ITEM, ?TRUE);
+                _ ->
+                    item_attr:delete(ItemId, ?EXP_RESOURCE_ITEM)
+            end,
 
-            structure:get_info_experiment(obj:id(OwnerObj));
+            structure:get_info_experiment(StructureId);
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.

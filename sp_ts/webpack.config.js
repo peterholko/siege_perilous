@@ -40,7 +40,8 @@ module.exports = {
       phaser: phaser,
       ui: './../../../priv/static/art/ui/',
       ui_comp: './../../../../priv/static/art/ui/',
-      art: './../../../priv/static/art/'
+      art: './../../../priv/static/art/',
+      art_comp: './../../../../priv/static/art/',
     }
   },
 };
