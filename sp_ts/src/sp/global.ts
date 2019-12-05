@@ -35,6 +35,6 @@ export class Global {
 
     public static infoItemAction = 'inventory';
     public static infoItemTransferAction = 'transfer';
-
+    
     public static merchantSellTarget;
 }

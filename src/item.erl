@@ -8,14 +8,15 @@
 
 -export([get_rec/1, get_map/1, get_all_attr/1, get_map_by_name/1, get_by_owner/1, get_by_owner_rec/1, 
          get_by_subclass/2, get_by_name/2, get_equiped/1, get_non_equiped/1, get_equiped_weapon/1,
-         get_weapon_range/1, get_by_class/2, get_exp_res_by_subclass/2]).
+         get_weapon_range/1, get_by_class/2, 
+         get_exp_item/1, get_exp_resources/1, get_exp_res_by_subclass/2]).
 -export([transfer/2, transfer/3, transfer_by_class/4,
          split/2, update/2, create/1, create/3, create/4, equip/1, unequip/1]).
 -export([has_by_class/2, has_by_subclass/2, has_price/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, 
          is_class/2, is_subclass/2, is_resource/1]).
 -export([get_total_weight/1, total_gold/1, weight/2]).
--export([id/1, name/1, owner/1, quantity/1, price/1, image/1]).
+-export([id/1, name/1, subclass/1, owner/1, quantity/1, price/1, image/1]).
 -export([match_req/3]).
 
 id(Item) when is_map(Item) -> maps:get(<<"id">>, Item);
@@ -26,6 +27,9 @@ name(Item) -> Item#item.name.
 
 owner(Item) when is_map(Item) -> maps:get(<<"owner">>, Item);
 owner(Item) -> Item#item.owner.
+
+subclass(Item) when is_map(Item) -> maps:get(<<"subclass">>, Item);
+subclass(Item) -> Item#item.subclass.
 
 quantity(Item) when is_map(Item) -> maps:get(<<"quantity">>, Item);
 quantity(Item) -> Item#item.quantity.
@@ -121,6 +125,26 @@ get_total_weight(ObjId) ->
 
     TotalWeight = lists:foldl(F, 0, AllItems),
     TotalWeight. 
+
+get_exp_item(StructureId) when is_integer(StructureId) ->
+    Items = item:get_by_owner(StructureId),
+    get_exp_item(Items);
+get_exp_item(Items) ->
+    F = fun(Item) ->
+            item_attr:value(item:id(Item), ?EXP_ITEM, none) =:= ?TRUE
+        end,
+
+    lists:filter(F, Items).
+
+get_exp_resources(StructureId) when is_integer(StructureId) ->
+    Items = item:get_by_owner(StructureId),
+    get_exp_resources(Items);
+get_exp_resources(Items) ->
+    G = fun(Item) ->
+            item_attr:value(item:id(Item), ?EXP_RESOURCE_ITEM, none) =:= ?TRUE
+        end,
+
+    lists:filter(G, Items).
 
 get_exp_res_by_subclass(StructureId, SubClass) ->
     AllItems = get_by_owner(StructureId),
@@ -371,6 +395,7 @@ create(Owner, Name, Quantity, Equip) ->
                      
                       Class = item_attr:value(Id, <<"class">>),
                       Subclass = item_attr:value(Id, <<"subclass">>),
+                      Image = item_attr:value(Id, <<"image">>),
                       Weight = item_attr:value(Id, <<"weight">>),
 
                       {false, #item {id = Id,
@@ -379,6 +404,7 @@ create(Owner, Name, Quantity, Equip) ->
                                      owner = Owner,
                                      class = Class,
                                      subclass = Subclass,
+                                     image = Image,
                                      weight = Weight,
                                      equip = Equip}};
                   [Item | _Rest] -> 

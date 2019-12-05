@@ -19,38 +19,190 @@
 -export([recipe_name/1]).
 -export([get_nearby_bones/1]).
 -export([resource_type/1, to_skill/1]).
--export([has_exp_item/1, set_exp_item/2, check_experiment_req/1, experiment/1]).
+-export([has_experiment/1, has_exp_recipe/1,
+         set_exp_item/2, check_experiment_req/1, 
+         find_exp_recipe/3, experiment/1, remove_experiment/1]).
 
 recipe_name(Recipe) -> maps:get(<<"item">>, Recipe).
 
+has_experiment(StructureId) ->
+    case db:read(experiment, StructureId) of
+        [Experiment] -> 
+            case Experiment#experiment.state of
+                ?EXP_STATE_DISCOVERY ->
+                    false;  % Return false if the experiment is done
+                _ -> 
+                    true
+            end;
+        _ -> 
+            false
+    end.
+
+has_exp_recipe(StructureId) ->
+    [Experiment] = db:read(experiment, StructureId),
+    Experiment#experiment.recipe =/= none.
+        
+set_exp_item(StructureId, ItemName) ->
+    NewExperiment = case db:read(experiment, StructureId) of
+                        [Experiment] ->
+                            %Set recipe to none to reset the experiment
+                            Experiment#experiment {recipe = none, 
+                                                   state = ?EXP_STATE_NONE,
+                                                   exp_item = ItemName,
+                                                   req = []};
+                        _ ->
+                            #experiment {structure = StructureId,
+                                         recipe = none,
+                                         state = ?EXP_STATE_NONE,
+                                         exp_item = ItemName,
+                                         req = []}
+                    end,
+
+    db:write(NewExperiment).
+
+find_exp_recipe(PlayerId, StructureId, _VillagerId) ->
+    [Experiment] = db:read(experiment, StructureId),
+    lager:info("Experiment: ~p", [Experiment]),
+
+    ExpItem = Experiment#experiment.exp_item,
+    ExpResources = item:get_exp_resources(StructureId),
+
+    StructureObj = obj:get(StructureId),
+    StructureTemplate = obj:template(StructureObj),
+    
+    PlayerRecipes = recipe:get_by_structure(PlayerId, StructureTemplate),
+    lager:info("Player Recipes: ~p", [PlayerRecipes]),
+
+    ExpItemRecipe = recipe:get_recipe(ExpItem),
+    ExpItemTier = maps:get(<<"tier">>, ExpItemRecipe),
+    ExpItemSubclass = maps:get(<<"subclass">>, ExpItemRecipe),
+    lager:info("ExpItem: ~p Tier: ~p, Subclass: ~p", [ExpItem, ExpItemTier, ExpItemSubclass]),
+
+    Recipes = recipe:get_by_subclass_tier(StructureTemplate, ExpItemSubclass, ExpItemTier),
+    lager:info("All Recipes: ~p", [Recipes]),
+
+    UndiscoveredRecipes = undiscovered_recipes(Recipes, PlayerRecipes),
+    lager:info("Undiscovered Recipes: ~p", [UndiscoveredRecipes]),
+
+    MatchedRecipes = matched_undiscovered_reqs(UndiscoveredRecipes, ExpResources),
+    lager:info("Matched Recipes: ~p", [MatchedRecipes]),
+
+    NumRecipes = length(MatchedRecipes),
+
+    NewExperiment = 
+        case NumRecipes > 0 of
+            true ->
+                NewRecipe = lists:nth(util:rand(NumRecipes), MatchedRecipes),
+
+                lager:info("New Recipe: ~p", [NewRecipe]),
+                RecipeReq = maps:get(<<"req">>, NewRecipe),
+
+                Experiment#experiment {recipe = NewRecipe,
+                                       state = ?EXP_STATE_PROGRESS,
+                                       req = RecipeReq};
+            false ->
+                Experiment#experiment {recipe = none,
+                                       state = ?EXP_STATE_NEW_SOURCE,
+                                       req = []}
+        end,
+            
+    db:write(NewExperiment).
+
+undiscovered_recipes(AllRecipes, PlayerRecipes) ->
+    undiscovered_recipes(AllRecipes, PlayerRecipes, []).
+
+undiscovered_recipes([], _, Undiscovered) ->
+    Undiscovered;
+undiscovered_recipes([Recipe | Rest], PlayerRecipes , Undiscovered) ->
+
+    F = fun(PlayerRecipe) ->
+            PlayerRecipeName = maps:get(<<"name">>, PlayerRecipe),
+            RecipeName = maps:get(<<"name">>, Recipe),
+
+            PlayerRecipeName =:= RecipeName
+        end,
+
+    IsDiscovered = lists:any(F, PlayerRecipes),
+
+    NewUndiscovered = case IsDiscovered of
+                        true -> Undiscovered;
+                        false -> [Recipe | Undiscovered]
+                      end,
+
+    undiscovered_recipes(Rest, PlayerRecipes, NewUndiscovered).
+
+matched_undiscovered_reqs(Recipes, ExpResources) ->
+    matched_undiscovered_reqs(Recipes, ExpResources, []).
+
+matched_undiscovered_reqs([], _ExpResources, MatchedRecipes) ->
+    MatchedRecipes;
+matched_undiscovered_reqs([Recipe | Rest], ExpResources, MatchedRecipes) ->
+    lager:info("Recipe: ~p", [Recipe]),
+    lager:info("ExpResources: ~p", [ExpResources]),
+
+    F = fun(RecipeReq) ->
+            ReqType = maps:get(<<"type">>, RecipeReq),
+
+            G = fun(ExpResource) ->
+                    lager:info("ReqType: ~p", [ReqType]),
+                    ExpResSubclass = item:subclass(ExpResource),
+                    lager:info("ExpResSubclass: ~p", [ExpResSubclass]),
+                    R = ReqType =:= ExpResSubclass,
+                    lager:info("R: ~p", [R]),
+                    R
+                end,
+
+            Result = lists:any(G, ExpResources),
+            lager:info("Result: ~p", [Result]),
+            Result
+        end,
+
+    MatchedReqs = lists:all(F, maps:get(<<"req">>, Recipe)),
+
+    NewMatchedRecipes = case MatchedReqs of
+                            true -> [Recipe | MatchedRecipes];
+                            false -> MatchedRecipes
+                        end,
+
+    matched_undiscovered_reqs(Rest, ExpResources, NewMatchedRecipes).
+
 check_experiment_req(StructureId) ->
-    ExpReqList = obj_attr:value(StructureId, <<"exp_req">>),
+    [Experiment] = db:read(experiment, StructureId),
+
     ResRateList = [{<<"Copper Ingot">>, 1.75},
                    {<<"Maple Timber">>, 0.35}],
 
-    F = fun({ReqSubclass, _ReqQuantity}) ->
-                ExpResources = item:get_exp_res_by_subclass(StructureId, ReqSubclass),
-                case ExpResources of
-                    [] ->
-                        lager:info("No item of that subclass"), 
-                        false; 
-                    [ExpResource | _Rest] -> %Assume only 1 match 
-                        {_, ResRate} = lists:keyfind(ReqSubclass, 1, ResRateList),
-                        lager:info("ItemQuantity: ~p ResRate: ~p", [item:quantity(ExpResource), ResRate]),
-                        item:quantity(ExpResource) > ResRate
-                end
+    F = fun(ReqMap) ->
+            ReqSubclass = maps:get(<<"type">>, ReqMap),
+            ExpResources = item:get_exp_res_by_subclass(StructureId, ReqSubclass),
+            case ExpResources of
+                [] ->
+                    lager:info("No item of that subclass"), 
+                    false; 
+                [ExpResource | _Rest] -> %Assume only 1 match 
+                    {_, ResRate} = lists:keyfind(ReqSubclass, 1, ResRateList),
+                    lager:info("ItemQuantity: ~p ResRate: ~p", [item:quantity(ExpResource), ResRate]),
+                    item:quantity(ExpResource) > ResRate
+            end
         end,
 
-    lists:all(F, ExpReqList).
+    lists:all(F, Experiment#experiment.req).
 
 experiment(StructureId) ->
     lager:info("Processing experiment"),
+    [Experiment] = db:read(experiment, StructureId),
+    RecipeName = maps:get(<<"name">>, Experiment#experiment.recipe),
+
     ResRateList = [{<<"Copper Ingot">>, 1.75},
                    {<<"Maple Timber">>, 0.35}],
 
-    ExpReqList = obj_attr:value(StructureId, <<"exp_req">>),
+    ExpReqList = Experiment#experiment.req,
+    lager:info("ExpReqList: ~p", [ExpReqList]),
 
-    F = fun({ReqSubclass, ReqQuantity}, Acc) ->
+    F = fun(ReqMap, Acc) ->
+            ReqSubclass = maps:get(<<"type">>, ReqMap),
+            ReqQuantity = maps:get(<<"quantity">>, ReqMap),
+
             {_, ResRate} = lists:keyfind(ReqSubclass, 1, ResRateList),
 
             NewQuantity = ReqQuantity - ResRate,
@@ -66,48 +218,50 @@ experiment(StructureId) ->
             lager:info("NewExpRes ~p: ~p ~p", [item:name(ExpResource), NewExpResQuantity, ResDecrease]),
             item:update(item:id(ExpResource), NewExpResQuantity),
 
-            [{ReqSubclass, NewQuantity} | Acc]
+            NewReqMap = maps:update(<<"quantity">>, NewQuantity, ReqMap),
+            lager:info("NewReqMap: ~p", [NewReqMap]),
+            [NewReqMap | Acc]
         end,
 
     NewExpReqList = lists:foldl(F, [], ExpReqList),
-    lager:info("NewExpMinReqList: ~p", [NewExpReqList]),
+    lager:info("NewExpReqList: ~p", [NewExpReqList]),
 
-    G = fun({_ReqSubclass, ReqQuantity}) -> ReqQuantity =< 0 end,
+    %Chech if the mininum amount of experimenting has been reached
+    G = fun(ReqMap) -> maps:get(<<"quantity">>, ReqMap) =< 0 end,
 
     ReachedMinExpReq = lists:all(G, NewExpReqList),
 
-    obj_attr:set(StructureId, <<"exp_req">>, NewExpReqList),
-
-    Result = 
+    {Result, NewExperiment} = 
         case ReachedMinExpReq of
             true ->
-                set_exp_state_near(StructureId),
-
                 lager:info("Chance at New Discovery!"),
                 case util:rand(100) < 25 of 
                     true -> 
                         lager:info("New Discovered Recipe"),
-                        obj_attr:set(StructureId, ?EXP_STATE, ?EXP_STATE_DISCOVERY),
 
                         StructureObj = obj:get(StructureId),
+                        [ExpItem] = item:get_exp_item(StructureId),
 
-                        NewRecipe = recipe:create(obj:player(StructureObj), 
-                                                  <<"Copper Broad Axe">>),
-                        
-                        obj_attr:set(StructureId, ?EXP_RECIPE, NewRecipe),
-                        
-                        obj_attr:delete(StructureId, <<"exp_req">>),
-                        obj_attr:delete(StructureId, <<"exp_item">>),
+                        %Create new recipe
+                        recipe:create(obj:player(StructureObj), RecipeName),
 
-                        {true, NewRecipe};
+                        %Consume experiment item TODO reconsider the deletion
+                        item:update(item:id(ExpItem), 0),
+                        
+                        {true, Experiment#experiment{exp_item = none,
+                                                     state = ?EXP_STATE_DISCOVERY}};
                     false -> 
                         lager:info("Failed to discover this time..."),
-                        false
+                        {false, Experiment#experiment{state = ?EXP_STATE_NEAR}}
                 end;
             false ->
                 lager:info("Min Experimentation not reached yet"),
-                false
+                {false, Experiment}
         end,
+
+    %Save updated experiment record
+    NewExperiment2 = NewExperiment#experiment {req = NewExpReqList},
+    db:write(NewExperiment2),
 
     %Get updated info experiment
     InfoExperiment = get_info_experiment(StructureId),
@@ -118,39 +272,25 @@ experiment(StructureId) ->
     %Return discovery result for event repeat
     Result.
 
-has_exp_item(StructureId) ->
-    obj_attr:value(StructureId, <<"exp_item">>, false) =/= false.
+remove_experiment(StructureId) ->
+    db:delete(experiment, StructureId),
 
-set_exp_item(StructureId, _VillagerId) ->
-    ExpReq = [{<<"Copper Ingot">>, 25.0},
-              {<<"Maple Timber">>, 5.0}],
+    ExpResources = item:get_exp_resources(StructureId),
 
-    obj_attr:set(StructureId, ?EXP_STATE, ?EXP_STATE_PROGRESS),
-    obj_attr:set(StructureId, ?EXP_REQ, ExpReq).
+    F = fun(ExpResource) ->
+            item_attr:set(item:id(ExpResource), ?EXP_RESOURCE_ITEM, none)
+        end,
 
-set_exp_state_near(StructureId) ->
-    case obj_attr:value(StructureId, ?EXP_STATE) =/= ?EXP_STATE_NEAR of
-        true -> 
-            obj_attr:set(StructureId, ?EXP_STATE, ?EXP_STATE_NEAR);
-        false -> 
-            nothing
-    end.
+    lists:foreach(F, ExpResources).
 
 get_info_experiment(StructureId) ->
+    lager:info("get_info_experiment"),
     Items = item:get_by_owner(StructureId),
 
-    F = fun(Item) ->
-            item_attr:value(item:id(Item), ?EXP_ITEM, none) =:= ?TRUE
-        end,
+    ExperimentItem = item:get_exp_item(Items),
+    ExperimentResources = item:get_exp_resources(Items),
 
-    ExperimentItem = lists:filter(F, Items),
-
-    G = fun(Item) ->
-            item_attr:value(item:id(Item), ?EXP_RESOURCE_ITEM, none) =:= ?TRUE
-        end,
-
-    ExperimentResources = lists:filter(G, Items),
-
+    %Filter for valid resources
     H = fun(Item) ->
             IsNotItem = item_attr:value(item:id(Item), ?EXP_ITEM, none) =/= ?TRUE,
             IsNotResource = item_attr:value(item:id(Item), ?EXP_RESOURCE_ITEM, none) =/= ?TRUE,
@@ -159,8 +299,21 @@ get_info_experiment(StructureId) ->
 
     ValidResources = lists:filter(H, Items),
 
-    ExpState = obj_attr:value(StructureId, ?EXP_STATE, ?EXP_STATE_NONE),
-    ExpRecipe = obj_attr:value(StructureId, ?EXP_RECIPE, ?EXP_RECIPE_NONE),
+    ExperimentResult = db:read(experiment, StructureId),
+
+    ExpState = case ExperimentResult of
+                [Experiment] -> Experiment#experiment.state;
+                _ -> ?EXP_STATE_NONE
+               end,
+    
+    ExpRecipe = case ExperimentResult of
+                    [Experiment2] -> 
+                        case ExpState =:= ?EXP_STATE_DISCOVERY of
+                            true -> Experiment2#experiment.recipe;
+                            false -> ?EXP_RECIPE_NONE
+                        end;
+                    _ -> ?EXP_RECIPE_NONE
+                end,
 
     #{<<"id">> => StructureId,
       <<"expitem">> => ExperimentItem,

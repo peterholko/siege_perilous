@@ -452,6 +452,14 @@ message_handle(<<"info_experiment">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_experiment">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_exit">>, Message) ->
+    lager:info("message: info_exit"),
+    Key = m_get(<<"key">>, Message),
+    Type = m_get(<<"type">>, Message),
+    InfoMaps = player:info_exit(Key, Type),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_exit">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
 message_handle(<<"ford">>, Message) ->
     lager:info("message: ford"),
     Id = m_get(<<"id">>, Message),
@@ -521,6 +529,14 @@ message_handle(<<"set_exp_resource">>, Message) ->
 
     Return = player:set_exp_resource(ItemId),
     FinalReturn = maps:put(<<"packet">>, <<"set_exp_resource">>, Return),
+    jsx:encode(FinalReturn);
+
+message_handle(<<"reset_experiment">>, Message) ->
+    lager:info("message: reset experiment"),
+    ItemId = m_get(<<"structureid">>, Message),
+
+    Return = player:reset_experiment(ItemId),
+    FinalReturn = maps:put(<<"packet">>, <<"info_experiment">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(_Cmd, Message) ->

@@ -6,6 +6,7 @@ import { Global } from "../global";
 import HalfPanel from "./halfPanel";
 import itemframe from "ui_comp/itemframe.png";
 import experimentbutton from "ui_comp/experimentbutton.png";
+import okbutton from "ui_comp/okbutton.png";
 import recipe from "art_comp/items/recipe.png";
 import { Network } from "../network";
 import InventoryItem from "./inventoryItem";
@@ -41,6 +42,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     this.handleSetExpItemClick = this.handleSetExpItemClick.bind(this);
     this.handleSetExpResourceClick = this.handleSetExpResourceClick.bind(this);
     this.handleExperimentClick = this.handleExperimentClick.bind(this);
+    this.handleOkClick = this.handleOkClick.bind(this);
   }
 
   handleSelect() {
@@ -78,6 +80,10 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
 
   handleExperimentClick() {
     Network.sendOrderExperiment(this.props.expData.id);
+  }
+
+  handleOkClick() {
+    Network.sendResetExperiment(this.props.expData.id);
   }
 
   render() {
@@ -126,20 +132,35 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
       transform: 'translate(-185px, 290px)',
       position: 'fixed'
     } as React.CSSProperties
-   
+ 
+    const okButtonStyle = {
+      transform: 'translate(-185px, 290px)',
+      position: 'fixed'
+    } as React.CSSProperties
+ 
+    const eurakaStyle = {
+      transform: 'translate(-323px, 40px)',
+      position: 'fixed',
+      textAlign: 'center',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+      width: '323px'
+    } as React.CSSProperties
+  
     const recipeStyle = {
-      transform: 'translate(-280px, 225px)',
+      transform: 'translate(-185px, 75px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const recipeNameStyle = {
-      transform: 'translate(-200px, 235px)',
+      transform: 'translate(-323px, 140px)',
       position: 'fixed',
-      textAlign: 'left',
+      textAlign: 'center',
       color: 'white',
       fontFamily: 'Verdana',
       fontSize: '12px',
-      width: '200px'
+      width: '323px'
     } as React.CSSProperties
 
     const expStateStyle = {
@@ -154,14 +175,14 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
 
     if(this.props.expData.expitem.length > 0) {
       var xPos = 138;
-      var yPos = -285;
+      var yPos = -310;
 
       var itemId = this.props.expData.expitem[0].id;
       var itemName = this.props.expData.expitem[0].name;
       var quantity = this.props.expData.expitem[0].quantity;
 
       itemExperiment.push(
-         <InventoryItem key={i}
+         <InventoryItem key={1}
                        ownerId={this.props.expData.id}
                        itemId={itemId} 
                        itemName={itemName} 
@@ -208,58 +229,78 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
       );
     }
 
-    return (
-      <div>
-        <BaseInventoryPanel left={true} 
-                            id={this.props.expData.id}
-                            items={this.props.expData.validresources}
-                            panelType={'experiment'}
-                            hideExitButton={true}
-                            hideSelect={this.state.hideLeftSelect}
-                            handleSelect={this.handleSelect} />
+    if(showNewRecipe) {
+      return(
+        <div>
+          <BaseInventoryPanel left={true} 
+                              id={this.props.expData.id}
+                              items={this.props.expData.validresources}
+                              panelType={'experiment'}
+                              hideExitButton={true}
+                              hideSelect={this.state.hideLeftSelect}
+                              handleSelect={this.handleSelect} />
 
-        <HalfPanel left={false} 
-                 panelType={'experiment'} 
-                 hideExitButton={false}>
+          <HalfPanel left={false} 
+                  panelType={'experiment'} 
+                  hideExitButton={false}>
           
-          <span style={sourceStyle}>Source Item</span>
-          <img src={itemframe} style={expItemStyle}/>
+            <span style={eurakaStyle}>Euraka!</span>
+            <img src={recipe} style={recipeStyle} />
+            <span style={recipeNameStyle}>{this.props.expData.recipe.name}</span>
 
-          {itemExperiment}
+            <img src={okbutton}
+                 style={okButtonStyle}
+                 onClick={this.handleOkClick}  /> 
 
-          <img src={transferbutton} 
-              style={sourceTransferStyle} 
-              onClick={this.handleSetExpItemClick}/> 
- 
-          <img src={transferbutton} 
-              style={reagentsTransferStyle} 
-              onClick={this.handleSetExpResourceClick}/> 
+          </HalfPanel>
+        </div>
+      )
+    } else {
+        return (
+          <div>
+            <BaseInventoryPanel left={true} 
+                                id={this.props.expData.id}
+                                items={this.props.expData.validresources}
+                                panelType={'experiment'}
+                                hideExitButton={true}
+                                hideSelect={this.state.hideLeftSelect}
+                                handleSelect={this.handleSelect} />
 
-          <span style={reagentsStyle}>Reagents</span>
-          {itemFrameResources}
-          {itemExpResources}
+            <HalfPanel left={false} 
+                    panelType={'experiment'} 
+                    hideExitButton={false}>
+              
+              <span style={sourceStyle}>Source Item</span>
+              <img src={itemframe} style={expItemStyle}/>
 
-          {showNewRecipe && 
-            [
-              <img key={1} src={recipe} style={recipeStyle} />,
-              <span key={2} style={recipeNameStyle}>{this.props.expData.recipe.name}</span> 
-            ] 
-          }
+              {itemExperiment}
 
-          {!showNewRecipe && 
-              <span style={expStateStyle}>{this.props.expData.expstate}</span> 
-          }
+              <img src={transferbutton}
+                    style={sourceTransferStyle}
+                    onClick={this.handleSetExpItemClick}/>
 
-          {!this.state.hideSelectExpRes && 
-            <img src={selectitemborder} style={this.state.selectExpResStyle} /> 
-          }
-          
-          <img src={experimentbutton}
-               style={expButtonStyle}
-               onClick={this.handleExperimentClick}  /> 
-        </HalfPanel>
+              <img src={transferbutton} 
+                    style={reagentsTransferStyle} 
+                    onClick={this.handleSetExpResourceClick}/>
 
-     </div>
-    );
-  }
+              <span style={reagentsStyle}>Reagents</span>
+              
+              {itemFrameResources}
+              {itemExpResources}
+
+              <span style={expStateStyle}>{this.props.expData.expstate}</span>
+
+              <img src={experimentbutton}
+                    style={expButtonStyle}
+                    onClick={this.handleExperimentClick}  /> 
+
+              {!this.state.hideSelectExpRes && 
+                <img src={selectitemborder} style={this.state.selectExpResStyle} /> 
+              }
+              
+            </HalfPanel>
+          </div>
+        );
+      }
+    }
 }

@@ -222,6 +222,11 @@
   image: Mana
   weight: 1
 
+- name: Copper Training Axe
+  class: Weapon
+  subclass: Axe
+  image: Training Axe
+  weight: 10
 
 
 

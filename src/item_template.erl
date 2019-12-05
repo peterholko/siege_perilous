@@ -43,7 +43,7 @@ key(ItemDef) ->
 
 add(Id, Attr, Value) ->
     ItemDef = #item_template{key = {Id, Attr},
-                          value = Value},
+                             value = Value},
     db:dirty_write(ItemDef).
 
 set(Id, Attr, Value) ->

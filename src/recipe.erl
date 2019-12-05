@@ -5,7 +5,7 @@
 
 -include("schema.hrl").
 
--export([get_recipes/1, get_recipe/1, get_by_structure/2]).
+-export([get_recipes/1, get_recipe/1, get_by_structure/2, get_by_subclass_tier/3]).
 -export([craft_item/2, is_refine/1]).
 -export([create/2]).
 
@@ -187,4 +187,17 @@ get_by_structure(Owner, Structure) ->
 
     lists:foldl(F, [], Recipes).
 
+get_by_subclass_tier(Structure, Subclass, Tier) ->
+    AllRecipes = recipe:get_recipes(Structure),
+
+    F = fun(Recipe) ->
+            RecipeSubclass = maps:get(<<"subclass">>, Recipe, none),
+            RecipeTier = maps:get(<<"tier">>, Recipe, none),
+            lager:info("RecipeSubclass: ~p Subclass: ~p", [RecipeSubclass, Subclass]),
+            lager:info("RecipeTier: ~p Tier: ~p", [RecipeTier, Tier]),
+
+            (RecipeSubclass =:= Subclass) and (RecipeTier =:= Tier)
+        end,
+
+    lists:filter(F, AllRecipes).
 

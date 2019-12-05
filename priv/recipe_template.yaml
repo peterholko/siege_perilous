@@ -9,6 +9,7 @@
   structure: Blacksmith
   class: Weapon
   subclass: Axe
+  tier: 1
   slot: Main Hand
   damage: 10
   speed: 5
@@ -26,6 +27,7 @@
   structure: Blacksmith
   class: Weapon
   subclass: Axe
+  tier: 1
   slot: Main Hand
   damage: 30
   speed: 4.5
@@ -43,6 +45,7 @@
   structure: Blacksmith
   class: Weapon
   subclass: Axe
+  tier: 1
   slot: Main Hand
   damage: 35
   speed: 4.5
@@ -60,6 +63,7 @@
   structure: Blacksmith
   class: Weapon
   subclass: Sword
+  tier: 1
   slot: Main Hand
   damage: 5
   speed: 4.5

@@ -299,6 +299,7 @@ export default class UI extends React.Component<any, UIState>{
     } else if(event.panelType == 'hire') {
       this.setState({hideMerchantHirePanel: true});
     } else if(event.panelType == 'experiment') {
+      Network.sendInfoExit(this.state.expData.id, "experiment");
       this.setState({hideExperimentPanel: true});
     } 
   }

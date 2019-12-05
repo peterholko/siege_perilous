@@ -145,6 +145,12 @@
 -record(recipe_template, {key, % {name, attr}
                      value}).
 
+-record(experiment, {structure,
+                     recipe = none,
+                     state,
+                     exp_item = none,
+                     req = []}).
+
 -record(skill, {key, % {id, name}
                 name,
                 level = 0,

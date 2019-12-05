@@ -280,6 +280,23 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
+  public static sendResetExperiment(structureId) {
+     var m = {
+      cmd: "reset_experiment",
+      structureid: structureId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendInfoExit(Key, Type) {
+      var m = {
+      cmd: "info_exit",
+      key: Key,
+      type: Type
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
     this.websocket = new WebSocket(url);

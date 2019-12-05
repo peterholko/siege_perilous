@@ -308,6 +308,7 @@
 -define(EXP_STATE_PROGRESS, <<"Progressing">>).
 -define(EXP_STATE_NEAR, <<"Near breakthrough">>).
 -define(EXP_STATE_DISCOVERY, <<"Eureka!">>).
+-define(EXP_STATE_NEW_SOURCE, <<"Trivial source item">>).
 -define(EXP_RECIPE, <<"recipe">>).
 -define(EXP_RECIPE_NONE, -1).
 

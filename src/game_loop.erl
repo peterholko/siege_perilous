@@ -389,18 +389,29 @@ do_event(craft, EventData, PlayerPid) ->
 
 do_event(experiment, EventData, PlayerPid) ->
     lager:info("Processing experiment event: ~p", [EventData]),
-    {StructureId, VillagerId} = EventData,
+    {PlayerId, StructureId, VillagerId} = EventData,
 
-    case structure:check_experiment_req(StructureId) of
+    case structure:has_experiment(StructureId) of
         true ->
-            case structure:experiment(StructureId) of
-                {true, _Recipe} ->
-                    nothing;
+            %Check if the experiment has a recipe, if not find one
+            case structure:has_exp_recipe(StructureId) of
+                false -> structure:find_exp_recipe(PlayerId, StructureId, VillagerId);
+                true -> nothing
+            end,
+
+            case structure:check_experiment_req(StructureId) of
+                true ->
+                    case structure:experiment(StructureId) of
+                        true ->
+                            lager:info("Discovered recipe, not add experiment again");
+                        false ->
+                            game:add_event(PlayerPid, experiment, EventData, VillagerId, 10)
+                    end;
                 false ->
-                    game:add_event(PlayerPid, experiment, EventData, VillagerId, 10)
+                    lager:info("check_experiment_req failed.")
             end;
         false ->
-            lager:info("check_experiment_req failed.")
+            lager:info("has_experiment failed.")
     end;
 
 do_event(?DRINKING, EventData, _PlayerPid) ->

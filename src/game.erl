@@ -59,10 +59,14 @@ send_update_stats(_, _) ->
 send_update_experiment(StructureId, InfoExperiment) ->
     [StructureObj] = db:read(obj, StructureId),
 
-    case player:is_online(obj:player(StructureObj)) of
-        false -> nothing;
-        Conn ->
-            message:send_to_process(Conn#connection.process, info_experiment, InfoExperiment)
+    Index = {obj:player(StructureObj), experiment, StructureId},
+
+    case db:read(active_info, Index) =/= [] of
+        true ->
+            [Conn] = db:read(connection, obj:player(StructureObj)),
+            message:send_to_process(Conn#connection.process, info_experiment, InfoExperiment);
+        false ->
+            nothing
     end.
 
 send_villager_change(Villager) ->
@@ -246,8 +250,9 @@ create_new_player(PlayerId) ->
     item:create(HeroId, <<"Honeybell Berries">>, 25),
     item:create(HeroId, <<"Spring Water">>, 25),
     item:create(HeroId, <<"Gold Coins">>, 25),
-    item:create(HeroId, <<"Valleyrun Copper Ingot">>, 50),
-    item:create(HeroId, <<"Cragroot Maple Timber">>, 33),
+    item:create(HeroId, <<"Valleyrun Copper Ingot">>, 200),
+    item:create(HeroId, <<"Cragroot Maple Timber">>, 200),
+    item:create(HeroId, <<"Copper Training Axe">>, 1),
     item:create(MonolithId, <<"Mana">>, 2500),
     item:create(HeroId, <<"Cragroot Maple Wood">>, 100),
     item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 25),

@@ -75,6 +75,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(game_attr, [{ram_copies, [node()]}, {attributes, record_info(fields, game_attr)}]),  
     {atomic, ok} = mnesia:create_table(active_info, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, active_info)}]),  
     {atomic, ok} = mnesia:create_table(relation, [{ram_copies, [node()]}, {attributes, record_info(fields, relation)}]),  
+    {atomic, ok} = mnesia:create_table(experiment, [{ram_copies, [node()]}, {attributes, record_info(fields, experiment)}]),  
 
     mnesia:add_table_index(perception, player),
     mnesia:add_table_index(player, name),
@@ -169,36 +170,43 @@ convert_value(Value) ->
     lager:info("Value: ~p", [Value]),
 
     case Value of 
-        [ListValue | _] when is_list(ListValue) ->
-            lager:info("ListValue: ~p", [ListValue]),
-            case ListValue of
-                [ChildListValue | _] when is_list(ChildListValue) ->
-                    ChildListValue;
-                [ChildListValue | _] when is_tuple(ChildListValue) ->                    
-                    F = fun(E, Acc) ->
-                        lager:info("E: ~p", [E]),
-                        {K, V} = E,
-                        BinaryKey = to_binary(K),
-                        BinaryValue = to_binary(V),
-                        maps:put(BinaryKey, BinaryValue, Acc)
-                    end,
-
-                    [lists:foldl(F, #{}, ListValue)];
-                _ -> 
-                    F = fun(E, Acc) ->
-                            [ list_to_binary(E) | Acc]
-                        end,
-                    lists:foldl(F, [], Value)
-            end;
-
         List when is_list(List) ->
             case io_lib:printable_list(List) of
                 true ->
                     lager:info("Printable List: ~p", [List]),
                     erlang:list_to_binary(List);
                 false ->
-                    lager:info("List: ~p", [List]),
-                    List
+                    F = fun
+                           (E, Acc) when is_list(E) ->
+                                lager:info("E: ~p", [E]),
+
+                                Result = 
+                                    case io_lib:printable_list(E) of
+                                        true -> 
+                                            list_to_binary(E);
+                                        false ->
+                                            G = fun({K, V}, Acc2) ->
+                                                        lager:info("K: ~p V: ~p", [K, V]),
+
+                                                        BinaryKey = to_binary(K),
+                                                        BinaryValue = to_binary(V),
+                                                        maps:put(BinaryKey, BinaryValue, Acc2)
+                                                end,
+
+                                            lists:foldl(G, #{}, E)
+                                    end,
+
+                                lager:info("Result: ~p", [Result]),
+
+                                [Result | Acc];
+                                
+                           (E, Acc) when is_integer(E) ->
+                                [E | Acc]
+                        end,
+
+                    NewList = lists:foldl(F, [], Value),
+                    lager:info("NewList: ~p", [NewList]),
+                    NewList
             end;
         V -> 
             V

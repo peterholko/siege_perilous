@@ -758,14 +758,8 @@ experiment(Villager) ->
     lager:info("Villager experimenting"),
     {StructureId, _StructurePos, _StructureName} = Villager#villager.structure,
 
-    case structure:has_exp_item(StructureId) of
-        false ->
-            structure:set_exp_item(StructureId, Villager#villager.id);
-        true ->
-            none
-    end,
-
-    EventData = {StructureId,
+    EventData = {Villager#villager.player,
+                 StructureId,
                  Villager#villager.id},
 
     obj:update_state(Villager#villager.id, ?EXPERIMENTING),

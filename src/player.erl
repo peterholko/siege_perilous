@@ -19,6 +19,7 @@
          get_info_attrs/1,
          get_info_skills/1,
          get_info_experiment/1,
+         info_exit/2,
          move/2,
          ford/2,
          combo/2,
@@ -49,6 +50,7 @@
          assign/2,
          set_exp_item/1,
          set_exp_resource/1,
+         reset_experiment/1,
          order_follow/1,
          order_explore/1,
          order_harvest/1,
@@ -239,6 +241,8 @@ get_info_experiment(StructureId) ->
 
     Info = case Player =:= Obj#obj.player of
                 true ->
+                    add_active_info({Player, experiment, StructureId}, Player, StructureId),
+
                     R = structure:get_info_experiment(StructureId),
                     lager:info("R: ~p", [R]),
                     R;
@@ -247,6 +251,24 @@ get_info_experiment(StructureId) ->
            end,
     Info.
 
+info_exit(Key, Type) ->
+    Player = get(player_id),
+
+    Index = case Type of
+                <<"obj">> -> {Player, obj, Key};
+                <<"experiment">> -> {Player, experiment, Key};
+                %TODO ADD Pos scenario
+                _ -> none
+            end,
+
+    case Index =/= none of
+        true -> db:delete(active_info, Index);
+        false -> nothing
+    end,
+
+    %Return success
+    #{<<"result">> => <<"success">>}.
+    
 combo(SourceId, ComboType) ->
     PlayerId = get(player_id),
     [SourceObj] = db:read(obj, SourceId),
@@ -997,14 +1019,14 @@ set_exp_item(ItemId) ->
                     %Set experiment item flag on item
                     item_attr:set(ItemId, ?EXP_ITEM, ?TRUE),
 
-                    %Set experiment item name on structure
-                    obj_attr:set(StructureId, ?EXP_ITEM, item:name(Item));
+                    %Create experiment and set experiment item         
+                    structure:set_exp_item(StructureId, item:name(Item));
                 _ ->
                     %Remove experiment item attribute
                     item_attr:delete(ItemId, ?EXP_ITEM),
 
-                    %Remove experiment item from structure
-                    obj_attr:delete(StructureId, ?EXP_ITEM)
+                    %Remove experiment
+                    structure:remove_experiment(StructureId)
             end,
 
             structure:get_info_experiment(StructureId);
@@ -1032,6 +1054,22 @@ set_exp_resource(ItemId) ->
                 _ ->
                     item_attr:delete(ItemId, ?EXP_RESOURCE_ITEM)
             end,
+
+            structure:get_info_experiment(StructureId);
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+reset_experiment(StructureId) ->
+    Player = get(player_id),
+    StructureObj = obj:get(StructureId),   
+
+    Checks = [{is_player_owned(StructureObj, Player), "Item not owned by player"}],
+
+    case process_checks(Checks) of
+        true ->
+            lager:info("Restting Experiment"),
+            structure:remove_experiment(StructureId),
 
             structure:get_info_experiment(StructureId);
         {false, Error} ->
@@ -1330,6 +1368,4 @@ add_active_info(Index, Player, Id) ->
                               id = Id},
     db:write(ActiveInfo).
 
-delete_active_info(Index) ->
-    db:delete(active_info, Index).
 
