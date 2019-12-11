@@ -97,6 +97,7 @@ craft_item(OwnerId, Recipe, <<"Weapon">>, MatchReqList) ->
                   <<"class">> => <<"Weapon">>,
                   <<"subclass">> => RecipeName,
                   <<"name">> => ItemName,
+                  <<"image">> => maps:get(<<"image">>, Recipe, <<"none">>),
                   <<"quantity">> => 1,
                   <<"damage">> => maps:get(<<"damage">>, Recipe, 0),
                   <<"speed">> => maps:get(<<"speed">>, Recipe, 0),
@@ -108,8 +109,10 @@ craft_item(OwnerId, Recipe, <<"Weapon">>, MatchReqList) ->
     CraftedItem = item:create(BaseStats),
 
     [CraftedItem];
-craft_item(OwnerId, RecipeName, <<"Armor">>, MatchReqList) ->
-     F = fun(MatchReq, ItemStats) ->
+craft_item(OwnerId, Recipe, <<"Armor">>, MatchReqList) ->
+    RecipeName = maps:get(<<"name">>, Recipe),
+
+    F = fun(MatchReq, ItemStats) ->
             Stats = [{<<"armor">>, maps:get(<<"armor">>, MatchReq, 0)},
                      {<<"durability">>, maps:get(<<"durability">>, MatchReq, 0)}],
 
@@ -124,13 +127,14 @@ craft_item(OwnerId, RecipeName, <<"Armor">>, MatchReqList) ->
                   <<"class">> => <<"Armor">>,
                   <<"subclass">> => RecipeName,
                   <<"name">> => ItemName,
+                  <<"image">> => maps:get(<<"image">>, Recipe, <<"none">>),
                   <<"quantity">> => 1},
     
     FinalItem = maps:merge(BaseStats, AllItemStats),
     CraftedItem = item:create(FinalItem),
 
     [CraftedItem];  
-craft_item(_OwnerId, _RecipeName, <<"Material">>, _MatchReqList) ->
+craft_item(_OwnerId, _Recipe, <<"Material">>, _MatchReqList) ->
     nothing.
  
 combine_stats([], Item) ->

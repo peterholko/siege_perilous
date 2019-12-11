@@ -273,14 +273,17 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
                               </progress></td>
               </tr>
             }
-            <tr>
-              <td>Requirements:</td>
-              <td>
-                <div style={divReqsStyle}>
-                  {reqs}
-                </div>
-              </td>
-            </tr>
+            
+            { ! isFinished && 
+              <tr>
+                <td>Requirements:</td>
+                <td>
+                  <div style={divReqsStyle}>
+                    {reqs}
+                  </div>
+                </td>
+              </tr>
+            }
           </tbody>
         </table>
 

@@ -82,7 +82,7 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
     } as React.CSSProperties
 
     const resDivStyle = {
-      transform: 'translate(0px, -90px)',
+      transform: 'translate(15px, -90px)',
       position: 'fixed',
     } as React.CSSProperties
 

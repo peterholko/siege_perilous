@@ -18,7 +18,7 @@
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
 -export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, 
-         is_blocking/2, is_hauling/2]).
+         is_blocking/2, is_hauling/2, is_founded_structure/1]).
 -export([has_vision/1, has_landwalk/1, has_waterwalk/1, has_mountainwalk/1]).
 -export([trigger_effects/1, trigger_inspect/1]).
 -export([item_transfer/2, has_space/2]).
@@ -708,6 +708,9 @@ is_empty(SourceId, Pos) ->
 is_hauling(SourceId, TargetId) ->
     ObjList = obj_attr:value(SourceId, <<"hauling">>, []),
     lists:member(TargetId, ObjList).
+
+is_founded_structure(Obj) ->
+    (Obj#obj.class =:= structure) and (Obj#obj.state =:= ?FOUNDED).
 
 has_space(ObjId, NewItemWeight) ->
     Capacity = get_capacity(ObjId),

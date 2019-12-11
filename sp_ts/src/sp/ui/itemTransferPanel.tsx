@@ -5,10 +5,13 @@ import BaseInventoryPanel from "./baseInventoryPanel";
 import { Global } from "../global";
 import { GameEvent } from "../gameEvent";
 import { Network } from "../network";
+import { STRUCTURE, FOUNDED } from "../config";
+import FoundedInventoryPanel from "./foundedInventoryPanel";
 
 interface ITPProps {
   leftInventoryData,
-  rightInventoryData
+  rightInventoryData,
+  reqs
 }
 
 export default class ItemTransferPanel extends React.Component<ITPProps, any> {
@@ -59,6 +62,9 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
   }
 
   render() {
+    var objState = Global.objectStates[this.props.rightInventoryData.id];
+    var isFounded = objState.class == STRUCTURE && objState.state == FOUNDED;
+
     const transferStyle = {
       top: '50%',
       left: '50%',
@@ -77,14 +83,22 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
                             hideExitButton={true}
                             hideSelect={this.state.hideLeftSelect}
                             handleSelect={this.handleSelect} />
-
-        <BaseInventoryPanel left={false}
-                            id={this.props.rightInventoryData.id} 
-                            items={this.props.rightInventoryData.items} 
-                            panelType={'itemTransfer'}
-                            hideExitButton={false}
-                            hideSelect={this.state.hideRightSelect}
-                            handleSelect={this.handleSelect} />
+        {!isFounded &&
+          <BaseInventoryPanel left={false}
+                              id={this.props.rightInventoryData.id} 
+                              items={this.props.rightInventoryData.items} 
+                              panelType={'itemTransfer'}
+                              hideExitButton={false}
+                              hideSelect={this.state.hideRightSelect}
+                              handleSelect={this.handleSelect} />}
+        {isFounded &&
+          <FoundedInventoryPanel id={this.props.rightInventoryData.id}
+                                 items={this.props.rightInventoryData.items}
+                                 reqs={this.props.reqs} 
+                                 panelType={'itemTransfer'}
+                                 hideExitButton={false}
+                                 hideSelect={this.state.hideRightSelect}
+                                 handleSelect={this.handleSelect} />}
 
         <img src={transferbutton} 
               style={transferStyle} 

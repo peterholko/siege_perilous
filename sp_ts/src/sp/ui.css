@@ -114,6 +114,7 @@ progress::-moz-progress-bar {
   font-size: 12px;
   width: 50px;
   text-align: right;
+  -webkit-text-stroke: 0.5px black;
   font-weight: bold;
     -webkit-user-select: none; /* Safari */
      -khtml-user-select: none; /* Konqueror HTML */

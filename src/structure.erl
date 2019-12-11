@@ -12,6 +12,7 @@
 -export([create_foundation/3, valid_location/2, upgrade/1]).
 -export([list/0, recipe_list/1, refine/1]).
 -export([has_req/1, has_upgrade_req/1, has_refine_resources/1, check_recipe_req/2]).
+-export([get_updated_req/1]).
 -export([process_upkeep/1, process_upkeep_item/3]).
 -export([get_harvesters/1]).
 -export([get_craftable_recipe/1]).
@@ -413,6 +414,42 @@ has_upgrade_req(StructureId) ->
     Items = item:get_by_owner(StructureId),
     lager:info("ReqList: ~p Items: ~p", [ReqList, Items]),
     has_req(ReqList, Items).
+
+get_updated_req(StructureId) ->
+    lager:info("StructureId: ~p", [StructureId]),
+    ReqList = obj_attr:value(StructureId, <<"req">>, []),
+    Items = item:get_by_owner(StructureId),
+
+    lager:info("ReqList: ~p", [ReqList]),
+    updated_req(ReqList, Items).
+
+updated_req([], _Items) ->
+    [];
+updated_req(Req, Items) ->
+    updated_req(Req, Items, []).
+
+updated_req([], _, UpdatedReqList) ->
+    UpdatedReqList;
+updated_req([Req | ReqRest], Items, UpdatedReqList) ->
+    ReqType = maps:get(<<"type">>, Req),
+    ReqQuantity = maps:get(<<"quantity">>, Req),
+      
+    F = fun(Item, AccReqQuantity) ->
+            case item:match_req_type(Item, ReqType, ReqQuantity) of
+                true -> 
+                    util:subtract_until_zero(AccReqQuantity, item:quantity(Item));
+                false ->
+                    AccReqQuantity
+            end
+        end,
+
+    NewReqQuantity = lists:foldl(F, ReqQuantity, Items),
+
+    %Add current quantity to map
+    NewReq = maps:put(<<"cquantity">>, NewReqQuantity, Req),
+    NewUpdatedReqList = [NewReq | UpdatedReqList],
+
+    updated_req(ReqRest, Items, NewUpdatedReqList).
 
 has_refine_resources(StructureId) ->
     case obj_attr:value(StructureId, <<"refine">>, none) of

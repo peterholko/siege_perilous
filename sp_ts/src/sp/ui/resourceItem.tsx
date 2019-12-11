@@ -7,9 +7,12 @@ import { GameEvent } from "../gameEvent";
 interface ResItemProps {
   resourceName,
   quantity,
+  currentQuantity?,
   index,
   showQuantity,
-  fixedPos?
+  fixedPos?,
+  xPos?,
+  yPos?
 }
 
 export default class ResourceItem extends React.Component<ResItemProps, any> {
@@ -39,14 +42,26 @@ export default class ResourceItem extends React.Component<ResItemProps, any> {
     }
   }
 
-  render() {
-    let xPos = this.props.index * 55;
-    var quantityStr = this.formatQuantity(this.props.quantity);
+  render() {    
+    var xPos = this.props.index * 55;
+    var yPos = 0;
+    var formattedQuantity = this.formatQuantity(this.props.quantity);
+    var quantityStr = formattedQuantity;
     let fixedPos = this.props.fixedPos != null ? 'static' : 'fixed';
 
+    if(this.props.currentQuantity != null) {
+      var currentQuantity = this.formatQuantity(this.props.currentQuantity)
+      quantityStr = currentQuantity + '/' + formattedQuantity;
+    }
+
+    if(this.props.xPos != null) {
+      xPos = this.props.xPos;
+      yPos = this.props.yPos;
+    }
+    
     //31px -286px
     const divStyle = {
-      transform: 'translate(' + xPos +'px,  0px)',
+      transform: 'translate(' + xPos + 'px,  ' + yPos + 'px)',
       position: fixedPos
     } as React.CSSProperties
 
@@ -68,5 +83,3 @@ export default class ResourceItem extends React.Component<ResItemProps, any> {
   }
 }
 
-
-        //<span id="itemquantity" className={styles.itemquantity}>{quantityStr}</span>

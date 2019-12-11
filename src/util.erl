@@ -19,6 +19,7 @@
          round3/1,
          ceiling/1,
          floor/1,
+         subtract_until_zero/2,
          diff_game_days/2,
          get_time/0,
          get_time_seconds/0,
@@ -80,6 +81,12 @@ floor(X) ->
         Neg when Neg < 0 -> T - 1;
         Pos when Pos > 0 -> T;
         _ -> T
+    end.
+
+subtract_until_zero(Value1, Value2) ->
+    case Value1 > Value2 of
+        true -> Value1 - Value2;
+        false -> 0
     end.
 
 unique_list(L) ->

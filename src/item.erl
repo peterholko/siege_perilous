@@ -17,7 +17,7 @@
          is_class/2, is_subclass/2, is_resource/1]).
 -export([get_total_weight/1, total_gold/1, weight/2]).
 -export([id/1, name/1, subclass/1, owner/1, quantity/1, price/1, image/1]).
--export([match_req/3]).
+-export([match_req/3, match_req_type/3]).
 
 id(Item) when is_map(Item) -> maps:get(<<"id">>, Item);
 id(Item) -> Item#item.id.
@@ -469,13 +469,24 @@ match_req(Item, ReqType, ReqQuantity) ->
     ItemClassMatch = ReqType =:= ItemClass, 
     ItemSubClassMatch = ReqType =:= ItemSubClass,
     
-
     lager:info("NameMatch ~p ~p ~p", [ReqType, ItemName, ItemSubClass]),
     lager:info("QuantityMatch ~p ~p", [ReqQuantity, ItemQuantity]),
 
     ItemMatch = ItemNameMatch or ItemClassMatch or ItemSubClassMatch,
     lager:info("ItemMatch: ~p", [ItemMatch]),
     ItemMatch and QuantityMatch.
+
+match_req_type(Item, ReqType, ReqQuantity) ->
+    ItemName = maps:get(<<"name">>, Item),
+    ItemClass = maps:get(<<"class">>, Item),
+    ItemSubClass = maps:get(<<"subclass">>, Item),
+
+    ItemNameMatch = ReqType =:= ItemName,
+    ItemClassMatch = ReqType =:= ItemClass, 
+    ItemSubClassMatch = ReqType =:= ItemSubClass,
+
+    ItemMatch = ItemNameMatch or ItemClassMatch or ItemSubClassMatch,
+    ItemMatch.
 
 % Internal
 

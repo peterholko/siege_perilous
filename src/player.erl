@@ -195,11 +195,13 @@ get_info_item_transfer(SourceId, TargetId) ->
 
     SourceItems = obj:get_info_inventory(Player, SourceObj),
     TargetItems = obj:get_info_inventory(Player, TargetObj),
+    ReqItems = structure:get_updated_req(TargetId),
 
     Info = #{<<"sourceid">> => SourceId,
              <<"sourceitems">> => SourceItems,
              <<"targetid">> => TargetId,
-             <<"targetitems">> => TargetItems},
+             <<"targetitems">> => TargetItems,
+             <<"reqitems">> => ReqItems},
     Info.
 
 get_info_hauling(SourceId) ->
@@ -675,11 +677,23 @@ item_transfer(TargetId, ItemId) ->
             SourceItems = obj:get_info_inventory(Player, OwnerObj),
             TargetItems = obj:get_info_inventory(Player, TargetObj),
 
+            SourceResult = obj:is_founded_structure(OwnerObj),
+            TargetResult = obj:is_founded_structure(TargetObj),
+            lager:info("Source: ~p Target: ~p", [OwnerObj, TargetObj]),
+            
+            ReqItems = 
+                case {SourceResult, TargetResult} of
+                    {true, false} -> structure:get_updated_req(Owner);
+                    {false, true} -> structure:get_updated_req(TargetId);
+                    {_, _} -> []
+                end,
+
             #{<<"result">> => <<"success">>,
               <<"sourceid">> => Owner,
               <<"sourceitems">> => SourceItems,
               <<"targetid">> => TargetId,
-              <<"targetitems">> => TargetItems};
+              <<"targetitems">> => TargetItems,
+              <<"reqitems">> => ReqItems};
        {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
@@ -1261,8 +1275,11 @@ revent_response(ResponseNum) ->
 %
 
 %TODO move to some other module
-process_item_transfer(Item, TargetObj = #obj{id = Id, class = Class, state = State}) when Class =:= structure, State =/= none ->
-    ReqList = obj_attr:value(Id, <<"req">>),
+process_item_transfer(Item, TargetObj = #obj{id = Id, 
+                                             class = Class, 
+                                             state = State}) when Class =:= structure, 
+                                                                  State =:= ?FOUNDED ->
+    ReqList = structure:get_updated_req(Id),
     
     F = fun(Req) ->
             ReqType = maps:get(<<"type">>, Req),
@@ -1272,12 +1289,24 @@ process_item_transfer(Item, TargetObj = #obj{id = Id, class = Class, state = Sta
         end,
 
     [First | _] = lists:filter(F, ReqList),
-    ReqQuantity = maps:get(<<"quantity">>, First),
-    ItemMap = item:transfer(Item#item.id, Id, ReqQuantity),
+
+    %Get current quantity not max
+    ReqQuantity = maps:get(<<"cquantity">>, First),
+
+    TransferQuantity = transfer_quantity(ReqQuantity, item:quantity(Item)),
+
+    ItemMap = item:transfer(Item#item.id, Id, TransferQuantity),
     obj:item_transfer(TargetObj, ItemMap);
 process_item_transfer(Item, TargetObj) ->
     ItemMap = item:transfer(Item#item.id, TargetObj#obj.id),
     obj:item_transfer(TargetObj, ItemMap).
+
+transfer_quantity(ReqQuantity, ItemQuantity) when ReqQuantity =:= ItemQuantity ->
+    ItemQuantity;
+transfer_quantity(ReqQuantity, ItemQuantity) when ReqQuantity > ItemQuantity ->
+    ItemQuantity;
+transfer_quantity(ReqQuantity, ItemQuantity) when ReqQuantity < ItemQuantity ->
+    ReqQuantity.
 
 add_equip({false, Error}, _Data) ->
     lager:info("Equip failed error: ~p", [Error]);

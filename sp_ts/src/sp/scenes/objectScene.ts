@@ -138,9 +138,7 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   processRender() : void {
-    console.log('processRender');
     if(this.renderToggle) {
-      console.log('Draw Objects');
       this.drawObjects(Global.objectStates)
       this.renderToggle = false;
     }

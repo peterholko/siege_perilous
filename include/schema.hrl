@@ -162,6 +162,10 @@
 -record(skill_template, {key, % {name, attr}
                          value}).
 
+-record(skill_mod, {key, % {skill, level}
+                    
+                    }).
+
 -record(charge_time, {unit_id,
                       charge_time}).
 

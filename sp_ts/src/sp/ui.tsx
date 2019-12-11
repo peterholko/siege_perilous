@@ -81,6 +81,7 @@ interface UIState {
   leftInventoryData: [],
   rightInventoryId : integer,
   rightInventoryData: [],
+  inventoryReqs: [], //Currently used for structure inventory reqs
   itemData : any,
   heroData : any,
   villagerData : any,
@@ -96,7 +97,7 @@ interface UIState {
   resourceData : any,
   hireData : any,
   expData : any,
-  merchantAction : any, 
+  merchantAction : any,
   selectedTile : Tile,
   selectedBoxPos : integer,
   selectedKey: any,
@@ -138,6 +139,7 @@ export default class UI extends React.Component<any, UIState>{
       leftInventoryData: [],
       rightInventoryId: -1,
       rightInventoryData: [],
+      inventoryReqs : [],
       itemData : {},
       heroData : {},
       villagerData : {},
@@ -435,7 +437,8 @@ export default class UI extends React.Component<any, UIState>{
                     leftInventoryId: message.sourceid, 
                     leftInventoryData: message.sourceitems,
                     rightInventoryId: message.targetid,
-                    rightInventoryData: message.targetitems});
+                    rightInventoryData: message.targetitems,
+                    inventoryReqs: message.reqitems});
     } else if(Global.infoItemTransferAction == 'merchant') {
       this.setState({hideMerchantPanel: false,
                     leftInventoryId: message.sourceid, 
@@ -491,7 +494,8 @@ export default class UI extends React.Component<any, UIState>{
 
     this.setState({hideItemTransferPanel: false,
                    leftInventoryData: leftInventoryData,
-                   rightInventoryData: rightInventoryData})
+                   rightInventoryData: rightInventoryData,
+                   inventoryReqs: message.reqitems})
   }
 
   handleBuySellItem(message) {
@@ -613,7 +617,8 @@ export default class UI extends React.Component<any, UIState>{
 
           {!this.state.hideItemTransferPanel && 
             <ItemTransferPanel leftInventoryData={this.state.leftInventoryData} 
-                               rightInventoryData={this.state.rightInventoryData} /> }
+                               rightInventoryData={this.state.rightInventoryData}
+                               reqs={this.state.inventoryReqs} /> }
 
           {!this.state.hideMerchantPanel && 
             <MerchantPanel leftInventoryData={this.state.leftInventoryData} 
