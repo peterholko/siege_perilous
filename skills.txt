@@ -117,10 +117,20 @@ Adequate 500 2000
 etc...
 X xp to Skill 100
 
-Adept Mining 
 
-Repeat
+Leveling Effects:
 
+Mining
+------
+* Speed Increase
+* Chance to discover gems
+* Decrease chance to break pickaxe
+
+Sword
+-----
+* Increased Damage
+* Reduced stamina 
+* Increased 
 
 
 

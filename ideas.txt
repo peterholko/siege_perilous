@@ -317,6 +317,33 @@ Recipes:
 1. Buy from Empire - Convert resources/items into Recipes 
 2. Acquire from Experiment - Convert resources/items into Recipes
 
+*********
+*********
+*********
+
+Mining 
+======
+
+* Strength 
+  - Increases the amount of ore mine 
+  - Increases carrying capacity
+  
+* Endurance 
+  - Decreases the amount of stamina required to mine 
+
+* Mining Skill
+  - Increase mining speed (decrease mining action time)
+  - Unlocks the ability to mine higher level ores
+  - Decreases chance to break pick axe
+
+* Mine Level 
+  - ??? Accessiblity to different ores  (Explore action already does this)
+  - ??? Allows more than 1 villager at a time
+
+* Pick Axe
+  - Increases mining speed
+
+
 
 
 

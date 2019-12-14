@@ -65,14 +65,25 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
     } as React.CSSProperties
 
     const reqStyle = {
-      transform: 'translate(-300px, 75px)',
+      transform: 'translate(-295px, 75px)',
       position: 'fixed',
       textAlign: 'left',
       color: 'white',
       fontFamily: 'Verdana',
       fontSize: '12px',
-      width: '323px'
+      width: '295px'
     } as React.CSSProperties
+
+    const materialStyle = {
+      transform: 'translate(-295px, 210px)',
+      position: 'fixed',
+      textAlign: 'left',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+      width: '295px'
+    } as React.CSSProperties
+
 
     if(Util.isSprite(Global.objectStates[objId].image)) {
       var imageName = Global.objectStates[objId].image + '_single.png';
@@ -135,6 +146,7 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
         <img src={'/static/art/' + imageName} style={spriteStyle} />
         <span style={reqStyle}>Requirements:</span>
         {reqs}
+        <span style={materialStyle}>Materials:</span>
         {itemFrames}
         {items}
         {!this.props.hideSelect && 

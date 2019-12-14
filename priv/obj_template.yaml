@@ -321,7 +321,7 @@
   base_def: 0
   build_time: 5
   level: 0
-  capacity: 21
+  capacity: 500
   profession: the Miner
   req: 
     - type: Wood

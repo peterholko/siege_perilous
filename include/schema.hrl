@@ -163,7 +163,7 @@
                          value}).
 
 -record(skill_mod, {key, % {skill, level}
-                    
+                    mod
                     }).
 
 -record(charge_time, {unit_id,

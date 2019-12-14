@@ -246,6 +246,7 @@ create_new_player(PlayerId) ->
     db:write(NewPlayer),
 
     VillagerId = villager:create(0, PlayerId, VillagerPos),
+    VillagerId2 = villager:create(0, PlayerId, Villager2Pos),
 
     item:create(HeroId, <<"Honeybell Berries">>, 25),
     item:create(HeroId, <<"Spring Water">>, 25),
@@ -267,6 +268,8 @@ create_new_player(PlayerId) ->
     item:create(VillagerId, <<"Honeybell Berries">>, 50, <<"true">>),
     item:create(VillagerId, <<"Spring Water">>, 50, <<"true">>),
     item:create(VillagerId, <<"Pick Axe">>, 2, <<"true">>),
+
+    item:create(VillagerId2, <<"Honeybell Berries">>, 50, <<"true">>),
 
     % Recipe initial
     recipe:create(PlayerId, <<"Copper Training Axe">>),
