@@ -435,18 +435,19 @@ trigger_effects(#obj{pos = Pos, name = Name, subclass = Subclass, state = State}
             %Update Sanctuary on objs
             Objs = get_by_pos(AdjPos),
             G = fun(Obj) -> 
-                    case State of
+                    case State of % any state other than none causes removeal
                         none -> effect:add(Obj#obj.id, ?SANCTUARY, none);
-                        disabled -> effect:remove(Obj#obj.id, ?SANCTUARY)
+                        _ -> effect:remove(Obj#obj.id, ?SANCTUARY) 
+                        
                     end
                 end,
 
             lists:foreach(G, Objs),
 
             %Update Sanctuary on tiles
-            case State of
+            case State of % any state other than none causes removeal
                 none -> effect:add({tile, AdjPos}, ?SANCTUARY, none);
-                disabled -> effect:remove({tile, AdjPos}, ?SANCTUARY)
+                _ -> effect:remove({tile, AdjPos}, ?SANCTUARY)
             end
         end,
 
@@ -559,8 +560,9 @@ process_attrlist(Obj, AttrList) ->
 
     lists:foldl(F, true, AttrList).
 
+player(Obj = #obj{}) -> Obj#obj.player;
+player(_) -> -1. %Handle invalid case
 id(Obj = #obj{}) -> Obj#obj.id.
-player(Obj = #obj{}) -> Obj#obj.player.
 template(Obj = #obj{}) -> Obj#obj.template.
 class(Obj = #obj{}) -> Obj#obj.class.
 subclass(Obj = #obj{}) -> Obj#obj.subclass.

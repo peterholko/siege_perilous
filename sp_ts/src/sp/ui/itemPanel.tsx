@@ -4,6 +4,7 @@ import HalfPanel from "./halfPanel";
 import dividebutton from "ui_comp/dividebutton.png";
 import buybutton from "ui_comp/buybutton.png";
 import sellbutton from "ui_comp/sellbutton.png";
+import equipbutton from "ui_comp/equipbutton.png";
 import { GameEvent } from "../gameEvent";
 import { Global } from "../global";
 import { TRIGGER_MERCHANT_BUY, TRIGGER_INVENTORY, TRIGGER_MERCHANT_SELL } from "../config";
@@ -24,6 +25,7 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     this.handleDivideClick = this.handleDivideClick.bind(this);
     this.handleBuyClick = this.handleBuyClick.bind(this);
     this.handleSellClick = this.handleSellClick.bind(this);
+    this.handleEquipClick = this.handleEquipClick.bind(this);
   }
 
   handleDivideClick() {
@@ -45,6 +47,14 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     Global.gameEmitter.emit(GameEvent.MERCHANT_BUYSELL_CLICK, eventData);
   }
 
+  handleEquipClick() {
+    if(this.props.itemData.equip == false) {
+      Network.sendEquip(this.props.itemData.id);
+    } else {
+      Network.sendUnEquip(this.props.itemData.id);
+    }
+  }
+
   render() {
     const itemName = this.props.itemData.name;
     const imageName = itemName.toLowerCase().replace(/ /g, '') + '.png'
@@ -58,6 +68,9 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     const showSellButton = (this.props.triggerAction == TRIGGER_MERCHANT_SELL);
 
     const isLeftPanel = (this.props.triggerAction == TRIGGER_MERCHANT_BUY);
+
+    const showEquipButton = (this.props.itemData.class == "Weapon") || 
+                            (this.props.itemData.class == "Armor");
 
     if(this.props.itemData.hasOwnProperty('effects')) {
 
@@ -136,6 +149,11 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
       position: 'fixed'
     } as React.CSSProperties
 
+    const equipStyle = {
+      transform: 'translate(-137px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
     return (
       <HalfPanel left={isLeftPanel} 
                  panelType={'item'} 
@@ -193,6 +211,12 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
                style={sellStyle}
                onClick={this.handleSellClick} />}
  
+        {showEquipButton && 
+          <img src={equipbutton}
+               style={equipStyle}
+               onClick={this.handleEquipClick} />}
+ 
+
  
       </HalfPanel>
     );

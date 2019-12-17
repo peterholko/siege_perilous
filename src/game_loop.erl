@@ -474,6 +474,12 @@ do_event(login, EventData, Pid) ->
 
     message:send_to_process(Pid, perception, Perception);
 
+do_event(hero_dead, EventData, _Pid) ->
+    lager:info("Processing hero_dead: ~p", [EventData]),
+    PlayerId = EventData,
+
+    game:process_remove_player(PlayerId);
+
 do_event(wait, EventData, Pid) ->
     lager:info("Processing wait event: ~p", [EventData]),
     ObjId = EventData,

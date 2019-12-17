@@ -29,7 +29,7 @@ start() ->
     db:import_yaml("item_template"),
     db:import_yaml("recipe_template"),
     db:import_yaml("skill_template"),
-    
+    db:import_yaml("start"),
 
     lager:info("Starting game process..."),
     game:start(),

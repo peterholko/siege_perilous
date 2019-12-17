@@ -1,0 +1,48 @@
+# start.yaml
+
+- name: startpos1
+  hero_pos: 16,36
+  villager_pos: 16,37
+  monolith_pos: 18,35
+  shipwreck_pos: 15,36
+  corpse1_pos: 16,35
+  corpse2_pos: 17,35
+  necromancer_pos: 17,32
+
+- name: startpos2
+  hero_pos: 5,21
+  villager_pos: 5,20
+  monolith_pos: 8,22
+  shipwreck_pos: 4,21
+  corpse1_pos: 5,22
+  corpse2_pos: 6,22
+  necromancer_pos: 7,22
+
+- name: startpos3
+  hero_pos: 14,13
+  villager_pos: 13,12
+  monolith_pos: 15,14
+  shipwreck_pos: 14,12
+  corpse1_pos: 15,12
+  corpse2_pos: 15,13
+  necromancer_pos: 16,14
+
+- name: startpos4
+  hero_pos: 5,30
+  villager_pos: 6,31
+  monolith_pos: 6,29
+  shipwreck_pos: 5,31
+  corpse1_pos: 4,31
+  corpse2_pos: 4,30
+  necromancer_pos: 4,29
+
+- name: startpos5
+  hero_pos: 18,5
+  villager_pos: 17,5
+  monolith_pos: 20,7
+  shipwreck_pos: 17,4
+  corpse1_pos: 19,5
+  corpse2_pos: 18,6
+  necromancer_pos: 20,6
+
+

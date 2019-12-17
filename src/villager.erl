@@ -1209,7 +1209,9 @@ process_event_complete(Villager) ->
         eat -> complete_task(Villager);
         sleep -> complete_task(Villager);
         _ -> Villager
-    end.
+    end;
+process_event_complete(invalid) ->
+    lager:info("Villager is no longer valid").
 
 process_move_to_complete([Villager, Pos]) ->
     VillagerObj = obj:get(Villager#villager.id),

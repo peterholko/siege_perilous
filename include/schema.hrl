@@ -14,6 +14,9 @@
                  npc = false,
                  data = #{}}).
 
+-record(start, {key, 
+                value}).
+
 -record(connection, {player,
                      status = init,
                      process = none}).

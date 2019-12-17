@@ -17,7 +17,7 @@
 -export([add_obj_create/3, add_obj_delete/3, add_obj_update/4, add_obj_update/5, add_obj_move/5,
          add_obj_hide/3, add_obj_reveal/3]).
 -export([add_event/5, has_pre_events/1, has_post_events/1, cancel_event/1]).
--export([process_dead_objs/1, process_deleting_objs/1]).
+-export([process_dead_objs/1, process_deleting_objs/1, process_remove_player/1]).
 -export([trigger_explored/1]).
 -export([get_tick/0, get_perception/0, get_explored/0, reset/0]).
 -export([get_info_tile/1, get_valid_tiles/2]).
@@ -219,26 +219,29 @@ get_valid_tiles({X, Y}, Obj) ->
 
 create_new_player(PlayerId) ->
     lager:info("Spawning new player: ~p", [PlayerId]),
-    %Pos = map:random_location(),
-    %AdjPos = map:get_random_neighbour(Pos),
+    RandStartPos = util:rand(5),
+    StartPosName = list_to_binary("startpos" ++ integer_to_list(RandStartPos)),
+    StartPosData = db:all(start, StartPosName),
+    lager:info("StartPosData: ~p", [StartPosData]),
+    
+    HeroPos = util:pos_bin_to_tuple(maps:get(<<"hero_pos">>, StartPosData)),
+    VillagerPos = util:pos_bin_to_tuple(maps:get(<<"villager_pos">>, StartPosData)),
+    MonolithPos = util:pos_bin_to_tuple(maps:get(<<"monolith_pos">>, StartPosData)),
+    ShipwreckPos = util:pos_bin_to_tuple(maps:get(<<"shipwreck_pos">>, StartPosData)),
+    Corpse1Pos = util:pos_bin_to_tuple(maps:get(<<"corpse1_pos">>, StartPosData)),
+    Corpse2Pos = util:pos_bin_to_tuple(maps:get(<<"corpse2_pos">>, StartPosData)),
+    NecromancerPos = util:pos_bin_to_tuple(maps:get(<<"necromancer_pos">>, StartPosData)),
+
     [Player] = db:read(player, PlayerId),
-    PlayerStartPos = {16, 36},
-
-
-    HeroPos = {16,36},
-    VillagerPos = {16,37},
-    Villager2Pos = {16,35},
-    MonolithPos = {18,35},
-    ShipwreckPos = {15,36},
+    PlayerStartPos = HeroPos,
 
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
     HeroId = obj:create(HeroPos, PlayerId, Player#player.class),   
     
-    
     %Create 2 corpses
-    obj:create({16,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
-    obj:create({17,35}, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
+    obj:create(Corpse1Pos, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
+    obj:create(Corpse2Pos, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
 
     PlayerData = #{start_pos => PlayerStartPos},
     NewPlayer = Player#player {hero = HeroId,
@@ -246,7 +249,7 @@ create_new_player(PlayerId) ->
     db:write(NewPlayer),
 
     VillagerId = villager:create(0, PlayerId, VillagerPos),
-    VillagerId2 = villager:create(0, PlayerId, Villager2Pos),
+    %VillagerId2 = villager:create(0, PlayerId, Villager2Pos),
 
     item:create(HeroId, <<"Honeybell Berries">>, 25),
     item:create(HeroId, <<"Spring Water">>, 25),
@@ -269,7 +272,8 @@ create_new_player(PlayerId) ->
     item:create(VillagerId, <<"Spring Water">>, 50, <<"true">>),
     item:create(VillagerId, <<"Pick Axe">>, 2, <<"true">>),
 
-    item:create(VillagerId2, <<"Honeybell Berries">>, 50, <<"true">>),
+    %item:create(VillagerId2, <<"Honeybell Berries">>, 50, <<"true">>),
+
 
     % Recipe initial
     recipe:create(PlayerId, <<"Copper Training Axe">>),
@@ -282,7 +286,7 @@ create_new_player(PlayerId) ->
             MausoleumPos = {16,32},
 
             MausoleumId = obj:create(MausoleumPos, ?UNDEAD, <<"Mausoleum">>),
-            NPCId = npc:create({15,35}, ?UNDEAD, <<"Necromancer">>),
+            NPCId = npc:create(NecromancerPos, ?UNDEAD, <<"Necromancer">>),
             GuardianId = npc:create({17,32}, ?GUARDIANS, <<"Wose">>, ?HIDING),
 
             GuardianData = #{guard_pos => MausoleumPos,
@@ -356,9 +360,6 @@ login(PlayerId) ->
     %Log player in
     game:add_event(self(), login, PlayerId, none, 2).
 
-hero_dead(PlayerId, HeroId) ->
-    lager:info("Hero killed").
-
 spawn_shadow(MonolithPos) ->
     ListOfPos = map:random_location_from(?UNDEAD, MonolithPos, 5),
     RandomIndex = util:rand(length(ListOfPos)),
@@ -373,6 +374,31 @@ spawn_wolf() ->
     NPCId = npc:create(NPCPos, <<"Wolf">>),
 
     npc:set_order(NPCId, wander_flee, none).
+
+hero_dead(PlayerId, HeroId) ->
+    lager:info("Hero killed"),
+    Objs = db:index_read(obj, PlayerId, #obj.player),
+    lager:info("Objs: ~p", [Objs]),
+
+    F = fun(Obj) ->
+            case obj:id(Obj) =/= HeroId of
+                true -> obj:update_dead(obj:id(Obj));
+                false -> nothing
+            end
+        end,
+
+    lists:foreach(F, Objs),
+
+    game:add_event(self(), hero_dead, PlayerId, none, ?TICKS_SEC * 15).
+
+process_remove_player(PlayerId) ->
+    Objs = db:index_read(obj, PlayerId, #obj.player),
+
+    F = fun(Obj) ->
+            obj:remove(obj:id(Obj))
+        end,
+
+    lists:foreach(F, Objs).
 
 process_dead_objs(CurrentTick) ->
     DeadObjs = db:index_read(obj, ?DEAD, #obj.state),

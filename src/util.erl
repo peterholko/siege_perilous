@@ -27,6 +27,7 @@
          replace/3,
          is_process_alive/1,
          get_app/1,
+         pos_bin_to_tuple/1,
          bin_to_hex/1,
          hex_to_bin/1,
          on/0,
@@ -118,6 +119,11 @@ diff_game_days(StartTime, EndTime) ->
 get_app(Module) ->
     {ok, App} = application:get_application(Module),
     App.
+
+pos_bin_to_tuple(Bin) ->
+    L = binary_to_list(Bin),
+    [X, Y] = string:split(L, ","),
+    {list_to_integer(X), list_to_integer(Y)}.
 
 bin_to_hex(BsonId) when is_tuple(BsonId) ->
     {Bin} = BsonId,

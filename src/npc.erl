@@ -971,6 +971,7 @@ get_wander_pos(_NPCObj, true, RandomPos, _Neighbours) ->
     RandomPos;
 get_wander_pos(NPCObj, false,  _, Neighbours) ->
     Random = util:rand(length(Neighbours)),
+    lager:info("get_wander_pos: ~p ~p", [Random, Neighbours]),
     RandomPos = lists:nth(Random, Neighbours),
 
     IsAvailable = is_pos_available(NPCObj, RandomPos),

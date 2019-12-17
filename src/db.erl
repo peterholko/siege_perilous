@@ -20,7 +20,8 @@
          dirty_delete_object/1, dump/1,
          import/1, import_yaml/1,
          reset_tables/0,
-         do/1
+         do/1,
+         all/2
         ]).
 
 %%
@@ -76,6 +77,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(active_info, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, active_info)}]),  
     {atomic, ok} = mnesia:create_table(relation, [{ram_copies, [node()]}, {attributes, record_info(fields, relation)}]),  
     {atomic, ok} = mnesia:create_table(experiment, [{ram_copies, [node()]}, {attributes, record_info(fields, experiment)}]),  
+    {atomic, ok} = mnesia:create_table(start, [{ram_copies, [node()]}, {attributes, record_info(fields, start)}]),  
 
     mnesia:add_table_index(perception, player),
     mnesia:add_table_index(player, name),
@@ -142,7 +144,7 @@ import_yaml(DefFileName) ->
     PrivDir = code:lib_dir(sp) ++ "/priv/",
     Document = yamerl_constr:file(PrivDir ++ DefFileName ++ ".yaml"),
     [Content] = Document,
-    lager:info("Content: ~p", [Content]),
+    %lager:info("Content: ~p", [Content]),
     F = fun(Entry) ->
             [Name | _Rest] = Entry,
             {_, ObjName} = Name,
@@ -167,18 +169,18 @@ import_yaml_entry(Table, ObjName, [Entry | Rest]) ->
     import_yaml_entry(Table, ObjName, Rest).
 
 convert_value(Value) ->
-    lager:info("Value: ~p", [Value]),
+    %lager:info("Value: ~p", [Value]),
 
     case Value of 
         List when is_list(List) ->
             case io_lib:printable_list(List) of
                 true ->
-                    lager:info("Printable List: ~p", [List]),
+                    %lager:info("Printable List: ~p", [List]),
                     erlang:list_to_binary(List);
                 false ->
                     F = fun
                            (E, Acc) when is_list(E) ->
-                                lager:info("E: ~p", [E]),
+                                %lager:info("E: ~p", [E]),
 
                                 Result = 
                                     case io_lib:printable_list(E) of
@@ -186,7 +188,7 @@ convert_value(Value) ->
                                             list_to_binary(E);
                                         false ->
                                             G = fun({K, V}, Acc2) ->
-                                                        lager:info("K: ~p V: ~p", [K, V]),
+                                                        %lager:info("K: ~p V: ~p", [K, V]),
 
                                                         BinaryKey = to_binary(K),
                                                         BinaryValue = to_binary(V),
@@ -196,7 +198,7 @@ convert_value(Value) ->
                                             lists:foldl(G, #{}, E)
                                     end,
 
-                                lager:info("Result: ~p", [Result]),
+                                %lager:info("Result: ~p", [Result]),
 
                                 [Result | Acc];
                                 
@@ -205,7 +207,7 @@ convert_value(Value) ->
                         end,
 
                     NewList = lists:foldl(F, [], Value),
-                    lager:info("NewList: ~p", [NewList]),
+                    %lager:info("NewList: ~p", [NewList]),
                     NewList
             end;
         V -> 
@@ -275,6 +277,14 @@ dirty_match_object(P) ->
 
 dump(Table) ->
     do(qlc:q([X || X <- mnesia:table(Table)])).
+
+all(Table, Name) ->
+    Results = db:dirty_match_object({Table, {Name, '_'}, '_'}),
+
+    F = fun({_T, {_Name, Attr}, Value}, AllMap) ->
+            maps:put(Attr, Value, AllMap) 
+        end,
+    lists:foldl(F, #{}, Results).
 
 %%
 %% Local Functions

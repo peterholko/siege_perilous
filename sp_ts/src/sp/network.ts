@@ -297,6 +297,22 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
+  public static sendEquip(itemId) {
+      var m = {
+      cmd: "equip",
+      item: itemId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendUnEquip(itemId) {
+      var m = {
+      cmd: "unequip",
+      item: itemId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+ 
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
     this.websocket = new WebSocket(url);

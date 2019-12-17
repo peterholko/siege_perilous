@@ -251,6 +251,7 @@ num_tiles(TerrainType) ->
 init([]) ->
     Data = #data{},
 
+    lager:info("Loading Tileset..."),
     tileset(),
     load(),
 
@@ -495,7 +496,7 @@ odd_q_to_cube({Q, R}) ->
     {X, Y, Z}.
 
 tileset() ->
-    lager:debug("Parsing tileset"),
+    lager:info("Parsing tileset"),
     {ok, Bin} = file:read_file(code:lib_dir(sp) ++ "/priv/static/test3.tmx"),
     {_T, _A, C} = parsexml:parse(Bin),
     TilesetList = process_tileset(C, []),
@@ -504,13 +505,13 @@ tileset() ->
     file:write(F, JSON).
 
 load() ->
-    lager:debug("Parsing map"),
+    lager:info("Parsing map"),
     {ok, Bin} = file:read_file(code:lib_dir(sp) ++ "/priv/static/test3.tmx"),
     {_T, A, C} = parsexml:parse(Bin),
-    lager:debug("Processing map properties..."),
+    lager:info("Processing map properties..."),
     process_map_properties(A),
 
-    lager:debug("Processing layers..."),
+    lager:info("Processing layers..."),
     process_layers(C).
 
 process_map_properties(MapProperties) ->
@@ -524,15 +525,15 @@ process_map_properties(MapProperties) ->
     put(map_height, Height).
 
 process_tileset([], TilesetList) ->
-    lager:debug("Done processing tileset"),
+    lager:info("Done processing tileset"),
     TilesetList;
 process_tileset([{<<"tileset">>, TilesetInfo, TilesetData} | Rest], TilesetList) ->
-    [FirstGidInfo, NameInfo, _H, _W, _TileCount] = TilesetInfo,
+    [FirstGidInfo, NameInfo, _H, _W, _TileCount, _Columns] = TilesetInfo,
     {_, BinFirstGid} = FirstGidInfo,
     {_, TilesetName} = NameInfo,
     FirstGid = list_to_integer(binary_to_list(BinFirstGid)),
-    lager:debug("FirstGid: ~p ~p", [FirstGid, TilesetName]),
-    lager:debug("Tileset Data: ~p", [TilesetData]),
+    lager:info("FirstGid: ~p ~p", [FirstGid, TilesetName]),
+    lager:info("Tileset Data: ~p", [TilesetData]),
     NewTilesetList = process_tileset_data(TilesetData, {0,0}, {FirstGid, TilesetName}, TilesetList),
 
     process_tileset(Rest, NewTilesetList);
@@ -540,15 +541,15 @@ process_tileset(_, Tileset) ->
     Tileset.
 
 process_tileset_data([], _, _, NewTileset) ->
-    lager:debug("Done procssing tileset"),
+    lager:info("Done procssing tileset"),
     NewTileset;
 process_tileset_data([{<<"tileoffset">>, OffsetInfo, _OffSetData} | Rest], _Offset, TilesetInfo, Tileset) ->
-    lager:debug("tileoffset: ~p ", [OffsetInfo]),
+    lager:info("tileoffset: ~p ", [OffsetInfo]),
     [{<<"x">>, X}, {<<"y">>, Y}] = OffsetInfo,
     TileOffset = {X, Y},
     process_tileset_data(Rest, TileOffset, TilesetInfo, Tileset);
 process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, TilesetInfo, Tileset) ->
-    lager:debug("TileData ~p", [TileData]),  
+    lager:info("TileData ~p", [TileData]),  
     {FirstGid, TilesetName} = TilesetInfo,
     [{_, BinTileId}] = IdInfo,
     LocalTileId = binary_to_integer(BinTileId),
@@ -556,7 +557,7 @@ process_tileset_data([{<<"tile">>, IdInfo, TileData} | Rest], TileOffset, Tilese
     {X, Y} = TileOffset,
     
     Image = process_tile_data(TilesetName, TileId, TileData, none),
-    lager:debug("TileId: ~p Image: ~p", [TileId, Image]),
+    lager:info("TileId: ~p Image: ~p", [TileId, Image]),
 
     NewTileset= [#{<<"tile">> => TileId,
                    <<"image">> => Image, 
@@ -572,29 +573,34 @@ process_tile_data(TilesetName, TileId, [{<<"image">>, [_Width, _Height, Source],
     NewImage = BinFilePath,
 
     process_tile_data(TilesetName, TileId, Rest, NewImage);
+process_tile_data(TilesetName, TileId, [{<<"image">>, [Source], _Empty} | Rest], _Image) ->
+    {_, BinFilePath} = Source,
+    NewImage = BinFilePath,
+
+    process_tile_data(TilesetName, TileId, Rest, NewImage);
 
 process_tile_data(<<"resources">>, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
-    lager:debug("PropertyData: ~p", [PropertiesData]), 
+    lager:info("PropertyData: ~p", [PropertiesData]), 
     Properties = process_property(PropertiesData, maps:new()),
     store_resource_def(TileId, Properties),
 
     process_tile_data(<<"resources">>, TileId, Rest, Image);
 
 process_tile_data(<<"unit">>, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
-    lager:debug("PropertyData: ~p", [PropertiesData]), 
+    lager:info("PropertyData: ~p", [PropertiesData]), 
     _Properties = process_property(PropertiesData, maps:new()),
 
     process_tile_data(<<"unit">>, TileId, Rest, Image);
 
 process_tile_data(TileLayer, TileId, [{<<"properties">>, _, PropertiesData} | Rest], Image) ->
-    lager:debug("PropertyData: ~p", [PropertiesData]), 
+    lager:info("PropertyData: ~p", [PropertiesData]), 
     Properties = process_property(PropertiesData, maps:new()),
     store_poi_def(TileId, Properties),
 
     process_tile_data(TileLayer, TileId, Rest, Image).
 
 process_property([], Properties) ->
-    lager:debug("Done properties processing: ~p", [Properties]),
+    lager:info("Done properties processing: ~p", [Properties]),
     Properties;
 
 process_property([{<<"property">>, PropertyData, _} | Rest], Properties) ->
@@ -621,24 +627,24 @@ store_poi_def(TileId, Properties) ->
     db:write(PoiDef).
 
 process_layers([]) ->
-    lager:debug("Done processing layers");
-process_layers([{<<"layer">>, [{<<"name">>,<<"base1">>} | _], LayerData} | Rest]) -> 
+    lager:info("Done processing layers");
+process_layers([{<<"layer">>, [{<<"id">>, _Id}, {<<"name">>,<<"base1">>} | _], LayerData} | Rest]) -> 
     process_layer_data(base,LayerData),
     process_layers(Rest);
-process_layers([{<<"layer">>, [{<<"name">>,<<"base2">>} | _], LayerData} | Rest]) ->
+process_layers([{<<"layer">>, [{<<"id">>, _Id}, {<<"name">>,<<"base2">>} | _], LayerData} | Rest]) ->
     process_layer_data(base,LayerData),
     process_layers(Rest);
-process_layers([{<<"layer">>, [{<<"name">>,<<"resource1">>} | _], LayerData} | Rest]) -> 
+process_layers([{<<"layer">>, [{<<"id">>, _Id}, {<<"name">>,<<"resource1">>} | _], LayerData} | Rest]) -> 
     process_layer_data(resource,LayerData),
     process_layers(Rest);
-process_layers([{<<"layer">>, [{<<"name">>,<<"poi">>} | _], LayerData} | Rest]) -> 
+process_layers([{<<"layer">>, [{<<"id">>, _Id}, {<<"name">>,<<"poi">>} | _], LayerData} | Rest]) -> 
     process_layer_data(poi,LayerData),
     process_layers(Rest);
-process_layers([{<<"layer">>, [{<<"name">>,<<"unit">>} | _], LayerData} | Rest]) ->
+process_layers([{<<"layer">>, [{<<"id">>, _Id}, {<<"name">>,<<"unit">>} | _], LayerData} | Rest]) ->
     process_layer_data(unit,LayerData),
     process_layers(Rest);
 process_layers([{<<"layer">>, LayerProp, LayerData} | Rest]) ->
-    lager:debug("Processing layer ~p", [LayerProp]),
+    lager:info("Processing layer ~p", [LayerProp]),
     process_layer_data(none, LayerData),
     process_layers(Rest);
 process_layers([_MapData | Rest]) ->
@@ -650,10 +656,10 @@ process_layer_data(LayerType, [{<<"data">>, _Encoding, Data}]) ->
     ListSplit = string:tokens(ListData, "\n"),
     process_row(LayerType, ListSplit, 0);
 process_layer_data(_, LayerData) ->
-    lager:debug("~p", [LayerData]).
+    lager:info("~p", [LayerData]).
 
 process_row(_, [], _NumRow) ->
-    lager:debug("Done storing layer");
+    lager:info("Done storing layer");
 process_row(LayerType, [Row | Rest], NumRow) ->
     NewRow = string:strip(Row, right, $\r),
     ListTiles = string:tokens(NewRow, ","),
@@ -661,12 +667,12 @@ process_row(LayerType, [Row | Rest], NumRow) ->
     process_row(LayerType, Rest, NumRow + 1).
 
 store_tile_list(_, [], _NumRow, _NumCol) ->
-    lager:debug("Done storing tile row");
+    lager:info("Done storing tile row");
 store_tile_list(LayerType, ["0" | Rest], NumRow, NumCol) ->
     do_nothing,
     store_tile_list(LayerType, Rest, NumRow, NumCol + 1);
 store_tile_list(LayerType, [Tile | Rest], NumRow, NumCol) ->
-    lager:debug("Storing tile ~p ~p ~p ~p", [LayerType, Tile, NumRow, NumCol]),
+    lager:info("Storing tile ~p ~p ~p ~p", [LayerType, Tile, NumRow, NumCol]),
     Pos = {NumCol, NumRow},
     store_tile(LayerType, Tile, Pos),    
 
@@ -686,7 +692,7 @@ store_tile(base, Tile, Pos) ->
             db:dirty_write(NewTile)
     end;
 store_tile(resource, Tile, _Pos) ->
-    lager:debug("Tile: ~p", [Tile]),
+    lager:info("Tile: ~p", [Tile]),
     %[ResourceDef] = db:dirty_read(resource_def, list_to_integer(Tile)),
     %Quantity = resource:quantity(ResourceDef#resource_def.quantity),
 
