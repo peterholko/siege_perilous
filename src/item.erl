@@ -203,8 +203,8 @@ is_equipable(Item) ->
 is_slot_free(OwnerId, Slot) ->
     AllItems = get_by_owner(OwnerId),
     F = fun(ItemMap) -> 
-                (maps:get(<<"equip">>, ItemMap) =:= <<"true">>) and
-                (maps:get(<<"slot">>, ItemMap) =:= Slot)
+                (maps:get(<<"equip">>, ItemMap, none) =:= <<"true">>) and
+                (maps:get(<<"slot">>, ItemMap, none) =:= Slot)
         end,
 
     ItemsInSlot = lists:filter(F, AllItems),
@@ -356,12 +356,16 @@ split(ItemId, NewQuantity) ->
 equip(ItemId) ->
     [Item] = db:read(item, ItemId),
     NewItem = Item#item{equip = <<"true">>},
-    db:write(NewItem).
+    db:write(NewItem),
+
+    game:send_item_update(NewItem#item.owner, all_attr_map(NewItem), true).
 
 unequip(ItemId) ->
     [Item] = db:read(item, ItemId),
     NewItem = Item#item{equip = <<"false">>},
-    db:write(NewItem).
+    db:write(NewItem),
+
+    game:send_item_update(NewItem#item.owner, all_attr_map(NewItem), true).
 
 update(ItemId, 0) ->
     [Item] = db:read(item, ItemId),

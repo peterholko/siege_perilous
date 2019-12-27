@@ -7,7 +7,7 @@ import sellbutton from "ui_comp/sellbutton.png";
 import equipbutton from "ui_comp/equipbutton.png";
 import { GameEvent } from "../gameEvent";
 import { Global } from "../global";
-import { TRIGGER_MERCHANT_BUY, TRIGGER_INVENTORY, TRIGGER_MERCHANT_SELL } from "../config";
+import { TRIGGER_MERCHANT_BUY, TRIGGER_INVENTORY, TRIGGER_MERCHANT_SELL, FALSE } from "../config";
 import { Network } from "../network";
 
 interface ItemPanelProps {
@@ -48,7 +48,7 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
   }
 
   handleEquipClick() {
-    if(this.props.itemData.equip == false) {
+    if(this.props.itemData.equip == FALSE) {
       Network.sendEquip(this.props.itemData.id);
     } else {
       Network.sendUnEquip(this.props.itemData.id);
@@ -164,6 +164,10 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
         </span>
         <table style={tableStyle}>
           <tbody>
+          <tr>
+            <td>Equipped: </td>
+            <td>{this.props.itemData.equip}</td>
+          </tr>
           <tr>
             <td>Class: </td>
             <td>{this.props.itemData.class}</td>

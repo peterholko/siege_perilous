@@ -17,7 +17,7 @@
 %% External exports
 -export([start/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([create/2, create/3, create/4, state/1, remove/1, process/1, create_plan/1, run_plan/1,
-         set_order/2, set_order/3, set_data/2, get_nearest/3]).
+         set_order/2, set_order/3, set_data/2, append_data/3, get_nearest/3]).
 -export([hp_normal/1, hp_very_low/1, target_visible/1, target_adjacent/1, max_guard_dist/1, is_state/2]).
 -export([is_not_structure_inspected/1]).
 -export([set_pos_flee/1, set_pos_guard/1, set_pos_order/1,
@@ -72,6 +72,8 @@ set_order(Id, Order, Data) ->
 set_data(Id, Data) ->
     gen_server:cast({global, npc}, {set_data, Id, Data}).
 
+append_data(Id, Key, Value) ->
+    gen_server:cast({global, npc}, {append_data, Id, Key, Value}).
 
 get_player_id(NPCType) ->
     [NPCPlayer] = db:index_read(player, NPCType, #player.name),
@@ -178,18 +180,19 @@ has_minions(NPC, Operator, Value) ->
     Result.
 
 are_minions_dead(NPC) ->
-    AllPlayerObjs = obj:get_by_player(NPC#npc.player),
+    Minions = obj_attr:value(NPC#npc.id, <<"minions">>, []),
 
-    Result = case AllPlayerObjs of
-                 [] -> 
-                     false;
-                 _ ->
-                     F = fun(Obj) ->
-                            obj:state(Obj) =:= ?DEAD
-                         end,
+    Result = case Minions of
+                [] -> true;
+                _ ->
+                     F = fun(MinionId) ->
+                            MinionObj = obj:get(MinionId),
+                            obj:state(MinionObj) =:= ?DEAD
+                        end,
 
-                     lists:all(F, AllPlayerObjs)
+                     lists:all(F, Minions)
              end,
+    lager:info("are_minions_dead: ~p", [Result]),
     Result.
 
 is_not_structure_inspected(NPC) ->
@@ -291,6 +294,9 @@ move_to_target(NPC) ->
 
                     {TaskState, NewPath} = 
                         case PathResult of
+                            {success, [_]} -> 
+                                %Already on target position
+                                {completed, []};
                             {success, Path} ->
                                 move_next_path(NPCObj, Path),
                                 {running, Path};
@@ -300,7 +306,7 @@ move_to_target(NPC) ->
                                 move_next_path(NPCObj, NearbyPath),
                                 {running, NearbyPath};
                             {failed, _} ->
-                                {complete, []}
+                                {completed, []}
                         end,
 
                     NPC#npc {task_state = TaskState,
@@ -680,6 +686,18 @@ handle_cast({set_order, NPCId, Order, NPCData}, Data) ->
 
     {noreply, NewData};
 
+handle_cast({append_data, NPCId, Key, Value}, Data) ->
+    NPC = maps:get(NPCId, Data),
+    CurrentValue = maps:get(Key, NPC#npc.data, []),
+    lager:info("Key: ~w Value: ~w CurrentValue: ~w", [Key, Value, CurrentValue]),
+    UpdatedNPCData = maps:put(Key, CurrentValue ++ [Value], NPC#npc.data),
+
+    lager:info("UpdatedNPCData: ~w", [UpdatedNPCData]),
+    NewNPC = NPC#npc {data = UpdatedNPCData},
+
+    NewData = maps:update(NPCId, NewNPC, Data),
+    {noreply, NewData};
+
 handle_cast({set_data, NPCId, NPCData}, Data) ->
     NPC = maps:get(NPCId, Data),
     
@@ -709,7 +727,7 @@ handle_call({create, Pos, Template}, _From, Data) ->
                last_run = ?MAX_INT},
 
     NewData = maps:put(NPCId, NPC, Data),
-    lager:info("Create completed..."),
+    lager:info("Create NPC completed ~p", [NPC]),
 
     {reply, NPCId, NewData};
 
@@ -865,6 +883,7 @@ process_run_plan(NPC, Tick) ->
     end.
 
 get_task_by_index(NPC, TaskIndex) ->
+    lager:debug("get_tast_by_index NPC#npc.plan: ~p", [NPC#npc.plan]),
     TaskData = lists:nth(TaskIndex, NPC#npc.plan),
     process_task_data(NPC, TaskData).
 
@@ -906,10 +925,12 @@ get_next_task(_TaskIndex, _PlanLength) ->
     plan_completed.
 
 move_next_path(_NPCObj, []) -> nothing;
-move_next_path(NPCObj, Path) -> move_unit(NPCObj, lists:nth(2, Path)).
+move_next_path(NPCObj, Path) -> 
+    lager:debug("NPC Path: ~p", [Path]),
+    move_unit(NPCObj, lists:nth(2, Path)).
 
 move_unit(Obj = #obj{id = Id, pos = Pos}, NewPos) when is_tuple(NewPos) ->
-    lager:info("Move Unit: ~p ~p ~p", [Obj, Pos, NewPos]),
+    lager:debug("Move Unit: ~p ~p ~p", [Obj, Pos, NewPos]),
     SourcePos = Pos,
     DestPos = NewPos,
     MoveTicks = event_ticks(obj:movement_cost(Obj, DestPos)),
@@ -1050,6 +1071,7 @@ process_perception(NPC) ->
 
 process_complete(false, Data) -> Data;
 process_complete(NPC, Data) ->
+    lager:info("pocess_complete NPC#npc.plan: ~p", [NPC#npc.plan]),
     Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
     lager:info("Process complete Task: ~p", [Task]),
 

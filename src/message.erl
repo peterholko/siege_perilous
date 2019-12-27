@@ -544,6 +544,9 @@ message_handle(_Cmd, Message) ->
     lager:info("~p: ~p~n", [Error, Message]),
     list_to_binary(Error).
 
+prepare(hero_dead, Message) ->
+    maps:put(<<"packet">>, <<"hero_dead">>, Message);
+
 prepare(new_obj_info, Message) ->
     maps:put(<<"packet">>, <<"info_unit">>, Message);
 

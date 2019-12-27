@@ -31,6 +31,7 @@
 -export([rec_to_map/1]).
 -export([add_group/2]).
 -export([has_wage/1, wage/1]).
+-export([monolith_distance_mod_speed/1]).
 
 create(Pos, PlayerId, Template) ->
     create(Pos, PlayerId, Template, none, none).
@@ -684,10 +685,10 @@ is_subclass(_, _) -> false.
 is_player(#obj{player = Player}) when Player > ?NPC_ID -> true;
 is_player(_) -> false.
 
-is_blocking(#obj{player = SourcePlayer}, #obj{player = TargetPlayer, state = State}) ->
-    case relation:is_ally(SourcePlayer, TargetPlayer) of
+is_blocking(SourceObj, TargetObj) ->
+    case relation:is_ally(SourceObj, TargetObj) of
        true -> false;
-       false -> is_blocking_state(State)
+       false -> is_blocking_state(TargetObj#obj.state)
     end.
 
 is_empty(Pos) ->
@@ -699,9 +700,12 @@ is_empty(SourceObj, Pos) when is_record(SourceObj, obj) ->
     Objs = db:dirty_index_read(obj, Pos, #obj.pos),
 
     F = fun(Obj) ->
-            relation:is_ally(obj:id(SourceObj), obj:id(Obj))
+            %Filter removes elements that are eval as false
+            case relation:is_ally(SourceObj, Obj) of
+                true -> false;
+                false -> is_blocking_state(Obj#obj.state)
+            end
         end,
-
     lists:filter(F, Objs) =:= [];
 is_empty(SourceId, Pos) ->
     [Obj] = db:read(obj, SourceId),
@@ -771,7 +775,7 @@ subclass_delete(Obj) ->
         ?NPC -> 
             npc:remove(Obj#obj.id);
         ?HERO ->
-            process_hero_delete(Obj),
+            %process_hero_delete(Obj),
             %TODO probably shouldn't go into the login module
             login:remove(Obj#obj.player);
         _ ->
@@ -1107,3 +1111,16 @@ obj_hauling_info(SourceId) ->
             [info(ObjId) | Acc]
         end,
     lists:foldl(F, [], HaulingObjs).
+
+monolith_distance_mod_speed(Obj) ->
+    MonolithPos = player:get_monolith_pos(obj:player(Obj)),
+    MonolithDistance = map:distance(obj:pos(Obj), MonolithPos),
+    SafeZone = 2,
+
+    DistanceModifier = util:subtract_until_zero(MonolithDistance, SafeZone),
+ 
+    case DistanceModifier > 0 of
+        true -> 1 + math:pow(2, DistanceModifier);
+        false -> 1
+    end.
+

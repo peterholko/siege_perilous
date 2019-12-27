@@ -19,6 +19,7 @@
          get_info_attrs/1,
          get_info_skills/1,
          get_info_experiment/1,
+         get_monolith_pos/1,
          info_exit/2,
          move/2,
          ford/2,
@@ -68,7 +69,8 @@
          is_online/1,
          is_class/2,
          set_player_online/1,
-         get_conn/1]).
+         get_conn/1,
+         get_open_start_pos/0]).
 
 is_player(PlayerId) -> PlayerId > ?NPC_ID.
 
@@ -105,6 +107,30 @@ get_conn(PlayerId) ->
         [Conn] -> Conn;
         _ -> false
     end.
+
+get_open_start_pos() ->
+    NumStartPos = db:num_entries(start),
+    AllStartPos = lists:seq(1, NumStartPos),
+
+    {atomic, Result} = 
+        mnesia:transaction(
+            fun() ->
+                F = fun(Player, Acc) ->
+                        lager:info("Player: ~p", [Player]),
+                        Check = is_player(Player#player.id) andalso Player#player.disabled =:= false,
+                        lager:info("Check: ~p", [Check]),
+                        case Check of
+                            true -> lists:delete(Player#player.start_pos, Acc);
+                            false -> Acc
+                        end
+                    end,
+
+                mnesia:foldl(F, AllStartPos, player)
+            end
+        ),
+    
+    lager:info("StartPos Result: ~p", [Result]),
+    Result.    
 
 perception(PlayerId) ->
     Objs = perception:get_by_player(PlayerId),
@@ -169,6 +195,9 @@ get_info_unit(Id) ->
 
 get_info_item(ItemId) ->
     lager:info("get_info_item ~p", [ItemId]),
+
+    %TODO add active info here
+
     case item:get_all_attr(ItemId) of
         invalid -> #{<<"errmsg">> => <<"Invalid Item">>};
         ItemMap -> ItemMap
@@ -304,7 +333,7 @@ attack(AttackType, SourceId, TargetId) ->
 
     case process_checks(Checks) of
         true ->
-            NumTicks = combat:num_ticks({attack, AttackType}),
+            NumTicks = erlang:trunc(combat:num_ticks({attack, AttackType})),
             StaminaCost = combat:stamina_cost({attack, AttackType}),
     
             combat:attack(AttackType, SourceId, TargetId),
@@ -330,7 +359,7 @@ defend(DefendType, SourceId) ->
 
     case process_checks(Checks) of
         true ->             
-            NumTicks = combat:num_ticks({defend, DefendType}),
+            NumTicks = erlang:trunc(combat:num_ticks({defend, DefendType})),
             StaminaCost = combat:stamina_cost({defend, DefendType}),
             
             combat:defend(DefendType, SourceId),
@@ -369,7 +398,7 @@ move(SourceId, Pos) ->
 
             SourcePos = Obj#obj.pos,
             DestPos = Pos,
-            MoveTicks = obj:movement_cost(Obj, DestPos),
+            MoveTicks = erlang:trunc(obj:movement_cost(Obj, DestPos) * obj:monolith_distance_mod_speed(Obj)),
 
             %Add obj update state to change to moving state on next tick
             game:add_obj_update(self(), SourceId, ?STATE, ?MOVING),
@@ -663,10 +692,10 @@ item_transfer(TargetId, ItemId) ->
     lager:info("OwnerObj: ~p TargetObj: ~p", [OwnerObj, TargetObj]),
 
     Checks = [{TargetObj =/= false, "Invalid transfer target"},
-              {is_player_owned(OwnerObj, Player), "Item not owned by player"},              
               {is_same_pos(OwnerObj, TargetObj) or
                map:is_adjacent(OwnerObj, TargetObj), "Item is not nearby"},
-              {is_structure_req(Item, TargetObj), "Item not required for structure construction"}],
+              {is_structure_req(Item, TargetObj), "Item not required for structure construction"},
+              is_transfer_valid(OwnerObj, TargetObj)],
 
     case process_checks(Checks) of 
         true ->
@@ -1397,4 +1426,22 @@ add_active_info(Index, Player, Id) ->
                               id = Id},
     db:write(ActiveInfo).
 
+get_monolith_pos(PlayerId) ->
+    [Player] = db:read(player, PlayerId),
+    maps:get(monolith_pos, Player#player.data, none).
 
+is_transfer_valid(_, invalid) -> 
+    {false, "Target is invalid object"};
+is_transfer_valid(OwnerObj, TargetObj) ->
+    case obj:player(OwnerObj) =:= obj:player(TargetObj) of
+        true ->
+            {true, "Transfer is valid"};
+        false ->
+            %Case for looting, assume the target is always the hero 
+            case obj:state(OwnerObj) =:= ?DEAD of
+                true -> 
+                    {true, "Transfer is valid"};
+                false ->
+                    {false, "Target is not dead, invalid transfer"}
+            end
+    end.

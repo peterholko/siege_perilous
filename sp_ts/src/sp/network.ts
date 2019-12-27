@@ -327,10 +327,12 @@ export class Network {
 
     this.websocket.onclose = (evt) => {
       console.log('Websocket Closing...');
+      Global.gameEmitter.emit(NetworkEvent.SERVER_OFFLINE);
     }
 
     this.websocket.onerror = (evt) => {
       console.log('Websocket Error...');
+      Global.gameEmitter.emit(NetworkEvent.NETWORK_ERROR);
     }
 
     this.websocket.onmessage = (evt) => {
@@ -365,6 +367,8 @@ export class Network {
         console.log(jsonData);
         this.processUpdateObjStates(jsonData.events);
         Global.gameEmitter.emit(NetworkEvent.CHANGES, jsonData);
+      } else if(jsonData.packet == 'hero_dead') {
+        Global.gameEmitter.emit(NetworkEvent.HERO_DEAD, jsonData);
       } else if(jsonData.packet == 'map') {
         console.log(jsonData);
         this.processTileStates(jsonData.data);

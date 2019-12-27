@@ -176,6 +176,8 @@ export default class UI extends React.Component<any, UIState>{
     this.handlePreciseAttack = this.handlePreciseAttack.bind(this);
     this.handleFierceAttack = this.handleFierceAttack.bind(this);
 
+    this.handleTransitionEnd = this.handleTransitionEnd.bind(this);
+
     Global.gameEmitter.on(GameEvent.TILE_CLICK, this.handleTileClick, this);
     Global.gameEmitter.on(GameEvent.SELECTBOX_CLICK, this.handleSelectBoxClick, this);
     Global.gameEmitter.on(GameEvent.SELECT_PANEL_CLICK, this.handleSelectPanelClick, this);
@@ -193,7 +195,11 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(GameEvent.MERCHANT_HIRE_CLICK, this.handleMerchantHireClick, this);
     Global.gameEmitter.on(GameEvent.RESOURCE_CLICK, this.handleResourceClick, this);
 
+    Global.gameEmitter.on(NetworkEvent.SERVER_OFFLINE, this.handleServerOffline, this);
+    Global.gameEmitter.on(NetworkEvent.NETWORK_ERROR, this.handleNetworkError, this);
+
     Global.gameEmitter.on(NetworkEvent.ERROR, this.handleError, this);
+    Global.gameEmitter.on(NetworkEvent.HERO_DEAD, this.handleHeroDead, this);
     Global.gameEmitter.on(NetworkEvent.INFO_OBJ, this.handleInfoObj, this);
     Global.gameEmitter.on(NetworkEvent.INFO_TILE, this.handleInfoTile, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM, this.handleInfoItem, this);
@@ -307,6 +313,10 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleErrorOkClick() {
+    if(Global.heroDead || Global.networkError || Global.serverOffline) {
+      location.reload();
+    }
+
     this.setState({hideErrorPanel: true});
   }
 
@@ -389,6 +399,26 @@ export default class UI extends React.Component<any, UIState>{
   handleError(message) {
     this.setState({hideErrorPanel : false,
                    errmsg : message.errmsg});
+  }
+  handleServerOffline() {
+    Global.serverOffline = true;
+
+    this.setState({hideErrorPanel : false,
+                   errmsg : "The server is offline..."})
+  }
+
+  handleNetworkError() {
+    Global.networkError = true;
+
+    this.setState({hideErrorPanel : false,
+                   errmsg : "The network connection encountered an error, click to reconnect."})
+  }
+
+  handleHeroDead() {
+    Global.heroDead = true;
+
+    this.setState({hideErrorPanel : false,
+                   errmsg : "Your hero has perished... "})
   }
 
   handleResourceClick(eventData) {
@@ -540,6 +570,10 @@ export default class UI extends React.Component<any, UIState>{
     this.setState({structureData: newData})
   }
 
+  handleTransitionEnd() {
+    console.log("TransitionEnd");
+  }
+
   render() {
  
     return(
@@ -682,3 +716,20 @@ export default class UI extends React.Component<any, UIState>{
     );
   }
 }
+
+
+/*
+          <div
+            onTransitionEnd={this.handleTransitionEnd} 
+            style={{display: this.state.fierceButtonDisplay,
+                    position: 'fixed',
+                    bottom: '10px',
+                    left: "50%",
+                    marginLeft: '-50px',
+                    backgroundColor: 'black',
+                    opacity: 0.66,
+                    width: '50px',
+                    height: this.state.fierceButtonHeight + 'px',
+                    transition: 'height 5s'}} />
+
+*/

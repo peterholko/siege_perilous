@@ -19,7 +19,7 @@ start(_Type, _Args) ->
 		]}
 	]),
 	{ok, _} = cowboy:start_clear(http, 
-                                 [{port, 8080}],
+                                 [{port, 8888}],
                                  #{env => #{dispatch => Dispatch}}),
 
     % Load game data, start game loop and managers

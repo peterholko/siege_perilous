@@ -357,7 +357,11 @@ export class ObjectScene extends Phaser.Scene {
       anim = objectState.image + '_' + animState;
 
       if(this.anims.exists(anim)) {
-        sprite.play(anim);
+        if(sprite != null) {
+          sprite.play(anim);
+        } else {
+          console.log("Missing sprite for obj: " + objectState.id);
+        }
       }
 
       //Only follow if Hero

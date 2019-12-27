@@ -21,7 +21,8 @@
          import/1, import_yaml/1,
          reset_tables/0,
          do/1,
-         all/2
+         all/2,
+         num_entries/1
         ]).
 
 %%
@@ -286,6 +287,9 @@ all(Table, Name) ->
         end,
     lists:foldl(F, #{}, Results).
 
+num_entries(Table) ->
+    length(db:dirty_match_object({Table, {'_', <<"name">>}, '_'})).
+
 %%
 %% Local Functions
 %%
@@ -303,10 +307,10 @@ test_tables() ->
      {connection, ?UNDEAD, online, none},     
      {connection, ?ANIMAL, online, none},     
      {connection, ?EMPIRE, online, none},     
-     {player, 98, <<"natives">>, <<"123123">>, 0, false, false, none, true, #{}},
-     {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, none, true, #{}},
-     {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, none, true, #{}},
-     {player, ?EMPIRE, <<"Empire">>, <<"123123">>, 0, false, false, none, true, #{}},     
+     {player, 98, <<"natives">>, <<"123123">>, 0, false, false, none, true, -1, #{}},
+     {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, none, true, -1, #{}},
+     {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, none, true, -1, #{}},
+     {player, ?EMPIRE, <<"Empire">>, <<"123123">>, 0, false, false, none, true, -1, #{}},     
      {counter, player, ?NPC_ID},
      {world, time, day},
      %{revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>], [none]},

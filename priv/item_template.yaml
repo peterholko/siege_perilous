@@ -213,6 +213,7 @@
 - name: Pick Axe
   class: Gathering
   subclass: Pick Axe
+  slot: Main Hand
   image: Pick Axe
   weight: 5
 
@@ -225,6 +226,7 @@
 - name: Copper Training Axe
   class: Weapon
   subclass: Axe
+  slot: Main Hand
   image: Training Axe
   weight: 10
 

@@ -41,7 +41,7 @@
   subclass: npc
   template: Necromancer
   family: Undead
-  base_hp: 500
+  base_hp: 5000
   base_stamina: 10000
   base_dmg: 2
   dmg_range: 6
@@ -137,6 +137,7 @@
   class: unit
   subclass: npc
   template: Yeti
+  family: Creature
   base_hp: 10
   base_stamina: 10000
   base_dmg: 2
@@ -246,7 +247,7 @@
   class: unit
   subclass: hero
   template: Warrior
-  base_hp: 12
+  base_hp: 100
   base_stamina: 10000
   base_dmg: 3
   dmg_range: 8
@@ -259,7 +260,7 @@
   class: unit
   subclass: hero
   template: Ranger
-  base_hp: 12
+  base_hp: 100
   base_stamina: 10000
   base_dmg: 3
   dmg_range: 8
@@ -272,7 +273,7 @@
   class: unit
   subclass: hero
   template: Mage
-  base_hp: 12
+  base_hp: 100
   base_stamina: 10000
   base_dmg: 3
   dmg_range: 8

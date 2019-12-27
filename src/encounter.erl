@@ -13,11 +13,20 @@ check(TriggerObj) ->
     [Tile] = map:get_tile(Pos),
     TileName = map:tile_name(Tile#map.tile),
 
-    EncounterNum = get_num(Pos),
-    NumMod = math:pow(0.0001, EncounterNum),
+    %EncounterNum = get_num(Pos),
+    %NumMod = math:pow(0.0001, EncounterNum),
 
-    BaseSpawnRate = 0.0001,
-    EffectiveSpawnRate = NumMod * BaseSpawnRate,
+    %EffectiveSpawnRate = NumMod * BaseSpawnRate,
+
+    BaseSpawnRate = 1,
+
+    MonolithPos = player:get_monolith_pos(obj:player(TriggerObj)),
+    MonolithDistance = map:distance(Pos, MonolithPos),
+    SafeZone = 2,
+
+    DistanceModifier = util:subtract_until_zero(MonolithDistance, SafeZone),
+
+    EffectiveSpawnRate = DistanceModifier * BaseSpawnRate,
 
     Random = util:rand(),
 
@@ -95,10 +104,10 @@ npc_list(TileName) ->
     end.
 
 loot_list() ->
-    [{<<"Cragroot Popular">>, 0.2, 1, 5},
-     {<<"Wrapwood Birch">>, 0.5, 1, 3},
-     {<<"Skyshroud Oak">>, 0.02, 1, 2},
-     {<<"Crimson Root">>, 0.99, 5, 10},
+    [{<<"Valleyrun Copper Dust">>, 0.2, 1, 5},
+     {<<"Amitanian Grape">>, 0.5, 1, 3},
+     {<<"Copper Training Axe">>, 0.02, 1, 2},
+     {<<"Honeybell Berries">>, 0.99, 5, 10},
      {<<"Mana">>, 0.75, 1, 3},
      {<<"Gold Coins">>, 0.99, 1, 10}].
 

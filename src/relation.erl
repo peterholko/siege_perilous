@@ -8,10 +8,12 @@
 
 -export([is_ally/2]).
 
-is_ally(Source, Target) when Source =:= Target ->
-  true;
-is_ally(Source, Target) ->
-  case db:read(relation, {Source, Target}) of
+
+is_ally(#obj{player = SourcePlayer}, #obj{player = TargetPlayer}) 
+  when SourcePlayer =:= TargetPlayer ->
+    true;
+is_ally(#obj{id = SourceId}, #obj{id = TargetId}) ->
+  case db:read(relation, {SourceId, TargetId}) of
     [] -> false;
     [Relation] -> Relation#relation.score > ?NEUTRAL
   end.

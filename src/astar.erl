@@ -28,9 +28,9 @@ astar(Start, Goal, Obj, CheckPassable, CheckBlocking) ->
                                    CheckPassable,
                                    CheckBlocking,
                                    []),
-    lager:info("From: ~p", [From]),
-    lager:info("Cost: ~p", [Cost]),
-    lager:info("Result: ~p", [Result]),
+    %lager:info("From: ~p", [From]),
+    %lager:info("Cost: ~p", [Cost]),
+    %lager:info("Result: ~p", [Result]),
 
     case Result of
         {nearby, Dist, Closest} ->
@@ -56,7 +56,7 @@ search(_, {early_exit, Result}, _Start, _Goal, _Frontier, CameFrom, CostSoFar, _
     {CameFrom, CostSoFar, Result};    
 search(false, _EarlyExit, Start, Goal, Frontier1, CameFrom, CostSoFar, Obj, CheckPassable, CheckBlocking, StatusData) ->
     {{value, Current}, Frontier2} = pqueue2:out(Frontier1),
-    lager:info("Current: ~p Distance: ~p", [Current, map:distance(Current, Goal)]),
+    %lager:info("Current: ~p Distance: ~p", [Current, map:distance(Current, Goal)]),
     NewStatusData = [{map:distance(Current, Goal), Current} | StatusData],
 
     {NewSearchData, NewResult} = 

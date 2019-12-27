@@ -449,7 +449,7 @@ move_to(Villager, Pos) ->
                                     NewVillager#villager {task_state = running, path = Path};
                                 {nearby, _Dist, _Closest} ->
                                     NewVillager#villager {task_state = completed};
-                                {failure, _} -> 
+                                {failed, _} -> 
                                     %No path, move task completed
                                     NewVillager#villager {task_state = completed}
                             end;
@@ -477,7 +477,7 @@ move_to_pos(Villager) ->
                              {nearby, _Dist, _Closest} ->
                                  %No path, move task completed
                                  Villager#villager {task_state = completed};
-                             {failure, _} -> 
+                             {failed, _} -> 
                                  %No path, move task completed
                                  Villager#villager {task_state = completed}
                         end;
@@ -994,9 +994,15 @@ handle_info({event_complete, {obj_update, _VillagerId}}, Data) ->
 handle_info({event_complete, {Event, VillagerId}}, Data) ->
     lager:info("Event Complete: ~p ~p", [Event, VillagerId]),
     Villager = maps:get(VillagerId, Data, invalid),
-    NewVillager = process_event_complete(Villager),
-    lager:info("NewVillager: ~p", [NewVillager]),
-    NewData = maps:update(VillagerId, NewVillager, Data),
+
+    NewData = 
+        case Villager =/= invalid of
+            true ->
+                NewVillager = process_event_complete(Villager),
+                maps:update(VillagerId, NewVillager, Data);
+            false ->
+                Data
+        end,
 
     {noreply, NewData};
 handle_info({event_failure, {_Event, VillagerId, Error, _EventData}}, Data) ->
@@ -1190,11 +1196,11 @@ process_task_state(running, Villager) ->
     Villager.
 
 process_event_complete(Villager) ->
-    lager:debug("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
+    lager:info("Villager Event Complete: ~p ~p", [Villager#villager.task_index, length(Villager#villager.plan)]),
 
     {TaskName, TaskArgs} = get_task_by_index(Villager, Villager#villager.task_index),
 
-    lager:debug("Villager Task: ~p", [TaskName]),
+    lager:info("Villager Task: ~p", [TaskName]),
 
     case TaskName of
         move_to -> process_move_to_complete(TaskArgs);
@@ -1209,9 +1215,7 @@ process_event_complete(Villager) ->
         eat -> complete_task(Villager);
         sleep -> complete_task(Villager);
         _ -> Villager
-    end;
-process_event_complete(invalid) ->
-    lager:info("Villager is no longer valid").
+    end.
 
 process_move_to_complete([Villager, Pos]) ->
     VillagerObj = obj:get(Villager#villager.id),

@@ -12,22 +12,29 @@ cast(invalid, _, _, _) -> nothing;
 cast(_, invalid, _, _) -> nothing;
 cast(SourceObj, Target, TargetType, ?RAISE_DEAD) ->
 
-    {TargetPos, CorpseOrBones} = case TargetType of
-                                  obj -> 
-                                      %Initiate deletion of the object
-                                      obj:update_deleting(Target),
-                                      {obj:pos(Target), obj:subclass(Target)};
-                                  item ->
-                                      Item = Target,
-                                      OwnerId = Item#item.owner,
-                                      OwnerObj = obj:get(OwnerId),
-                                      item:update(Item#item.id, Item#item.quantity - 1),
-                                      {obj:pos(OwnerObj), Item#item.subclass}
-                              end,
+    {TargetPos, CorpseOrBones} = 
+        case TargetType of
+            obj -> 
+                %Initiate deletion of the object
+                obj:update_deleting(Target),
+                {obj:pos(Target), obj:subclass(Target)};
+            item ->
+                Item = Target,
+                OwnerId = Item#item.owner,
+                OwnerObj = obj:get(OwnerId),
+                item:update(Item#item.id, Item#item.quantity - 1),
+                {obj:pos(OwnerObj), Item#item.subclass}
+        end,
 
+    
+
+
+    %TODO do not assume NPC
     case CorpseOrBones of
         ?CORPSE ->
-            npc:create(TargetPos, obj:player(SourceObj), <<"Zombie">>);
+            ZombieId = npc:create(TargetPos, obj:player(SourceObj), <<"Zombie">>),
+            Minions = obj_attr:value(obj:id(SourceObj), <<"minions">>, []),
+            obj_attr:set(obj:id(SourceObj), <<"minions">>, [ZombieId | Minions]);
         ?BONES -> 
             NPCId = npc:create(TargetPos, obj:player(SourceObj), <<"Skeleton">>),
             npc:set_order(NPCId, idle);

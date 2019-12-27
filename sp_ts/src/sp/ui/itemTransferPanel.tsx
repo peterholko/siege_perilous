@@ -58,6 +58,7 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
       //Reset Global selected item / owner
       Global.selectedItemId = -1;
       Global.selectedItemOwnerId = -1;
+      Global.selectedItemName = '';
     }
   }
 
@@ -72,6 +73,28 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
       marginLeft: '-25px',
       position: 'fixed',
       zIndex: 7
+    } as React.CSSProperties
+
+    const leftItemNameStyle = {
+      transform: 'translate(161px, 315px)',
+      position: 'fixed',
+      textAlign: 'center',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+      width: '323px',
+      zIndex: 6
+    } as React.CSSProperties
+
+    const rightItemNameStyle = {
+      transform: 'translate(483px, 315px)',
+      position: 'fixed',
+      textAlign: 'center',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+      width: '323px',
+      zIndex: 6
     } as React.CSSProperties
 
     return (
@@ -99,6 +122,12 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
                                  hideExitButton={false}
                                  hideSelect={this.state.hideRightSelect}
                                  handleSelect={this.handleSelect} />}
+
+        {!this.state.hideLeftSelect &&
+          <span style={leftItemNameStyle}>{Global.selectedItemName}</span>}
+
+        {!this.state.hideRightSelect &&
+          <span style={rightItemNameStyle}>{Global.selectedItemName}</span>}
 
         <img src={transferbutton} 
               style={transferStyle} 

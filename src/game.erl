@@ -116,7 +116,10 @@ send_item_update(ObjId, Item, Merged) ->
     Obj = obj:get(ObjId),
     Index = {obj:player(Obj), obj, ObjId},
 
-    case db:read(active_info, Index) =/= [] of
+    ActiveInfoCheck = db:read(active_info, Index) =/= [],
+    lager:info("Sending item update, ~p", [ActiveInfoCheck]),
+
+    case db:read(active_info, ActiveInfoCheck) =/= [] of
         true ->
             Message = #{<<"id">> => ObjId,
                         <<"item">> => Item,
@@ -219,7 +222,14 @@ get_valid_tiles({X, Y}, Obj) ->
 
 create_new_player(PlayerId) ->
     lager:info("Spawning new player: ~p", [PlayerId]),
-    RandStartPos = util:rand(5),
+
+    PlayerStartPosList = player:get_open_start_pos(),
+
+    %TODO cancel creation if all start locations are full
+
+    RandStartIndex = util:rand(length(PlayerStartPosList)),
+    RandStartPos = lists:nth(RandStartIndex, PlayerStartPosList),
+    
     StartPosName = list_to_binary("startpos" ++ integer_to_list(RandStartPos)),
     StartPosData = db:all(start, StartPosName),
     lager:info("StartPosData: ~p", [StartPosData]),
@@ -233,20 +243,19 @@ create_new_player(PlayerId) ->
     NecromancerPos = util:pos_bin_to_tuple(maps:get(<<"necromancer_pos">>, StartPosData)),
 
     [Player] = db:read(player, PlayerId),
-    PlayerStartPos = HeroPos,
 
+    HeroId = obj:create(HeroPos, PlayerId, Player#player.class),   
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
-    HeroId = obj:create(HeroPos, PlayerId, Player#player.class),   
+
+    NewPlayer = Player#player {hero = HeroId,
+                               start_pos = RandStartPos,
+                               data = #{monolith_pos => MonolithPos}},
+    db:write(NewPlayer),
     
     %Create 2 corpses
     obj:create(Corpse1Pos, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
     obj:create(Corpse2Pos, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
-
-    PlayerData = #{start_pos => PlayerStartPos},
-    NewPlayer = Player#player {hero = HeroId,
-                               data = PlayerData},
-    db:write(NewPlayer),
 
     VillagerId = villager:create(0, PlayerId, VillagerPos),
     %VillagerId2 = villager:create(0, PlayerId, Villager2Pos),
@@ -274,7 +283,6 @@ create_new_player(PlayerId) ->
 
     %item:create(VillagerId2, <<"Honeybell Berries">>, 50, <<"true">>),
 
-
     % Recipe initial
     recipe:create(PlayerId, <<"Copper Training Axe">>),
     recipe:create(PlayerId, <<"Copper Training Sword">>),
@@ -300,7 +308,13 @@ create_new_player(PlayerId) ->
                         mausoleum_guard => GuardianId,
                         order_pos => {17,31}},
 
-            npc:set_data(NPCId, NPCData)
+            npc:set_data(NPCId, NPCData),
+
+            LinkedNPC = [MausoleumId, NPCId, GuardianId],
+
+            NewPlayerData = maps:put(linkednpc, LinkedNPC, NewPlayer#player.data),
+            NewPlayer2 = NewPlayer#player {data = NewPlayerData},
+            db:write(NewPlayer2)
          end,
 
     F2 = fun() ->
@@ -340,7 +354,7 @@ create_new_player(PlayerId) ->
             [EmpirePlayer] = db:read(player, ?EMPIRE),
             NewEmpirePlayerData1 = maps:put({PlayerId, is_tax_collected}, false, EmpirePlayer#player.data),
             NewEmpirePlayerData2 = maps:put({PlayerId, tax_amount_due}, 10, NewEmpirePlayerData1),
-            NewEmpirePlayerData3 = maps:put({PlayerId, landing_pos}, PlayerStartPos, NewEmpirePlayerData2),
+            NewEmpirePlayerData3 = maps:put({PlayerId, landing_pos}, RandStartPos, NewEmpirePlayerData2),
             NewEmpirePlayer = EmpirePlayer#player {data = NewEmpirePlayerData3},
             db:write(NewEmpirePlayer)
          end,
@@ -349,7 +363,7 @@ create_new_player(PlayerId) ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
          end,
 
-    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
     %game:add_event(none, event, F2, none, 15),
     %game:add_event(none, event, F3, none, 15),
     %game:add_event(none, event, F4, none, 40),
@@ -376,29 +390,48 @@ spawn_wolf() ->
     npc:set_order(NPCId, wander_flee, none).
 
 hero_dead(PlayerId, HeroId) ->
+    %TODO revise all hero death flow
     lager:info("Hero killed"),
+    [Player] = db:read(player, PlayerId),
     Objs = db:index_read(obj, PlayerId, #obj.player),
-    lager:info("Objs: ~p", [Objs]),
+    LinkedNPCs = maps:get(linkednpc, Player#player.data),
 
     F = fun(Obj) ->
             case obj:id(Obj) =/= HeroId of
-                true -> obj:update_dead(obj:id(Obj));
+                true -> obj:update_deleting(Obj);
                 false -> nothing
             end
         end,
 
     lists:foreach(F, Objs),
 
-    game:add_event(self(), hero_dead, PlayerId, none, ?TICKS_SEC * 15).
+    G = fun(NPCId) ->
+            Minions = obj_attr:value(NPCId, <<"minions">>, []),
+
+            H = fun(MinionId) ->
+                    MinionObj = obj:get(MinionId),
+                    obj:update_deleting(MinionObj)
+                end,
+
+            lists:foreach(H, Minions),
+
+            NPCObj = obj:get(NPCId),
+            obj:update_deleting(NPCObj)
+        end,
+    
+    lists:foreach(G, LinkedNPCs),
+
+    case db:read(connection, PlayerId) of
+        [Conn] -> 
+            message:send_to_process(Conn#connection.process, hero_dead, #{});
+        _ -> 
+            nothing
+    end,
+
+    game:add_event(self(), hero_dead, PlayerId, none, ?TICKS_MIN * 2).
 
 process_remove_player(PlayerId) ->
-    Objs = db:index_read(obj, PlayerId, #obj.player),
-
-    F = fun(Obj) ->
-            obj:remove(obj:id(Obj))
-        end,
-
-    lists:foreach(F, Objs).
+    db:delete(player, PlayerId). 
 
 process_dead_objs(CurrentTick) ->
     DeadObjs = db:index_read(obj, ?DEAD, #obj.state),

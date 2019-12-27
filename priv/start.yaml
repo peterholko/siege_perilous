@@ -7,7 +7,7 @@
   shipwreck_pos: 15,36
   corpse1_pos: 16,35
   corpse2_pos: 17,35
-  necromancer_pos: 17,32
+  necromancer_pos: 15,35
 
 - name: startpos2
   hero_pos: 5,21

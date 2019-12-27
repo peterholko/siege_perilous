@@ -1,0 +1,12 @@
+# skill_template.yaml
+
+###################
+#### GATHERING ####
+###################
+
+- name: Mining
+  mod: [
+    "5 P SPEED", # Level 1
+    "10 P SPEED", # Leve 2
+
+  ]

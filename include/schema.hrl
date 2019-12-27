@@ -12,6 +12,7 @@
                  hero = false,
                  class = none,
                  npc = false,
+                 start_pos = none,
                  data = #{}}).
 
 -record(start, {key, 

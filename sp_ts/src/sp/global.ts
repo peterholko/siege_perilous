@@ -10,6 +10,11 @@ export class Global {
     public static gameWidth = 666;
     public static gameHeight = 375;
 
+    public static serverOffline = false;
+    public static networkError = false;
+
+    public static heroDead = false;
+
     public static tick = 0;
 
     public static tileWidth = 72;
@@ -32,6 +37,7 @@ export class Global {
 
     public static selectedItemId = -1;
     public static selectedItemOwnerId = -1;
+    public static selectedItemName = '';
 
     public static infoItemAction = 'inventory';
     public static infoItemTransferAction = 'transfer';

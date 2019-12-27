@@ -46,6 +46,7 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
 
     Global.selectedItemOwnerId = eventData.ownerId;
     Global.selectedItemId = eventData.itemId;
+    Global.selectedItemName = eventData.itemName;
 
     this.setState({selectItemStyle: selectItemStyle});
 

@@ -30,3 +30,6 @@ export const WALL = 'Wall';
 export const WEAPON = 'Weapon';
 
 export const EXP_RECIPE_NONE = -1;
+
+export const FALSE = 'false';
+export const TRUE = 'true';

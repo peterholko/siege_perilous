@@ -626,3 +626,24 @@ check_effect_item_damage(<<"Hammer">>, ?HAMMER_DMG_P) -> true;
 check_effect_item_damage(<<"Dagger">>, ?DAGGER_DMG_P) -> true;
 check_effect_item_damage(<<"Spear">>, ?SPEAR_DMG_P) -> true;
 check_effect_item_damage(_, _) -> false.
+
+
+%monolith_distance_modifier(DefId) ->
+%    DefObj = obj:get(DefId),
+
+%    case player:is_player(obj:player(DefObj)) of
+%        true ->
+%            MonolithPos = player:get_monolith_pos(obj:player(DefObj)),
+%            MonolithDistance = map:distance(obj:pos(DefObj), MonolithPos),
+%            SafeZone = 2,
+
+%            DistanceModifier = util:subtract_until_zero(MonolithDistance, SafeZone),
+
+%            case DistanceModifier > 0 of
+%                true -> DistanceModifier * DistanceModifier;
+%                false -> 1
+%            end;
+%        false ->
+%            1
+%    end.
+

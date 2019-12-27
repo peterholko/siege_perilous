@@ -92,13 +92,13 @@ wander_flee() ->
 necro_event() ->
     new(necro_event),
     add_select_one(phase1, necro_event, [{phase_id, ?NECRO_PHASE1}], []),
+        add_select_all(raise_dead, phase1, [corpses_nearby, {has_mana, ?NECRO_RAISE_MANA}], []),
+            add_primitive(cast_raise_dead, raise_dead, [], [], cast_raise_dead),
         add_select_all(do_flee, phase1, [are_minions_dead], []),
             add_primitive(set_pos_mausoleum, do_flee, [], [], set_pos_order),
             add_primitive(move_pos_mausoleum, do_flee, [], [], move_to_pos),
             add_primitive(hide_by_mausoleum, do_flee, [], [], hide),
             add_primitive(next_phase, do_flee, [], [], next_phase),
-        add_select_all(raise_dead, phase1, [corpses_nearby, {has_mana, ?NECRO_RAISE_MANA}], []),
-            add_primitive(cast_raise_dead, raise_dead, [], [], cast_raise_dead),
         add_select_all(attack_enemy, phase1, [target_visible], []),
             add_primitive(move_in_range, attack_enemy, [], [], move_in_range),
             add_primitive(cast_shadow_bolt, attack_enemy, [], [], cast_shadow_bolt),
@@ -110,7 +110,7 @@ necro_event() ->
             add_primitive(cast_raise_dead, mass_raise_dead, [], [], cast_raise_dead),
         add_select_all(swarm_attack, phase2, [mausoleum_guardian_dead, {has_minions, moreorequal, ?NECRO_NUM_MINIONS}], []),  
             add_primitive(cast_raise_dead, swarm_attack, [], [], swarm_attack),
-        add_select_all(hide, phase2, [{is_state, ?HIDING}], []),  
+        add_select_all(hide_idle, phase2, [{is_state, ?HIDING}], []),  
             add_primitive(hide_idle, hide_idle, [], [], idle),
         add_select_all(phase2_idle, phase2, [], []),
             add_primitive(phase2_idle, phase2_idle, [], [], idle).
@@ -301,20 +301,22 @@ lost_villager() ->
     add_select_all(do_wander, lost_villager, [], []),
         add_primitive(move_random_pos, do_wander, [], [], move_random_pos).
 
-plan(PlanName, Id, Module) ->
+plan(PlanName, Obj, Module) ->
+    lager:debug("~p PlanName: ~p Obj: ~p", [self(), PlanName, Obj]),
     [Parent] = db:dirty_read(htn, {PlanName, PlanName}),
     Children = db:dirty_index_read(htn, {PlanName, PlanName}, #htn.parent),
     SortedChildren = lists:keysort(#htn.index, Children),
 
     put(plan_module, Module),
 
+    lager:debug("~p Erasing plan...", [self()]),
     erase(plan),
     
-    process_child(SortedChildren, Parent#htn.type, Id),
+    process_child(SortedChildren, Parent#htn.type, Obj),
 
     PlanLabel = get(plan_label),
     Plan = get(plan),
-
+    lager:debug("~p PanelLabel: ~p Plan: ~p", [self(), PlanLabel, Plan]),
     {PlanLabel, Plan}.
 
 process_child([], primitive, _NPC) ->
@@ -378,12 +380,16 @@ add_to_plan(Children) when is_list(Children) ->
         end,
 
     lists:foreach(F, Children);
-add_to_plan(#htn{parent = Parent, task = Task, type = Type}) when Type =:= primitive ->
+add_to_plan(Htn = #htn{parent = Parent, task = Task, type = Type}) when Type =:= primitive ->
+    lager:debug("~p Htn: ~p", [self(), Htn]),
     put(plan_label, Parent),
 
-    Plan = get_plan(get(plan)),
-    put(plan, Plan ++ [Task]);
-add_to_plan(_) ->
+    PrevPlan = get_plan(get(plan)),
+    FullPlan = PrevPlan ++ [Task],
+    lager:debug("~p Plan: ~p", [self(), FullPlan]),
+    put(plan, FullPlan);
+add_to_plan(Htn) ->
+    lager:debug("~p Nothing Htn: ~p", [self(), Htn]),
     nothing.
 
 get_plan(Plan) when is_list(Plan) ->
