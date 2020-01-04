@@ -18,6 +18,7 @@
 -export([get_total_weight/1, total_gold/1, weight/2]).
 -export([id/1, name/1, subclass/1, owner/1, quantity/1, price/1, image/1]).
 -export([match_req/3, match_req_type/3]).
+-export([use/1]).
 
 id(Item) when is_map(Item) -> maps:get(<<"id">>, Item);
 id(Item) -> Item#item.id.
@@ -366,6 +367,19 @@ unequip(ItemId) ->
     db:write(NewItem),
 
     game:send_item_update(NewItem#item.owner, all_attr_map(NewItem), true).
+
+use(ItemId) ->
+    [Item] = db:read(item, ItemId),
+    NewQuantity = Item#item.quantity - 1,
+
+    case Item#item.subclass of
+        ?HEALTH ->
+            obj:update_hp(Item#item.owner, 10);
+        _ ->
+            lager:error("Cannot use this item type")
+    end,
+
+    update(ItemId, NewQuantity).
 
 update(ItemId, 0) ->
     [Item] = db:read(item, ItemId),

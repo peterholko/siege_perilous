@@ -130,7 +130,7 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
         if(Util.isState(this.props.selectedKey.id, DEAD)) {
           hideInfoButton = false;
           hideTranferButton = false;
-          numButtons = 3;
+          numButtons = 2;
         }
         else if(Util.hasGroup(this.props.selectedKey.id, "Merchant")) {
           hideMerchantButton = false;

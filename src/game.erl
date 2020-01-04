@@ -114,12 +114,15 @@ send_tile_update(Pos, Attr, Value) ->
 
 send_item_update(ObjId, Item, Merged) ->
     Obj = obj:get(ObjId),
-    Index = {obj:player(Obj), obj, ObjId},
 
-    ActiveInfoCheck = db:read(active_info, Index) =/= [],
-    lager:info("Sending item update, ~p", [ActiveInfoCheck]),
+    IndexObjItems = {obj:player(Obj), obj_items, ObjId},
+    ActiveInfoObjCheck = db:read(active_info, IndexObjItems) =/= [],
 
-    case db:read(active_info, ActiveInfoCheck) =/= [] of
+    IndexItem = {obj:player(Obj), item, item:id(Item)},
+    ActiveInfoItemCheck = db:read(active_info, IndexItem) =/= [],
+    lager:info("Sending item update, ~p ~p", [ActiveInfoObjCheck, ActiveInfoItemCheck]),
+
+    case ActiveInfoObjCheck or ActiveInfoItemCheck of
         true ->
             Message = #{<<"id">> => ObjId,
                         <<"item">> => Item,
@@ -266,6 +269,7 @@ create_new_player(PlayerId) ->
     item:create(HeroId, <<"Valleyrun Copper Ingot">>, 200),
     item:create(HeroId, <<"Cragroot Maple Timber">>, 200),
     item:create(HeroId, <<"Copper Training Axe">>, 1),
+    item:create(HeroId, <<"Health Potion">>, 5),
     item:create(MonolithId, <<"Mana">>, 2500),
     item:create(HeroId, <<"Cragroot Maple Wood">>, 100),
     item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 25),

@@ -110,6 +110,15 @@ message_handle(<<"defend">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"defend">>, Return),
     jsx:encode(FinalReturn);
 
+message_handle(<<"use">>, Message) ->
+    lager:info("message: use"),
+    Item = m_get(<<"item">>, Message),
+
+    Return = player:use(Item),
+
+    FinalReturn = maps:put(<<"packet">>, <<"use">>, Return),
+    jsx:encode(FinalReturn);
+ 
 message_handle(<<"survey">>, Message) ->
     lager:info("message: survey"),
 

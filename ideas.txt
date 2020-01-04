@@ -345,8 +345,10 @@ Mining
 
 
 
+*****
 
-
-
-
+Monolith Distance Penalty:
+ - Tried exponential damage (not enough time for player to react, just dies)
+ - Tried movement slowly exponentially (super boring and can get stuck)
+ - Next attempt: warn player leaving monolith safe zone + damage reduction + 50% movement penalty
 

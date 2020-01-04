@@ -313,6 +313,14 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
  
+  public static sendUse(itemId) {
+      var m = {
+      cmd: "use",
+      item: itemId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+ 
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
     this.websocket = new WebSocket(url);
@@ -388,6 +396,9 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_INVENTORY, jsonData);
       } else if(jsonData.packet == "info_item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_TRANSFER, jsonData);
+      } else if(jsonData.packet == "info_item_update") {
+        console.log("Network info_item_update");
+        Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_UPDATE, jsonData);
       } else if(jsonData.packet == "item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.ITEM_TRANSFER, jsonData);
       } else if(jsonData.packet == "item_split") {
@@ -404,6 +415,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData);
       } else if(jsonData.packet == 'build') {
         Global.gameEmitter.emit(NetworkEvent.BUILD, jsonData);
+      } else if(jsonData.packet == 'attack') {
+        Global.gameEmitter.emit(NetworkEvent.ATTACK, jsonData); 
       } else if(jsonData.packet == 'dmg') {
         this.processDmg(jsonData);
         Global.gameEmitter.emit(NetworkEvent.DMG, jsonData);

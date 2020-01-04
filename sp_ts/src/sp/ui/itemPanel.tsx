@@ -5,6 +5,7 @@ import dividebutton from "ui_comp/dividebutton.png";
 import buybutton from "ui_comp/buybutton.png";
 import sellbutton from "ui_comp/sellbutton.png";
 import equipbutton from "ui_comp/equipbutton.png";
+import usebutton from "ui_comp/usebutton.png";
 import { GameEvent } from "../gameEvent";
 import { Global } from "../global";
 import { TRIGGER_MERCHANT_BUY, TRIGGER_INVENTORY, TRIGGER_MERCHANT_SELL, FALSE } from "../config";
@@ -26,6 +27,7 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     this.handleBuyClick = this.handleBuyClick.bind(this);
     this.handleSellClick = this.handleSellClick.bind(this);
     this.handleEquipClick = this.handleEquipClick.bind(this);
+    this.handleUseClick = this.handleUseClick.bind(this);
   }
 
   handleDivideClick() {
@@ -54,9 +56,13 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
       Network.sendUnEquip(this.props.itemData.id);
     }
   }
+  
+  handleUseClick() {
+    Network.sendUse(this.props.itemData.id);
+  }
 
   render() {
-    const itemName = this.props.itemData.name;
+    const itemName = this.props.itemData.image;
     const imageName = itemName.toLowerCase().replace(/ /g, '') + '.png'
     const effects = [];
     var produces = '';
@@ -71,6 +77,8 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
 
     const showEquipButton = (this.props.itemData.class == "Weapon") || 
                             (this.props.itemData.class == "Armor");
+
+    const showUseButton = (this.props.itemData.class == "Potion");
 
     if(this.props.itemData.hasOwnProperty('effects')) {
 
@@ -154,6 +162,12 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
       position: 'fixed'
     } as React.CSSProperties
 
+    const useStyle = {
+      transform: 'translate(-137px, 295px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+
     return (
       <HalfPanel left={isLeftPanel} 
                  panelType={'item'} 
@@ -220,7 +234,10 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
                style={equipStyle}
                onClick={this.handleEquipClick} />}
  
-
+         {showUseButton && 
+          <img src={usebutton}
+               style={useStyle}
+               onClick={this.handleUseClick} />}
  
       </HalfPanel>
     );

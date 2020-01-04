@@ -45,6 +45,7 @@
          order_craft/2,
          equip/1,
          unequip/1,
+         use/1,
          rest/1,
          hide/1,
          assign_list/0,
@@ -194,9 +195,11 @@ get_info_unit(Id) ->
     Info.
 
 get_info_item(ItemId) ->
+    Player = get(player_id),
     lager:info("get_info_item ~p", [ItemId]),
 
-    %TODO add active info here
+    %Add active info for item
+    add_active_info({Player, item, ItemId}, Player, ItemId),
 
     case item:get_all_attr(ItemId) of
         invalid -> #{<<"errmsg">> => <<"Invalid Item">>};
@@ -209,6 +212,9 @@ get_info_inventory(Id) ->
     [Obj] = db:read(obj, Id),
     Player = get(player_id),
 
+    %Add active info for items on obj
+    add_active_info({Player, obj_items, Id}, Player, Id),
+
     obj:trigger_inspect(Obj),
     Info = obj:get_info_inventory(Player, Obj),
 
@@ -218,6 +224,8 @@ get_info_item_transfer(SourceId, TargetId) ->
     Player = get(player_id),
     [SourceObj] = db:read(obj, SourceId),
     [TargetObj] = db:read(obj, TargetId),
+
+    %TODO add some checks
 
     obj:trigger_inspect(SourceObj),
     obj:trigger_inspect(TargetObj),
@@ -372,6 +380,24 @@ defend(DefendType, SourceId) ->
               <<"defendtype">> => DefendType,
               <<"cooldown">> => NumTicks / ?TICKS_SEC,
               <<"stamina_cost">> => StaminaCost};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+use(ItemId) ->
+    PlayerId = get(player_id),
+    Item = item:get_rec(ItemId),
+    ItemOwnerId = item:owner(Item),
+    OwnerObj = obj:get(ItemOwnerId),
+    lager:info("Item: ~p", [Item]),
+
+    Checks = [{is_player_owned(PlayerId, obj:player(OwnerObj)), "Item is not owned by player"}],
+
+    case process_checks(Checks) of
+        true ->
+            item:use(ItemId),
+
+            #{<<"result">> => <<"success">>};
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.

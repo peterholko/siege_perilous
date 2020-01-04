@@ -230,6 +230,12 @@
   image: Training Axe
   weight: 10
 
+- name: Health Potion
+  class: Potion
+  subclass: Health
+  image: Potion
+  weight: 1
+
 
 
 

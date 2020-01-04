@@ -1,6 +1,9 @@
 1. Determine starting structures allowed to build
 2. Determine resource costs of items / structures
-3. Determine hero death process and clean up 
+3. *** Determine hero death process and clean up  
 4. Determine xp/level progress
 5. Upgrades of structures and heros
+6. Improve Exploring with anything
+7. Add Hero Stats
+8. Determine if Heros can harvest resources
 

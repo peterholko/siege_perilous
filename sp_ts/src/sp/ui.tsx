@@ -30,7 +30,10 @@ import dodgebutton from "ui/dodgebutton.png";
 
 import { NetworkEvent } from './networkEvent';
 import { HERO, VILLAGER, STRUCTURE, PROGRESSING, 
-  TRIGGER_INVENTORY} from './config';
+  TRIGGER_INVENTORY,
+  QUICK,
+  PRECISE,
+  FIERCE} from './config';
 import TargetActionPanel from './ui/targetActionPanel';
 import ItemTransferPanel from './ui/itemTransferPanel';
 import HeroPanel from './ui/heroPanel';
@@ -52,6 +55,7 @@ import ResourcePanel from './ui/resourcePanel';
 import HeroFrame from './ui/heroFrame';
 import MerchantHirePanel from './ui/merchantHirePanel';
 import ExperimentPanel from './ui/experimentPanel';
+import ActionButton from './ui/actionButton';
 
 interface UIState {
   selectBoxes : [],
@@ -78,9 +82,9 @@ interface UIState {
   hideResourcePanel : boolean,
   hideExperimentPanel : boolean,
   leftInventoryId : integer,
-  leftInventoryData: [],
+  leftInventoryData: any,
   rightInventoryId : integer,
-  rightInventoryData: [],
+  rightInventoryData: any,
   inventoryReqs: [], //Currently used for structure inventory reqs
   itemData : any,
   heroData : any,
@@ -205,6 +209,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM, this.handleInfoItem, this);
     Global.gameEmitter.on(NetworkEvent.INFO_INVENTORY, this.handleInfoInventory, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM_TRANSFER, this.handleInfoItemTransfer, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_ITEM_UPDATE, this.handleInfoItemUpdate, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ATTRS, this.handleInfoAttrs, this);
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
     Global.gameEmitter.on(NetworkEvent.INFO_HAULING, this.handleInfoHauling, this);
@@ -214,6 +219,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.STRUCTURE_LIST, this.handleStructureList, this);
     Global.gameEmitter.on(NetworkEvent.ASSIGN_LIST, this.handleAssignList, this);
     Global.gameEmitter.on(NetworkEvent.RECIPE_LIST, this.handleRecipeList, this);
+    Global.gameEmitter.on(NetworkEvent.ATTACK, this.handleAttack, this);
   }
 
   handleMoveClick(event : React.MouseEvent) {
@@ -395,6 +401,10 @@ export default class UI extends React.Component<any, UIState>{
   handleFierceAttack(event: React.MouseEvent) {
     Network.sendAttack('fierce', Global.heroId, this.state.selectedKey.id);
   }
+  
+  handleAttack(message) {
+
+  }
 
   handleError(message) {
     this.setState({hideErrorPanel : false,
@@ -475,6 +485,36 @@ export default class UI extends React.Component<any, UIState>{
                     leftInventoryData: message.sourceitems,
                     rightInventoryId: message.targetid,
                     rightInventoryData: message.targetitems});
+    }
+  }
+
+  handleInfoItemUpdate(message) {
+    console.log('UI handleInfoItemUpdate');
+    this.setState({itemData: message.item});
+
+    //TODO improve this one day
+    if(message.id == this.state.leftInventoryData.id) {
+      var newLeftInventoryData : any = {...this.state.leftInventoryData};
+
+      for(var i = 0; i < newLeftInventoryData.items.length; i++) {
+        if(newLeftInventoryData.items[i].id == message.item.id) {
+          newLeftInventoryData.items[i] = message.item;
+        }
+      }
+
+      this.setState({leftInventoryData: newLeftInventoryData});
+    }
+
+    if(message.id == this.state.rightInventoryData.id) {
+      var newRightInventoryData : any = {...this.state.rightInventoryData};
+
+      for(var i = 0; i < newRightInventoryData.items.length; i++) {
+        if(newRightInventoryData.items[i].id == message.item.id) {
+          newRightInventoryData.items[i] = message.item;
+        }
+      }
+
+      this.setState({rightInventoryData: newRightInventoryData});
     }
   }
 
@@ -565,7 +605,7 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleBuild(message) {
-    let newData = {...this.state.structureData}
+    let newData = {...this.state.structureData};
     newData.state = PROGRESSING;
     this.setState({structureData: newData})
   }
@@ -575,7 +615,6 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   render() {
- 
     return(
       <div id="ui" className={styles.ui}>
          <img src={attrsbutton} 
@@ -603,20 +642,14 @@ export default class UI extends React.Component<any, UIState>{
               className={styles.herogatherbutton} 
               onClick={this.handleHeroGatherClick} />
 
-          <img src={quickattackbutton} 
-              id="quickattackbutton" 
-              className={styles.quickattackbutton} 
-              onClick={this.handleQuickAttack}/>
+          <ActionButton type={QUICK}
+                        handler={this.handleQuickAttack}/>
 
-          <img src={preciseattackbutton} 
-              id="preciseattackbutton" 
-              className={styles.preciseattackbutton}
-              onClick={this.handlePreciseAttack}/>
-          
-          <img src={fierceattackbutton} 
-              id="fierceattackbutton"
-              className={styles.fierceattackbutton}
-              onClick={this.handleFierceAttack}/>
+          <ActionButton type={PRECISE}
+                        handler={this.handlePreciseAttack}/>
+
+          <ActionButton type={FIERCE}
+                        handler={this.handleFierceAttack}/>
 
           <img src={bracebutton} 
               id="bracebutton" 
@@ -731,5 +764,12 @@ export default class UI extends React.Component<any, UIState>{
                     width: '50px',
                     height: this.state.fierceButtonHeight + 'px',
                     transition: 'height 5s'}} />
+
+          <img src={fierceattackbutton} 
+              id="fierceattackbutton"
+              className={styles.fierceattackbutton}
+              onClick={this.handleFierceAttack}/>
+
+
 
 */

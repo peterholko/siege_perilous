@@ -29,6 +29,10 @@ export const WALL = 'Wall';
 
 export const WEAPON = 'Weapon';
 
+export const QUICK = 'quick';
+export const PRECISE = 'precise';
+export const FIERCE = 'fierce';
+
 export const EXP_RECIPE_NONE = -1;
 
 export const FALSE = 'false';

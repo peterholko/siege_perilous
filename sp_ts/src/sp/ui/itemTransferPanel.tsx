@@ -76,25 +76,30 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
     } as React.CSSProperties
 
     const leftItemNameStyle = {
-      transform: 'translate(161px, 315px)',
+      transform: 'translate(-323px, 0px)',
       position: 'fixed',
       textAlign: 'center',
       color: 'white',
       fontFamily: 'Verdana',
       fontSize: '12px',
       width: '323px',
-      zIndex: 6
+      zIndex: 6,
+      top: '50%',
+      left: '50%',
+      marginTop: '125px'
     } as React.CSSProperties
 
     const rightItemNameStyle = {
-      transform: 'translate(483px, 315px)',
       position: 'fixed',
       textAlign: 'center',
       color: 'white',
       fontFamily: 'Verdana',
       fontSize: '12px',
       width: '323px',
-      zIndex: 6
+      zIndex: 6,
+      top: '50%',
+      left: '50%',
+      marginTop: '125px'
     } as React.CSSProperties
 
     return (

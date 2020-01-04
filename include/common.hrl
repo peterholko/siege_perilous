@@ -270,6 +270,9 @@
 
 %ITEM CLASSES
 -define(GOLD_COINS, <<"Gold Coins">>).
+-define(WEAPON, <<"Weapon">>).
+-define(ARMOR, <<"Armor">>).
+-define(POTION, <<"Potion">>).
 
 %ITEM SUBCLASSES
 -define(PICK_AXE, <<"Pick Axe">>).
@@ -285,6 +288,8 @@
 -define(SWORD, <<"Sword">>).
 -define(HAMMER, <<"Hammer">>).
 -define(SPEAR, <<"Spear">>).
+
+-define(HEALTH, <<"Health">>).
 
 %RESOURCE TRAITS
 -define(AXE_DMG_P, <<"Axe Damage %">>).
