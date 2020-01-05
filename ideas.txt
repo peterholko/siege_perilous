@@ -318,6 +318,13 @@ Recipes:
 2. Acquire from Experiment - Convert resources/items into Recipes
 
 
+Mining skill group
+------------------
+Mine Upkeep
+Gem discovery
+
+
+
 
 
 
