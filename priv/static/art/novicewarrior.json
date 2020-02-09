@@ -1,0 +1,35 @@
+{
+	"frames": {
+			"width": 72,
+			"height": 72
+	},
+	"animations": {
+			"die": {
+					"frames": [12,13,14,15],
+					"repeat": 0,
+					"speed": 1500
+			},
+			"dead": [15],
+			"harvesting": {
+					"frames": [0,1],
+					"repeat": -1,
+					"speed": 1000
+			},
+			"crafting": {
+					"frames": [0,1],
+					"repeat": -1,
+					"speed": 1000
+			},
+			"attack": {
+					"frames": [0,1,2,3,4,5,6,7,8,9,10,11],
+					"repeat": 0,
+					"speed": 2000
+			},
+			"none": [18],
+			"moving": {
+					"frames": [16,17,18],
+					"repeat": -1,
+					"speed": 750
+			}
+	}
+}

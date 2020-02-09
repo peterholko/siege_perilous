@@ -1,0 +1,29 @@
+{
+	"frames": {
+			"width": 72,
+			"height": 72
+	},
+	"animations": {
+			"harvesting": {
+					"frames": [0,1],
+					"repeat": -1,
+					"speed": 1000
+			},
+			"crafting": {
+					"frames": [0,1],
+					"repeat": -1,
+					"speed": 1000
+			},
+			"attack": {
+					"frames": [0,1,2,3],
+					"repeat": 0,
+					"speed": 1000
+			},
+			"none": [5],
+			"moving": {
+					"frames": [0,2,5],
+					"repeat": -1,
+					"speed": 750
+			}
+	}
+}
