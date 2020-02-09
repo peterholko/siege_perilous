@@ -112,9 +112,9 @@ message_handle(<<"defend">>, Message) ->
 
 message_handle(<<"use">>, Message) ->
     lager:info("message: use"),
-    Item = m_get(<<"item">>, Message),
+    ItemId = m_get(<<"item">>, Message),
 
-    Return = player:use(Item),
+    Return = player:use(ItemId),
 
     FinalReturn = maps:put(<<"packet">>, <<"use">>, Return),
     jsx:encode(FinalReturn);
@@ -135,15 +135,15 @@ message_handle(<<"explore">>, Message) ->
     jsx:encode([{<<"packet">>, <<"explore">>},
                 {<<"result">>, Result}]);    
 
-message_handle(<<"harvest">>, Message) ->
-    lager:info("message: harvest"),
+message_handle(<<"gather">>, Message) ->
+    lager:info("message: gather"),
 
     SourceId = m_get(<<"sourceid">>, Message),
-    Resource = m_get(<<"resource">>, Message),
-   
-    Return = player:harvest(SourceId, Resource),
+    ResourceType = m_get(<<"restype">>, Message),
 
-    FinalReturn = maps:put(<<"packet">>, <<"harvest">>, Return),
+    Return = player:gather(SourceId, ResourceType),
+
+    FinalReturn = maps:put(<<"packet">>, <<"gather">>, Return),
     jsx:encode(FinalReturn);
 
 message_handle(<<"loot">>, Message) ->
@@ -469,6 +469,20 @@ message_handle(<<"info_exit">>, Message) ->
     ReturnMsg = maps:put(<<"packet">>, <<"info_exit">>, InfoMaps),
     jsx:encode(ReturnMsg);
 
+message_handle(<<"info_advance">>, Message) ->
+    lager:info("message: info_advance"),
+    SourceId = m_get(<<"sourceid">>, Message),
+    InfoMaps = player:info_advance(SourceId),
+    ReturnMsg = maps:put(<<"packet">>, <<"info_advance">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
+message_handle(<<"advance">>, Message) ->
+    lager:info("message: advance"),
+    SourceId = m_get(<<"sourceid">>, Message),
+    InfoMaps = player:advance(SourceId),
+    ReturnMsg = maps:put(<<"packet">>, <<"advance">>, InfoMaps),
+    jsx:encode(ReturnMsg);
+
 message_handle(<<"ford">>, Message) ->
     lager:info("message: ford"),
     Id = m_get(<<"id">>, Message),
@@ -611,6 +625,9 @@ prepare(villager_change, Message) ->
 prepare(survey, Message) ->
     #{<<"packet">> => <<"survey">>,
       <<"data">> => Message};
+
+prepare(xp, Message) ->
+    maps:put(<<"packet">>, <<"xp">>, Message);
 
 prepare(revent, Message) ->
     lager:info("Sending revent: ~p", [Message]),

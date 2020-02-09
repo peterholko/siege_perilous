@@ -169,12 +169,12 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
     } as React.CSSProperties
 
     const inventoryStyle = {
-      transform: 'translate(50px, 0px)',
+      transform: 'translate(100px, 0px)',
       position: 'fixed'
     } as React.CSSProperties
 
     const transferStyle = {
-      transform: 'translate(100px, 0px)',
+      transform: 'translate(50px, 0px)',
       position: 'fixed'  
     } as React.CSSProperties
 

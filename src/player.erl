@@ -20,7 +20,9 @@
          get_info_skills/1,
          get_info_experiment/1,
          get_monolith_pos/1,
+         info_advance/1,
          info_exit/2,
+         advance/1,
          move/2,
          ford/2,
          combo/2,
@@ -28,7 +30,7 @@
          defend/2,
          survey/1,
          explore/1,
-         harvest/2,
+         gather/2,
          loot/2,
          buy_item/2, 
          sell_item/3,
@@ -290,6 +292,21 @@ get_info_experiment(StructureId) ->
            end,
     Info.
 
+info_advance(SourceId) ->
+    Player = get(player_id),
+    Obj = obj:get(SourceId),
+
+    Checks = [{is_player_owned(Obj#obj.player, Player), "Unit is not owned by player"}],
+    
+    case process_checks(Checks) of
+        true ->
+            Info = obj:info_advance(Obj),
+            lager:info("Info Advance: ~p", [Info]),
+            Info;
+        {false, Error} ->
+           #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
 info_exit(Key, Type) ->
     Player = get(player_id),
 
@@ -395,7 +412,7 @@ use(ItemId) ->
 
     case process_checks(Checks) of
         true ->
-            item:use(ItemId),
+            item:use(PlayerId, ItemId),
 
             #{<<"result">> => <<"success">>};
         {false, Error} ->
@@ -512,33 +529,71 @@ explore(ObjId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
-harvest(ObjId, Resource) ->
+gather(ObjId, ResourceType) ->
+    lager:info("ObjId: ~p ResourceType: ~p", [ObjId, ResourceType]),
     PlayerId = get(player_id),
-
     [Obj] = db:read(obj, ObjId),
 
+    IsHero = is_hero(Obj),
+
+    gather(PlayerId, Obj, ResourceType, IsHero).
+
+gather(PlayerId, Obj, ResourceType, true) ->
     Checks = [{is_player_owned(Obj#obj.player, PlayerId), "Unit is not owned by player"},
-              {is_hero(Obj), "Can only survey with your hero"},
-              {not game:has_pre_events(ObjId), "Unit is busy"},
-              {resource:is_valid(Resource, Obj#obj.pos), "Invalid resource"}],
+              {resource:is_valid_type(ResourceType, obj:pos(Obj)), "Not valid resource type"}],
 
     case process_checks(Checks) of
         true ->
-            %Get objs on the same tile
-            Objs = db:index_read(obj, Obj#obj.pos, #obj.pos),
-            AutoHarvest = resource:is_auto(Objs, Resource),
-            NumTicks = 20,
+            NumTicks = 10,
         
             %Update obj state
-            game:add_obj_update(self(), ObjId, ?STATE, ?HARVESTING),
+            game:add_obj_update(self(), obj:id(Obj), ?STATE, ?GATHERING),
 
             %Check for encounter
-            encounter:check(Obj),
+            %encounter:check(Obj),
 
-            EventData = {ObjId, Resource, Obj#obj.pos, NumTicks, AutoHarvest},
-            game:add_event(self(), harvest, EventData, ObjId, NumTicks),
+            EventData = {obj:id(Obj), ResourceType, obj:pos(Obj)},
+            game:add_event(self(), gather, EventData, obj:id(Obj), NumTicks),
 
             #{<<"harvest_time">> => NumTicks * ?TICKS_SEC};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end;
+gather(PlayerId, VillagerObj, ResourceType, false) ->
+    Checks = [{is_player_owned(VillagerObj, PlayerId), "Villager is not owned by player"},
+              {obj:is_hero_nearby(VillagerObj, PlayerId), "Villager is not near Hero"},
+              {obj:is_subclass(?VILLAGER, VillagerObj), "Not a villager"},
+              {resource:is_valid_type(ResourceType, obj:pos(VillagerObj)), "Not valid resource type"}],
+ 
+    case process_checks(Checks) of
+        true ->
+            lager:info("Villager gather"),
+            OrderData = #{gatherpos => obj:pos(VillagerObj),
+                          restype => ResourceType},           
+            villager:set_order(obj:id(VillagerObj), ?ORDER_GATHER, OrderData),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+
+advance(SourceId) ->
+    Player = get(player_id),
+    Obj = obj:get(SourceId),
+
+    Checks = [{is_player_owned(obj:player(Obj), Player), "Unit is not owned by player"}],
+
+    case process_checks(Checks) of
+        true ->
+            {NextRank, _ReqXp} = skill:hero_advance(Obj#obj.template),
+
+            game:add_obj_update(self(), SourceId, ?TEMPLATE, NextRank),
+
+            %Create advanced obj because add_obj_update takes a few game ticks
+            AdvancedObj = Obj#obj{template = NextRank},
+
+            InfoAdvance = obj:info_advance(AdvancedObj),
+            InfoAdvance;
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.

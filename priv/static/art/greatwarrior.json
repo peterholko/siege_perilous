@@ -15,13 +15,13 @@
 					"speed": 1000
 			},
 			"attack": {
-					"frames": [0,1,2,3],
+					"frames": [0,1,2,24],
 					"repeat": 0,
-					"speed": 1000
+					"speed": 750
 			},
-			"none": [5],
+			"none": [16],
 			"moving": {
-					"frames": [0,2,5],
+					"frames": [4,3,24],
 					"repeat": -1,
 					"speed": 750
 			}

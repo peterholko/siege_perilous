@@ -4,6 +4,7 @@ import { NetworkEvent } from './networkEvent';
 import { ObjectState } from './objectState';
 import { TileState } from './tileState';
 import { GameEvent } from './gameEvent';
+import UI from './ui';
 
 export class Network {
 
@@ -188,6 +189,15 @@ export class Network {
     };
     Global.socket.sendMessage(JSON.stringify(m)); 
   }
+  
+  public static sendGather(id, resourceType) {
+    var m = {
+      cmd: "gather",
+      sourceid: id,
+      restype: resourceType
+    };
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
 
   public static sendTick() {
     var m = {
@@ -320,7 +330,33 @@ export class Network {
     }    
     Global.socket.sendMessage(JSON.stringify(m));
   }
- 
+
+  public static sendRest(sourceId) {
+    var m = {
+      cmd: "rest",
+      sourceid: sourceId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendInfoAdvance(sourceId) {
+    var m = {
+      cmd: "info_advance",
+      sourceid: sourceId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendAdvance(sourceId) {
+    var m = {
+      cmd: "advance",
+      sourceid: sourceId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+
+
   constructor() {
     var url : string = "ws://" + window.location.host + "/websocket";
     this.websocket = new WebSocket(url);
@@ -397,7 +433,6 @@ export class Network {
       } else if(jsonData.packet == "info_item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_TRANSFER, jsonData);
       } else if(jsonData.packet == "info_item_update") {
-        console.log("Network info_item_update");
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_UPDATE, jsonData);
       } else if(jsonData.packet == "item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.ITEM_TRANSFER, jsonData);
@@ -409,6 +444,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_ATTRS, jsonData);
       } else if(jsonData.packet == "info_skills") {
         Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData);
+      } else if(jsonData.packet == "info_advance") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_ADVANCE, jsonData);
       } else if(jsonData.packet == "info_experiment") {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
       } else if(jsonData.packet == "structure_list") {
@@ -420,6 +457,8 @@ export class Network {
       } else if(jsonData.packet == 'dmg') {
         this.processDmg(jsonData);
         Global.gameEmitter.emit(NetworkEvent.DMG, jsonData);
+      } else if(jsonData.packet == "xp") {
+        Global.gameEmitter.emit(NetworkEvent.XP, jsonData);
       } else if(jsonData.packet == 'speech') {
         Global.gameEmitter.emit(NetworkEvent.SPEECH, jsonData);
       } else if(jsonData.packet == 'assign_list') {
@@ -436,7 +475,9 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
       } else if(jsonData.packet == 'set_exp_resource') {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
-      } 
+      } else if(jsonData.packet == 'advance') {
+        Global.gameEmitter.emit(NetworkEvent.ADVANCE, jsonData);
+      }    
     }
   }
 
@@ -462,6 +503,8 @@ export class Network {
 
       if(objectState.subclass == 'hero') {
         Global.heroId = objectState.id;
+        Global.gameEmitter.emit(NetworkEvent.HERO_INIT, Global.heroId);
+        
         Network.sendGetStats(Global.heroId);
       }
 
@@ -486,33 +529,39 @@ export class Network {
   processUpdateObjStates(events) {
     //Reset the operation
     for(var objectId in Global.objectStates) {
-        var objectState = Global.objectStates[objectId] as ObjectState;
-        objectState.op = 'none';
+      var objectState = Global.objectStates[objectId] as ObjectState;
+      objectState.op = 'none';
     }
 
     for(var i = 0; i < events.length; i++) {
       var eventType = events[i].event;
 
       if(eventType == "obj_create") {
-          var obj = events[i].obj;
+        var obj = events[i].obj;
 
-          Global.objectStates[obj.id] = obj;
-          Global.objectStates[obj.id].prevstate = obj.state;
-          Global.objectStates[obj.id].op = 'added';
+        Global.objectStates[obj.id] = obj;
+        Global.objectStates[obj.id].prevstate = obj.state;
+        Global.objectStates[obj.id].op = 'added';
           
       } else if(eventType == "obj_update") {
-          var obj_id = events[i].obj_id;
-          var attr = events[i].attr;
-          var value = events[i].value;
+        var obj_id = events[i].obj_id;
+        var attr = events[i].attr;
+        var value = events[i].value;
 
-          if(attr == 'state') {
-              Global.objectStates[obj_id].prevstate = Global.objectStates[obj_id].state;
-              Global.objectStates[obj_id].state = value;
-          }
+        if(attr == 'state') {
+          Global.objectStates[obj_id].prevstate = Global.objectStates[obj_id].state;
+          Global.objectStates[obj_id].state = value;
+          Global.objectStates[obj_id].updateAttr = 'state';
+        } else if(attr == 'template') {
+          Global.objectStates[obj_id].template = value;
+          //Manually set image because obj_update only supports 1 attr
+          Global.objectStates[obj_id].image = value.toLowerCase().replace(/\s/g, '');
+          Global.objectStates[obj_id].updateAttr = 'template';
+        }
 
-          Global.objectStates[obj_id].op = 'updated';
-          console.log("Emitting obj update: " + obj_id);
-          Global.gameEmitter.emit(GameEvent.OBJ_UPDATE, obj_id);
+        Global.objectStates[obj_id].op = 'updated';
+        console.log("Emitting obj update: " + obj_id);
+        Global.gameEmitter.emit(GameEvent.OBJ_UPDATE, obj_id);
       } else if(eventType == "obj_move") {
           var obj = events[i].obj;
           var src_x = events[i].src_x;

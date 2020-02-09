@@ -4,6 +4,7 @@ export namespace NetworkEvent {
     export const ERROR : string = 'ERROR';
     export const SELECT_CLASS : string = 'SELECT_CLASS';
     export const LOGGED_IN : string = 'LOGGED_IN';
+    export const HERO_INIT : string = 'HERO_INIT';
     export const HERO_DEAD : string = 'HERO_DEAD';
     export const PERCEPTION : string = 'PERCEPTION';
     export const CHANGES : string = 'CHANGES';
@@ -19,6 +20,7 @@ export namespace NetworkEvent {
     export const ITEM_TRANSFER : string = 'ITEM_TRANSFER';
     export const INFO_ATTRS : string = 'ITEM_ATTRS';
     export const INFO_SKILLS : string = 'ITEM_SKILLS';
+    export const INFO_ADVANCE : string = 'ITEM_ADVANCE';
     export const INFO_EXPERIMENT : string = 'ITEM_EXPERIMENT';
     export const INFO_ITEM_UPDATE : string = 'INFO_ITEM_UPDATE';
     export const BUYSELL_ITEM : string = 'BUYSELL_ITEM';
@@ -29,5 +31,7 @@ export namespace NetworkEvent {
     export const BUILD : string = 'BUILD';
     export const ATTACK : string = 'ATTACK';
     export const DMG : string = 'DMG';
+    export const XP : string = 'XP';
     export const SPEECH : string = 'SPEECH';
+    export const ADVANCE : string = 'ADVANCE';
 }

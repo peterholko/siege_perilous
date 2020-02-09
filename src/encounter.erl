@@ -22,7 +22,7 @@ check(TriggerObj) ->
 
     MonolithPos = player:get_monolith_pos(obj:player(TriggerObj)),
     MonolithDistance = map:distance(Pos, MonolithPos),
-    SafeZone = 2,
+    SafeZone = ?SAFEZONE,
 
     DistanceModifier = util:subtract_until_zero(MonolithDistance, SafeZone),
 

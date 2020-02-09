@@ -8,9 +8,9 @@ import { Network } from "./network";
 import { NetworkEvent } from "./networkEvent";
 import "./login.css"
 import logo from "art/perilous_logo.png";
-import warrior from "art/warrior_single.png";
-import ranger from "art/ranger_single.png";
-import mage from "art/mage_single.png";
+import warrior from "art/novicewarrior_single.png";
+import ranger from "art/noviceranger_single.png";
+import mage from "art/novicemage_single.png";
 import halfpanel from "ui/halfpanel.png";
 
 export default class LoginControl extends React.Component<any, any> {

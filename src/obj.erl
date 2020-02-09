@@ -13,6 +13,7 @@
 -export([process_create/1, process_update_state/2, process_move/2, process_sleep/1, 
          process_deleting/1, process_obj_stats/0]).
 -export([update_hp/2, update_stamina/2, update_thirst/2, update_hunger/2, update_focus/2, 
+         update_template/1,
          update_dead/1, update_deleting/1]).
 -export([set_thirst/2, set_hunger/2]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
@@ -32,6 +33,8 @@
 -export([add_group/2]).
 -export([has_wage/1, wage/1]).
 -export([monolith_distance_mod_speed/1]).
+-export([info_advance/1, info_upgrade/1]).
+-export([process_update_template/2]).
 
 create(Pos, PlayerId, Template) ->
     create(Pos, PlayerId, Template, none, none).
@@ -223,6 +226,18 @@ process_update_state(Obj, State, StateData) when is_record(Obj, obj) ->
     %Return new obj
     NewObj.
 
+process_update_template(ObjId, Template) when is_integer(ObjId) ->
+    [Obj] = db:read(obj, ObjId),
+    process_update_template(Obj, Template);
+process_update_template(Obj, Template) ->
+    Image = string:lowercase(re:replace(Template, <<" ">>, <<"">>, [{return, binary}])),                  
+    NewObj = Obj#obj {template = Template,
+                      image = Image},
+    
+    save(NewObj),
+
+    NewObj.
+
 process_obj_stats() ->
     F = fun() ->
             mnesia:write_lock_table(obj),
@@ -367,6 +382,17 @@ update_focus(Id, ModValue) ->
 
     %TODO replace db:write with save
     db:write(NewObj).
+
+update_template(Obj) ->
+    {NextRank, _ReqXp} = skill:hero_advance(Obj#obj.template),
+
+    NextImage = string:lowercase(re:replace(NextRank, <<" ">>, <<"">>, [{return, binary}])),   
+    lager:info("NextImage: ~p", [NextImage]),
+
+    NewObj = Obj#obj{template = NextRank,
+                     image = NextImage},
+
+    save(NewObj).
 
 update_dead(Id) ->
     [Obj] = db:read(obj, Id),
@@ -1024,11 +1050,24 @@ info_attrs(Obj) ->
       <<"attrs">> => Attrs}.
 
 info_skills(Obj) ->
-    Skills = skill:get_by_owner(Obj#obj.id),
+    Skills = skill:get_by_owner_with_xp(Obj#obj.id),
     Skills,
     
     #{<<"id">> => Obj#obj.id,
       <<"skills">> => Skills}.
+
+info_advance(Obj) ->
+    {NextRank, ReqXp} = skill:hero_advance(Obj#obj.template),
+
+    #{<<"id">> => Obj#obj.id,
+      <<"rank">> => Obj#obj.template,
+      <<"next_rank">> => NextRank,
+      <<"total_xp">> => skill:get_total_xp(Obj#obj.id),
+      <<"req_xp">> => ReqXp}.
+
+info_upgrade(Obj) ->
+    %TODO finish upgrade packet
+    #{<<"id">> => Obj#obj.id}.
 
 create_obj_attr(Id, Name) ->
     AllObjTemplate = obj_template:all(Name),
@@ -1115,12 +1154,13 @@ obj_hauling_info(SourceId) ->
 monolith_distance_mod_speed(Obj) ->
     MonolithPos = player:get_monolith_pos(obj:player(Obj)),
     MonolithDistance = map:distance(obj:pos(Obj), MonolithPos),
-    SafeZone = 2,
+    SafeZone = ?SAFEZONE,
 
     DistanceModifier = util:subtract_until_zero(MonolithDistance, SafeZone),
  
-    case DistanceModifier > 0 of
-        true -> 1 + math:pow(2, DistanceModifier);
-        false -> 1
+    case DistanceModifier of
+        Value when Value > ?SAFEZONE -> ?SAFEZONE;
+        Value when Value > 0 -> DistanceModifier;
+        _Value -> 1
     end.
 

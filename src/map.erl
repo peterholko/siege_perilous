@@ -659,7 +659,7 @@ process_layer_data(_, LayerData) ->
     lager:info("~p", [LayerData]).
 
 process_row(_, [], _NumRow) ->
-    lager:info("Done storing layer");
+    lager:debug("Done storing layer");
 process_row(LayerType, [Row | Rest], NumRow) ->
     NewRow = string:strip(Row, right, $\r),
     ListTiles = string:tokens(NewRow, ","),
@@ -667,12 +667,12 @@ process_row(LayerType, [Row | Rest], NumRow) ->
     process_row(LayerType, Rest, NumRow + 1).
 
 store_tile_list(_, [], _NumRow, _NumCol) ->
-    lager:info("Done storing tile row");
+    lager:debug("Done storing tile row");
 store_tile_list(LayerType, ["0" | Rest], NumRow, NumCol) ->
     do_nothing,
     store_tile_list(LayerType, Rest, NumRow, NumCol + 1);
 store_tile_list(LayerType, [Tile | Rest], NumRow, NumCol) ->
-    lager:info("Storing tile ~p ~p ~p ~p", [LayerType, Tile, NumRow, NumCol]),
+    lager:debug("Storing tile ~p ~p ~p ~p", [LayerType, Tile, NumRow, NumCol]),
     Pos = {NumCol, NumRow},
     store_tile(LayerType, Tile, Pos),    
 

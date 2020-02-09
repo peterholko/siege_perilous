@@ -35,6 +35,12 @@
   position: fixed;
 }
 
+#herosleepbutton {
+  transform: translate(110px, 160px);
+  z-index: 1;
+  position: fixed;
+}
+
 #quickattackbutton {
   bottom: 10px;
   left: 50%;

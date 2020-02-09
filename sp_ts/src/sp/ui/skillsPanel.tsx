@@ -40,7 +40,7 @@ export default class SkillsPanel extends React.Component<SkillsPanelProps, any> 
     } as React.CSSProperties
 
     const tableStyle = {
-      transform: 'translate(20px, -250px)',
+      transform: 'translate(20px, -240px)',
       position: 'fixed',
       color: 'white',
       fontFamily: 'Verdana',
@@ -52,7 +52,9 @@ export default class SkillsPanel extends React.Component<SkillsPanelProps, any> 
     for(var skill in this.props.skillsData.skills) {
       skills.push(<tr key={key}>
                     <td>{skill}</td>
-                    <td>{this.props.skillsData.skills[skill]}</td>
+                    <td>{this.props.skillsData.skills[skill].level}</td>
+                    <td>{this.props.skillsData.skills[skill].xp}</td>
+                    <td>{this.props.skillsData.skills[skill].next}</td>
                   </tr>);
 
       key++;
@@ -66,6 +68,12 @@ export default class SkillsPanel extends React.Component<SkillsPanelProps, any> 
         <span style={spanNameStyle}>{name}</span>
         <table style={tableStyle}>
           <tbody>
+            <tr>
+              <th>Name</th>
+              <th>Level</th>
+              <th>Xp</th>
+              <th>Next Level</th>
+            </tr>
             {skills}      
           </tbody>
         </table>

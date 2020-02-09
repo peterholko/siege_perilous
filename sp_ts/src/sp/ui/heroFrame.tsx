@@ -45,7 +45,7 @@ export default class HeroFrame extends React.Component<HeroFrameProps, any> {
     let imagePath = '';
 
     if(Global.heroId in Global.objectStates) {
-      let imageName = Global.objectStates[Global.heroId].template.toLowerCase();
+      let imageName = Global.objectStates[Global.heroId].image.toLowerCase().replace(/\s/g, '');
       imagePath = '/static/art/' + imageName  + '_single.png';
     }
 

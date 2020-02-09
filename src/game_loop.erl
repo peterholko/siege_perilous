@@ -159,14 +159,22 @@ do_obj_event(obj_create, _Process, Id) ->
 
     ObjCreate;
 
-do_obj_event(obj_update, _Process, {ObjId, _Attr, Value}) ->
+do_obj_event(obj_update, _Process, {ObjId, Attr, Value}) ->
     lager:debug("obj_update: ~p ~p", [ObjId, Value]),
 
-    NewObj = obj:process_update_state(ObjId, Value),
+    NewObj = 
+        case Attr of
+            ?STATE ->
+                obj:process_update_state(ObjId, Value);
+            ?TEMPLATE ->
+                obj:process_update_template(ObjId, Value);
+            _ ->
+                lager:warning("obj_update Attr case not define")
+        end,
 
     ObjUpdate = #obj_update {obj = NewObj, 
                              source_pos = NewObj#obj.pos, 
-                             attr = <<"state">>,
+                             attr = Attr,
                              value = Value},
     ObjUpdate;
 
@@ -302,7 +310,9 @@ do_event(gather, EventData, PlayerPid) ->
             
             resource:gather_by_type(ObjId, ResourceType, Pos),
             message:send_to_process(PlayerPid, event_complete, {gather, ObjId}),
-            obj:update_state(ObjId, none);
+            obj:update_state(ObjId, none),
+
+            game:add_event(PlayerPid, gather, EventData, ObjId, 10);
         false ->
             nothing
     end;
@@ -660,12 +670,16 @@ process_rest_state(NumTick) ->
     Objs = db:index_read(obj, resting, #obj.state),
 
     F = fun(Obj) ->
-            case effect:has_effect(Obj#obj.id, <<"Starving">>) of
-                false -> obj:update_hp(Obj#obj.id, 1);
-                true -> nothing
-            end,
+            case effect:has_effect(obj:id(Obj), <<"Starving">>) of
+                false -> 
+                    obj:update_hp(obj:id(Obj), 1),
+                    game:send_update_stats(obj:player(Obj), obj:id(Obj));
+                true -> 
+                    nothing
+            end
 
-            check_random_event(NumTick, Obj)
+            %TODO Re-enable random events after review
+            %check_random_event(NumTick, Obj)
         end,
 
     lists:foreach(F, Objs).

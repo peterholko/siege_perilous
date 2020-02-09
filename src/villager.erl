@@ -1064,9 +1064,9 @@ generate(Level, PlayerId, Pos) ->
     lager:info("Skills1: ~p", [Skill1]),
     lager:info("Skills2: ~p", [Skill2]),
     lager:info("Skills3: ~p", [Skill3]),
-    skill:update(Id, maps:get(<<"name">>, Skill1), util:rand(26) - 1),
-    skill:update(Id, maps:get(<<"name">>, Skill2), util:rand(26) - 1),
-    skill:update(Id, maps:get(<<"name">>, Skill3), util:rand(26) - 1),
+    skill:update(Id, maps:get(<<"name">>, Skill1), util:rand(2000)),
+    skill:update(Id, maps:get(<<"name">>, Skill2), util:rand(2000)),
+    skill:update(Id, maps:get(<<"name">>, Skill3), util:rand(2000)),
 
     %Return ID
     Id.

@@ -19,10 +19,7 @@ import attrsbutton from "ui/attrsbutton.png";
 import buildbutton from "ui/buildbutton.png";
 import explorebutton from "ui/explorebutton.png";
 import gatherbutton from "ui/gatherbutton.png";
-
-import quickattackbutton from "ui/quickattackbutton.png";
-import preciseattackbutton from "ui/preciseattackbutton.png";
-import fierceattackbutton from "ui/fierceattackbutton.png";
+import sleepbutton from "ui/sleepbutton.png";
 
 import bracebutton from "ui/bracebutton.png";
 import parrybutton from "ui/parrybutton.png";
@@ -33,7 +30,8 @@ import { HERO, VILLAGER, STRUCTURE, PROGRESSING,
   TRIGGER_INVENTORY,
   QUICK,
   PRECISE,
-  FIERCE} from './config';
+  FIERCE,
+  OBJ} from './config';
 import TargetActionPanel from './ui/targetActionPanel';
 import ItemTransferPanel from './ui/itemTransferPanel';
 import HeroPanel from './ui/heroPanel';
@@ -56,6 +54,8 @@ import HeroFrame from './ui/heroFrame';
 import MerchantHirePanel from './ui/merchantHirePanel';
 import ExperimentPanel from './ui/experimentPanel';
 import ActionButton from './ui/actionButton';
+import NPCPanel from './ui/npcPanel';
+import HeroAdvancePanel from './ui/heroAdvancePanel';
 
 interface UIState {
   selectBoxes : [],
@@ -67,9 +67,11 @@ interface UIState {
   hideItemDividePanel : boolean,
   hideItemPanel : boolean,
   hideHeroPanel : boolean,
-  hideVillagerPanel: boolean,
+  hideVillagerPanel : boolean,
+  hideNPCPanel : boolean,
   hideAttrsPanel : boolean,
   hideSkillsPanel : boolean,
+  hideAdvancePanel : boolean,
   hideTilePanel : boolean,
   hideBuildPanel : boolean,
   hideStructurePanel : boolean,
@@ -88,10 +90,12 @@ interface UIState {
   inventoryReqs: [], //Currently used for structure inventory reqs
   itemData : any,
   heroData : any,
+  npcData : any,
   villagerData : any,
   assignData : any,
   attrsData : any,
   skillsData : any,
+  advanceData : any,
   tileData : any,
   structuresData : any, //Structures list
   structureData : any, //Structure data
@@ -126,8 +130,10 @@ export default class UI extends React.Component<any, UIState>{
       hideItemPanel: true,
       hideHeroPanel: true,
       hideVillagerPanel: true,
+      hideNPCPanel : true,
       hideAttrsPanel : true,
       hideSkillsPanel : true,
+      hideAdvancePanel : true,
       hideTilePanel : true,
       hideBuildPanel : true,
       hideStructurePanel : true,
@@ -146,10 +152,12 @@ export default class UI extends React.Component<any, UIState>{
       inventoryReqs : [],
       itemData : {},
       heroData : {},
+      npcData : {},
       villagerData : {},
       assignData : {},
       attrsData : {},
       skillsData : {},
+      advanceData : {},
       tileData : {},
       structuresData : {},
       structureData : {},
@@ -175,6 +183,7 @@ export default class UI extends React.Component<any, UIState>{
     this.handleHeroExploreClick = this.handleHeroExploreClick.bind(this);
     this.handleHeroBuildClick = this.handleHeroBuildClick.bind(this);
     this.handleHeroGatherClick = this.handleHeroGatherClick.bind(this);
+    this.handleHeroSleepClick = this.handleHeroSleepClick.bind(this);
 
     this.handleQuickAttack = this.handleQuickAttack.bind(this);
     this.handlePreciseAttack = this.handlePreciseAttack.bind(this);
@@ -203,6 +212,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.NETWORK_ERROR, this.handleNetworkError, this);
 
     Global.gameEmitter.on(NetworkEvent.ERROR, this.handleError, this);
+    Global.gameEmitter.on(NetworkEvent.HERO_INIT, this.handleHeroInit, this);
     Global.gameEmitter.on(NetworkEvent.HERO_DEAD, this.handleHeroDead, this);
     Global.gameEmitter.on(NetworkEvent.INFO_OBJ, this.handleInfoObj, this);
     Global.gameEmitter.on(NetworkEvent.INFO_TILE, this.handleInfoTile, this);
@@ -212,6 +222,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM_UPDATE, this.handleInfoItemUpdate, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ATTRS, this.handleInfoAttrs, this);
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_ADVANCE, this.handleInfoAdvance, this);
     Global.gameEmitter.on(NetworkEvent.INFO_HAULING, this.handleInfoHauling, this);
     Global.gameEmitter.on(NetworkEvent.INFO_EXPERIMENT, this.handleInfoExperiment, this);
     Global.gameEmitter.on(NetworkEvent.ITEM_TRANSFER, this.handleItemTransfer, this);
@@ -220,6 +231,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.ASSIGN_LIST, this.handleAssignList, this);
     Global.gameEmitter.on(NetworkEvent.RECIPE_LIST, this.handleRecipeList, this);
     Global.gameEmitter.on(NetworkEvent.ATTACK, this.handleAttack, this);
+    Global.gameEmitter.on(NetworkEvent.ADVANCE, this.handleAdvance, this);
   }
 
   handleMoveClick(event : React.MouseEvent) {
@@ -293,10 +305,14 @@ export default class UI extends React.Component<any, UIState>{
       this.setState({hideHeroPanel: true});
     } else if(event.panelType == 'villager') {
       this.setState({hideVillagerPanel: true});
+    } else if(event.panelType == 'npc') {
+      this.setState({hideNPCPanel: true});
     } else if(event.panelType == 'attrs') {
       this.setState({hideAttrsPanel: true});
     } else if(event.panelType == 'skills') {
       this.setState({hideSkillsPanel: true});
+    } else if(event.panelType == 'advance') {
+      this.setState({hideAdvancePanel: true});
     } else if(event.panelType == 'tile') {
       this.setState({hideTilePanel: true});
     } else if(event.panelType == 'build') {
@@ -387,7 +403,12 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleHeroGatherClick(event: React.MouseEvent) {
+    this.setState({selectedKey: {type: OBJ, id: Global.heroId},
+                   hideGatherPanel: false});
+  }
 
+  handleHeroSleepClick(event: React.MouseEvent) {
+    Network.sendRest(Global.heroId);
   }
 
   handleQuickAttack(event: React.MouseEvent) {
@@ -406,6 +427,11 @@ export default class UI extends React.Component<any, UIState>{
 
   }
 
+  handleAdvance(message) {
+    console.log('handleAdvance');
+    this.setState({advanceData: message})
+  }
+
   handleError(message) {
     this.setState({hideErrorPanel : false,
                    errmsg : message.errmsg});
@@ -422,6 +448,10 @@ export default class UI extends React.Component<any, UIState>{
 
     this.setState({hideErrorPanel : false,
                    errmsg : "The network connection encountered an error, click to reconnect."})
+  }
+
+  handleHeroInit() {
+    this.setState({selectedKey: {type: OBJ, id: Global.heroId}});
   }
 
   handleHeroDead() {
@@ -446,6 +476,8 @@ export default class UI extends React.Component<any, UIState>{
       } else if(Util.isClass(message.id, STRUCTURE)) {
         this.setState({hideStructurePanel: false, structureData: message});
       } 
+    } else {
+        this.setState({hideNPCPanel: false, npcData: message});  
     }
   }
 
@@ -526,6 +558,11 @@ export default class UI extends React.Component<any, UIState>{
   handleInfoSkills(message) {
     console.log('UI handleInfoSkills');
     this.setState({hideSkillsPanel: false, skillsData: message});
+  }
+
+  handleInfoAdvance(message) {
+    console.log('UI handleInfoAdvance');
+    this.setState({hideAdvancePanel: false, advanceData: message});
   }
 
   handleInfoHauling(message) {
@@ -641,6 +678,11 @@ export default class UI extends React.Component<any, UIState>{
               id="herogatherbutton" 
               className={styles.herogatherbutton} 
               onClick={this.handleHeroGatherClick} />
+        
+          <img src={sleepbutton} 
+              id="herosleepbutton" 
+              className={styles.herosleepbutton} 
+              onClick={this.handleHeroSleepClick} />
 
           <ActionButton type={QUICK}
                         handler={this.handleQuickAttack}/>
@@ -701,12 +743,18 @@ export default class UI extends React.Component<any, UIState>{
           {!this.state.hideVillagerPanel &&
             <VillagerPanel villagerData={this.state.villagerData}/> }
           
+          {!this.state.hideNPCPanel &&
+            <NPCPanel npcData={this.state.npcData}/> }
+
           {!this.state.hideAttrsPanel &&
             <AttrsPanel attrsData={this.state.attrsData}/> }
 
           {!this.state.hideSkillsPanel &&
             <SkillsPanel skillsData={this.state.skillsData}/> }
           
+          {!this.state.hideAdvancePanel &&
+            <HeroAdvancePanel advanceData={this.state.advanceData}/> }
+
           {!this.state.hideTilePanel &&
             <TilePanel tileData={this.state.tileData}/> }
 

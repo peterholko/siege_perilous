@@ -32,6 +32,7 @@
          send_item_update/3,
          send_item_transfer/5,
          send_effect_change/3, send_effect_change/4,
+         send_xp_update/3,
          send_revent/2]).
 
 
@@ -183,6 +184,19 @@ send_effect_change(ObjId, Effect, EffectOp, EffectData) ->
             message:send_to_process(Conn#connection.process, info_effect_update, FinalMessage)
     end.
 
+send_xp_update(ObjId, Type, Xp) ->
+    Obj = obj:get(ObjId),
+
+    case player:is_online(obj:player(Obj)) of
+        false -> nothing;
+        Conn ->
+            Message = #{<<"id">> => obj:id(Obj),
+                        <<"type">> => Type,
+                        <<"xp">> => Xp},
+            
+            message:send_to_process(Conn#connection.process, xp, Message)
+    end.
+
 send_revent(PlayerId, REvent) ->
     [Conn] = db:read(connection, PlayerId),
     message:send_to_process(Conn#connection.process, revent, REvent).
@@ -247,7 +261,14 @@ create_new_player(PlayerId) ->
 
     [Player] = db:read(player, PlayerId),
 
-    HeroId = obj:create(HeroPos, PlayerId, Player#player.class),   
+    %Set novice class
+    Novice = <<"Novice ">>,
+    PlayerClass = Player#player.class,
+    NoviceClass = <<Novice/binary, PlayerClass/binary>>,
+
+    lager:info("NoviceClass: ~p", [NoviceClass]),
+
+    HeroId = obj:create(HeroPos, PlayerId, NoviceClass),   
     MonolithId = obj:create(MonolithPos, PlayerId, <<"Monolith">>),
     ShipwreckId = obj:create(ShipwreckPos, PlayerId, <<"Shipwreck">>),
 
@@ -367,7 +388,7 @@ create_new_player(PlayerId) ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
          end,
 
-    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
     %game:add_event(none, event, F2, none, 15),
     %game:add_event(none, event, F3, none, 15),
     %game:add_event(none, event, F4, none, 40),
@@ -398,7 +419,7 @@ hero_dead(PlayerId, HeroId) ->
     lager:info("Hero killed"),
     [Player] = db:read(player, PlayerId),
     Objs = db:index_read(obj, PlayerId, #obj.player),
-    LinkedNPCs = maps:get(linkednpc, Player#player.data),
+    LinkedNPCs = maps:get(linkednpc, Player#player.data, []),
 
     F = fun(Obj) ->
             case obj:id(Obj) =/= HeroId of

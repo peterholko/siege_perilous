@@ -33,37 +33,37 @@ export default class GatherPanel extends React.Component<GatherProps, any> {
 
   handleOreClick(event : React.MouseEvent) {
     console.log('Ore Click');
-    Network.sendOrderGather(this.props.selectedKey.id, 'Ore');
+    Network.sendGather(this.props.selectedKey.id, 'Ore');
     Global.gameEmitter.emit(GameEvent.RESOURCE_GATHER_CLICK, {});
   }
 
   handleWoodClick(event : React.MouseEvent) {
     console.log('Transfer Click');
-    Network.sendOrderGather(this.props.selectedKey.id, 'Wood');
+    Network.sendGather(this.props.selectedKey.id, 'Wood');
     Global.gameEmitter.emit(GameEvent.RESOURCE_GATHER_CLICK, {});
   }
 
   handlePlantClick(event : React.MouseEvent) {
     console.log('Plant Click');
-    Network.sendOrderGather(this.props.selectedKey.id, 'Plant');
+    Network.sendGather(this.props.selectedKey.id, 'Plant');
     Global.gameEmitter.emit(GameEvent.RESOURCE_GATHER_CLICK, {});
   }
 
   handleStoneClick(event : React.MouseEvent) {
     console.log('Stone Click');
-    Network.sendOrderGather(this.props.selectedKey.id, 'Stone');
+    Network.sendGather(this.props.selectedKey.id, 'Stone');
     Global.gameEmitter.emit(GameEvent.RESOURCE_GATHER_CLICK, {});
   }
 
   handleWaterClick(event : React.MouseEvent) {
     console.log('Water Click');
-    Network.sendOrderGather(this.props.selectedKey.id, 'Water');
+    Network.sendGather(this.props.selectedKey.id, 'Water');
     Global.gameEmitter.emit(GameEvent.RESOURCE_GATHER_CLICK, {});
   }
 
   handleGameClick(event : React.MouseEvent) {
     console.log('Game Click');
-    Network.sendOrderGather(this.props.selectedKey.id, 'Game');
+    Network.sendGather(this.props.selectedKey.id, 'Game');
     Global.gameEmitter.emit(GameEvent.RESOURCE_GATHER_CLICK, {});
   }
   

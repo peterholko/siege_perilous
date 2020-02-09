@@ -57,8 +57,11 @@
 
 -define(PLAYER, <<"player">>).
 
-%STATES
+%OBJ ATTRRIBUTES
 -define(STATE, <<"state">>).
+-define(TEMPLATE, <<"template">>).
+
+%STATES
 -define(NONE, none).
 -define(DEAD, dead).
 -define(DELETING, deleting).
@@ -244,7 +247,7 @@
 -define(STONE, <<"Stone">>).
 -define(GAME, <<"Game">>).
 -define(WATER, <<"Water">>).
--define(PLANT, <<"Plants">>).
+-define(PLANT, <<"Plant">>).
 -define(MANA, <<"Mana">>).
 -define(FOOD, <<"Food">>).
 
@@ -332,6 +335,8 @@
 -define(NEUTRAL, 0).
 -define(ENEMIES, -10).
 
+%SAFEZONE
+-define(SAFEZONE, 3).
 
 
 %EMPIRE

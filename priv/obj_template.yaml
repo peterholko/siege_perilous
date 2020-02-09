@@ -243,10 +243,10 @@
 ##### HEROES #####
 ##################
 
-- name: Warrior
+- name: Novice Warrior
   class: unit
   subclass: hero
-  template: Warrior
+  template: Novice Warrior
   base_hp: 100
   base_stamina: 10000
   base_dmg: 3
@@ -256,10 +256,10 @@
   base_vision: 2
   capacity: 300
 
-- name: Ranger
+- name: Novice Ranger
   class: unit
   subclass: hero
-  template: Ranger
+  template: Novice Ranger
   base_hp: 100
   base_stamina: 10000
   base_dmg: 3
@@ -269,10 +269,10 @@
   base_vision: 2
   capacity: 300
 
-- name: Mage
+- name: Novice Mage
   class: unit
   subclass: hero
-  template: Mage
+  template: Novice Mage
   base_hp: 100
   base_stamina: 10000
   base_dmg: 3

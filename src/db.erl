@@ -179,41 +179,58 @@ convert_value(Value) ->
                     %lager:info("Printable List: ~p", [List]),
                     erlang:list_to_binary(List);
                 false ->
-                    F = fun
-                           (E, Acc) when is_list(E) ->
-                                %lager:info("E: ~p", [E]),
-
-                                Result = 
-                                    case io_lib:printable_list(E) of
-                                        true -> 
-                                            list_to_binary(E);
-                                        false ->
-                                            G = fun({K, V}, Acc2) ->
-                                                        %lager:info("K: ~p V: ~p", [K, V]),
-
-                                                        BinaryKey = to_binary(K),
-                                                        BinaryValue = to_binary(V),
-                                                        maps:put(BinaryKey, BinaryValue, Acc2)
-                                                end,
-
-                                            lists:foldl(G, #{}, E)
-                                    end,
-
-                                %lager:info("Result: ~p", [Result]),
-
-                                [Result | Acc];
-                                
-                           (E, Acc) when is_integer(E) ->
-                                [E | Acc]
-                        end,
-
-                    NewList = lists:foldl(F, [], Value),
-                    %lager:info("NewList: ~p", [NewList]),
-                    NewList
+                    %Check first element to determine type
+                    [First | _Rest] = Value,
+                    lager:info("First: ~p", [First]),
+                    
+                    case First of
+                        First when is_list(First) ->
+                            
+                            lager:info("Value: ~p", [Value]),
+                            case io_lib:printable_list(First) of
+                                true -> 
+                                    to_list_of_binaries(Value);
+                                false ->
+                                    to_list_of_maps(Value)
+                            end;
+                        First when is_integer(First) ->
+                            % list of integers, return without modifying
+                            Value
+                    end
             end;
         V -> 
             V
     end.
+
+to_list_of_binaries(Value) ->
+    F = fun(E, Acc) ->
+            [list_to_binary(E) | Acc]
+        end,
+
+    ListOfBinaries = lists:foldl(F, [], Value),
+
+    %To maintain order
+    lists:reverse(ListOfBinaries).
+
+to_list_of_maps(Value) ->
+    F = fun(E, Acc) ->
+            BinaryMap = to_binary_map(E),
+            lager:info("BinaryMap: ~p", [BinaryMap]),
+            [BinaryMap | Acc]
+        end,
+
+    lists:foldl(F, [], Value).
+
+to_binary_map(Value) ->
+    G = fun({K, V}, Acc) ->
+            lager:info("K: ~p V: ~p", [K, V]),
+
+            BinaryKey = to_binary(K),
+            BinaryValue = to_binary(V),
+            maps:put(BinaryKey, BinaryValue, Acc)
+    end,
+
+    lists:foldl(G, #{}, Value).
 
 to_binary(V) when is_list(V) -> erlang:list_to_binary(V);
 to_binary(V) -> V.

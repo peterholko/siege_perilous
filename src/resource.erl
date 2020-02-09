@@ -364,8 +364,8 @@ type_to_skill(?ORE) -> ?MINING;
 type_to_skill(?WOOD) -> ?WOODCUTTING;
 type_to_skill(?STONE) -> ?STONECUTTING;
 type_to_skill(?WATER) -> ?GATHERING;
-type_to_skill(?FOOD) -> ?FARMING.
-
+type_to_skill(?FOOD) -> ?FARMING;
+type_to_skill(?PLANT) -> ?GATHERING.
 
 
 

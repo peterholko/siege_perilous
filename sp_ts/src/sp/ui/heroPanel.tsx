@@ -1,6 +1,10 @@
 import * as React from "react";
 import HalfPanel from "./halfPanel";
+import attrsbutton from "ui_comp/attrsbutton.png";
+import skillsbutton from "ui_comp/skillsbutton.png";
+import advancebutton from "ui_comp/upgradebutton.png";
 import { Global } from "../global";
+import { Network } from "../network";
 
 interface HeroPanelProps {
   heroData,
@@ -13,10 +17,25 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
     this.state = {
     };
     
+    this.handleAttrsClick = this.handleAttrsClick.bind(this)
+    this.handleSkillsClick = this.handleSkillsClick.bind(this)
+    this.handleAdvanceClick = this.handleAdvanceClick.bind(this)
+  }
+
+  handleAttrsClick() {
+    Network.sendInfoAttrs(Global.heroId);
+  }
+
+  handleSkillsClick() {
+    Network.sendInfoSkills(Global.heroId);
+  }
+
+  handleAdvanceClick() {
+    Network.sendInfoAdvance(Global.heroId);
   }
 
   render() {
-    let imageName = Global.objectStates[Global.heroId].template.toLowerCase();
+    let imageName = Global.objectStates[Global.heroId].image.toLowerCase().replace(/\s/g, '');
     let imagePath = '/static/art/' + imageName  + '_single.png';
 
     const heroStyle = {
@@ -32,6 +51,33 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
       fontSize: '12px'
     } as React.CSSProperties
 
+    const attrsStyle = {
+      top: '50%',
+      left: '50%',
+      marginTop: '-50px',
+      marginLeft: '-68px',
+      position: 'fixed',
+      zIndex: 7
+    } as React.CSSProperties
+
+    const skillsStyle = {
+      top: '50%',
+      left: '50%',
+      marginTop: '0px',
+      marginLeft: '-68px',
+      position: 'fixed',
+      zIndex: 7
+    } as React.CSSProperties
+
+    const advanceStyle = {
+      top: '50%',
+      left: '50%',
+      marginTop: '50px',
+      marginLeft: '-68px',
+      position: 'fixed',
+      zIndex: 7
+    } as React.CSSProperties
+
     return (
       <HalfPanel left={true} 
                  panelType={'hero'} 
@@ -44,17 +90,49 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
             <td>{this.props.heroData.name}</td>
           </tr>
           <tr>
-            <td>Class: </td>
-            <td>{this.props.heroData.class}</td>
+            <td>HP: </td>
+            <td>{this.props.heroData.hp}</td>
           </tr>
           <tr>
-            <td>Subclass: </td>
-            <td>{this.props.heroData.subclass}</td>
+            <td>Stamina: </td>
+            <td>{this.props.heroData.stamina}</td>
+          </tr>
+          <tr>
+            <td>State: </td>
+            <td>{this.props.heroData.state}</td>
           </tr>
           </tbody>
         </table>
+        <img src={attrsbutton} style={attrsStyle} onClick={this.handleAttrsClick} />
+        <img src={skillsbutton} style={skillsStyle} onClick={this.handleSkillsClick} /> 
+        <img src={advancebutton} style={advanceStyle} onClick={this.handleAdvanceClick} /> 
       </HalfPanel>
     );
   }
 }
 
+/*
+base_def: 1
+base_dmg: 3
+base_hp: 100
+base_speed: 5
+base_stamina: 10000
+base_vision: 2
+capacity: 300
+class: "unit"
+dmg_range: 8
+effects: []
+hp: 100
+id: 5
+image: "warrior"
+items: (8) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+name: "Warrior"
+packet: "info_unit"
+skills: {}
+stamina: 10000
+state: "none"
+subclass: "hero"
+template: "Warrior"
+total_weight: 2265.25
+__proto__: Object
+*/

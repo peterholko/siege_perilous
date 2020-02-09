@@ -15,5 +15,6 @@ export interface ObjectState {
     vision : integer;
     image : string;
     op? : string;
+    updateAttr?: string;
     eventType? : string;
 }

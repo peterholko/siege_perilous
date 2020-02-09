@@ -32,16 +32,21 @@ export class ObjectScene extends Phaser.Scene {
   
   private multiImages: Record<string, Array<MultiImage>> = {};
 
+  private stateTimerList = {};
+
   constructor() {
     super({
       key: "ObjectScene",
       active: true
     });
+
+    this.processTextState = this.processTextState.bind(this);
   }
 
   preload(): void {
     this.load.image('selecthex', './static/art/hover-hex.png');
     this.load.image('foundation', './static/art/foundation.png');
+    this.load.image('gravestone', './static/art/gravestone.png');
     this.load.image('shroud', './static/art/shroud.png');
     this.load.spritesheet('shadowbolt', './static/art/shadowbolt.png', { frameWidth: 72, frameHeight: 72, endFrame: 5});
 
@@ -62,11 +67,11 @@ export class ObjectScene extends Phaser.Scene {
     this.onMoveComplete = this.onMoveComplete.bind(this);
     this.onDmgTextComplete = this.onDmgTextComplete.bind(this);
 
-
     Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.renderInit, this);
     Global.gameEmitter.on(NetworkEvent.IMAGE_DEF, this.processImageDefMessage, this);
     Global.gameEmitter.on(NetworkEvent.DMG, this.processDmgMessage, this);
     Global.gameEmitter.on(NetworkEvent.SPEECH, this.processSpeech, this);
+    Global.gameEmitter.on(NetworkEvent.XP, this.processXp, this);
     
     this.load.on('filecomplete', this.fileLoadComplete, this);
     this.load.on('complete', this.loadComplete, this);
@@ -207,8 +212,16 @@ export class ObjectScene extends Phaser.Scene {
           } else {
             Network.sendImageDef(objectState.image);
             
-            this.imageDefTasks.push(objectState);
- 
+            if(objectState.updateAttr == 'state') {
+              this.imageDefTasks.push(objectState);
+            } else if(objectState.updateAttr == 'template') {
+              //Remove old image template
+              var obj = this.objectList[objectState.id];
+              obj.destroy();
+
+              //Replace old imageDef task with new one
+              this.replaceImageDefTask(objectState);
+            }
           }
 
         } else if(objectState.op == 'deleted') {
@@ -356,11 +369,31 @@ export class ObjectScene extends Phaser.Scene {
 
       anim = objectState.image + '_' + animState;
 
+      if(objectState.prevstate != objectState.state) {
+        if(objectState.id in this.stateTimerList) {
+          //Clear timer and remove from list
+          clearInterval(this.stateTimerList[objectState.id]);
+          delete this.stateTimerList[objectState.id];
+        }
+      }
+
       if(this.anims.exists(anim)) {
         if(sprite != null) {
           sprite.play(anim);
         } else {
-          console.log("Missing sprite for obj: " + objectState.id);
+          console.log("Error in animations for sprite for obj: " + objectState.id);
+        }
+      } else {
+        console.log('Animation ' + anim + ' does not exist');
+
+        if(!(objectState.id in this.stateTimerList)) {
+          this.processTextState(sprite, animState);
+
+          var timer = setInterval(() => {
+            this.processTextState(sprite, animState)
+          }, 6000);
+
+          this.stateTimerList[objectState.id] = timer;
         }
       }
 
@@ -440,6 +473,12 @@ export class ObjectScene extends Phaser.Scene {
 
     if(this.anims.exists(anim)) {
       sprite.anims.play(anim);
+    } else {
+      if(objectState.state == DEAD) {
+        sprite.setTexture('gravestone');
+      }
+
+      console.log('No animation found, not playing');
     }
 
     this.objectList[objectState.id] = sprite;
@@ -713,10 +752,16 @@ export class ObjectScene extends Phaser.Scene {
 
       //TODO Check subclass 
       if(message.state == 'dead') {
+        var anim = target.imageName + '_die';
+        
         //Set object state to dead because an update is not sent to save on messages
         Global.objectStates[message.targetid].state = DEAD;
 
-        target.play(target.imageName + '_die');
+        if(this.anims.exists(anim)) {
+          target.play(target.imageName + '_die');
+        } else {
+          target.setTexture('gravestone');
+        }
       }
     }
   }
@@ -809,4 +854,60 @@ export class ObjectScene extends Phaser.Scene {
     targets[0].destroy();
   }
 
+  processXp(message) {
+    var objectState = Global.objectStates[message.id];
+    var source = Util.hex_to_pixel(objectState.x, objectState.y);
+
+    var value = '+' + message.xp + ' ' + message.type;
+
+    var xpText = this.add.text(source.x + 36, source.y - 5, value, { fontFamily: 'Verdana', fontSize: 18, color: '#FFFFFF' });
+    xpText.setDepth(10);
+    xpText.setOrigin(0.5, 0.5);
+
+    var textTween = this.tweens.add({
+      targets: xpText,
+      alpha: 0,
+      ease: 'Power1',
+      duration: 7000,
+      onComplete: this.onXpTextComplete
+    });
+
+    textTween.play();
+  }
+
+  onXpTextComplete(tween, targets){
+    targets[0].destroy();
+  }
+
+  processTextState(sprite, state) {
+    var value = '* ' + state + ' *'; 
+
+    var stateText = this.add.text(sprite.x + 36, sprite.y - 5, value, { fontFamily: 'Verdana', fontSize: 14, color: '#00d2ff' });
+    stateText.setDepth(10);
+    stateText.setOrigin(0.5, 0.5);
+
+    var textTween = this.tweens.add({
+      targets: stateText,
+      alpha: 0,
+      ease: 'Power1',
+      duration: 5000,
+      onComplete: this.onTextStateComplete
+    });
+
+    textTween.play();
+  }
+
+  onTextStateComplete(tween, targets){
+    targets[0].destroy();
+  }
+
+  replaceImageDefTask(objectState) {
+    //imageDefTasks could be replaced with a map to increase performance
+    for(var i = 0; i < this.imageDefTasks.length; i++) {
+      if(objectState.id == this.imageDefTasks[i].id) {
+        this.imageDefTasks[i] = objectState;
+        break;
+      }
+    }
+  }
 }

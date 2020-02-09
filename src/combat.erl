@@ -256,8 +256,11 @@ calculate_damage(AttackType, AtkId, DefId) ->
     %TerrainMod = map:defense_bonus(DefObj#obj.pos),
     TerrainMod = 1,
 
+    %Monolith distance modifier
+    MonolithDistanceMod = monolith_distance_modifier(DefId),
+
     %Calculate final damage reduction
-    FinalDamage = TerrainMod * DefendTypeMod * DamageArmorReduced,
+    FinalDamage = TerrainMod * DefendTypeMod * DamageArmorReduced * MonolithDistanceMod,
 
     %Calculate new HP
     NewHp = DefHp - FinalDamage,
@@ -281,9 +284,8 @@ calculate_damage(AttackType, AtkId, DefId) ->
         <<"alive">> ->
             obj_attr:set(DefId, <<"hp">>, NewHp);
         <<"dead">> ->
-            %AtkXp = maps:get(<<"xp">>, AtkUnit, 0),
-            %DefKillXp = maps:get(<<"kill_xp">>, DefUnit, 0),
-            %obj:update(AtkId, <<"xp">>, AtkXp + DefKillXp),
+            process_xp(AtkId, DefId, AtkWeapons),
+
             process_unit_dead(DefId)
     end.
 
@@ -385,7 +387,7 @@ get_items_value(Attr, Items) ->
 get_items_effect_damage(Items) ->
     F = fun(Item, Total) ->
             ItemSubclass = maps:get(<<"subclass">>, Item),
-            Effects = maps:get(<<"effects">>, Item),
+            Effects = maps:get(<<"effects">>, Item, []),
 
             G = fun(Effect, EffectTotal) ->
                     EffectType = maps:get(<<"type">>, Effect),
@@ -627,23 +629,36 @@ check_effect_item_damage(<<"Dagger">>, ?DAGGER_DMG_P) -> true;
 check_effect_item_damage(<<"Spear">>, ?SPEAR_DMG_P) -> true;
 check_effect_item_damage(_, _) -> false.
 
+monolith_distance_modifier(DefId) ->
+    DefObj = obj:get(DefId),
 
-%monolith_distance_modifier(DefId) ->
-%    DefObj = obj:get(DefId),
+    case player:is_player(obj:player(DefObj)) of
+        true ->
+            MonolithPos = player:get_monolith_pos(obj:player(DefObj)),
+            MonolithDistance = map:distance(obj:pos(DefObj), MonolithPos),
 
-%    case player:is_player(obj:player(DefObj)) of
-%        true ->
-%            MonolithPos = player:get_monolith_pos(obj:player(DefObj)),
-%            MonolithDistance = map:distance(obj:pos(DefObj), MonolithPos),
-%            SafeZone = 2,
+            SafeZone = ?SAFEZONE,
 
-%            DistanceModifier = util:subtract_until_zero(MonolithDistance, SafeZone),
+            DistanceModifier = util:subtract_until_zero(MonolithDistance, SafeZone),
 
-%            case DistanceModifier > 0 of
-%                true -> DistanceModifier * DistanceModifier;
-%                false -> 1
-%            end;
-%        false ->
-%            1
-%    end.
+            case DistanceModifier > 0 of
+                true -> DistanceModifier;
+                false -> 1
+            end;
+        false ->
+            1
+    end.
 
+process_xp(AtkId, DefId, [AtkWeapon]) ->
+    Subclass = item_attr:value(item:id(AtkWeapon), <<"subclass">>, none),
+    lager:info("~p xp gained.", [Subclass]),
+
+    GainedXp = obj_attr:value(DefId, <<"kill_xp">>, 100),
+
+    skill:update(AtkId, Subclass, GainedXp),
+
+    game:send_xp_update(AtkId, Subclass, GainedXp);
+process_xp(_AtkId, _DefId, []) ->
+    %No xp
+    lager:info("No weapon equipped, no xp gained"),
+    none.
