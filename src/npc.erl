@@ -192,7 +192,6 @@ are_minions_dead(NPC) ->
 
                      lists:all(F, Minions)
              end,
-    lager:info("are_minions_dead: ~p", [Result]),
     Result.
 
 is_not_structure_inspected(NPC) ->
@@ -214,7 +213,6 @@ is_ship_adjacent(NPC) ->
     ShipObj = obj:get(ShipId),
 
     Adjacent = map:is_adjacent(NPCObj, ShipObj),
-    lager:info("Adjacent: ~p", [Adjacent]),
     Adjacent.
 
 at_landing_pos(NPC) ->
@@ -227,15 +225,12 @@ at_landing_pos(NPC) ->
     obj:pos(NPCObj) =:= LandingPos.
 
 wait_count(NPC, Operator, Value) ->
-    lager:info("Wait count"),
     WaitCount = maps:get(wait_count, NPC#npc.data, 0),
 
-    lager:info("Wait count ~p ~p ~p", [WaitCount, Operator, Value]),
     Result = case Operator of
         less -> WaitCount < Value;
         moreorequal -> WaitCount >= Value
     end,
-    lager:info("Wait Count result: ~p", [Result]),
     Result.
 
 has_order(NPC, Order) ->
@@ -359,7 +354,6 @@ move_to_pos(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
 
     Dest = NPC#npc.dest,
-    lager:info("NPC Id: ~p Curr: ~p Dest: ~p ", [NPC#npc.id, NPCObj#obj.pos, Dest]),    
 
     %If dest is set and dest does not equal villager current pos
     NewNPC = case (Dest =/= none) and (Dest =/= NPCObj#obj.pos) of
@@ -367,7 +361,6 @@ move_to_pos(NPC) ->
                     PathResult = astar:astar(NPCObj#obj.pos, 
                                              Dest, 
                                              NPCObj),
-                    lager:info("PathResult: ~p", [PathResult]),
 
                     {TaskState, NewPath} = 
                         case PathResult of
@@ -388,7 +381,6 @@ move_to_pos(NPC) ->
                                 {completed, []}
                         end,
 
-                    lager:info("TaskState: ~p NewPath: ~p", [TaskState, NewPath]),
                     NPC#npc {task_state = TaskState, path = NewPath};
                   false ->
                      obj:update_state(NPC#npc.id, none),
@@ -476,7 +468,6 @@ hide(NPC) ->
     NPC#npc{task_state = completed}.
 
 reveal(NPC) ->
-    lager:info("NPC Reveal!"),
     game:add_obj_reveal(self(), NPC#npc.id, 1),
     NPC#npc{task_state = completed}.
 
@@ -508,14 +499,11 @@ swarm_attack(NPC) ->
 
 find_trade_pos(NPC) ->
     %TODO find player positions
-    lager:info("Find trade pos"),
-    LandingPos = {15, 37},
-    NewData = maps:put(landing_pos, {15,38}, NPC#npc.data),
+    LandingPos = maps:get(landing_pos, NPC#npc.data, {0,0}),
 
-    NPC#npc{dest = LandingPos, data = NewData, task_state = completed}.
+    NPC#npc{dest = LandingPos, task_state = completed}.
 
 wait(NPC, Time) ->
-    lager:info("NPC Wait ~p", [Time]),
     game:add_event(self(), wait, NPC#npc.id, NPC#npc.id, Time),
 
     WaitCount = maps:get(wait_count, NPC#npc.data, 0),
@@ -529,7 +517,6 @@ set_pos_empire(NPC) ->
     NPC#npc{dest = {0, 40}, task_state = completed}.
 
 unload_tax_collector(NPC) ->
-    lager:info("Unloading tax collector"),
     TaxCollectorId = maps:get(tax_collector, NPC#npc.data),
     
     %Get landing pos
@@ -588,7 +575,6 @@ find_item(NPC) ->
             task_state = completed}. 
 
 take_item(NPC) ->
-    lager:info("Take Item"),
     NPCObj = obj:get(NPC#npc.id),
 
     TakeItemId = maps:get(take_item, NPC#npc.data),
@@ -618,7 +604,7 @@ take_item(NPC) ->
                     NPC#npc.data; 
                 false -> 
                     lager:info("Cannot transfer item ~p, (~p) (~p)", 
-                            [obj:pos(NPCObj), obj:pos(ItemOwner)]),
+                           [obj:pos(NPCObj), obj:pos(ItemOwner)]),
                     NPC#npc.data
               end,
 
@@ -689,10 +675,8 @@ handle_cast({set_order, NPCId, Order, NPCData}, Data) ->
 handle_cast({append_data, NPCId, Key, Value}, Data) ->
     NPC = maps:get(NPCId, Data),
     CurrentValue = maps:get(Key, NPC#npc.data, []),
-    lager:info("Key: ~w Value: ~w CurrentValue: ~w", [Key, Value, CurrentValue]),
     UpdatedNPCData = maps:put(Key, CurrentValue ++ [Value], NPC#npc.data),
 
-    lager:info("UpdatedNPCData: ~w", [UpdatedNPCData]),
     NewNPC = NPC#npc {data = UpdatedNPCData},
 
     NewData = maps:update(NPCId, NewNPC, Data),
@@ -715,7 +699,6 @@ handle_cast(stop, Data) ->
 
 %TODO CLEAN UP CREATE HERE
 handle_call({create, Pos, Template}, _From, Data) ->
-    lager:info("Creating NPC: ~p", [Template]),
     Family = obj_template:value(Template, <<"family">>),
     PlayerId = get_player_id(Family),
     NPCId = obj:create(Pos, PlayerId, Template),
@@ -727,12 +710,10 @@ handle_call({create, Pos, Template}, _From, Data) ->
                last_run = ?MAX_INT},
 
     NewData = maps:put(NPCId, NPC, Data),
-    lager:info("Create NPC completed ~p", [NPC]),
 
     {reply, NPCId, NewData};
 
 handle_call({create, Pos, PlayerId, Template}, _From, Data) ->
-    lager:info("Creating NPC: ~p", [Template]),
     NPCId = obj:create(Pos, PlayerId, Template),
 
     NPC = #npc{id = NPCId,
@@ -742,12 +723,10 @@ handle_call({create, Pos, PlayerId, Template}, _From, Data) ->
                last_run = ?MAX_INT},
 
     NewData = maps:put(NPCId, NPC, Data),
-    lager:info("Create completed..."),
 
     {reply, NPCId, NewData};
 
 handle_call({create, Pos, PlayerId, Template, State}, _From, Data) ->
-    lager:info("Creating NPC: ~p", [Template]),
     NPCId = obj:create(Pos, PlayerId, Template, State),
 
     NPC = #npc{id = NPCId,
@@ -926,15 +905,12 @@ get_next_task(_TaskIndex, _PlanLength) ->
 
 move_next_path(_NPCObj, []) -> nothing;
 move_next_path(NPCObj, Path) -> 
-    lager:debug("NPC Path: ~p", [Path]),
     move_unit(NPCObj, lists:nth(2, Path)).
 
 move_unit(Obj = #obj{id = Id, pos = Pos}, NewPos) when is_tuple(NewPos) ->
-    lager:debug("Move Unit: ~p ~p ~p", [Obj, Pos, NewPos]),
     SourcePos = Pos,
     DestPos = NewPos,
     MoveTicks = event_ticks(obj:movement_cost(Obj, DestPos)),
-    lager:info("Move Ticks: ~p", [MoveTicks]),
 
     %Add obj update state to change to moving state on next tick
     game:add_obj_update(self(), Id, ?STATE, ?MOVING, 1),
@@ -992,7 +968,6 @@ get_wander_pos(_NPCObj, true, RandomPos, _Neighbours) ->
     RandomPos;
 get_wander_pos(NPCObj, false,  _, Neighbours) ->
     Random = util:rand(length(Neighbours)),
-    lager:info("get_wander_pos: ~p ~p", [Random, Neighbours]),
     RandomPos = lists:nth(Random, Neighbours),
 
     IsAvailable = is_pos_available(NPCObj, RandomPos),
@@ -1071,9 +1046,7 @@ process_perception(NPC) ->
 
 process_complete(false, Data) -> Data;
 process_complete(NPC, Data) ->
-    lager:info("pocess_complete NPC#npc.plan: ~p", [NPC#npc.plan]),
     Task = lists:nth(NPC#npc.task_index, NPC#npc.plan),
-    lager:info("Process complete Task: ~p", [Task]),
 
     NewNPC = case Task of
                  move_random_pos -> complete_task(NPC);
@@ -1083,7 +1056,7 @@ process_complete(NPC, Data) ->
                  attack -> complete_task(NPC);
                  cast_raise_dead -> complete_task(NPC);
                  cast_shadow_bolt -> complete_task(NPC);
-                 {wait, _} -> lager:info("Completing Wait Task"), complete_task(NPC);
+                 {wait, _} -> complete_task(NPC);
                  _ -> NPC
              end,
 

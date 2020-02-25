@@ -314,35 +314,52 @@
 
 #### CRAFTING ####
 
+- name: Crafting Tent
+  class: structure
+  subclass: craft
+  template: CraftingTent
+  base_hp: 100
+  base_def: 0
+  build_time: 24
+  level: 0
+  capacity: 100
+  refine: [Wood, Ore]
+  req: 
+    - type: Wood
+      quantity: 5
+    - type: Hide
+      quantity: 5
+
 - name: Mine
   class: structure
   subclass: resource
   template: Mine
   base_hp: 250
   base_def: 0
-  build_time: 5
+  build_time: 480
   level: 0
-  capacity: 500
+  capacity: 200
   profession: the Miner
   req: 
-    - type: Wood
-      quantity: 1
-
-
+    - type: Timber
+      quantity: 25
+    - type: Ingot
+      quantity: 20
 
 - name: Tent
   class: structure
   subclass: shelter
   template: Tent
-  base_hp: 50
+  base_hp: 100
   base_def: 0
-  build_time: 240
+  build_time: 24
+  capacity: 0
   level: 0
   req: 
     - type: Wood
-      quantity: 1
-    - type: Ingot
-      quantity: 2
+      quantity: 5
+    - type: Hide
+      quantity: 5
 
 - name: Farm
   class: structure
@@ -370,19 +387,21 @@
     - type: Wood
       quantity: 40
 
-- name: Lumbermill
+- name: Lumbercamp
   class: structure
   subclass: resource
-  template: Lumbermill
+  template: Lumbercamp
   base_hp: 250
   base_def: 0
-  build_time: 240
+  build_time: 480
+  capacity: 200
   level: 0
-  refine: "Wood"
   profession: the Forester
   req: 
-    - type: Wood
-      quantity: 40
+    - type: Timber
+      quantity: 25
+    - type: Ingot
+      quantity: 30
 
 - name: Quarry
   class: structure
@@ -390,13 +409,14 @@
   template: Quarry
   base_hp: 250
   base_def: 0
-  build_time: 240
+  build_time: 480
   level: 0
-  refine: "Wood"
   profession: the Stonecutter
   req: 
-    - type: Wood
-      quantity: 40
+    - type: Timber
+      quantity: 30
+    - type: Ingot
+      quantity: 30
 
 - name: Tavern
   class: structure
@@ -505,12 +525,12 @@
   template: Burrow
   base_hp: 250
   base_def: 0
-  build_time: 5
-  level: 3
-  capacity: 21
+  build_time: 240
+  level: 0
+  capacity: 200
   req: 
     - type: Wood
-      quantity: 1
+      quantity: 10
 
 - name: Warehouse
   class: structure
@@ -518,24 +538,26 @@
   template: Warehouse
   base_hp: 250
   base_def: 0
-  build_time: 5
-  level: 3
-  capacity: 21
+  build_time: 960
+  level: 1
+  capacity: 1000
   req: 
-    - type: Wood
-      quantity: 1
+    - type: Timber
+      quantity: 50
+    - type: Ingot
+      quantity: 50
       
 - name: Stockade
   class: structure
   subclass: Wall
   template: Stockade
-  base_hp: 250
+  base_hp: 200
   base_def: 0
-  build_time: 5
+  build_time: 120
   level: 0
   req: 
     - type: Wood
-      quantity: 1
+      quantity: 5
   upkeep:
     - type: Wood
       quantity: 1

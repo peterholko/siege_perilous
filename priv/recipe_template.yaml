@@ -5,7 +5,7 @@
 ##################
 
 - name: Copper Training Axe
-  image: Training Axe
+  image: trainingaxe
   structure: Blacksmith
   class: Weapon
   subclass: Axe
@@ -23,7 +23,7 @@
       quantity: 1
 
 - name: Copper Broad Axe
-  image: Broad Axe
+  image: broadaxe
   structure: Blacksmith
   class: Weapon
   subclass: Axe
@@ -41,7 +41,7 @@
       quantity: 15
 
 - name: Copper Heavy Axe
-  image: Heavy Axe
+  image: heavyaxe
   structure: Blacksmith
   class: Weapon
   subclass: Axe
@@ -59,7 +59,7 @@
       quantity: 25
 
 - name: Copper Training Sword
-  image: Sword
+  image: sword
   structure: Blacksmith
   class: Weapon
   subclass: Sword
@@ -77,7 +77,7 @@
       quantity: 25
  
 - name: Copper Training Club
-  image: Club
+  image: club
   structure: Blacksmith
   class: Weapon
   subclass: Hammer
@@ -92,22 +92,32 @@
       quantity: 75
     - type: Maple Timber
       quantity: 25
- 
+
+      
+
+##################
+##### TOOLS #####
+##################
+
 - name: Training Pick Axe
-  image: Pick Axe
-  structure: Blacksmith
-  class: Weapon
-  subclass: Axe
+  image: pickaxe
+  structure: Crafting Tent
+  class: Gathering
+  subclass: Pick Axe
   slot: Main Hand
   weight: 10
   req: 
     - type: Ingot
-      quantity: 5
+      quantity: 2
     - type: Wood
       quantity: 2
 
+##################
+##### BOWS #####
+##################
+
 - name: Training Bow
-  image: Bow
+  image: bow
   structure: Carpenter
   class: Weapon
   subclass: Bow

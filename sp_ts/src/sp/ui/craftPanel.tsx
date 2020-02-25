@@ -50,10 +50,11 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
 
   handleCraftClick() {
     Network.sendOrderCraft(this.props.structureId, this.state.recipe.name);
+    Global.gameEmitter.emit(GameEvent.CRAFT_CLICK, {});
   }
 
   render() {
-    var imageName = this.state.recipe.image.toLowerCase().replace(/\s/g, '') + '.png';
+    var imageName = this.state.recipe.image + '.png';
 
     const reqs = [];
 

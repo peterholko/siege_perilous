@@ -36,8 +36,8 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     };
   
     this.handleSelect = this.handleSelect.bind(this);
+    this.handleExpItemSelect = this.handleExpItemSelect.bind(this);
     this.handleExpResSelect = this.handleExpResSelect.bind(this);
-    this.handleSelect = this.handleSelect.bind(this);
 
     this.handleSetExpItemClick = this.handleSetExpItemClick.bind(this);
     this.handleSetExpResourceClick = this.handleSetExpResourceClick.bind(this);
@@ -48,6 +48,22 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
   handleSelect() {
     this.setState({hideLeftSelect: false,
                    hideSelectExpRes: true});
+  }
+
+  handleExpItemSelect(eventData) {
+    console.log('handleExpItemSelect ' + eventData);
+
+    const selectStyle = {
+      transform: 'translate(-185px, 50px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    Global.selectedItemOwnerId = eventData.ownerId;
+    Global.selectedItemId = eventData.itemId;
+
+    this.setState({hideSelectExpRes: false,
+                   hideLeftSelect: true,
+                   selectExpResStyle: selectStyle})
   }
 
   handleExpResSelect(eventData) {
@@ -179,6 +195,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
 
       var itemId = this.props.expData.expitem[0].id;
       var itemName = this.props.expData.expitem[0].name;
+      var image = this.props.expData.expitem[0].image;
       var quantity = this.props.expData.expitem[0].quantity;
 
       itemExperiment.push(
@@ -186,11 +203,12 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
                        ownerId={this.props.expData.id}
                        itemId={itemId} 
                        itemName={itemName} 
+                       image={image}
                        quantity={quantity}
                        index={i}
                        xPos={xPos}
                        yPos={yPos}
-                       handleSelect={this.handleSelect} />
+                       handleSelect={this.handleExpItemSelect} />
       )
     }
 
@@ -214,13 +232,15 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
 
       var itemId = this.props.expData.expresources[i].id;
       var itemName = this.props.expData.expresources[i].name;
+      var image = this.props.expData.expresources[i].image;
       var quantity = this.props.expData.expresources[i].quantity;
 
       itemExpResources.push(
         <InventoryItem key={i}
                        ownerId={this.props.expData.id}
                        itemId={itemId} 
-                       itemName={itemName} 
+                       itemName={itemName}
+                       image={image} 
                        quantity={quantity}
                        index={i}
                        xPos={xPos}

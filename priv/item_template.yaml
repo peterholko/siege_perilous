@@ -7,7 +7,7 @@
 - name: Valleyrun Copper Ore
   class: Ore
   subclass: Copper Ore
-  image: Copper Ore
+  image: copperore
   weight: 10
   produces:
     - Valleyrun Copper Ingot
@@ -16,7 +16,7 @@
 - name: Flowstate Copper Ore
   class: Ore
   subclass: Copper Ore
-  image: Copper Ore
+  image: copperore
   weight: 10
   produces:
     - Flowstate Copper Ingot
@@ -25,7 +25,7 @@
 - name: Piercefield Copper Ore
   class: Ore
   subclass: Copper Ore
-  image: Copper Ore
+  image: copperore
   weight: 10
   produces:
     - Piercefield Copper Ingot
@@ -34,7 +34,7 @@
 - name: Quickforge Iron Ore
   class: Ore
   subclass: Iron Ore
-  image: Iron Ore
+  image: ironore
   weight: 10
   produces:
     - Quickforge Iron Ingot
@@ -43,7 +43,7 @@
 - name: Mistvale Iron Ore
   class: Ore
   subclass: Iron Ore
-  image: Iron Ore
+  image: ironore
   weight: 10
   produces:
     - Mistvale Iron Ingot
@@ -52,7 +52,7 @@
 - name: Slateback Iron Ore
   class: Ore
   subclass: Iron Ore
-  image: Iron Ore
+  image: ironore
   weight: 10
   produces:
     - Slateback Iron Ingot
@@ -61,7 +61,7 @@
 - name:  Thrakan Iron Ore
   class: Ore
   subclass: Iron Ore
-  image: Iron Ore
+  image: ironore
   weight: 10
   produces:
     - Thrakan Iron Ingot
@@ -70,7 +70,7 @@
 - name:  Wraithforge Mithril Ore
   class: Ore
   subclass: Mithril Ore
-  image: Mithril Ore
+  image: mithrilore
   weight: 10
   produces:
     - Wraithforge Mithril Ingot
@@ -83,19 +83,19 @@
 - name:  Valleyrun Copper Ingot
   class: Ingot
   subclass: Copper Ingot
-  image: Copper Ingot
+  image: copperingot
   weight: 5
 
 - name:  Piercefield Copper Ingot
   class: Ingot
   subclass: Copper Ingot
-  image: Copper Ingot
+  image: copperingot
   weight: 5
 
 - name:  Quickforge Iron Ingot
   class: Ingot
   subclass: Iron Ingot
-  image: Iron Ingot
+  image: ironingot
   weight: 5
 
 ##################
@@ -105,7 +105,7 @@
 - name:  Valleyrun Copper Dust
   class: Dust
   subclass: Copper Dust
-  image: Copper Dust
+  image: copperdust
   weight: 10
 
 ##################
@@ -115,7 +115,7 @@
 - name:  Cragroot Maple Wood
   class: Wood
   subclass: Maple Wood
-  image: Maple Wood
+  image: maplewood
   weight: 10
   produces: 
     - Cragroot Maple Timber
@@ -123,7 +123,7 @@
 - name:  Springbranch Maple Wood
   class: Wood
   subclass: Maple Wood
-  image: Maple Wood
+  image: maplewood
   weight: 10
   produces: 
     - Springbranch Maple Timber
@@ -131,7 +131,7 @@
 - name:  Redvale Maple Wood
   class: Wood
   subclass: Maple Wood
-  image: Maple Wood
+  image: maplewood
   weight: 10
   produces: 
     - Redvale Maple Timber
@@ -143,37 +143,67 @@
 - name:  Cragroot Maple Timber
   class: Timber
   subclass: Maple Timber
-  image: Maple Timber
+  image: mapletimber
   weight: 1
 
 - name:  Springbranch Maple Timber
   class: Timber
   subclass: Maple Timber
-  image: Maple Timber
+  image: mapletimber
   weight: 1
 
 - name:  Redvale Maple Timber
   class: Timber
   subclass: Maple Timber
-  image: Maple Timber
+  image: mapletimber
   weight: 1
 
 - name:  Wrapwood Birch Timber
   class: Timber
   subclass: Birch Timber
-  image: Birch Timber
+  image: birchtimber
   weight: 1
 
 - name:  Shivering Birch Timber
   class: Timber
   subclass: Birch Timber
-  image: Birch Timber
+  image: birchtimber
   weight: 1
 
 - name:  Razor Birch Timber
   class: Timber
   subclass: Birch Timber
-  image: Birch Timber
+  image: birchtimber
+  weight: 1
+
+##################
+##### CLOTH #####
+##################
+
+- name: Honeybell Cloth
+  class: Cloth
+  subclass: Honeybell Cloth
+  image: cloth
+  weight: 1
+
+##################
+##### HIDE ####
+##################
+
+- name: Windstride Raw Hide
+  class: Hide
+  subclass: Raw Hide
+  image: hide
+  weight: 1
+
+##################
+##### LEATHER ####
+##################
+
+- name: Windstride Stiff Leather
+  class: Leather
+  subclass: Stiff Leather
+  image: leather
   weight: 1
 
 ##################
@@ -183,13 +213,13 @@
 - name: Spring Water
   class: Water
   subclass: Spring Water
-  image: Spring Water
+  image: springwater
   weight: 1
 
 - name: Honeybell Berries
   class: Food
   subclass: Berries
-  image: Berries
+  image: berries
   weight: 1
 
 - name: Amitanian Grape
@@ -207,35 +237,44 @@
 - name: Gold Coins
   class: Gold Coins
   subclass: Gold Coins
-  image: Gold Coins
+  image: goldcoins
   weight: 0.01
 
 - name: Pick Axe
   class: Gathering
   subclass: Pick Axe
   slot: Main Hand
-  image: Pick Axe
+  image: pickaxe
   weight: 5
 
 - name: Mana
   class: Resource
   subclass: Mana
-  image: Mana
+  image: mana
   weight: 1
 
 - name: Copper Training Axe
   class: Weapon
   subclass: Axe
   slot: Main Hand
-  image: Training Axe
+  image: trainingaxe
   weight: 10
 
 - name: Health Potion
   class: Potion
   subclass: Health
-  image: Potion
+  image: potion
   weight: 1
 
+##################
+##### DEEDS #####
+##################
+
+- name: Basic Blacksmith Deed
+  class: Deed
+  subclass: Blacksmith
+  image: deed
+  weight: 1
 
 
 

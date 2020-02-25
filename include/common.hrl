@@ -91,6 +91,7 @@
 -define(ANIMAL, 100).
 -define(EMPIRE, 101).
 -define(GUARDIANS, 102).
+-define(CREATURE, 103).
 -define(THE_LOST, 200).
 
 -define(MAX_ZOMBIES, 100).
@@ -276,6 +277,7 @@
 -define(WEAPON, <<"Weapon">>).
 -define(ARMOR, <<"Armor">>).
 -define(POTION, <<"Potion">>).
+-define(DEED, <<"Deed">>).
 
 %ITEM SUBCLASSES
 -define(PICK_AXE, <<"Pick Axe">>).

@@ -62,8 +62,8 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
   }
 
   render() {
-    const itemName = this.props.itemData.image;
-    const imageName = itemName.toLowerCase().replace(/ /g, '') + '.png'
+    const itemName = this.props.itemData.name;
+    const imageName = this.props.itemData.image + '.png'
     const effects = [];
     var produces = '';
 
@@ -78,7 +78,8 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     const showEquipButton = (this.props.itemData.class == "Weapon") || 
                             (this.props.itemData.class == "Armor");
 
-    const showUseButton = (this.props.itemData.class == "Potion");
+    const showUseButton = (this.props.itemData.class == "Potion") ||
+                          (this.props.itemData.class == "Deed");
 
     if(this.props.itemData.hasOwnProperty('effects')) {
 

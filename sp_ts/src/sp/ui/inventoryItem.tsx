@@ -6,6 +6,7 @@ interface InvItemProps {
   ownerId,
   itemName,
   itemId,
+  image,
   quantity,
   xPos,
   yPos,
@@ -54,11 +55,10 @@ export default class InventoryItem extends React.Component<InvItemProps, any> {
       position: 'fixed'
     } as React.CSSProperties
 
-    const imageName = this.props.itemName.replace(/\s/g, '').toLowerCase();
 
     return (
       <div style={divStyle} onClick={this.props.handleSelect != null ? this.handleClick : null}>
-        <img src={'/static/art/items/' + imageName + '.png'}
+        <img src={'/static/art/items/' + this.props.image + '.png'}
             style={itemStyle}/>
         <span id="itemquantity" className={styles.itemquantity}>{quantityStr}</span>
       </div>

@@ -15,7 +15,7 @@
 -export([has_by_class/2, has_by_subclass/2, has_price/1]).
 -export([is_equipable/1, is_slot_free/2, is_player_owned/2, is_valid_split/3, 
          is_class/2, is_subclass/2, is_resource/1]).
--export([get_total_weight/1, total_gold/1, weight/2]).
+-export([get_total_weight/1, total_gold/1, weight/1, weight/2]).
 -export([id/1, name/1, subclass/1, owner/1, quantity/1, price/1, image/1]).
 -export([match_req/3, match_req_type/3]).
 -export([use/2]).
@@ -37,6 +37,13 @@ quantity(Item) -> Item#item.quantity.
 
 image(Item) when is_map(Item) -> maps:get(<<"image">>, Item);
 image(Item) -> Item#item.image.
+
+weight(Item) when is_map(Item) ->  maps:get(<<"weight">>, Item);
+weight(Item) -> Item#item.weight.
+
+weight(ItemName, ItemQuantity) ->
+    ItemWeight = item_template:value(ItemName, <<"weight">>),
+    ItemWeight * ItemQuantity.
 
 price(ItemId) ->
     item_attr:value(ItemId, <<"price">>).
@@ -240,9 +247,6 @@ is_resource_from_class(?TIMBER) -> true;
 is_resource_from_class(?BLOCK) -> true;
 is_resource_from_class(_) -> false.
 
-weight(ItemName, ItemQuantity) ->
-    ItemWeight = item_template:value(ItemName, <<"weight">>),
-    ItemWeight * ItemQuantity.
 
 can_merge(ItemClass) ->
     case ItemClass of
@@ -371,12 +375,21 @@ unequip(ItemId) ->
 use(PlayerId, ItemId) ->
     [Item] = db:read(item, ItemId),
     NewQuantity = Item#item.quantity - 1,
+    lager:info("Use item class: ~p", [Item#item.class]),
 
-    case Item#item.subclass of
-        ?HEALTH ->
-            obj:update_hp(Item#item.owner, 10),
+    case Item#item.class of
+        ?POTION ->
+            case Item#item.subclass of                
+                ?HEALTH ->
+                    obj:update_hp(Item#item.owner, 10);
+                _ ->
+                    lager:error("Cannot use this potion type")
+            end,
 
             game:send_update_stats(PlayerId, Item#item.owner);
+        ?DEED -> 
+            %TODO don't overload the subclass attr
+            structure:add_deed(PlayerId, Item#item.subclass, 0, 0);
         _ ->
             lager:error("Cannot use this item type")
     end,

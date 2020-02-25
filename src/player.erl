@@ -197,16 +197,12 @@ get_info_unit(Id) ->
     Info.
 
 get_info_item(ItemId) ->
-    Player = get(player_id),
     lager:info("get_info_item ~p", [ItemId]),
-
-    %Add active info for item
-    add_active_info({Player, item, ItemId}, Player, ItemId),
-
     case item:get_all_attr(ItemId) of
         invalid -> #{<<"errmsg">> => <<"Invalid Item">>};
         ItemMap -> ItemMap
     end.
+
 get_info_item_name(ItemName) ->
     item:get_map_by_name(ItemName).
 
@@ -449,7 +445,25 @@ move(SourceId, Pos) ->
             %Add obj move event to execute in MoveTicks
             game:add_obj_move(self(), SourceId, SourcePos, DestPos, MoveTicks),
 
-            #{<<"move_time">> => MoveTicks * ?TICKS_SEC};
+            MonolithPos = player:get_monolith_pos(obj:player(Obj)),
+            MonolithDistance = map:distance(DestPos, MonolithPos),
+
+            Return = #{<<"move_time">> => MoveTicks * ?TICKS_SEC},
+
+            lager:info("MonolithDistance: ~p", [MonolithDistance]),
+
+            %TODO move to a module
+            FinalReturn = 
+                case MonolithDistance =:= (?SAFEZONE + 1) of
+                    true ->
+                        maps:put(<<"errmsg">>, 
+                                 <<"You sense the lost of a protective aura...">>,
+                                 Return);
+                    false ->
+                        Return
+                end,
+            
+            FinalReturn;
         {false, Error} ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
@@ -768,13 +782,16 @@ item_transfer(TargetId, ItemId) ->
     Owner = Item#item.owner,
 
     OwnerObj = obj:get(Owner),   
-    TargetObj = obj:get(TargetId), 
+    TargetObj = obj:get(TargetId),
+
+    %TODO nice to have feature, fill up to max capacity
 
     lager:info("OwnerObj: ~p TargetObj: ~p", [OwnerObj, TargetObj]),
 
     Checks = [{TargetObj =/= false, "Invalid transfer target"},
               {is_same_pos(OwnerObj, TargetObj) or
                map:is_adjacent(OwnerObj, TargetObj), "Item is not nearby"},
+              {is_sufficient_capacity(TargetObj, Item), "Not enough capacity"},
               {is_structure_req(Item, TargetObj), "Item not required for structure construction"},
               is_transfer_valid(OwnerObj, TargetObj)],
 
@@ -824,7 +841,8 @@ item_split(ItemId, Quantity) ->
     end.
 
 structure_list() ->
-    structure:list().
+    Player = get(player_id),
+    structure:list(Player).
 
 create_foundation(BuilderId, StructureName) ->
     PlayerId = get(player_id),
@@ -1408,7 +1426,20 @@ process_item_transfer(Item, TargetObj = #obj{id = Id,
     ItemMap = item:transfer(Item#item.id, Id, TransferQuantity),
     obj:item_transfer(TargetObj, ItemMap);
 process_item_transfer(Item, TargetObj) ->
-    ItemMap = item:transfer(Item#item.id, TargetObj#obj.id),
+    Capacity = obj:get_capacity(obj:id(TargetObj)),
+    TotalTargetWeight = item:get_total_weight(obj:id(TargetObj)),
+    ItemWeight = item:weight(Item),
+
+    RemainingCapacity = util:subtract_until_zero(Capacity, TotalTargetWeight),
+    MaxQuantityTransfer = util:floor(RemainingCapacity / ItemWeight),
+
+    QuantityTransfer = 
+        case item:quantity(Item) > MaxQuantityTransfer of
+            true -> MaxQuantityTransfer;
+            false -> item:quantity(Item)
+        end,
+
+    ItemMap = item:transfer(item:id(Item), obj:id(TargetObj), QuantityTransfer),
     obj:item_transfer(TargetObj, ItemMap).
 
 transfer_quantity(ReqQuantity, ItemQuantity) when ReqQuantity =:= ItemQuantity ->
@@ -1526,3 +1557,23 @@ is_transfer_valid(OwnerObj, TargetObj) ->
                     {false, "Target is not dead, invalid transfer"}
             end
     end.
+
+is_sufficient_capacity(_, invalid) ->
+    false;
+is_sufficient_capacity(invalid, _) ->
+    false;
+is_sufficient_capacity(#obj{state = State}, _Item) when State =:= ?FOUNDED ->
+    true;
+is_sufficient_capacity(TargetObj, Item) ->
+    Capacity = obj:get_capacity(obj:id(TargetObj)),
+    TotalTargetWeight = item:get_total_weight(obj:id(TargetObj)),
+    ItemWeight = item:weight(Item),
+    TotalItemWeight = item:weight(Item) * item:quantity(Item),
+
+    case item:quantity(Item) =:= 1 of
+        true -> 
+            (TotalItemWeight + TotalTargetWeight) =< Capacity;
+        false ->
+            (ItemWeight + TotalTargetWeight) =< Capacity
+    end.
+                    

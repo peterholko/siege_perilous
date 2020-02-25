@@ -107,6 +107,8 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
         <BaseInventoryPanel left={true}
                             id={this.props.leftInventoryData.id} 
                             items={this.props.leftInventoryData.items} 
+                            capacity={this.props.leftInventoryData.cap}
+                            totalWeight={this.props.leftInventoryData.tw}
                             panelType={'itemTransfer'}
                             hideExitButton={true}
                             hideSelect={this.state.hideLeftSelect}
@@ -115,6 +117,8 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
           <BaseInventoryPanel left={false}
                               id={this.props.rightInventoryData.id} 
                               items={this.props.rightInventoryData.items} 
+                              capacity={this.props.rightInventoryData.cap}
+                              totalWeight={this.props.rightInventoryData.tw}
                               panelType={'itemTransfer'}
                               hideExitButton={false}
                               hideSelect={this.state.hideRightSelect}

@@ -56,6 +56,7 @@ import ExperimentPanel from './ui/experimentPanel';
 import ActionButton from './ui/actionButton';
 import NPCPanel from './ui/npcPanel';
 import HeroAdvancePanel from './ui/heroAdvancePanel';
+import NoticePanel from './ui/noticePanel';
 
 interface UIState {
   selectBoxes : [],
@@ -76,6 +77,7 @@ interface UIState {
   hideBuildPanel : boolean,
   hideStructurePanel : boolean,
   hideErrorPanel : boolean,
+  hideNoticePanel : boolean,
   hideAssignPanel : boolean,
   hideCraftPanel : boolean,
   hideMerchantPanel : boolean,
@@ -111,6 +113,7 @@ interface UIState {
   selectedKey: any,
   infoItemAction : string,
   errmsg : string
+  noticemsg : string
 }
 
 export default class UI extends React.Component<any, UIState>{
@@ -140,6 +143,7 @@ export default class UI extends React.Component<any, UIState>{
       hideAssignPanel : true,
       hideCraftPanel : true,
       hideErrorPanel : true,
+      hideNoticePanel : true,
       hideMerchantPanel : true,
       hideMerchantQuantityPanel : true,
       hideMerchantHirePanel : true,
@@ -172,7 +176,8 @@ export default class UI extends React.Component<any, UIState>{
       selectedBoxPos: 0,
       selectedKey: {type: '', id: -1},
       infoItemAction: TRIGGER_INVENTORY,
-      errmsg : ''
+      errmsg : '',
+      noticemsg : ''
     }
 
     this.handleMoveClick = this.handleMoveClick.bind(this);
@@ -207,6 +212,8 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(GameEvent.MERCHANT_QUANTITY_CANCEL, this.handleMerchantQuantityCancel, this);
     Global.gameEmitter.on(GameEvent.MERCHANT_HIRE_CLICK, this.handleMerchantHireClick, this);
     Global.gameEmitter.on(GameEvent.RESOURCE_CLICK, this.handleResourceClick, this);
+    Global.gameEmitter.on(GameEvent.CRAFT_CLICK, this.handleCraftClick, this);
+    Global.gameEmitter.on(GameEvent.NOTICE_EXPIRE, this.handleNoticeExpire, this);
 
     Global.gameEmitter.on(NetworkEvent.SERVER_OFFLINE, this.handleServerOffline, this);
     Global.gameEmitter.on(NetworkEvent.NETWORK_ERROR, this.handleNetworkError, this);
@@ -232,6 +239,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.RECIPE_LIST, this.handleRecipeList, this);
     Global.gameEmitter.on(NetworkEvent.ATTACK, this.handleAttack, this);
     Global.gameEmitter.on(NetworkEvent.ADVANCE, this.handleAdvance, this);
+    Global.gameEmitter.on(NetworkEvent.NEW_ITEMS, this.handleNewItems, this);
   }
 
   handleMoveClick(event : React.MouseEvent) {
@@ -432,10 +440,30 @@ export default class UI extends React.Component<any, UIState>{
     this.setState({advanceData: message})
   }
 
+  handleNewItems(message) {
+    console.log('handleNewItems');
+    var crafterName = Global.objectStates[message.crafter].name;
+    var msg = '';
+
+    if (message.src == 'crafting') {
+      msg = crafterName + " has crafted a " + message.data[0].name;
+    } else if(message.src == 'refining') {
+      msg = crafterName + " has refined a " + message.data[0].name;
+    }
+
+    this.setState({hideNoticePanel: false,
+                   noticemsg: msg});
+  }
+
+  handleNoticeExpire() {
+    this.setState({hideNoticePanel: true});
+  }
+
   handleError(message) {
     this.setState({hideErrorPanel : false,
                    errmsg : message.errmsg});
   }
+
   handleServerOffline() {
     Global.serverOffline = true;
 
@@ -464,6 +492,11 @@ export default class UI extends React.Component<any, UIState>{
   handleResourceClick(eventData) {
     this.setState({hideResourcePanel: false,
                    resourceData: eventData});
+  }
+
+  handleCraftClick() {
+    this.setState({hideCraftPanel: true,
+                   hideStructurePanel: false});
   }
 
   handleInfoObj(message) {
@@ -791,6 +824,9 @@ export default class UI extends React.Component<any, UIState>{
           {!this.state.hideExperimentPanel && 
             <ExperimentPanel expData={this.state.expData} />}
 
+          {!this.state.hideNoticePanel && 
+            <NoticePanel noticemsg={this.state.noticemsg} />}
+            
           {!this.state.hideErrorPanel && 
             <ErrorPanel errmsg={this.state.errmsg} />}
       </div>

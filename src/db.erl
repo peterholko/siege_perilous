@@ -79,6 +79,7 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(relation, [{ram_copies, [node()]}, {attributes, record_info(fields, relation)}]),  
     {atomic, ok} = mnesia:create_table(experiment, [{ram_copies, [node()]}, {attributes, record_info(fields, experiment)}]),  
     {atomic, ok} = mnesia:create_table(start, [{ram_copies, [node()]}, {attributes, record_info(fields, start)}]),  
+    {atomic, ok} = mnesia:create_table(deed, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, deed)}]),  
 
     mnesia:add_table_index(perception, player),
     mnesia:add_table_index(player, name),
@@ -328,6 +329,7 @@ test_tables() ->
      {player, ?UNDEAD, <<"Undead">>, <<"123123">>, 0, false, false, none, true, -1, #{}},
      {player, ?ANIMAL, <<"Animal">>, <<"123123">>, 0, false, false, none, true, -1, #{}},
      {player, ?EMPIRE, <<"Empire">>, <<"123123">>, 0, false, false, none, true, -1, #{}},     
+     {player, ?CREATURE, <<"Creature">>, <<"123123">>, 0, false, false, none, true, -1, #{}},     
      {counter, player, ?NPC_ID},
      {world, time, day},
      %{revent, 1, <<"Silent Night">>, <<"The night passes without incident.">>, [<<"Ok.">>], [<<"Nothing happens.">>], [none]},

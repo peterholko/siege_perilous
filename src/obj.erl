@@ -10,7 +10,7 @@
 
 -export([create/3, create/4, create/5, update_state/2, remove/1, 
          transfer/2, unload/2]).
--export([process_create/1, process_update_state/2, process_move/2, process_sleep/1, 
+-export([process_create/1, process_update_state/2, process_move/2, process_sleep/2, 
          process_deleting/1, process_obj_stats/0]).
 -export([update_hp/2, update_stamina/2, update_thirst/2, update_hunger/2, update_focus/2, 
          update_template/1,
@@ -189,11 +189,16 @@ do_move(Obj, Pos) ->
     %Return new obj
     NewObj.
 
-process_sleep(ObjId) ->
+process_sleep(ObjId, HasShelter) ->
     [Obj] = db:read(obj, ObjId),
 
     %TODO explore traits for faster sleep
-    ModValue = -750,
+
+    ModValue = 
+        case HasShelter of 
+            true -> -375;
+            false -> -750
+        end,
 
     NewFocus = Obj#obj.focus + ModValue,
     NewObj = Obj#obj{focus = NewFocus},
@@ -387,7 +392,6 @@ update_template(Obj) ->
     {NextRank, _ReqXp} = skill:hero_advance(Obj#obj.template),
 
     NextImage = string:lowercase(re:replace(NextRank, <<" ">>, <<"">>, [{return, binary}])),   
-    lager:info("NextImage: ~p", [NextImage]),
 
     NewObj = Obj#obj{template = NextRank,
                      image = NextImage},
@@ -946,17 +950,15 @@ info_subclass(<<"villager">>, Obj, Info) ->
     Capacity = obj:get_capacity(Obj#obj.id),
     Morale = Villager#villager.morale,
     Order = Villager#villager.order,
-    ShelterId = Villager#villager.shelter,
-    StructureId = Villager#villager.structure,
 
-    ShelterName = get_name_by_id(ShelterId),
-    StructureName = get_name_by_id(StructureId),
+    ShelterInfo = prep_structure_info(Villager#villager.shelter),
+    StructureInfo = prep_structure_info(Villager#villager.structure),
 
     Info0 = maps:put(<<"total_weight">>, TotalWeight, Info),
     Info1 = maps:put(<<"capacity">>, Capacity, Info0),
     Info2 = maps:put(<<"morale">>, Morale, Info1),
-    Info3 = maps:put(<<"shelter">>, ShelterName, Info2),
-    Info4 = maps:put(<<"structure">>, StructureName, Info3),
+    Info3 = maps:put(<<"shelter">>, ShelterInfo, Info2),
+    Info4 = maps:put(<<"structure">>, StructureInfo, Info3),
     Info5 = maps:put(<<"order">>, Order, Info4),
     Info6 = maps:put(<<"action">>, villager:action(Villager), Info5),
     Info6;
@@ -1019,8 +1021,13 @@ info_inventory(PlayerId, Obj) ->
                             end
                     end
             end,
+
+    Capacity = obj:get_capacity(Obj#obj.id),
+    TotalWeight = item:get_total_weight(Obj#obj.id),        
     
     Info = #{<<"id">> => Obj#obj.id,
+             <<"cap">> => round(Capacity),
+             <<"tw">> => TotalWeight,
              <<"items">> => Items},
     Info.
 
@@ -1163,4 +1170,12 @@ monolith_distance_mod_speed(Obj) ->
         Value when Value > 0 -> DistanceModifier;
         _Value -> 1
     end.
+
+prep_structure_info({_StructureId, StructurePos, StructureName}) ->
+    ListOfPos = erlang:tuple_to_list(StructurePos),
+    StructurePosStr = lists:concat(lists:join(",", ListOfPos)),
+    unicode:characters_to_binary([StructureName, " (", StructurePosStr, ")"]);
+prep_structure_info(_) -> 
+    <<"none">>.
+
 

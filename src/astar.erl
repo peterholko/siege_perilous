@@ -8,16 +8,16 @@
 astar(Start, Start, _) ->
     {success, [Start]};
 astar(Start, Goal, Obj) ->
-    lager:info("Start3: ~p Goal: ~p", [Start, Goal]),
+    lager:debug("Start3: ~p Goal: ~p", [Start, Goal]),
     astar(Start, Goal, Obj, true, true).
 
 astar(Start, Goal, Obj, CheckPassable, CheckBlocking) ->
-    lager:info("Start5: ~p Goal: ~p", [Start, Goal]),
+    lager:debug("Start5: ~p Goal: ~p", [Start, Goal]),
     Frontier = pqueue2:in(Start, 0, pqueue2:new()),
     CameFrom = dict:store(Start, none, dict:new()),
     CostSoFar = dict:store(Start, 0, dict:new()),
 
-    {From, Cost, Result} = search(pqueue2:is_empty(Frontier), 
+    {From, _Cost, Result} = search(pqueue2:is_empty(Frontier), 
                                    search, 
                                    Start, 
                                    Goal, 

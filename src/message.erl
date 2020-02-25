@@ -9,7 +9,7 @@
 -include("schema.hrl").
 
 send_to_process(Process, MessageType, Message) when is_pid(Process) ->
-    lager:debug("Sending ~p to ~p", [Message, Process]),
+    lager:debug("Sending message type ~p with ~p to ~p", [MessageType, Message, Process]),
     Process ! {MessageType, Message};
 
 send_to_process(_, _, _) ->
@@ -232,20 +232,18 @@ message_handle(<<"order_refine">>, Message) ->
     lager:info("message: order_refine"),
     StructureId = m_get(<<"structureid">>, Message),
 
-    Reply = player:order_refine(StructureId),
-
-    jsx:encode([{<<"packet">>, <<"order_refine">>},
-                {<<"result">>, Reply}]);
+    Return = player:order_refine(StructureId),
+    FinalReturn = maps:put(<<"packet">>, <<"order_refine">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"order_craft">>, Message) ->
     lager:info("message: order_craft"),
     SourceId = m_get(<<"sourceid">>, Message),
     Recipe = m_get(<<"recipe">>, Message),
 
-    Result = player:order_craft(SourceId, Recipe),
-
-    jsx:encode([{<<"packet">>, <<"order_craft">>},
-                {<<"result">>, Result}]);
+    Return = player:order_craft(SourceId, Recipe),
+    FinalReturn = maps:put(<<"packet">>, <<"order_refine">>, Return),
+    jsx:encode(FinalReturn);
 
 message_handle(<<"equip">>, Message) ->
     lager:info("message: equip"),
@@ -593,9 +591,12 @@ prepare(map, Message) ->
     #{<<"packet">> => <<"map">>,
       <<"data">> => Message};
 
-prepare(new_items, Message) ->
+prepare(new_items, {SourceOfItems, CrafterId, Data}) ->
+    lager:info("Message new_items ~p ~p", [SourceOfItems, CrafterId, Data]),
     #{<<"packet">> => <<"new_items">>,
-      <<"data">> => Message}; 
+      <<"src">> => SourceOfItems,
+      <<"crafter">> => CrafterId,
+      <<"data">> => Data}; 
 
 prepare(stats, Message) ->
     #{<<"packet">> => <<"stats">>,

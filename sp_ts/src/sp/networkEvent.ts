@@ -34,4 +34,5 @@ export namespace NetworkEvent {
     export const XP : string = 'XP';
     export const SPEECH : string = 'SPEECH';
     export const ADVANCE : string = 'ADVANCE';
+    export const NEW_ITEMS : string = 'NEW_ITEMS';
 }

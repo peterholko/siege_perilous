@@ -6,11 +6,14 @@
  b. Upgrades of structures
 6.  [P] Resting and recovering health and stamina
 7.  [P] NPC info screen
-8.  Improve Exploring with anything
+8.  [C] Improve Exploring with anything
 9.  [P] Add Hero Stats
 10. [C] Determine if Heros can harvest resources
-11. Add death image to sprites which don't have a death animation
-
+11. [C] Add death image to sprites which don't have a death animation
+12. Improve the feedback for crafting
+13. Consider removing the automatic refine for crafting structures
+14. Experimentation improvements
+15. Add push capabilities to object information panel
 
 
 

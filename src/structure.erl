@@ -10,14 +10,15 @@
 
 -export([get_info_experiment/1]).
 -export([create_foundation/3, valid_location/2, upgrade/1]).
--export([list/0, recipe_list/1, refine/1]).
+-export([list/1, recipe_list/1, refine/1]).
 -export([has_req/1, has_upgrade_req/1, has_refine_resources/1, check_recipe_req/2]).
 -export([get_updated_req/1]).
 -export([process_upkeep/1, process_upkeep_item/3]).
 -export([get_harvesters/1]).
 -export([get_craftable_recipe/1]).
--export([can_craft/1, can_refine/1, consume_req/1]).
+-export([can_craft/1, consume_req/1]).
 -export([recipe_name/1]).
+-export([add_deed/4]).
 -export([get_nearby_bones/1]).
 -export([resource_type/1, to_skill/1]).
 -export([has_experiment/1, has_exp_recipe/1,
@@ -187,11 +188,14 @@ check_experiment_req(StructureId) ->
             end
         end,
 
-    lists:all(F, Experiment#experiment.req).
+    %Reqs are empty if no recipe was found
+    (Experiment#experiment.req =/= []) andalso lists:all(F, Experiment#experiment.req).
 
 experiment(StructureId) ->
     lager:info("Processing experiment"),
     [Experiment] = db:read(experiment, StructureId),
+
+    %TODO Handle case where no recipe exists
     RecipeName = maps:get(<<"name">>, Experiment#experiment.recipe),
 
     ResRateList = [{<<"Copper Ingot">>, 1.75},
@@ -451,13 +455,6 @@ updated_req([Req | ReqRest], Items, UpdatedReqList) ->
 
     updated_req(ReqRest, Items, NewUpdatedReqList).
 
-has_refine_resources(StructureId) ->
-    case obj_attr:value(StructureId, <<"refine">>, none) of
-        none -> false;
-        Process -> 
-            Items = item:get_by_class(StructureId, Process),
-            Items =/= []
-    end.
 
 check_recipe_req(ObjId, RecipeName) ->
     Items = item:get_by_owner(ObjId),
@@ -465,20 +462,73 @@ check_recipe_req(ObjId, RecipeName) ->
     Recipe = recipe:get_recipe(RecipeName),
     ReqList = maps:get(<<"req">>, Recipe),
     lager:info("ReqList: ~p Items: ~p", [ReqList, Items]),
-    has_req(ReqList, Items).
+    HasReq = has_req(ReqList, Items),
+    lager:info("HasReq: ~p", [HasReq]),
+    HasReq.
  
-list() ->
-    Structures = obj_template:select(<<"level">>, 0),
-    Structures.
+list(PlayerId) ->
+    DeedRecList = db:read(deed, PlayerId),
+
+    F = fun(A, B) ->
+            {A#deed.structure, A#deed.tier} < {B#deed.structure, B#deed.tier}
+        end,
+
+    SortedDeedRecList = lists:sort(F, DeedRecList),
+
+    G = fun(DeedRec, DeedList) ->
+            Name = DeedRec#deed.structure,
+            Template = obj_template:all_to_map(Name),
+ 
+            Image= string:lowercase(re:replace(Name, 
+                                               <<" ">>, <<"">>, 
+                                               [{return, binary}])),
+
+            TemplateWithImage = maps:put(<<"image">>, Image, Template),
+            [TemplateWithImage | DeedList]
+        end,
+    
+    Deeds = lists:reverse(lists:foldl(G, [], SortedDeedRecList)),
+
+    lager:info("Deeds: ~p", [Deeds]),
+
+    Deeds.
+
+add_deed(PlayerId, Name, Level, Tier) ->
+    Deed = #deed {player = PlayerId,
+                  structure = Name,
+                  level = Level,
+                  tier = Tier},
+    db:write(Deed).
 
 recipe_list(Obj) ->
     Recipes = recipe:get_recipes(Obj#obj.template),
     Recipes.
 
+has_refine_resources(StructureId) ->
+    case obj_attr:value(StructureId, <<"refine">>, none) of
+        none -> 
+            false;
+        RefineAttr when is_list(RefineAttr) ->
+            F = fun(RefineClass) ->
+                    item:get_by_class(StructureId, RefineClass) =/= []
+                end,
+
+            lists:any(F, RefineAttr);
+        RefineAttr -> 
+            item:get_by_class(StructureId, RefineAttr) =/= []
+    end.
+
 refine(StructureId) ->
-    RefineClass = obj_attr:value(StructureId, <<"refine">>),
+    RefineAttr = obj_attr:value(StructureId, <<"refine">>),
+
+    RefineClassList =
+        case RefineAttr of
+            Value when is_list(RefineAttr) -> Value;
+            Value -> [Value]
+        end,
     
-    [Item | _Rest] = item:get_by_class(StructureId, RefineClass),
+    Item = select_refine_item(StructureId, RefineClassList),
+
     Id = maps:get(<<"id">>, Item),
     Quantity = maps:get(<<"quantity">>, Item),
     Produces = maps:get(<<"produces">>, Item),
@@ -501,9 +551,19 @@ refine(StructureId) ->
     NewItems = lists:foldl(F, [], Produces),
     NewItems.
 
-can_refine(StructureId) ->
-    RefineSubclass = obj_attr:value(StructureId, <<"refine">>),
-    item:get_by_class(StructureId, RefineSubclass) =/= [].
+select_refine_item(StructureId, RefineClassList) ->
+    select_refine_item(StructureId, RefineClassList, false).
+
+select_refine_item(StructureId, [RefineClass | Rest], false) ->
+    Result = 
+        case item:get_by_class(StructureId, RefineClass) of
+            [] -> false;
+            [Item | _] -> Item
+        end,
+
+    select_refine_item(StructureId, Rest, Result);
+select_refine_item(_, _, SelectedItem) ->
+    SelectedItem.
 
 can_craft(StructureId) ->
     [Structure] = db:read(obj, StructureId),

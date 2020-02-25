@@ -128,10 +128,11 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
                              this.state.structureData.subclass == CRAFT);
 
     const showRefineButton = (this.state.structureData.state == NONE &&
-                              this.state.structureData.name == 'Blacksmith');
+                              this.state.structureData.subclass == CRAFT);
 
     const showExperimentButton = (this.state.structureData.state == NONE &&
-                                  this.state.structureData.subclass == CRAFT);
+                                  this.state.structureData.subclass == CRAFT &&
+                                  this.state.structureData.level != 0);
 
     const showBuildButton = (this.state.structureData.state == FOUNDED ||
                              this.state.structureData.state == STALLED);                             
@@ -149,21 +150,23 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     if(this.state.structureData.state == 'founded') {
       imageName = 'foundation.png'
     } else {
-      imageName = this.state.structureData.name.toLowerCase() + '.png';
+      imageName = this.state.structureData.image + '.png';
     }
 
     const reqs = [];
 
-    for(var i = 0; i < this.state.structureData.req.length; i++) {
-      var req = this.state.structureData.req[i];
+    if(this.state.structureData.hasOwnProperty('req')) {
+      for(var i = 0; i < this.state.structureData.req.length; i++) {
+        var req = this.state.structureData.req[i];
 
-      reqs.push(
-        <ResourceItem key={i}
-                      resourceName={req.type}
-                      quantity={req.quantity}
-                      index={i}
-                      showQuantity={true}/>
-      )
+        reqs.push(
+          <ResourceItem key={i}
+                        resourceName={req.type}
+                        quantity={req.quantity}
+                        index={i}
+                        showQuantity={true}/>
+        )
+      }
     }
 
     const imageStyle = {

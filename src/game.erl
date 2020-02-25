@@ -38,15 +38,14 @@
 
 %% Common functions
 %%
-send_update_items(ObjId, NewItems, PlayerPid) ->
-    lager:debug("Send update items: ~p ~p ~p", [ObjId, NewItems]),
+send_update_items(ObjId, {SourceOfItems, CrafterId, NewItems}, _PlayerPid) ->
+    lager:debug("Send update items: ~p ~p", [ObjId, NewItems]),
     [Obj] = db:read(obj, ObjId),
-    case obj:is_hero_nearby(Obj, Obj#obj.player) of
-        true ->
-            %Send item perception to player pid
-            message:send_to_process(PlayerPid, new_items, NewItems);
+    case player:is_online(obj:player(Obj)) of
         false ->
-            nothing
+            nothing;
+        Conn ->
+            message:send_to_process(Conn#connection.process, new_items, {SourceOfItems, CrafterId, NewItems})
     end.
 
 send_update_stats(PlayerId, ObjId) when PlayerId > ?NPC_ID ->
@@ -258,6 +257,7 @@ create_new_player(PlayerId) ->
     Corpse1Pos = util:pos_bin_to_tuple(maps:get(<<"corpse1_pos">>, StartPosData)),
     Corpse2Pos = util:pos_bin_to_tuple(maps:get(<<"corpse2_pos">>, StartPosData)),
     NecromancerPos = util:pos_bin_to_tuple(maps:get(<<"necromancer_pos">>, StartPosData)),
+    MerchantPos = util:pos_bin_to_tuple(maps:get(<<"merchant_pos">>, StartPosData)),
 
     [Player] = db:read(player, PlayerId),
 
@@ -276,7 +276,12 @@ create_new_player(PlayerId) ->
                                start_pos = RandStartPos,
                                data = #{monolith_pos => MonolithPos}},
     db:write(NewPlayer),
-    
+
+    structure:add_deed(PlayerId, <<"Crafting Tent">>, 0, 0),
+    structure:add_deed(PlayerId, <<"Tent">>, 0, 0),
+    structure:add_deed(PlayerId, <<"Burrow">>, 0, 0),
+    structure:add_deed(PlayerId, <<"Stockade">>, 0, 0),
+
     %Create 2 corpses
     obj:create(Corpse1Pos, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
     obj:create(Corpse2Pos, ?UNDEAD, <<"Human Corpse">>, ?DEAD),
@@ -286,15 +291,16 @@ create_new_player(PlayerId) ->
 
     item:create(HeroId, <<"Honeybell Berries">>, 25),
     item:create(HeroId, <<"Spring Water">>, 25),
-    item:create(HeroId, <<"Gold Coins">>, 25),
-    item:create(HeroId, <<"Valleyrun Copper Ingot">>, 200),
-    item:create(HeroId, <<"Cragroot Maple Timber">>, 200),
-    item:create(HeroId, <<"Copper Training Axe">>, 1),
-    item:create(HeroId, <<"Health Potion">>, 5),
+    item:create(ShipwreckId, <<"Gold Coins">>, 25),
+    item:create(ShipwreckId, <<"Valleyrun Copper Ingot">>, 10),
+    item:create(ShipwreckId, <<"Valleyrun Copper Ore">>, 10),
+    item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 20),
+    item:create(ShipwreckId, <<"Cragroot Maple Wood">>, 20),
+    item:create(ShipwreckId, <<"Copper Training Axe">>, 1),
+    item:create(ShipwreckId, <<"Health Potion">>, 5),
+    item:create(ShipwreckId, <<"Windstride Raw Hide">>, 5),
     item:create(MonolithId, <<"Mana">>, 2500),
-    item:create(HeroId, <<"Cragroot Maple Wood">>, 100),
-    item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 25),
-    item:create(ShipwreckId, <<"Valleyrun Copper Ore">>, 100),
+    %item:create(ShipwreckId, <<"Valleyrun Copper Ore">>, 100),
 
     map:add_explored(PlayerId, HeroPos, 2),
 
@@ -348,6 +354,11 @@ create_new_player(PlayerId) ->
             ItemMap = item:create(MeagerMerchantId, <<"Pick Axe">>, 2),
             item_attr:set(item:id(ItemMap), <<"price">>, 5),
 
+            ItemMap2 = item:create(MeagerMerchantId, <<"Basic Blacksmith Deed">>, 1),
+            item_attr:set(item:id(ItemMap2), <<"price">>, 5),
+
+            npc:set_data(MeagerMerchantId, #{landing_pos => MerchantPos}),
+
 
             VillagerForHireId = villager:create(0, ?EMPIRE, {-50, -50}),
             obj_attr:set(VillagerForHireId, <<"wage">>, 24),
@@ -389,7 +400,7 @@ create_new_player(PlayerId) ->
          end,
 
     %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
-    %game:add_event(none, event, F2, none, 15),
+    game:add_event(none, event, F2, none, 15),
     %game:add_event(none, event, F3, none, 15),
     %game:add_event(none, event, F4, none, 40),
 

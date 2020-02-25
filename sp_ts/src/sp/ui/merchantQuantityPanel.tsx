@@ -113,7 +113,8 @@ export default class MerchantQuantityPanel extends React.Component<MQPProps, any
         <InventoryItem key={'item'}
                        ownerId={this.state.item.owner}
                        itemId={this.state.item.id} 
-                       itemName={this.state.item.name} 
+                       itemName={this.state.item.itemName} 
+                       image={this.state.item.image} 
                        quantity={this.state.item.quantity}
                        xPos={140}
                        yPos={30} />

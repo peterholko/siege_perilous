@@ -487,6 +487,8 @@ export class ObjectScene extends Phaser.Scene {
       var mapScene = this.scene.get('MapScene') as MapScene;
       mapScene.cameras.main.centerOn(sprite.x + 36, sprite.y + 36);
       this.cameras.main.centerOn(sprite.x + 36, sprite.y + 36);
+
+      sprite.setDepth(5);
    }
   }
 
@@ -858,7 +860,7 @@ export class ObjectScene extends Phaser.Scene {
     var objectState = Global.objectStates[message.id];
     var source = Util.hex_to_pixel(objectState.x, objectState.y);
 
-    var value = '+' + message.xp + ' ' + message.type;
+    var value = '+' + message.xp + ' ' + message.type + ' XP';
 
     var xpText = this.add.text(source.x + 36, source.y - 5, value, { fontFamily: 'Verdana', fontSize: 18, color: '#FFFFFF' });
     xpText.setDepth(10);
@@ -880,7 +882,13 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   processTextState(sprite, state) {
-    var value = '* ' + state + ' *'; 
+    var value = '';
+
+    if(state == 'sleeping') {
+      value = '...zzzZZZ';
+    } else {
+      value = '* ' + state + ' *'; 
+    }
 
     var stateText = this.add.text(sprite.x + 36, sprite.y - 5, value, { fontFamily: 'Verdana', fontSize: 14, color: '#00d2ff' });
     stateText.setDepth(10);

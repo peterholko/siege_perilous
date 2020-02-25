@@ -8,6 +8,7 @@
   corpse1_pos: 16,35
   corpse2_pos: 17,35
   necromancer_pos: 15,35
+  merchant_pos: 15,37
 
 - name: startpos2
   hero_pos: 5,21
@@ -17,6 +18,8 @@
   corpse1_pos: 5,22
   corpse2_pos: 6,22
   necromancer_pos: 7,22
+  merchant_pos: 4,22
+
 
 - name: startpos3
   hero_pos: 14,13
@@ -26,6 +29,7 @@
   corpse1_pos: 15,12
   corpse2_pos: 15,13
   necromancer_pos: 16,14
+  merchant_pos: 14,11
 
 - name: startpos4
   hero_pos: 5,30
@@ -35,6 +39,8 @@
   corpse1_pos: 4,31
   corpse2_pos: 4,30
   necromancer_pos: 4,29
+  merchant_pos: 3,30
+
 
 - name: startpos5
   hero_pos: 18,5
@@ -44,5 +50,7 @@
   corpse1_pos: 19,5
   corpse2_pos: 18,6
   necromancer_pos: 20,6
+  merchant_pos: 16,5
+
 
 

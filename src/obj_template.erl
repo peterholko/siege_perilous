@@ -5,10 +5,14 @@
 
 -include("schema.hrl").
 
--export([all/1, select/2, value/2]).
+-export([all/1, all_to_map/1, select/2, value/2]).
 
 all(Name) ->
     db:dirty_match_object({obj_template, {Name, '_'}, '_'}).
+
+all_to_map(Name) ->
+    All = all(Name),
+    to_map(All).
 
 select(Key, Val) ->
     ListOfMatches = db:dirty_match_object({obj_template, {'_', Key}, Val}),

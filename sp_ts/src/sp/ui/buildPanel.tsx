@@ -48,7 +48,7 @@ export default class BuildPanel extends React.Component<BuildPanelProps, any> {
   }
 
   render() {
-    var imageName = this.state.structure.name.toLowerCase() + '.png';
+    var imageName = this.state.structure.image + '.png';
     const reqs = [];
 
     for(var i = 0; i < this.state.structure.req.length; i++) {

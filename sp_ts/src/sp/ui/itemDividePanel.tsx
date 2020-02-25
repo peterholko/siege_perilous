@@ -100,7 +100,8 @@ export default class ItemDividePanel extends React.Component<ItemDivideProps, an
         <InventoryItem key={'left'}
                        ownerId={this.state.leftItem.owner}
                        itemId={this.state.leftItem.id} 
-                       itemName={this.state.leftItem.name} 
+                       itemName={this.state.leftItem.name}
+                       image={this.state.leftItem.image} 
                        quantity={this.state.leftItem.quantity}
                        xPos={110}
                        yPos={30} />
@@ -109,6 +110,7 @@ export default class ItemDividePanel extends React.Component<ItemDivideProps, an
                        ownerId={this.state.rightItem.owner}
                        itemId={this.state.rightItem.id} 
                        itemName={this.state.rightItem.name} 
+                       image={this.state.rightItem.image} 
                        quantity={this.state.rightItem.quantity}
                        xPos={175}
                        yPos={30} />  

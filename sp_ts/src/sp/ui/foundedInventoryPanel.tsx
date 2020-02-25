@@ -123,6 +123,7 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
       console.log('Item: ' + this.props.items[i]);
       var itemId = this.props.items[i].id;
       var itemName = this.props.items[i].name;
+      var image = this.props.items[i].image;
       var quantity = this.props.items[i].quantity;
 
       var xPos = 31 + ((i % 5) * 53);
@@ -131,13 +132,14 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
       items.push(<InventoryItem key={i}
                                 ownerId={objId}
                                 itemId={itemId} 
-                                itemName={itemName} 
+                                itemName={itemName}
+                                image={image}
                                 quantity={quantity}
                                 index={i}
                                 xPos={xPos}
                                 yPos={yPos}
                                 handleSelect={this.handleSelect} />);
-  }
+    }
 
     return (
       <HalfPanel left={false} 

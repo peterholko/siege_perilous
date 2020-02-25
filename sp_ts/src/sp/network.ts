@@ -477,7 +477,9 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
       } else if(jsonData.packet == 'advance') {
         Global.gameEmitter.emit(NetworkEvent.ADVANCE, jsonData);
-      }    
+      } else if(jsonData.packet == 'new_items') {
+        Global.gameEmitter.emit(NetworkEvent.NEW_ITEMS, jsonData);
+      }  
     }
   }
 

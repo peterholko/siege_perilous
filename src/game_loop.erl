@@ -179,7 +179,7 @@ do_obj_event(obj_update, _Process, {ObjId, Attr, Value}) ->
     ObjUpdate;
 
 do_obj_event(obj_move, _Process, {ObjId, SourcePos, DestPos}) ->
-    lager:info("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
+    lager:debug("obj_move: ~p ~p ~p", [ObjId, SourcePos, DestPos]),
 
     NewObj = obj:process_move(ObjId, DestPos),
 
@@ -356,17 +356,17 @@ do_event(upgrade, EventData, _PlayerPid) ->
 
 do_event(refine, EventData, PlayerPid) ->
     lager:info("Processing refine event: ~p", [EventData]),
-    {StructureId, UnitId, NumTicks} = EventData,
+    {StructureId, ObjId, NumTicks} = EventData,
 
     case structure:has_refine_resources(StructureId) of
         true ->
             lager:info("Refining"),
             NewItems = structure:refine(StructureId),    
-            game:send_update_items(StructureId, NewItems, PlayerPid),
-            game:add_event(PlayerPid, refine, EventData, UnitId, NumTicks);
+            game:send_update_items(StructureId, {?REFINING, ObjId, NewItems}, PlayerPid),
+            game:add_event(PlayerPid, refine, EventData, ObjId, NumTicks);
         false ->
             lager:info("Insufficient refining resource"),
-            obj:update_state(UnitId, none)
+            obj:update_state(ObjId, none)
     end;
 
 do_event(craft, EventData, PlayerPid) ->
@@ -381,7 +381,7 @@ do_event(craft, EventData, PlayerPid) ->
                     NewItems = recipe:craft_item(StructureId, Recipe),
                     
                     %Send update to player
-                    game:send_update_items(StructureId, NewItems, PlayerPid),
+                    game:send_update_items(VillagerId, {?CRAFTING, VillagerId, NewItems}, PlayerPid),
                     
                     %Send event_complete to villager
                     message:send_to_process(global:whereis_name(villager), 
@@ -455,8 +455,9 @@ do_event(?SLEEPING, EventData, PlayerPid) ->
     lager:info("Processing sleeping event: ~p", [EventData]),
 
     VillagerId = EventData,
+    HasShelter = villager:has_shelter(villager:info(VillagerId)),
 
-    case obj:process_sleep(VillagerId) of
+    case obj:process_sleep(VillagerId, HasShelter) of
         more_sleep ->
             game:add_event(PlayerPid, ?SLEEPING, VillagerId, VillagerId, ?TICKS_SEC * 30);
         rested ->

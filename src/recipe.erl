@@ -134,6 +134,24 @@ craft_item(OwnerId, Recipe, <<"Armor">>, MatchReqList) ->
     CraftedItem = item:create(FinalItem),
 
     [CraftedItem];  
+craft_item(OwnerId, Recipe, <<"Gathering">>, MatchReqList) ->
+    RecipeName = maps:get(<<"name">>, Recipe),
+
+    ItemName = RecipeName,
+
+    BaseStats = #{<<"owner">> => OwnerId, 
+                  <<"class">> => <<"Gathering">>,
+                  <<"subclass">> => RecipeName,
+                  <<"name">> => ItemName,
+                  <<"image">> => maps:get(<<"image">>, Recipe, <<"none">>),
+                  <<"quantity">> => 1,
+                  <<"weight">> => maps:get(<<"weight">>, Recipe)
+                  },
+    
+    CraftedItem = item:create(BaseStats),
+
+    [CraftedItem];
+ 
 craft_item(_OwnerId, _Recipe, <<"Material">>, _MatchReqList) ->
     nothing.
  

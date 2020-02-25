@@ -246,10 +246,11 @@ free_structure(Villager, StructureClass, StructureTypes) ->
                       storage -> [] % Cannot claim storage
                   end,
 
+    lager:debug("ClaimedList: ~p", [ClaimedList]),
     StateComplete = [{state, none}],    
     Structures = obj:get_by_attr(Villager#villager.player, StructureTypes ++ StateComplete),
 
-    lager:debug("ClaimedList: ~p", [ClaimedList]),
+    lager:debug("Structures: ~p", [Structures]),
 
     F = fun(Structure, Acc) -> 
             FreeStructure = not lists:member(Structure#obj.id, ClaimedList),
@@ -338,12 +339,16 @@ has_tools(Villager) ->
 %%%
 
 find_shelter(Villager) ->
+    lager:debug("V(~p) find_shelter", [Villager#villager.id]),
     Shelter = find_structure(Villager, <<"shelter">>),
-    Villager#villager {shelter = {Shelter#obj.id, 
+    lager:debug("V(~p) shelter found: ~p", [Villager#villager.id, Shelter]),
+    R = Villager#villager {shelter = {Shelter#obj.id, 
                                   Shelter#obj.pos, 
                                   Shelter#obj.name},
                        dest = Shelter#obj.pos,
-                       task_state = completed}.
+                       task_state = completed},
+    lager:debug("~p", [R]),
+    R.
 
 find_harvester(Villager) ->
     Harvester = find_structure(Villager, <<"resource">>),
@@ -420,6 +425,7 @@ get_pos(Villager, pos_gather) ->
     GatherPos.
 
 set_activity(Villager, NewActivity) ->
+    lager:debug("V(~p) NewActivity: ~p", [Villager#villager.id, NewActivity]),
     FinalVillager = case Villager#villager.activity =:= NewActivity of
                       true -> 
                             Villager#villager{task_state = completed};
@@ -432,6 +438,8 @@ set_activity(Villager, NewActivity) ->
     FinalVillager.
 
 move_to(Villager, Pos) ->
+    lager:info([{villager, Villager#villager.id}], "Villager ~p moving to ~p", 
+               [Villager#villager.id, Pos]),
     [VillagerObj] = db:read(obj, Villager#villager.id),
 
     Dest = get_pos(Villager, Pos),
@@ -460,6 +468,8 @@ move_to(Villager, Pos) ->
     FinalVillager.
 
 move_to_pos(Villager) ->
+    lager:info([{villager, Villager#villager.id}], "Villager ~p moving to ~p", 
+               [Villager#villager.id, Villager#villager.dest]),
     [VillagerObj] = db:read(obj, Villager#villager.id),
 
     Dest = Villager#villager.dest,
@@ -836,6 +846,7 @@ handle_cast({assign, VillagerId, TargetId}, Data) ->
     Structure = {TargetId, obj:pos(StructureObj), obj:name(StructureObj)},
     NewVillager = Villager#villager{structure = Structure}, 
     NewData = maps:update(VillagerId, NewVillager, Data),
+    lager:info("NewData: ~p", [NewData]),
 
     {noreply, NewData};
 
@@ -864,6 +875,7 @@ handle_cast({set_target, VillagerId, TargetId}, Data) ->
     {noreply, NewData};
 
 handle_cast({remove_structure, StructureId}, Data) ->
+    lager:info("Remove Structure: ~p", [StructureId]),
     NewData = remove_shelters(StructureId, 
                               remove_assigns(StructureId,
                                              remove_storage(StructureId, Data))),
@@ -948,9 +960,13 @@ handle_call({assign_list, Player}, _From, Data) ->
     {reply, AssignList, Data};
 
 handle_call({get_by_structure, StructureId}, _From, Data) ->
+    lager:info("get_by_structure: ~p", [Data]),
     F = fun(_VillagerId, Villager) ->
-            {Id, _Pos, _Name} = Villager#villager.structure,
-            Id =:= StructureId
+            lager:info("Villager: ~p", [Villager]),
+            case Villager#villager.structure of
+                {Id, _Pos, _Name} -> Id =:= StructureId;
+                _ -> false
+            end
         end,
 
     Filtered = maps:filter(F, Data),
@@ -1014,7 +1030,7 @@ handle_info({event_failure, {_Event, VillagerId, Error, _EventData}}, Data) ->
 
     {noreply, Data};
 handle_info(Info, Data) ->
-    lager:info("~p", Info),
+    lager:info("~p", [Info]),
     error_logger:info_report([{module, ?MODULE}, 
                               {line, ?LINE},
                               {self, self()}, 
@@ -1089,6 +1105,7 @@ run_new_plans(Tick, Data) ->
             case Tick >= (Villager#villager.last_run + (2 * ?TICKS_SEC)) of
                 true ->
                     NewVillager = process_run_plan(Villager, Tick),
+                    lager:debug("Saving NewVillager: ~p", [NewVillager]),
                     maps:put(VillagerId, NewVillager, Acc);
                 false ->
                     maps:put(VillagerId, Villager, Acc)
@@ -1265,7 +1282,7 @@ filter_objs(_VillagerPlayer, #obj{player = ObjPlayer}, Enemies) when ObjPlayer =
 filter_objs(_VillagerPlayer, Obj, Enemies) -> [Obj | Enemies].
 
 find_structure(Villager, Type) ->       
-    lager:debug("find_structure: ~p", [Type]),
+    lager:debug("V(~p) find_structure: ~p", [Villager#villager.id, Type]),
     Structures  = obj:get_by_attr(Villager#villager.player, [{subclass, Type}, {state, none}]),
 
     ClaimedList = case Type of
@@ -1275,7 +1292,6 @@ find_structure(Villager, Type) ->
                       <<"storage">> -> [] % Cannot claim storage
                   end,
 
-    lager:debug("ClaimedList: ~p", [ClaimedList]),
     F = fun(Structure, Acc) ->
             case lists:member(Structure#obj.id, ClaimedList) of
                 false -> [Structure | Acc];
@@ -1284,6 +1300,7 @@ find_structure(Villager, Type) ->
         end,
 
     [First | _Rest] = lists:foldl(F, [], Structures),
+    lager:debug("V(~p) structure: ~p", [Villager#villager.id, First]),
     First.
 
 get_storages(Player) ->

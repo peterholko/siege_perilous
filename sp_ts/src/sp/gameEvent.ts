@@ -20,6 +20,8 @@ export namespace GameEvent {
     export const MERCHANT_QUANTITY_CANCEL : string = 'MERCHANT_QUANTITY_CANCEL';
     export const MERCHANT_HIRE_CLICK : string = 'MERCHANT_HIRE_CLICK';
     export const RESOURCE_CLICK : string = 'RESOURCE_CLICK';
+    export const CRAFT_CLICK : string = 'CRAFT_CLICK';
+    export const NOTICE_EXPIRE : string = 'NOTICE_EXPIRE';
 
     export const OBJ_UPDATE: string = 'OBJ_UPDATE';
 }

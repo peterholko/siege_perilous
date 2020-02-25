@@ -15,6 +15,12 @@
                  start_pos = none,
                  data = #{}}).
 
+-record(deed, {player, 
+               structure,
+               level,
+               tier
+              }).
+
 -record(start, {key, 
                 value}).
 

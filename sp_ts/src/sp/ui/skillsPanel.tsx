@@ -47,6 +47,11 @@ export default class SkillsPanel extends React.Component<SkillsPanelProps, any> 
       fontSize: '12px'
     } as React.CSSProperties
 
+    const thStyle = {
+      width: '75px'
+    } as React.CSSProperties
+
+
     var key = 0;
 
     for(var skill in this.props.skillsData.skills) {

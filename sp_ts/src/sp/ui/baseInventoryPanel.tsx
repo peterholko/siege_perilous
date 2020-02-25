@@ -13,6 +13,8 @@ interface BaseInventoryProps {
   left : boolean,
   id: integer,
   items: any,
+  capacity?: integer,
+  totalWeight?: integer,
   panelType : string,
   hideExitButton : boolean,
   hideSelect : boolean,
@@ -59,16 +61,21 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
     const items = []
     const reqs = []
 
-    const spriteStyle = {
-      transform: 'translate(-200px, 5px)',
-      position: 'fixed'
-    } as React.CSSProperties
+    var imageName;
+    var capacityText;
 
     if(Util.isSprite(Global.objectStates[objId].image)) {
-      var imageName = Global.objectStates[objId].image + '_single.png';
+      imageName = Global.objectStates[objId].image + '_single.png';
     } else {
-      var imageName = Global.objectStates[objId].image + '.png';
+      imageName = Global.objectStates[objId].image + '.png';
     } 
+
+    if(this.props.capacity != null && this.props.totalWeight != null) {
+      capacityText = this.props.totalWeight + '/' + this.props.capacity + ' lbs';      
+    } else {
+      capacityText = '';
+    }
+
 
     for(var i = 0; i < 20; i++) {
       var xPos = -293 + ((i % 5) * 53);
@@ -85,7 +92,8 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
     for(var i = 0; i < this.props.items.length; i++) {
       console.log('Item: ' + this.props.items[i]);
       var itemId = this.props.items[i].id;
-      var itemName = this.props.items[i].image;
+      var itemName = this.props.items[i].name;
+      var image = this.props.items[i].image;
       var quantity = this.props.items[i].quantity;
 
       var xPos = 31 + ((i % 5) * 53);
@@ -94,19 +102,52 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
       items.push(<InventoryItem key={i}
                                 ownerId={objId}
                                 itemId={itemId} 
-                                itemName={itemName} 
+                                itemName={itemName}
+                                image={image} 
                                 quantity={quantity}
                                 index={i}
                                 xPos={xPos}
                                 yPos={yPos}
                                 handleSelect={this.handleSelect} />);
-  }
+    }
+
+    const spriteStyle = {
+      transform: 'translate(-290px, 5px)',
+      position: 'fixed'
+    } as React.CSSProperties
+
+    const spanNameStyle = {
+      transform: 'translate(-225px, 20px)',
+      position: 'fixed',
+      textAlign: 'left',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+    } as React.CSSProperties
+
+    const capacityTextStyle = {
+      transform: 'translate(-225px, 40px)',
+      position: 'fixed',
+      textAlign: 'left',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px',
+    } as React.CSSProperties
+
 
     return (
       <HalfPanel left={this.props.left} 
                  panelType={this.props.panelType} 
                  hideExitButton={this.props.hideExitButton}>
         <img src={'/static/art/' + imageName} style={spriteStyle} />
+        <span style={spanNameStyle}>
+          {Global.objectStates[objId].name}
+        </span>
+
+        <span style={capacityTextStyle}>
+          {capacityText}
+        </span>
+
         {itemFrames}
         {items}
         {reqs}
