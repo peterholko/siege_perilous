@@ -261,25 +261,26 @@ transfer(TransferItemId, TargetOwnerId) ->
 
     AllItems = db:dirty_index_read(item, TargetOwnerId, #item.owner),
     
-    {Merged, NewItem} = case can_merge(TransferItem#item.class) of
-                              true ->
-                                  case filter_by_name(AllItems, TransferItem#item.name) of
-                                      [] -> 
-                                          {false, TransferItem#item{owner = TargetOwnerId}};
-                                      [Item | _Rest] -> 
-                                          %Update new quantity,
-                                          NewQuantity = Item#item.quantity + TransferItem#item.quantity,
-                                            
-                                          %Remove the transfer item
-                                          db:delete(item, TransferItemId),
+    {Merged, NewItem} = 
+        case can_merge(TransferItem#item.class) of
+            true ->
+                case filter_by_name(AllItems, TransferItem#item.name) of
+                    [] -> 
+                        {false, TransferItem#item{owner = TargetOwnerId}};
+                    [Item | _Rest] -> 
+                        %Update new quantity,
+                        NewQuantity = Item#item.quantity + TransferItem#item.quantity,
+                        
+                        %Remove the transfer item
+                        db:delete(item, TransferItemId),
 
-                                          %Merge with existing item
-                                          {true, Item#item{owner = TargetOwnerId,
-                                                           quantity = NewQuantity}}
-                                  end;
-                              false ->
-                                  {false, TransferItem#item{owner = TargetOwnerId}}
-                         end,
+                        %Merge with existing item
+                        {true, Item#item{owner = TargetOwnerId,
+                                        quantity = NewQuantity}}
+                end;
+            false ->
+                {false, TransferItem#item{owner = TargetOwnerId}}
+        end,
 
     %Potentially send item change to player
     game:send_item_transfer(SourceOwnerId, 
@@ -331,7 +332,6 @@ transfer_class_items([ClassItem | Rest], TargetId, AccQuantity, TargetQuantity) 
                      end,
     transfer_class_items(Rest, TargetId, NewAccQuantity, TargetQuantity).
     
-
 split(ItemId, NewQuantity) ->
     [Item] = db:read(item, ItemId),
     CurrentQuantity = Item#item.quantity,

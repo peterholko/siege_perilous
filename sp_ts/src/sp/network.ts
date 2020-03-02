@@ -4,7 +4,6 @@ import { NetworkEvent } from './networkEvent';
 import { ObjectState } from './objectState';
 import { TileState } from './tileState';
 import { GameEvent } from './gameEvent';
-import UI from './ui';
 
 export class Network {
 
@@ -178,6 +177,15 @@ export class Network {
       id: id
     };
     Global.socket.sendMessage(JSON.stringify(m)); 
+  }
+
+  public static sendCombo(id, comboType) {
+    var m = {
+      cmd: "combo",
+      sourceid: id,
+      combotype: comboType
+    };
+    Global.socket.sendMessage(JSON.stringify(m));
   }
 
   public static sendAttack(attackType, sourceId, targetId) {
@@ -386,6 +394,8 @@ export class Network {
       if(jsonData.hasOwnProperty('errmsg')) {
         console.log('Error received: ' + jsonData.errmsg);
         Global.gameEmitter.emit(NetworkEvent.ERROR, jsonData);
+      } else if(jsonData.hasOwnProperty('noticemsg')) {
+        Global.gameEmitter.emit(NetworkEvent.NOTICE, jsonData);
       } else if(jsonData.packet == "select_class") {
         Global.playerId = jsonData.player;
         Global.gameEmitter.emit(NetworkEvent.SELECT_CLASS, {});

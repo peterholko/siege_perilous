@@ -138,13 +138,16 @@ tax_collector() ->
         add_select_all(move_to_landing, returning, [], []),
             add_primitive(set_pos_landing, move_to_landing, [], [], set_pos_landing),
             add_primitive(move_to_landing, move_to_landing, [], [], move_to_pos),
-    add_select_all(forfeiture, tax_collector, [{wait_count, moreorequal, 3}], []),
+    add_select_all(forfeiture, tax_collector, [{wait_count, moreorequal, 5}], []),
         add_primitive(find_items, forfeiture, [], [], find_item),
         add_primitive(move_to_item, forfeiture, [], [], move_to_pos),
         add_primitive(take_items, forfeiture, [], [], take_item),
-    add_select_all(collecting, tax_collector, [], []),
+    add_select_all(collecting, tax_collector, [is_hero_nearby], []),
         add_primitive(demand_tax, collecting, [], [], say_demand_tax),
-        add_primitive(wait_for_tax, collecting, [], [], {wait, 5}).
+        add_primitive(wait_for_tax, collecting, [], [], {wait, 75}),
+    add_select_all(move_to_hero, tax_collector, [], []),
+        add_primitive(set_pos_hero, move_to_hero, [], [], set_pos_target_hero),
+        add_primitive(move_to_hero_pos, move_to_hero, [], [], move_to_pos).
 
 tax_collector_ship() ->
     new(tax_collector_ship),
@@ -158,7 +161,7 @@ tax_collector_ship() ->
     add_select_all(wait_for_collector, tax_collector_ship, [], []),
         add_primitive(wait_at_pos, wait_for_collector, [], [], idle).
 
-  idle() ->
+idle() ->
     new(idle),
     add_select_all(do_idle, idle, [], []),
         add_primitive(idle, do_idle, [], [], idle).

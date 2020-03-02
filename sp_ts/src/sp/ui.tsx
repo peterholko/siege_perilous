@@ -219,6 +219,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.NETWORK_ERROR, this.handleNetworkError, this);
 
     Global.gameEmitter.on(NetworkEvent.ERROR, this.handleError, this);
+    Global.gameEmitter.on(NetworkEvent.NOTICE, this.handleNotice, this);
     Global.gameEmitter.on(NetworkEvent.HERO_INIT, this.handleHeroInit, this);
     Global.gameEmitter.on(NetworkEvent.HERO_DEAD, this.handleHeroDead, this);
     Global.gameEmitter.on(NetworkEvent.INFO_OBJ, this.handleInfoObj, this);
@@ -419,6 +420,10 @@ export default class UI extends React.Component<any, UIState>{
     Network.sendRest(Global.heroId);
   }
 
+  handleComboClick() {
+    Network.sendCombo(Global.heroId, 'quick');
+  }
+
   handleQuickAttack(event: React.MouseEvent) {
     Network.sendAttack('quick', Global.heroId, this.state.selectedKey.id);
   }
@@ -457,6 +462,11 @@ export default class UI extends React.Component<any, UIState>{
 
   handleNoticeExpire() {
     this.setState({hideNoticePanel: true});
+  }
+
+  handleNotice(message) {
+    this.setState({hideNoticePanel : false,
+                   noticemsg : message.noticemsg});
   }
 
   handleError(message) {
@@ -716,6 +726,11 @@ export default class UI extends React.Component<any, UIState>{
               id="herosleepbutton" 
               className={styles.herosleepbutton} 
               onClick={this.handleHeroSleepClick} />
+
+          <img src={parrybutton} 
+              id="combobutton" 
+              className={styles.combobutton} 
+              onClick={this.handleComboClick}/>
 
           <ActionButton type={QUICK}
                         handler={this.handleQuickAttack}/>

@@ -12,8 +12,8 @@
 is_ally(#obj{player = SourcePlayer}, #obj{player = TargetPlayer}) 
   when SourcePlayer =:= TargetPlayer ->
     true;
-is_ally(#obj{id = SourceId}, #obj{id = TargetId}) ->
-  case db:read(relation, {SourceId, TargetId}) of
+is_ally(#obj{player = SourcePlayer}, #obj{player = TargetPlayer}) ->
+  case db:read(relation, {SourcePlayer, TargetPlayer}) of
     [] -> false;
     [Relation] -> Relation#relation.score > ?NEUTRAL
   end.

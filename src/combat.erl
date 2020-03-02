@@ -577,6 +577,7 @@ combo_damage(?NIGHTMARE_STRIKE, false) -> 8;
 combo_damage(_, _) -> 1.
 
 reset_attacks(SourceId, ComboType) ->
+    lager:info("Reset attacks: ~p ~p", [SourceId, ComboType]),
     NewAttacks = #attack {id = SourceId,
                           combo_type = ComboType,
                           types = []},

@@ -528,14 +528,6 @@ message_handle(<<"hire">>, Message) ->
     FinalReturn = maps:put(<<"packet">>, <<"hire">>, Return),
     jsx:encode(FinalReturn);
 
-message_handle(<<"pay_tax">>, Message) ->
-    lager:info("message: pay_tax"),
-    TaxCollectorId = m_get(<<"taxcollector">>, Message),
-    Amount = m_get(<<"amount">>, Message),
-    Return = player:pay_tax(TaxCollectorId, Amount),
-    FinalReturn = maps:put(<<"packet">>, <<"pay_tax">>, Return),
-    jsx:encode(FinalReturn);
-
 message_handle(<<"set_exp_item">>, Message) ->
     lager:info("message: set experiment item"),
     ItemId = m_get(<<"itemid">>, Message),

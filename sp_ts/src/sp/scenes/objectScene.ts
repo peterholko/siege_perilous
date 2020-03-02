@@ -715,7 +715,6 @@ export class ObjectScene extends Phaser.Scene {
         });
 
       } else {
-
         console.log('Play attack');
         source.play(source.imageName + '_attack');
         source.anims.chain(source.imageName + '_none');
@@ -738,7 +737,15 @@ export class ObjectScene extends Phaser.Scene {
         tween.play();
       }
 
-      var dmgText = this.add.text(target.x + 36, target.y - 5, message.dmg, { fontFamily: 'Verdana', fontSize: 24, color: '#FF0000' });
+      var dmgMsg = ''
+
+      if(message.combo != false) {
+        dmgMsg = message.combo + ' ' + message.dmg + '!';        
+      } else {
+        dmgMsg = message.dmg;
+      }
+
+      var dmgText = this.add.text(target.x + 36, target.y - 5, dmgMsg, { fontFamily: 'Verdana', fontSize: 20, color: '#FF0000' });
       dmgText.setDepth(10);
       dmgText.setOrigin(0.5, 0.5);
 

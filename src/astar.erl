@@ -7,9 +7,11 @@
 
 astar(Start, Start, _) ->
     {success, [Start]};
-astar(Start, Goal, Obj) ->
+astar(Start, Goal, Obj) when is_tuple(Start); is_tuple(Goal) ->
     lager:debug("Start3: ~p Goal: ~p", [Start, Goal]),
-    astar(Start, Goal, Obj, true, true).
+    astar(Start, Goal, Obj, true, true);
+astar(_, _, _) ->
+    {failed, []}.
 
 astar(Start, Goal, Obj, CheckPassable, CheckBlocking) ->
     lager:debug("Start5: ~p Goal: ~p", [Start, Goal]),

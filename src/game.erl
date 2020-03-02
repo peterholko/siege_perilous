@@ -291,7 +291,7 @@ create_new_player(PlayerId) ->
 
     item:create(HeroId, <<"Honeybell Berries">>, 25),
     item:create(HeroId, <<"Spring Water">>, 25),
-    item:create(ShipwreckId, <<"Gold Coins">>, 25),
+    item:create(ShipwreckId, <<"Gold Coins">>, 55),
     item:create(ShipwreckId, <<"Valleyrun Copper Ingot">>, 10),
     item:create(ShipwreckId, <<"Valleyrun Copper Ore">>, 10),
     item:create(ShipwreckId, <<"Cragroot Maple Timber">>, 20),
@@ -359,7 +359,6 @@ create_new_player(PlayerId) ->
 
             npc:set_data(MeagerMerchantId, #{landing_pos => MerchantPos}),
 
-
             VillagerForHireId = villager:create(0, ?EMPIRE, {-50, -50}),
             obj_attr:set(VillagerForHireId, <<"wage">>, 24),
 
@@ -376,10 +375,12 @@ create_new_player(PlayerId) ->
             obj:update_state(TaxCollectorId, ?ABOARD),
 
             Data1 = #{tax_collector => TaxCollectorId,
-                      target_player => PlayerId},
+                      target_player => PlayerId,
+                      target_hero => HeroId},
 
             Data2 = #{tax_collector_ship => TaxCollectorShipId,
-                      target_player => PlayerId},
+                      target_player => PlayerId,
+                      target_hero => HeroId},
 
             npc:set_data(TaxCollectorShipId, Data1),
             npc:set_data(TaxCollectorId, Data2),
@@ -390,7 +391,7 @@ create_new_player(PlayerId) ->
             [EmpirePlayer] = db:read(player, ?EMPIRE),
             NewEmpirePlayerData1 = maps:put({PlayerId, is_tax_collected}, false, EmpirePlayer#player.data),
             NewEmpirePlayerData2 = maps:put({PlayerId, tax_amount_due}, 10, NewEmpirePlayerData1),
-            NewEmpirePlayerData3 = maps:put({PlayerId, landing_pos}, RandStartPos, NewEmpirePlayerData2),
+            NewEmpirePlayerData3 = maps:put({PlayerId, landing_pos}, MerchantPos, NewEmpirePlayerData2),
             NewEmpirePlayer = EmpirePlayer#player {data = NewEmpirePlayerData3},
             db:write(NewEmpirePlayer)
          end,
@@ -401,7 +402,7 @@ create_new_player(PlayerId) ->
 
     %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
     game:add_event(none, event, F2, none, 15),
-    %game:add_event(none, event, F3, none, 15),
+    game:add_event(none, event, F3, none, 15),
     %game:add_event(none, event, F4, none, 40),
 
     lager:info("Game end.").

@@ -19,7 +19,7 @@
 -export([get_nearby_objs/3, get_ford_pos/2, get_closest/2]).
 -export([add_explored/3]).
 -export([neighbours/1, neighbours/2, get_random_neighbour/1, get_random_from_list/1]).
--export([cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2]).
+-export([cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2, is_adjacent_land/1]).
 -export([movement_cost/1, is_passable/1, is_passable/2, is_not_blocked/2, is_river/1, random_location/0, random_location_from/3]).
 -export([check_distance/4, distance/2]).
 -export([range/2, ring/2, filter_pos/1]).
@@ -60,6 +60,18 @@ is_adjacent(SourcePos, TargetPos) ->
     {SX, SY} = SourcePos,
     Neighbours = map:neighbours(SX, SY),
     lists:member(TargetPos, Neighbours).
+
+is_adjacent_land(SourcePos) ->
+    Neighbours = map:neighbours(SourcePos),
+
+    F = fun(Pos) ->
+            [Tile] = db:dirty_read(map, Pos),
+            TileType = Tile#map.tile,
+            TileName = tile_name(TileType),
+            passable_tile(TileName)
+        end,
+
+    lists:any(F, Neighbours).
 
 is_river(Pos) ->
     [Tile] = db:dirty_read(map, Pos),
@@ -824,3 +836,4 @@ def_bonus(?FROZEN_FOREST) -> 0.5;
 def_bonus(?JUNGLE) -> 0.75;
 def_bonus(?SWAMP) -> 0.66;
 def_bonus(_) -> 0.
+

@@ -35,7 +35,6 @@
          buy_item/2, 
          sell_item/3,
          hire/2,
-         pay_tax/2, 
          item_transfer/2,
          item_split/2,
          structure_list/0,
@@ -456,7 +455,7 @@ move(SourceId, Pos) ->
             FinalReturn = 
                 case MonolithDistance =:= (?SAFEZONE + 1) of
                     true ->
-                        maps:put(<<"errmsg">>, 
+                        maps:put(<<"noticemsg">>, 
                                  <<"You sense the lost of a protective aura...">>,
                                  Return);
                     false ->
@@ -740,31 +739,6 @@ hire(MerchantId, TargetId) ->
             #{<<"errmsg">> => list_to_binary(Error)}
     end.
 
-pay_tax(TaxCollectorId, Amount) ->
-    PlayerId = get(player_id),
-    Hero = obj:get_hero(PlayerId),
-    TaxCollector = obj:get(TaxCollectorId),
-    HeroGold = item:total_gold(obj:id(Hero)),
-    
-    Checks = [{map:is_adjacent(Hero, TaxCollector), "Tax Collector is not nearby"},
-              {HeroGold >= Amount, "Insufficient gold to pay that amount"}],
-
-    case process_checks(Checks) of
-        true ->
-            %Transfer gold
-            item:transfer_by_class(obj:id(Hero),
-                                   TaxCollectorId, 
-                                   ?GOLD_COINS,
-                                   Amount),
-
-            %Update NPC Player data state
-            npc:pay_tax(PlayerId, Amount),
-
-            #{<<"result">> => <<"success">>};
-        {false, Error} ->
-            #{<<"errmsg">> => list_to_binary(Error)}
-    end.
-
 loot(SourceId, ItemId) ->
     Item = item:get_rec(ItemId),
     %Will fail if item id is invalid
@@ -797,7 +771,7 @@ item_transfer(TargetId, ItemId) ->
 
     case process_checks(Checks) of 
         true ->
-            lager:info("Transfering item"),
+            lager:info("Transfering item: ~p ~p",[Item, TargetObj]),
 
             process_item_transfer(Item, TargetObj),
 
@@ -1407,6 +1381,7 @@ process_item_transfer(Item, TargetObj = #obj{id = Id,
                                              class = Class, 
                                              state = State}) when Class =:= structure, 
                                                                   State =:= ?FOUNDED ->
+    lager:info("Transfering to founded structure"),
     ReqList = structure:get_updated_req(Id),
     
     F = fun(Req) ->
@@ -1425,7 +1400,35 @@ process_item_transfer(Item, TargetObj = #obj{id = Id,
 
     ItemMap = item:transfer(Item#item.id, Id, TransferQuantity),
     obj:item_transfer(TargetObj, ItemMap);
+process_item_transfer(Item = #item{class = Class}, TargetObj = #obj{template = Template}) 
+    when Class =:= ?GOLD_COINS, Template =:= ?TAX_COLLECTOR ->
+    lager:info("Transfering to tax collector"),
+    OwnerObj = obj:get(item:owner(Item)),
+    PlayerId = obj:player(OwnerObj),
+    
+    PayAmount = item:quantity(Item),
+
+    [EmpirePlayer] = db:read(player, ?EMPIRE),
+    TaxAmountDue = maps:get({obj:player(OwnerObj), tax_amount_due}, EmpirePlayer#player.data),
+
+    {QuantityTransfer, NewData} =
+        case TaxAmountDue =< PayAmount of
+                true ->
+                    D1 = maps:put({PlayerId, is_tax_collected}, true, EmpirePlayer#player.data),
+                    {TaxAmountDue, maps:put({PlayerId, tax_amount_due}, 0, D1)};
+                false ->
+                    RemainingDue = TaxAmountDue - PayAmount,
+                    {PayAmount, maps:put({PlayerId, tax_amount_due}, RemainingDue, EmpirePlayer#player.data)}
+                end,
+
+    NewEmpirePlayer = EmpirePlayer#player{data = NewData},
+    db:write(NewEmpirePlayer),
+
+    ItemMap = item:transfer(item:id(Item), obj:id(TargetObj), QuantityTransfer),
+    obj:item_transfer(TargetObj, ItemMap);
 process_item_transfer(Item, TargetObj) ->
+    lager:info("Standard transfering to target"),
+
     Capacity = obj:get_capacity(obj:id(TargetObj)),
     TotalTargetWeight = item:get_total_weight(obj:id(TargetObj)),
     ItemWeight = item:weight(Item),
@@ -1544,6 +1547,8 @@ get_monolith_pos(PlayerId) ->
 
 is_transfer_valid(_, invalid) -> 
     {false, "Target is invalid object"};
+is_transfer_valid(_OwnerObj, #obj{template = Template}) when Template == ?TAX_COLLECTOR ->
+    {true, "Transfer is valid"};
 is_transfer_valid(OwnerObj, TargetObj) ->
     case obj:player(OwnerObj) =:= obj:player(TargetObj) of
         true ->

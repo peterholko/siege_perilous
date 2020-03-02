@@ -20,17 +20,17 @@
          set_order/2, set_order/3, set_data/2, append_data/3, get_nearest/3]).
 -export([hp_normal/1, hp_very_low/1, target_visible/1, target_adjacent/1, max_guard_dist/1, is_state/2]).
 -export([is_not_structure_inspected/1]).
--export([set_pos_flee/1, set_pos_guard/1, set_pos_order/1,
+-export([set_pos_flee/1, set_pos_guard/1, set_pos_order/1, set_pos_target_hero/1,
          move_random_pos/1, move_to_target/1, attack/1, move_to_pos/1]).
--export([get_player_id/1, pay_tax/2]).
+-export([get_player_id/1]).
 -export([has_mana/2, has_order/2, phase_id/2, corpses_nearby/1, move_in_range/1, cast_raise_dead/1, 
          cast_shadow_bolt/1, set_pos_mausoleum/1, hide/1, reveal/1, next_phase/1]).
 -export([mausoleum_corpses_nearby/1, mausoleum_guardian_dead/1, has_minions/3, are_minions_dead/1, swarm_attack/1]).
 -export([say_guard_text/1]).
 -export([wait/2, idle/1]).
 -export([find_trade_pos/1, set_pos_empire/1, set_pos_landing/1]).
--export([is_hauling_collector/1, unload_tax_collector/1, is_tax_collected/1, say_demand_tax/1,
-         is_ship_adjacent/1, at_landing_pos/1, is_in_empire/1]).
+-export([at_landing_pos/1, is_hauling_collector/1, unload_tax_collector/1, is_tax_collected/1, say_demand_tax/1,
+         is_ship_adjacent/1, is_in_empire/1, is_hero_nearby/1]).
 -export([board_ship/1, wait_count/3, find_item/1, take_item/1]).
 %% ====================================================================
 %% External functions
@@ -78,22 +78,6 @@ append_data(Id, Key, Value) ->
 get_player_id(NPCType) ->
     [NPCPlayer] = db:index_read(player, NPCType, #player.name),
     NPCPlayer#player.id.
-
-%TODO move to empire module
-pay_tax(PlayerId, PayAmount) ->
-    [EmpirePlayer] = db:read(player, ?EMPIRE),
-    TaxAmountDue = maps:get({PlayerId, tax_amount_due}, EmpirePlayer#player.data),
-
-    NewData = case TaxAmountDue =< PayAmount of
-                true ->
-                    D1 = maps:put({PlayerId, is_tax_collected}, true, EmpirePlayer#player.data),
-                    maps:put({PlayerId, tax_amount_due}, 0, D1);
-                false ->
-                    maps:put({PlayerId, tax_amount_due}, TaxAmountDue - PayAmount, EmpirePlayer#player.data)
-                end,
-    
-    NewEmpirePlayer = EmpirePlayer#player{data = NewData},
-    db:write(NewEmpirePlayer).
 
 %% HTN Conditions %%%
 
@@ -215,14 +199,12 @@ is_ship_adjacent(NPC) ->
     Adjacent = map:is_adjacent(NPCObj, ShipObj),
     Adjacent.
 
-at_landing_pos(NPC) ->
+is_hero_nearby(NPC) ->
+    HeroId = maps:get(target_hero, NPC#npc.data),
+    HeroObj = obj:get(HeroId),
     NPCObj = obj:get(NPC#npc.id),
 
-    TargetPlayerId = maps:get(target_player, NPC#npc.data),
-    [EmpirePlayer] = db:read(player, ?EMPIRE),
-    LandingPos = maps:get({TargetPlayerId, landing_pos}, EmpirePlayer#player.data),
-    
-    obj:pos(NPCObj) =:= LandingPos.
+    map:distance(obj:pos(HeroObj), obj:pos(NPCObj)) =< 1.
 
 wait_count(NPC, Operator, Value) ->
     WaitCount = maps:get(wait_count, NPC#npc.data, 0),
@@ -241,6 +223,11 @@ is_in_empire(NPC) ->
     obj:pos(NPCObj) =:= ?EMPIRE_POS.
 
 %%% HTN Primitives %%%
+
+set_pos_target_hero(NPC) ->
+    HeroId = maps:get(target_hero, NPC#npc.data),
+    HeroObj = obj:get(HeroId),
+    NPC#npc {dest = obj:pos(HeroObj), task_state = completed}.
 
 set_pos_guard(NPC) ->
     GuardPos = maps:get(guard_pos, NPC#npc.data),
@@ -358,7 +345,8 @@ move_to_pos(NPC) ->
     %If dest is set and dest does not equal villager current pos
     NewNPC = case (Dest =/= none) and (Dest =/= NPCObj#obj.pos) of
                   true ->
-                    PathResult = astar:astar(NPCObj#obj.pos, 
+                    lager:debug("Astar - Src: ~p Dest: ~p NPCObj: ~p", [obj:pos(NPCObj),Dest, NPCObj]),
+                    PathResult = astar:astar(obj:pos(NPCObj), 
                                              Dest, 
                                              NPCObj),
 
@@ -498,8 +486,9 @@ swarm_attack(NPC) ->
     NPC#npc{task_state = completed}.
 
 find_trade_pos(NPC) ->
-    %TODO find player positions
-    LandingPos = maps:get(landing_pos, NPC#npc.data, {0,0}),
+    %TODO find player positions, meanwhile set from initial merchantpos
+    lager:info("Find trade pos"),
+    LandingPos = maps:get(landing_pos, NPC#npc.data),
 
     NPC#npc{dest = LandingPos, task_state = completed}.
 
@@ -517,6 +506,7 @@ set_pos_empire(NPC) ->
     NPC#npc{dest = {0, 40}, task_state = completed}.
 
 unload_tax_collector(NPC) ->
+    lager:info("Unloading tax collector"),
     TaxCollectorId = maps:get(tax_collector, NPC#npc.data),
     
     %Get landing pos
@@ -531,6 +521,15 @@ unload_tax_collector(NPC) ->
     game:add_obj_move(self(), TaxCollectorId, ?EMPIRE_POS, LandingPos, 4),
     NPC#npc{task_state = completed}.
 
+at_landing_pos(NPC) ->
+    NPCObj = obj:get(NPC#npc.id),
+
+    TargetPlayerId = maps:get(target_player, NPC#npc.data),
+    [EmpirePlayer] = db:read(player, ?EMPIRE),
+    LandingPos = maps:get({TargetPlayerId, landing_pos}, EmpirePlayer#player.data),
+    
+    obj:pos(NPCObj) =:= LandingPos.
+    
 set_pos_landing(NPC) ->
     TargetPlayerId = maps:get(target_player, NPC#npc.data),
     [EmpirePlayer] = db:read(player, ?EMPIRE),

@@ -41,6 +41,13 @@
   position: fixed;
 }
 
+#combobutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -200px;
+  position: fixed;
+}
+
 #quickattackbutton {
   bottom: 10px;
   left: 50%;
