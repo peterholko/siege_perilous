@@ -3,6 +3,7 @@
 %% Description: TODO: Add description to game_loop
 -module(game_loop).
 
+-include_lib("stdlib/include/ms_transform.hrl").
 
 
 
@@ -71,6 +72,9 @@ loop(NumTick, LastTime, GamePID) ->
 
     %NPC create plan and run it
     npc_process(NumTick),
+
+    %Trigger process
+    trigger_process(NumTick),
 
     %Toggle off perception and explored
     game:reset(),
@@ -802,3 +806,17 @@ expire_effect(#effect{id = Id, type = ?HOLY_LIGHT}) ->
 expire_effect(_) ->
     lager:info("No matching expiry effect").
 
+
+trigger_process(0) -> nothing;
+trigger_process(NumTick) when (NumTick rem (?TICKS_SEC * 10)) =:= 0 ->
+    lager:info("trigger_process"),
+    MS = ets:fun2ms(fun(N = #player{id = Id}) when Id > ?NPC_ID -> N end),
+    Players = db:select(player, MS),
+    lager:info("Players: ~p", [Players]),
+
+    F = fun(Player) ->
+            lager:info("Player createtick: ~p", [Player#player.createtick])
+        end,
+
+    lists:foreach(F, Players);
+trigger_process(_) -> nothing.

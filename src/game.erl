@@ -400,10 +400,71 @@ create_new_player(PlayerId) ->
             sound:talk(VillagerId, "The dead rise up!  We must flee!")
          end,
 
-    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
-    game:add_event(none, event, F2, none, 15),
-    game:add_event(none, event, F3, none, 15),
+    F5 = fun() ->
+            %TODO read landwalk, watermark and mountainwalk from obj template
+            TempWolfPos = map:random_location_from(?ANIMAL, HeroPos, 4),
+
+            WolfPos = case TempWolfPos =:= HeroPos of
+                            true ->
+                                map:random_location_from(?ANIMAL, HeroPos, 5);
+                            false ->
+                                TempWolfPos
+                           end,
+
+            G = fun(_N) ->
+                    WolfId = npc:create(WolfPos, ?ANIMAL, <<"Wolf">>),
+                    npc:set_order(WolfId, move_to_pos, #{order_pos => HeroPos})
+                end,
+            
+            lists:foreach(G, lists:seq(1, 5))
+         end,
+
+
+    F6 = fun() ->
+            %TODO read landwalk, watermark and mountainwalk from obj template
+            TempGoblinPos = map:random_location_from(?GOBLIN, HeroPos, 4),
+
+            GoblinPos = case TempGoblinPos =:= HeroPos of
+                            true ->
+                                map:random_location_from(?GOBLIN, HeroPos, 5);
+                            false ->
+                                TempGoblinPos
+                           end,
+
+            G = fun(_N) ->
+                    GoblinId = npc:create(GoblinPos, ?GOBLIN, <<"Goblin Pillager">>),
+                    npc:set_order(GoblinId, move_to_pos, #{order_pos => HeroPos})
+                end,
+            
+            lists:foreach(G, lists:seq(1, 5))
+         end,
+
+    F7 = fun() ->
+            %TODO read landwalk, watermark and mountainwalk from obj template
+            TempShadowPos = map:random_location_from(?UNDEAD, HeroPos, 4),
+
+            ShadowPos = case TempShadowPos =:= HeroPos of
+                            true ->
+                                map:random_location_from(?UNDEAD, HeroPos, 5);
+                            false ->
+                                TempShadowPos
+                           end,
+
+            G = fun(_N) ->
+                    ShadowId = npc:create(ShadowPos, ?UNDEAD, <<"Shadow">>),
+                    npc:set_order(ShadowId, move_to_pos, #{order_pos => HeroPos})
+                end,
+            
+            lists:foreach(G, lists:seq(1, 3))
+         end,
+
+    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    game:add_event(none, event, F2, none, ?TICKS_MIN * 1),
+    game:add_event(none, event, F3, none, ?TICKS_MIN * 2),
     %game:add_event(none, event, F4, none, 40),
+    game:add_event(none, event, F5, none, ?TICKS_MIN * 3),
+    game:add_event(none, event, F6, none, ?TICKS_MIN * 8),
+    game:add_event(none, event, F7, none, ?TICKS_MIN * 15),
 
     lager:info("Game end.").
 

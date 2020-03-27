@@ -70,11 +70,10 @@ guard_structure() ->
 
 move_to_pos() ->
     new(move_to_pos),
-    add_select_one(attack_enemy, move_to_pos, [target_adjacent], []),
-        add_select_all(do_attack, attack_enemy, [], []),
-            add_primitive(attack, do_attack, [], [], attack),
+    add_select_all(attack_enemy, move_to_pos, [target_adjacent], []),
+        add_primitive(attack, attack_enemy, [], [], attack),
     add_select_all(do_move_to_pos, move_to_pos, [], []),
-        add_primitive(set_order_pos, do_guard, [], [], set_pos_order),
+        add_primitive(set_order_pos, do_move_to_pos, [], [], set_pos_order),
         add_primitive(move_to_pos, do_move_to_pos, [], [], move_to_pos).
           
 wander_flee() ->

@@ -638,6 +638,7 @@ get_unit_by_pos(QueryPos) ->
     MS = ets:fun2ms(fun(N = #obj{pos = Pos,
                                  class = Class}) when Pos =:= QueryPos,
                                                       Class =:= unit -> N end),
+                                                    
     Objs = db:select(obj, MS),
     Objs.
 
@@ -645,6 +646,7 @@ get_hero(HeroPlayer) ->
     MS = ets:fun2ms(fun(N = #obj{player = Player,
                                  subclass = Subclass}) when Player =:= HeroPlayer,
                                                             Subclass =:= <<"hero">> -> N end),
+    lager:info("MS: ~p", [MS]),
     [Hero] = db:select(obj, MS),
     Hero.
 

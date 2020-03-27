@@ -42,7 +42,8 @@ process_login([], [Name, Pass, Socket]) ->
     
     Player = #player {id = PlayerId,
                       name = Name,
-                      password = Pass},
+                      password = Pass,
+                      createtick = game:get_tick()},
 
     Connection = #connection {player = PlayerId,
                               status = init,

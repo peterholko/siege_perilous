@@ -19,6 +19,7 @@
   int: animal
   aggression: high
   kill_xp: 5
+  waterwalk: 1
 
 - name: Giant Rat
   class: unit
@@ -153,7 +154,7 @@
   subclass: npc
   template: Zombie
   family: Undead
-  base_hp: 50
+  base_hp: 20
   base_stamina: 10000
   base_dmg: 2
   dmg_range: 6
@@ -186,6 +187,42 @@
     - 90
     - 50
     - 0
+
+- name: Goblin Pillager
+  class: unit
+  subclass: npc
+  template: Goblin Pillager
+  family: Goblin
+  base_hp: 10
+  base_stamina: 10000
+  base_dmg: 2
+  dmg_range: 6
+  base_def: 7
+  base_speed: 5
+  base_vision: 3
+  int: smart
+  aggression: high
+  kill_xp: 5
+  order: move_to_pos
+  waterwalk: 1
+
+- name: Nightmare Shadow
+  class: unit
+  subclass: npc
+  template: Shadow
+  family: Undead
+  base_hp: 500
+  base_stamina: 10000
+  base_dmg: 10
+  dmg_range: 6
+  base_def: 7
+  base_speed: 5
+  base_vision: 4
+  int: smart
+  aggression: high
+  kill_xp: 5
+  order: move_to_pos
+  waterwalk: 1
 
 ##################
 ##### EMPIRE #####

@@ -92,6 +92,7 @@
 -define(EMPIRE, 101).
 -define(GUARDIANS, 102).
 -define(CREATURE, 103).
+-define(GOBLIN, 104).
 -define(THE_LOST, 200).
 
 -define(MAX_ZOMBIES, 100).

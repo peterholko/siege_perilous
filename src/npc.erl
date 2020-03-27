@@ -95,13 +95,17 @@ max_guard_dist(NPC) ->
 target_adjacent(NPC) ->
     [NPCObj] = db:read(obj, NPC#npc.id),
 
-    case NPC#npc.target =/= none of
-        true -> 
-            [TargetObj] = db:read(obj, NPC#npc.target),
-            map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos);
-        false -> 
-            false
-    end.
+    Result = 
+        case NPC#npc.target =/= none of
+            true -> 
+                [TargetObj] = db:read(obj, NPC#npc.target),
+                map:is_adjacent(NPCObj#obj.pos, TargetObj#obj.pos);
+            false -> 
+                false
+        end,
+
+    lager:debug("~p", [Result]),
+    Result.
 
 hp_normal(NPC) ->
     NPCHp = obj_attr:value(NPC#npc.id, <<"hp">>),
@@ -235,6 +239,7 @@ set_pos_guard(NPC) ->
 
 set_pos_order(NPC) ->
     Pos = maps:get(order_pos, NPC#npc.data),
+    lager:debug("order_pos: ~p", [Pos]),
     NPC#npc {dest = Pos, task_state = completed}.
 
 set_pos_flee(NPC) ->
@@ -342,6 +347,8 @@ move_to_pos(NPC) ->
 
     Dest = NPC#npc.dest,
 
+    lager:debug("Dest: ~p NPCPos: ~p", [Dest, NPCObj#obj.pos]),
+
     %If dest is set and dest does not equal villager current pos
     NewNPC = case (Dest =/= none) and (Dest =/= NPCObj#obj.pos) of
                   true ->
@@ -350,6 +357,7 @@ move_to_pos(NPC) ->
                                              Dest, 
                                              NPCObj),
 
+                    lager:info("PathResult: ~p", [PathResult]),
                     {TaskState, NewPath} = 
                         case PathResult of
                             {success, Path} ->
@@ -1000,6 +1008,11 @@ find_target(_NPCObj, _, _, []) ->
     none;
 find_target(NPCObj, <<"mindless">>, <<"high">>, AllEnemyUnits) ->
     EnemyUnits = remove_poi(remove_structures(remove_dead(AllEnemyUnits))),
+    EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
+    Target = check_wall(EnemyUnit),
+    return_target(Target);
+find_target(NPCObj, <<"smart">>, <<"high">>, AllEnemyUnits) ->
+    EnemyUnits = remove_poi(remove_dead(AllEnemyUnits)),
     EnemyUnit = get_nearest(NPCObj#obj.pos, EnemyUnits, {none, 1000}),
     Target = check_wall(EnemyUnit),
     return_target(Target);

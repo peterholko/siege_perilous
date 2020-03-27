@@ -14,8 +14,9 @@
 13. Consider removing the automatic refine for crafting structures
 14. Experimentation improvements
 15. Add push capabilities to object information panel
-
-
+16. Pack of wolves for first attack (Tier 1)
+17. Clan of Goblins for second attack (Tier 2) 
+18. Xp gains for non-combat skills
 
 
 

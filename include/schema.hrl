@@ -13,7 +13,8 @@
                  class = none,
                  npc = false,
                  start_pos = none,
-                 data = #{}}).
+                 data = #{},
+                 createtick = -1}).
 
 -record(deed, {player, 
                structure,

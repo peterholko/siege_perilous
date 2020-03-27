@@ -20,7 +20,8 @@
 -export([add_explored/3]).
 -export([neighbours/1, neighbours/2, get_random_neighbour/1, get_random_from_list/1]).
 -export([cube_to_odd_q/1, odd_q_to_cube/1, is_adjacent/2, is_adjacent_land/1]).
--export([movement_cost/1, is_passable/1, is_passable/2, is_not_blocked/2, is_river/1, random_location/0, random_location_from/3]).
+-export([movement_cost/1, is_passable/1, is_passable/2, is_passable/4, is_not_blocked/2, is_river/1, random_location/0, 
+        random_location_from/3, random_location_from/4]).
 -export([check_distance/4, distance/2]).
 -export([range/2, ring/2, filter_pos/1]).
 -export([spawn_resources/0, tile_name/1, defense_bonus/1, has_sanctuary/1]).
@@ -97,6 +98,15 @@ is_passable(Pos, Obj) ->
                   obj:has_waterwalk(Obj), 
                   obj:has_mountainwalk(Obj)).
 
+is_passable(Pos, HasLandwalk, HasWaterwalk, HasMountainwalk) ->
+    [Tile] = db:dirty_read(map, Pos),
+    TileType = Tile#map.tile,
+    TileName = tile_name(TileType),
+    passable_tile(TileName, 
+                  HasLandwalk,
+                  HasWaterwalk, 
+                  HasMountainwalk).
+
 is_passable(TileName) when is_binary(TileName) ->
     passable_tile(TileName);
 is_passable(Pos) -> %TODO review if this necessary due to need for objs
@@ -138,23 +148,29 @@ random_location(false, _Pos) ->
     random_location(Result, Pos).
 
 random_location_from(Player, Center, Radius) ->
+    random_location_from(Player, Center, Radius, {true, false, false}).
+
+random_location_from(Player, Center, Radius, {HasLandwalk, HasWaterwalk, HasMountainwalk}) ->
     ListOfPos = ring(Center, Radius),
 
     F = fun(Pos) -> 
-            is_valid_coord(Pos) andalso 
-            is_passable(Pos) andalso 
-            is_not_blocked(Player, Pos)
+            ValidCoord = is_valid_coord(Pos),
+            Passable = is_passable(Pos, HasLandwalk, HasWaterwalk, HasMountainwalk),
+            Blocked = is_not_blocked(Player, Pos),
+
+            ValidCoord andalso Passable andalso Blocked
         end,
 
     RandomListOfPos = lists:filter(F, ListOfPos),
+    lager:debug("RandomListOfPos: ~p", [RandomListOfPos]),
 
     %If no elements in the list return the original center pos
     case RandomListOfPos =:= [] of
         true -> 
             Center;
         false -> 
-            RandomIndex = util:rand(length(ListOfPos)),
-            RandomPos = lists:nth(RandomIndex, ListOfPos),
+            RandomIndex = util:rand(length(RandomListOfPos)),
+            RandomPos = lists:nth(RandomIndex, RandomListOfPos),
             RandomPos
     end.
 

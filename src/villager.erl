@@ -478,6 +478,7 @@ move_to_pos(Villager) ->
     NewVillager = case (Dest =/= none) and (Dest =/= VillagerObj#obj.pos) of
                     true ->
                         PathResult = astar:astar(VillagerObj#obj.pos, Dest, VillagerObj),
+                        lager:debug("PathResult: ~p", [PathResult]),
 
                         case PathResult of
                              {success, Path} ->
