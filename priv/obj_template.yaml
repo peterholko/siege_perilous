@@ -154,7 +154,7 @@
   subclass: npc
   template: Zombie
   family: Undead
-  base_hp: 20
+  base_hp: 10
   base_stamina: 10000
   base_dmg: 2
   dmg_range: 6

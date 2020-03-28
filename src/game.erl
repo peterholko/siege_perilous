@@ -416,7 +416,7 @@ create_new_player(PlayerId) ->
                     npc:set_order(WolfId, move_to_pos, #{order_pos => HeroPos})
                 end,
             
-            lists:foreach(G, lists:seq(1, 5))
+            lists:foreach(G, lists:seq(1, 3))
          end,
 
 
@@ -462,8 +462,8 @@ create_new_player(PlayerId) ->
     game:add_event(none, event, F2, none, ?TICKS_MIN * 1),
     game:add_event(none, event, F3, none, ?TICKS_MIN * 2),
     %game:add_event(none, event, F4, none, 40),
-    game:add_event(none, event, F5, none, ?TICKS_MIN * 3),
-    game:add_event(none, event, F6, none, ?TICKS_MIN * 8),
+    game:add_event(none, event, F5, none, ?TICKS_MIN * 5),
+    game:add_event(none, event, F6, none, ?TICKS_MIN * 10),
     game:add_event(none, event, F7, none, ?TICKS_MIN * 15),
 
     lager:info("Game end.").
