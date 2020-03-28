@@ -86,7 +86,8 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
   }
 
   handleDeleteClick() {
-    console.log('Delete Structure')
+    console.log('Delete Structure');
+    Network.sendDelete(this.state.structureData.id);
   }
 
   handleNetworkBuild(message) {
@@ -253,7 +254,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
             { isFinished && 
               <tr>
                 <td>HP:</td>
-                <td>{this.state.structureData.base_hp}</td>
+                <td>{this.state.structureData.hp} / {this.state.structureData.base_hp}</td>
               </tr> 
             }
 

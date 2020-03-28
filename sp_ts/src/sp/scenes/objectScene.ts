@@ -13,7 +13,7 @@ import { NetworkEvent } from '../networkEvent';
 import { ObjectState } from '../objectState';
 import { MultiImage } from '../multiImage';
 import { Network } from '../network';
-import { HERO, DEAD, SPRITE, CONTAINER, IMAGE, FOUNDED, WALL } from '../config';
+import { HERO, DEAD, SPRITE, CONTAINER, IMAGE, FOUNDED, WALL, UNIT, STRUCTURE } from '../config';
 import { GameImage } from '../objects/gameImage';
 import { GameContainer } from '../objects/gameContainer';
 
@@ -47,6 +47,7 @@ export class ObjectScene extends Phaser.Scene {
     this.load.image('selecthex', './static/art/hover-hex.png');
     this.load.image('foundation', './static/art/foundation.png');
     this.load.image('gravestone', './static/art/gravestone.png');
+    this.load.image('rubble', './static/art/rubble.png');
     this.load.image('shroud', './static/art/shroud.png');
     this.load.spritesheet('shadowbolt', './static/art/shadowbolt.png', { frameWidth: 72, frameHeight: 72, endFrame: 5});
 
@@ -226,6 +227,11 @@ export class ObjectScene extends Phaser.Scene {
 
         } else if(objectState.op == 'deleted') {
             var obj = this.objectList[objectState.id];
+
+            if(obj instanceof GameContainer) {
+              obj.removeAll();
+            }
+
             obj.destroy();
         }
 
@@ -351,6 +357,9 @@ export class ObjectScene extends Phaser.Scene {
 
   updateSprite(objectState: ObjectState) {
     var sprite = this.objectList[objectState.id] as GameSprite;
+    console.log('updateSprite');
+    console.log(sprite);
+
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
     if(objectState.state == 'moving') {
@@ -680,11 +689,16 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   processDmgMessage(message) {
-    console.log('Dmg Message: ' + message);
+    console.log('Dmg Message: ' + message.sourceid + ' -> ' + message.targetid);
     if(message.sourceid in this.objectList && 
        message.targetid in this.objectList) {
       var source = this.objectList[message.sourceid] as GameSprite;
       var target = this.objectList[message.targetid];
+
+      console.log('Source: ' + source);
+
+      if(source == null || target == null)
+        return;      
 
       if(Global.objectStates[message.sourceid].subclass == HERO) {
 
@@ -766,10 +780,26 @@ export class ObjectScene extends Phaser.Scene {
         //Set object state to dead because an update is not sent to save on messages
         Global.objectStates[message.targetid].state = DEAD;
 
-        if(this.anims.exists(anim)) {
-          target.play(target.imageName + '_die');
-        } else {
-          target.setTexture('gravestone');
+
+        if(Global.objectStates[message.targetid].class == UNIT) {
+          
+          if(this.anims.exists(anim)) {
+            target.play(target.imageName + '_die');
+          } else {
+            target.setTexture('gravestone');
+          }
+        } else if(Global.objectStates[message.targetid].class == STRUCTURE) {
+          target.removeAll();
+        
+          var image = new GameImage({
+            scene: this,
+            x: 0,
+            y: 0,
+            id: message.targetid,
+            imageName: "foundation"
+          });
+    
+          target.add(image); 
         }
       }
     }

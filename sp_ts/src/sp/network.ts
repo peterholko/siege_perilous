@@ -363,6 +363,14 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
+  public static sendDelete(sourceId) {
+    var m = {
+      cmd: "delete",
+      sourceid: sourceId
+    }    
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
 
 
   constructor() {

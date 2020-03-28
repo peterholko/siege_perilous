@@ -41,6 +41,7 @@
          create_foundation/2,
          upgrade/1,
          build/2,
+         delete/1,
          recipe_list/1,
          order_refine/1,
          order_craft/2,
@@ -949,6 +950,24 @@ build(PlayerId, BuilderId, Structure = #obj {state = ?STALLED}) ->
 build(_PlayerId, _SourceId, Structure) ->
     lager:info("Invalid state of structure: ~p", [Structure#obj.state]).
 
+delete(StructureId) ->
+    Player = get(player_id),
+
+    Structure = obj:get(StructureId),   
+
+    Checks = [{is_player_owned(Structure, Player), "Structure not owned by player"},              
+              {Structure#obj.class =:= structure, "Object cannot be deleted"}],
+
+    case process_checks(Checks) of
+        true ->
+            lager:info("Delete structure"),
+            obj:update_deleting(Structure),
+
+            #{<<"result">> => <<"success">>};
+        {false, Error} ->
+            #{<<"errmsg">> => list_to_binary(Error)}
+    end.
+ 
 recipe_list(StructureId) ->
     Player = get(player_id),
     [Structure] = db:read(obj, StructureId),

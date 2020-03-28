@@ -13,10 +13,12 @@ export const SPRITE = 'string';
 export const IMAGE = 'image';
 export const CONTAINER = 'container';
 
+export const UNIT = 'unit';
+export const STRUCTURE = 'structure';
+
 export const HERO = 'hero';
 export const NPC = 'npc';
 export const VILLAGER = 'villager';
-export const STRUCTURE = 'structure';
 export const CRAFT = 'craft';
 export const DEAD = 'dead';
 export const FOUNDED = 'founded';

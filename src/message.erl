@@ -218,6 +218,15 @@ message_handle(<<"build">>, Message) ->
     lager:info("FinalReturn: ~p", [FinalReturn]),
     jsx:encode(FinalReturn);
 
+message_handle(<<"delete">>, Message) ->
+    lager:info("message: delete"),
+    
+    SourceId = m_get(<<"sourceid">>, Message),
+    Return = player:delete(SourceId),
+    FinalReturn = maps:put(<<"packet">>, <<"delete">>, Return),
+    lager:info("FinalReturn: ~p", [FinalReturn]),
+    jsx:encode(FinalReturn);
+
 message_handle(<<"recipe_list">>, Message) ->
     lager:info("message: recipe_list"),
     

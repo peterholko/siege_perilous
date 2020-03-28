@@ -113,6 +113,7 @@
 -define(HERO, <<"hero">>).
 -define(POI, <<"poi">>).
 -define(STRUCTURE, <<"structure">>).
+-define(RUINS, <<"ruins">>).
 
 -define(WALL, <<"Wall">>).
 -define(HARVESTER, <<"resource">>).

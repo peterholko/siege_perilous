@@ -416,8 +416,7 @@ update_dead(Id) ->
                      %Remove structure reference from villagers
                      villager:remove_structure(Id),
  
-                     Obj#obj {class = ruins,
-                              state = dead,
+                     Obj#obj {state = ?DEAD,
                               vision = 0};
                 _ ->
                      Obj#obj {state = ?DEAD}
