@@ -929,6 +929,9 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   processTextState(sprite, state) {
+    if(sprite == null) 
+      return;
+
     var value = '';
 
     if(state == 'sleeping') {
