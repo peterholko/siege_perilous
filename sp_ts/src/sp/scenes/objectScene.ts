@@ -177,6 +177,7 @@ export class ObjectScene extends Phaser.Scene {
 
     for(var objectId in objectStates) {
         var objectState = objectStates[objectId] as ObjectState;
+        console.log(objectState);
 
         if(objectState.op == 'added') {
           console.log('Object Added');
@@ -225,11 +226,15 @@ export class ObjectScene extends Phaser.Scene {
             }
           }
 
-        } else if(objectState.op == 'deleted') {
+        } else if(objectState.op == 'deleted') {       
+            console.log('Object deleted');
             var obj = this.objectList[objectState.id];
 
             if(obj instanceof GameContainer) {
-              obj.removeAll();
+              console.log('Removing contents of container');
+              var f = obj.getAt(0) as Phaser.GameObjects.Image;
+              console.log(f);
+              f.destroy();
             }
 
             obj.destroy();
@@ -593,6 +598,7 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   addContainer(objectState : ObjectState) {
+    console.log('Adding container')
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
     var container = new GameContainer({
@@ -623,6 +629,7 @@ export class ObjectScene extends Phaser.Scene {
       });
 
       container.add(image);
+      console.log(container);
     } else {
 
       var multiImageList = this.multiImages[objectState.image];
@@ -683,6 +690,9 @@ export class ObjectScene extends Phaser.Scene {
         this.addContainer(objState);
       }
     }
+
+    //Clear container Tasks
+    this.containerTasks = [];
 
     //Call process wall for images finished loading
     this.processWallList();

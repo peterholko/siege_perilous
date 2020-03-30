@@ -174,6 +174,7 @@ are_minions_dead(NPC) ->
                 [] -> true;
                 _ ->
                      F = fun(MinionId) ->
+                            lager:info("Minion Id: ~p", [MinionId]),
                             MinionObj = obj:get(MinionId),
                             obj:state(MinionObj) =:= ?DEAD
                         end,
