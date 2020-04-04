@@ -290,6 +290,8 @@ export default class UI extends React.Component<any, UIState>{
   handleSelectBoxClick(eventData) {
     console.log('SelectBoxClick');
 
+    Global.selectedKey = eventData.selectedKey;
+
     this.setState({hideTargetActionPanel: false,
                    selectedBoxPos: eventData.pos,
                    selectedKey: eventData.selectedKey})
@@ -425,15 +427,15 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleQuickAttack(event: React.MouseEvent) {
-    Network.sendAttack('quick', Global.heroId, this.state.selectedKey.id);
+    Network.sendAttack('quick', Global.heroId, Global.selectedKey.id);
   }
 
   handlePreciseAttack(event: React.MouseEvent) {
-    Network.sendAttack('precise', Global.heroId, this.state.selectedKey.id);
+    Network.sendAttack('precise', Global.heroId, Global.selectedKey.id);
   }
 
   handleFierceAttack(event: React.MouseEvent) {
-    Network.sendAttack('fierce', Global.heroId, this.state.selectedKey.id);
+    Network.sendAttack('fierce', Global.heroId, Global.selectedKey.id);
   }
   
   handleAttack(message) {

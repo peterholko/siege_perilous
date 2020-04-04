@@ -164,4 +164,5 @@ hero_advance(<<"Great Ranger">>) -> {<<"Legendary Ranger">>, 1000000};
 hero_advance(<<"Great Mage">>) -> {<<"Legendary Mage">>, 1000000};
 hero_advance(<<"Legendary Warrior">>) -> {<<"Max Rank">>, -1};
 hero_advance(<<"Legendary Ranger">>) -> {<<"Max Rank">>, -1};
-hero_advance(<<"Legendary Mage">>) -> {<<"Max Rank">>, -1}.
+hero_advance(<<"Legendary Mage">>) -> {<<"Max Rank">>, -1};
+hero_advance(<<"Max Rank">>) -> {<<"Max Rank">>, -1}.

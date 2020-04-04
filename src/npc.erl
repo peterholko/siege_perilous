@@ -370,9 +370,15 @@ move_to_pos(NPC) ->
                                     true -> 
                                         {completed, []};
                                     false -> 
-                                        {success, NearbyPath} = astar:astar(obj:pos(NPCObj), Closest, NPCObj),
-                                        move_next_path(NPCObj, NearbyPath),
-                                        {running, NearbyPath}
+                                        %TODO This has crashed here before
+                                        case astar:astar(obj:pos(NPCObj), Closest, NPCObj) of
+                                            {success, NearbyPath} -> 
+                                                move_next_path(NPCObj, NearbyPath),
+                                                {running, NearbyPath};
+                                            {_, _} ->
+                                                lager:info("Obj ~p cannot find path to ~p", [obj:id(NPCObj), Closest]),
+                                                {completed, []}
+                                        end
                                 end;
                             {failed, _} ->
                                 {completed, []}
@@ -398,8 +404,6 @@ move_in_range(NPC) ->
             Distance = map:distance(NPCObj#obj.pos, TargetObj#obj.pos),
             Range = 2, %TODO fix hardcoded 2
 
-            Compare = compare_dist_range(Distance, Range),
-
             case compare_dist_range(Distance, Range) of
                 out_of_range ->
                     OptimalRing = map:ring(TargetObj#obj.pos, Range),
@@ -408,12 +412,16 @@ move_in_range(NPC) ->
                         none ->
                             obj:update_state(NPC#npc.id, none),
                             NPC#npc {task_state = completed};
-                        ClosestPos ->     
-                            %Assume there is a path TODO reconsider                     
-                            {success, Path} = astar:astar(NPCObj#obj.pos, ClosestPos, NPCObj),
-                            move_next_path(NPCObj, Path),
-            
-                            NPC#npc {task_state = running, path = Path}
+                        ClosestPos ->    
+                            %TODO This has crashed here before
+                            case astar:astar(obj:pos(NPCObj), ClosestPos, NPCObj) of
+                                {success, NearbyPath} -> 
+                                    move_next_path(NPCObj, NearbyPath),
+                                    {running, NearbyPath};
+                                {_, _} ->
+                                    lager:info("Obj ~p cannot find path to ~p", [obj:id(NPCObj), ClosestPos]),
+                                    {completed, []}
+                            end
                     end;
                 optimal_range ->
                     obj:update_state(NPC#npc.id, none),
@@ -1048,11 +1056,15 @@ process_perception(NPC) ->
 
     Perception = perception:get_entity(NPCObj),
 
+    lager:info("NPC Perception: ~p", [Perception]),
+
     %Remove from same player and non targetable objs
     FilteredTargets = filter_targets(NPC#npc.player, Perception),
 
     %Find target
     Target = find_target(NPCObj, FilteredTargets),
+
+    lager:info("Find Target: ~p", [Target]),
 
     %New NPC
     NPC#npc {target = Target}.

@@ -429,12 +429,14 @@ update_dead(Id) ->
     NewObj.
 
 update_deleting(Obj) ->
+    %Remove any subclass process npc or villager
     subclass_delete(Obj),
+    trigger_effects(Obj),
     game:add_obj_delete(self(), Obj#obj.id, 1).
 
-trigger_effects(#obj{state = State}) when (State =:= ?DELETING) -> nothing;
 trigger_effects(#obj{id = WallId, pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
-                                                                                       (State =/= dead) ->
+                                                                                       ((State =/= ?DEAD) or
+                                                                                        (State =/= ?DELETING)) ->
     Objs = get_by_pos(Pos),
 
     F = fun(Obj) ->
@@ -446,7 +448,8 @@ trigger_effects(#obj{id = WallId, pos = Pos, subclass = Subclass, state = State}
     lists:foreach(F, Objs);
 
 trigger_effects(#obj{pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
-                                                                          (State =:= dead) ->
+                                                                          ((State =:= ?DEAD) or
+                                                                           (State =:= ?DELETING))->
     Objs = get_by_pos(Pos),
 
     F = fun(Obj) ->
@@ -809,7 +812,7 @@ subclass_delete(Obj) ->
             %process_hero_delete(Obj),
             %TODO probably shouldn't go into the login module
             login:remove(Obj#obj.player);
-        _ ->
+        _ -> 
             nothing
     end.
 

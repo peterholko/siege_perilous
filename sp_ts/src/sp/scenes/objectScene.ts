@@ -403,6 +403,7 @@ export class ObjectScene extends Phaser.Scene {
         if(!(objectState.id in this.stateTimerList)) {
           this.processTextState(sprite, animState);
 
+          //TODO reconsider if sprite isn't available yet
           var timer = setInterval(() => {
             this.processTextState(sprite, animState)
           }, 6000);

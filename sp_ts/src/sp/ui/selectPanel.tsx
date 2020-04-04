@@ -148,6 +148,11 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
         position: 'fixed'
       } as React.CSSProperties
 
+      //By default select the further to the left object on tile click
+      if(i == (maxIndex - 1)) {
+        Global.selectedKey = {type: OBJ, id: objId};
+      }
+
       boxes.push(<SelectBox key={i} 
                             pos={selectBoxPos}
                             selectedKey={{type: OBJ, id: objId}}
@@ -156,6 +161,8 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
 
       selectBoxPos++;
     }
+
+    
 
     const rightStyle = {
       top: '27px',

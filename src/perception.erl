@@ -525,11 +525,14 @@ visible_objs(AllObjs, #obj {id = Id, player = Player, pos = Pos, vision = Vision
     F = fun(Target, PerceptionData) when Target#obj.id =:= Id ->
                 maps:put(Target#obj.id, Target, PerceptionData); %Include self
            (Target, PerceptionData) ->
+
             Result = Target#obj.state =/= hiding andalso %Not hiding
                      Target#obj.class =/= ?DELETING andalso %Not being deleted
                      Target#obj.vision >= 0 andalso %Obj being created
                      not effect:has_effect(Target#obj.id, ?SANCTUARY) andalso %Cannot see Sanctuary
                      map:distance(Pos, Target#obj.pos) =< Vision,
+
+            lager:info("Result: ~p Target: ~p", [Result, Target]),
 
             case Result of
                 true -> 
@@ -539,7 +542,10 @@ visible_objs(AllObjs, #obj {id = Id, player = Player, pos = Pos, vision = Vision
             end
         end,
 
-    lists:foldl(F, #{}, AllObjs);
+
+    P = lists:foldl(F, #{}, AllObjs),
+    lager:info("P: ~p", [P]),
+    P;
 
 % Animal units cannot see objects with FORTIFIED
 %visible_objs(AllObjs, #obj {pos = Pos, player = Player, vision = Vision}) when Player =:= ?ANIMAL ->

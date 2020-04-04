@@ -323,7 +323,7 @@ info_exit(Key, Type) ->
     
 combo(SourceId, ComboType) ->
     PlayerId = get(player_id),
-    [SourceObj] = db:read(obj, SourceId),
+    [SourceObj] = db:read(obj, SourceId), %TODO check if sourceid is -1
  
     Checks = [{is_player_owned(SourceObj#obj.player, PlayerId), "Unit is not owned by player"},
               {is_hero(SourceObj), "Can only attack with your hero"},

@@ -31,10 +31,11 @@ export default class SelectBox extends React.Component<SelectBoxProps, any> {
 
   handleClick() {
     console.log(this.props.selectedKey);
+
     var eventData = {'pos' : this.props.pos,
                      'selectedKey': this.props.selectedKey};
 
-    Global.gameEmitter.emit(GameEvent.SELECTBOX_CLICK, eventData);
+    Global.gameEmitter.emit(GameEvent.SELECTBOX_CLICK, eventData);    
   }
 
   render() {
