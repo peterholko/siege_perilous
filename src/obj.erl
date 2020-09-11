@@ -18,7 +18,7 @@
 -export([set_thirst/2, set_hunger/2]).
 -export([is_empty/1, is_empty/2, movement_cost/2]).
 -export([get_by_pos/1, get_unit_by_pos/1, get_hero/1, get_assignable/1, get_wall/1]).
--export([is_hero_nearby/2, is_monolith_nearby/1, is_subclass/2, is_player/1, 
+-export([is_hero_nearby/2, is_monolith_nearby/1, is_state/2, is_subclass/2, is_player/1, 
          is_blocking/2, is_hauling/2, is_founded_structure/1]).
 -export([has_vision/1, has_landwalk/1, has_waterwalk/1, has_mountainwalk/1]).
 -export([trigger_effects/1, trigger_inspect/1]).
@@ -406,8 +406,10 @@ update_dead(Id) ->
                      case Obj#obj.subclass of
                          ?HERO -> game:hero_dead(Obj#obj.player, Obj#obj.id); 
                          ?VILLAGER -> villager:remove(Obj#obj.id);
+                         ?NPC -> npc:remove(Obj#obj.id);
                          _ -> nothing
                      end, 
+
                     %TODO resolve string vs atom for class
                      Obj#obj {class = ?CORPSE, 
                               state = ?DEAD,
@@ -422,6 +424,9 @@ update_dead(Id) ->
                      Obj#obj {state = ?DEAD}
              end,
 
+    %Will remove any effects as the obj is dead
+    obj:trigger_effects(NewObj),
+
     %Save object
     save(NewObj),
 
@@ -429,14 +434,13 @@ update_dead(Id) ->
     NewObj.
 
 update_deleting(Obj) ->
-    %Remove any subclass process npc or villager
+    %Check again and remove any subclass process npc or villager
     subclass_delete(Obj),
-    trigger_effects(Obj),
+
     game:add_obj_delete(self(), Obj#obj.id, 1).
 
 trigger_effects(#obj{id = WallId, pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
-                                                                                       ((State =/= ?DEAD) or
-                                                                                        (State =/= ?DELETING)) ->
+                                                                                       (State =/= ?DEAD) ->
     Objs = get_by_pos(Pos),
 
     F = fun(Obj) ->
@@ -448,9 +452,9 @@ trigger_effects(#obj{id = WallId, pos = Pos, subclass = Subclass, state = State}
     lists:foreach(F, Objs);
 
 trigger_effects(#obj{pos = Pos, subclass = Subclass, state = State}) when (Subclass =:= ?WALL) and
-                                                                          ((State =:= ?DEAD) or
-                                                                           (State =:= ?DELETING))->
+                                                                          (State =:= ?DEAD) ->
     Objs = get_by_pos(Pos),
+
 
     F = fun(Obj) ->
             case Obj#obj.class =:= unit of 
@@ -712,6 +716,12 @@ is_monolith_nearby(QueryPos) ->
         end,
 
     lists:any(F, Monoliths).
+
+is_state(Obj, State) when is_record(Obj, obj) ->
+    Obj#obj.state =:= State;
+is_state(ObjId, State) ->
+    Obj = db:read(obj, ObjId),
+    Obj#obj.state =:= State.
 
 is_subclass(IsSubclass, #obj{subclass = Subclass}) when Subclass =:= IsSubclass -> true;
 is_subclass(_, _) -> false.

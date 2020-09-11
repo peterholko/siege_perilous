@@ -80,6 +80,8 @@ create_schema() ->
     {atomic, ok} = mnesia:create_table(experiment, [{ram_copies, [node()]}, {attributes, record_info(fields, experiment)}]),  
     {atomic, ok} = mnesia:create_table(start, [{ram_copies, [node()]}, {attributes, record_info(fields, start)}]),  
     {atomic, ok} = mnesia:create_table(deed, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, deed)}]),  
+    {atomic, ok} = mnesia:create_table(game_event_log, [{type, bag}, {ram_copies, [node()]}, {attributes, record_info(fields, game_event_log)}]),  
+    {atomic, ok} = mnesia:create_table(progression, [{ram_copies, [node()]}, {attributes, record_info(fields, progression)}]),  
 
     mnesia:add_table_index(perception, player),
     mnesia:add_table_index(player, name),
@@ -108,6 +110,7 @@ create_schema() ->
     mnesia:add_table_index(active_info, player),
     mnesia:add_table_index(active_info, id),
     mnesia:add_table_index(recipe, owner_structure),
+    mnesia:add_table_index(progression, player),
 
     mnesia:stop().
 

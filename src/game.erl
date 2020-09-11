@@ -458,7 +458,7 @@ create_new_player(PlayerId) ->
             lists:foreach(G, lists:seq(1, 3))
          end,
 
-    game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
+    %game:add_event(none, event, F1, none, ?TICKS_SEC * 10),
     game:add_event(none, event, F2, none, ?TICKS_MIN * 1),
     game:add_event(none, event, F3, none, ?TICKS_MIN * 2),
     %game:add_event(none, event, F4, none, 40),
@@ -789,22 +789,29 @@ event_ticks(Ticks) ->
     end.
 
 process_cancel(build, Event) ->
-    EventData = Event#event.data,
-    {_BuilderId, StructureId} = EventData,
+    {BuilderId, StructureId} = Event#event.data,
+    lager:info("Cancel build event by ~p on ~p", [BuilderId, StructureId]),
 
-    BuildTime = obj_attr:value(StructureId, <<"build_time">>),
-    EndTime = obj_attr:value(StructureId, <<"end_time">>),
-    CurrentTime = game:get_tick(),
-    lager:info("BuildTime: ~p", [BuildTime]),
-    lager:info("EndTime: ~p", [EndTime]),
-    lager:info("CurrentTime: ~p", [CurrentTime]),
+    %Cancel building state on builder
+    obj:update_state(BuilderId, ?NONE),
 
+    case obj:is_state(StructureId, ?PROGRESSING) of        
+        true ->
+            BuildTime = obj_attr:value(StructureId, <<"build_time">>),
+            EndTime = obj_attr:value(StructureId, <<"end_time">>),
+            CurrentTime = game:get_tick(),
+            %lager:debug("BuildTime: ~p", [BuildTime]),
+            %lager:debug("EndTime: ~p", [EndTime]),
+            %lager:debug("CurrentTime: ~p", [CurrentTime]),
 
-    Progress = util:round3(1 - ((EndTime - CurrentTime) / BuildTime)),
-    lager:info("Cancelled Event - progress: ~p", [Progress]),
+            Progress = util:round3(1 - ((EndTime - CurrentTime) / BuildTime)),
+            %lager:debug("Cancelled Event - progress: ~p", [Progress]),
 
-    obj_attr:set(StructureId, <<"progress">>, Progress),
+            obj_attr:set(StructureId, <<"progress">>, Progress),
 
-    game:add_obj_update(self(), StructureId, ?STATE, ?STALLED, 1);
+            game:add_obj_update(self(), StructureId, ?STATE, ?STALLED, 1);
+        false ->
+            nothing
+    end;
 
 process_cancel(_, _Event) -> nothing.

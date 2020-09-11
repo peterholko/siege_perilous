@@ -43,7 +43,6 @@ loop(NumTick, LastTime, GamePID) ->
     %Process rest
     process_rest(NumTick),
 
-
     %Process Obj events
     ObservedEvents = process_obj_events(CurrentTick),
 
@@ -75,6 +74,9 @@ loop(NumTick, LastTime, GamePID) ->
 
     %Trigger process
     trigger_process(NumTick),
+
+    %Player triggered progression events
+    progression_events(NumTick),
 
     %Toggle off perception and explored
     game:reset(),
@@ -239,20 +241,21 @@ process_events(CurrentTick) ->
     F = fun(Event) ->
             do_event(Event#event.type,
                      Event#event.data,
-                     Event#event.pid),
+                     Event#event.pid,
+                     CurrentTick),
 
             db:delete(event, Event#event.id)
         end,
 
     lists:foreach(F, Events).
 
-do_event(attack, EventData, PlayerPid) ->
+do_event(attack, EventData, PlayerPid, _Tick) ->
     lager:debug("Processing action event: ~p", [EventData]),
     ObjId = EventData,
     message:send_to_process(PlayerPid, event_complete, {attack, ObjId}),
     false;
 
-do_event(defend, EventData, PlayerPid) ->
+do_event(defend, EventData, PlayerPid, _Tick) ->
     lager:debug("Processing defend event: ~p", [EventData]),
     
     {ObjId, DefendType} = EventData,
@@ -262,7 +265,7 @@ do_event(defend, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {defend, ObjId}),
     false;
 
-do_event(cast, EventData, PlayerPid) ->
+do_event(cast, EventData, PlayerPid, _Tick) ->
     lager:info("Processing cast event: ~p", [EventData]),
 
     {SourceId, TargetId, TargetType, Spell} = EventData,
@@ -279,7 +282,7 @@ do_event(cast, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, event_complete, {cast, SourceId}),
     false;
 
-do_event(ford, EventData, _PlayerPid) ->
+do_event(ford, EventData, _PlayerPid, _Tick) ->
     lager:debug("Processing ford event: ~p", [EventData]),
     %{_Player, Id, Pos, NewPos} = EventData,
 
@@ -290,7 +293,7 @@ do_event(ford, EventData, _PlayerPid) ->
 
     true;
 
-do_event(explore, EventData, PlayerPid) ->
+do_event(explore, EventData, PlayerPid, _Tick) ->
     lager:info("Processing explore event: ~p", [EventData]),
     ObjId = EventData,
     Obj = obj:get(ObjId),
@@ -303,7 +306,7 @@ do_event(explore, EventData, PlayerPid) ->
     message:send_to_process(PlayerPid, survey, Result),
     message:send_to_process(PlayerPid, event_complete, {explore, ObjId});
 
-do_event(gather, EventData, PlayerPid) ->
+do_event(gather, EventData, PlayerPid, _Tick) ->
     lager:debug("Processing gather event: ~p", [EventData]),
 
     {ObjId, ResourceType, Pos} = EventData,
@@ -321,7 +324,7 @@ do_event(gather, EventData, PlayerPid) ->
             nothing
     end;
 
-do_event(harvest, EventData, PlayerPid) ->
+do_event(harvest, EventData, PlayerPid, _Tick) ->
     lager:info("Processing harvest event: ~p", [EventData]),
     {ObjId, StructureId, ResourceType, Pos} = EventData,
 
@@ -336,7 +339,7 @@ do_event(harvest, EventData, PlayerPid) ->
             nothing
     end;
 
-do_event(build, EventData, _PlayerPid) ->
+do_event(build, EventData, _PlayerPid, Tick) ->
     lager:debug("Processing build event: ~p", [EventData]),
     {ObjId, StructureId} = EventData,
 
@@ -348,9 +351,12 @@ do_event(build, EventData, _PlayerPid) ->
 
     %Set structure hp to max
     BaseHp = obj_attr:value(StructureId, <<"base_hp">>),
-    obj_attr:set(StructureId, <<"hp">>, BaseHp);
+    obj_attr:set(StructureId, <<"hp">>, BaseHp),
 
-do_event(upgrade, EventData, _PlayerPid) ->
+    %Add game event log
+    game_event_log:add_build(StructureId, Tick);
+
+do_event(upgrade, EventData, _PlayerPid, _Tick) ->
     lager:info("Processing upgrade event: ~p", [EventData]),
     {ObjId, StructureId} = EventData,
 
@@ -358,7 +364,7 @@ do_event(upgrade, EventData, _PlayerPid) ->
 
     game:add_obj_update(self(), StructureId, ?STATE, ?NONE, 1);
 
-do_event(refine, EventData, PlayerPid) ->
+do_event(refine, EventData, PlayerPid, _Tick) ->
     lager:info("Processing refine event: ~p", [EventData]),
     {StructureId, ObjId, NumTicks} = EventData,
 
@@ -373,7 +379,7 @@ do_event(refine, EventData, PlayerPid) ->
             obj:update_state(ObjId, none)
     end;
 
-do_event(craft, EventData, PlayerPid) ->
+do_event(craft, EventData, PlayerPid, _Tick) ->
     lager:info("Processing craft event: ~p", [EventData]),
     {StructureId, VillagerId, Recipe} = EventData,
 
@@ -401,7 +407,7 @@ do_event(craft, EventData, PlayerPid) ->
 
     obj:update_state(VillagerId, none);
 
-do_event(experiment, EventData, PlayerPid) ->
+do_event(experiment, EventData, PlayerPid, _Tick) ->
     lager:info("Processing experiment event: ~p", [EventData]),
     {PlayerId, StructureId, VillagerId} = EventData,
 
@@ -428,7 +434,7 @@ do_event(experiment, EventData, PlayerPid) ->
             lager:info("has_experiment failed.")
     end;
 
-do_event(?DRINKING, EventData, _PlayerPid) ->
+do_event(?DRINKING, EventData, _PlayerPid, _Tick) ->
     lager:info("Processing drink event: ~p", [EventData]),
     VillagerId = EventData,
 
@@ -442,7 +448,7 @@ do_event(?DRINKING, EventData, _PlayerPid) ->
     obj:update_state(VillagerId, none);
 
 
-do_event(?EATING, EventData, _PlayerPid) ->
+do_event(?EATING, EventData, _PlayerPid, _Tick) ->
     lager:info("Processing eat event: ~p", [EventData]),
     VillagerId = EventData,
 
@@ -455,7 +461,7 @@ do_event(?EATING, EventData, _PlayerPid) ->
 
     obj:update_state(VillagerId, none);
 
-do_event(?SLEEPING, EventData, PlayerPid) ->
+do_event(?SLEEPING, EventData, PlayerPid, _Tick) ->
     lager:info("Processing sleeping event: ~p", [EventData]),
 
     VillagerId = EventData,
@@ -468,7 +474,7 @@ do_event(?SLEEPING, EventData, PlayerPid) ->
             message:send_to_process(global:whereis_name(villager), event_complete, {?SLEEPING, VillagerId})
     end;
     
-do_event(login, EventData, Pid) ->
+do_event(login, EventData, Pid, _Tick) ->
     lager:info("Processing login event: ~p", [EventData]),
     PlayerId = EventData,
 
@@ -489,24 +495,24 @@ do_event(login, EventData, Pid) ->
 
     message:send_to_process(Pid, perception, Perception);
 
-do_event(hero_dead, EventData, _Pid) ->
+do_event(hero_dead, EventData, _Pid, _Tick) ->
     lager:info("Processing hero_dead: ~p", [EventData]),
     PlayerId = EventData,
 
     game:process_remove_player(PlayerId);
 
-do_event(wait, EventData, Pid) ->
+do_event(wait, EventData, Pid, _Tick) ->
     lager:info("Processing wait event: ~p", [EventData]),
     ObjId = EventData,
 
     message:send_to_process(Pid, event_complete, {wait, ObjId}),
     false;
 
-do_event(event, EventData, _Pid) ->
+do_event(event, EventData, _Pid, _Tick) ->
     EventData(),
     false; 
 
-do_event(_Unknown, _Data, _Pid) ->
+do_event(_Unknown, _Data, _Pid, _Tick) ->
     lager:debug("Unknown event"),
     false.
 
@@ -820,3 +826,7 @@ trigger_process(NumTick) when (NumTick rem (?TICKS_SEC * 10)) =:= 0 ->
 
     lists:foreach(F, Players);
 trigger_process(_) -> nothing.
+
+progression_events(NumTick) when (NumTick rem (?TICKS_SEC * 30)) =:= 0 ->
+    lager:info("progression_events");
+progression_events(_) -> nothing.

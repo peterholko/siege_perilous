@@ -70,6 +70,7 @@ search(false, _EarlyExit, Start, Goal, Frontier1, CameFrom, CostSoFar, Obj, Chec
 
                 {SearchData, Result};
             false ->
+                %If the search has grown to 40 nodes, abort and exit early
                 case length(NewStatusData) > 40 of
                     true ->
                         SortedStatusData = lists:sort(NewStatusData),

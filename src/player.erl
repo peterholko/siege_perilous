@@ -961,6 +961,11 @@ delete(StructureId) ->
     case process_checks(Checks) of
         true ->
             lager:info("Delete structure"),
+
+            %Set object to dead to clean up first
+            obj:update_dead(StructureId),
+
+            %Followed by updating to deleting
             obj:update_deleting(Structure),
 
             #{<<"result">> => <<"success">>};

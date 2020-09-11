@@ -238,6 +238,9 @@ export class ObjectScene extends Phaser.Scene {
             }
 
             obj.destroy();
+
+            //Remove from Global States
+            delete Global.objectStates[objectId];
         }
 
         this.processVisibleTiles(objectState);

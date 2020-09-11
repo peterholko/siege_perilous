@@ -145,7 +145,8 @@ process_spell(_SpellType, CasterId, DefId) ->
         <<"alive">> ->
             obj_attr:set(DefId, <<"hp">>, NewHp);
         <<"dead">> ->
-            process_unit_dead(DefId)
+            %Set object to dead state    
+            obj:update_dead(DefId)
     end.
 
 %(Dodged, Parried, CombatData)
@@ -284,9 +285,15 @@ calculate_damage(AttackType, AtkId, DefId) ->
         <<"alive">> ->
             obj_attr:set(DefId, <<"hp">>, NewHp);
         <<"dead">> ->
+
+            %Grant XP to attacker
             process_xp(AtkId, DefId, AtkWeapons),
 
-            process_unit_dead(DefId)
+            %Set object to dead state    
+            obj:update_dead(DefId),
+            
+            %Add game event log
+            game_event_log:add_kill(AtkId, DefId)
     end.
 
 is_valid_target(TargetId) ->
@@ -337,16 +344,6 @@ is_dead(Hp) when Hp =< 0 ->
     <<"dead">>;
 is_dead(_Hp) ->
     <<"alive">>.
-
-process_unit_dead(DefId) ->
-    lager:info("Unit ~p died.", [DefId]),
-    NewObj = obj:update_dead(DefId),
-
-    %Remove potential npc entry
-    npc:remove(DefId),
-
-    %Trigger removal of any effects caused by this obj
-    obj:trigger_effects(NewObj).
 
 attack_type_mod(?QUICK) -> 0.5;
 attack_type_mod(?PRECISE) -> 1;

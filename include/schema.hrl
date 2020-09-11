@@ -16,6 +16,13 @@
                  data = #{},
                  createtick = -1}).
 
+-record(game_event_log, {player, 
+                         data}).
+
+-record(progression, {key, %{player, type}
+                      player, 
+                      data}).
+
 -record(deed, {player, 
                structure,
                level,
