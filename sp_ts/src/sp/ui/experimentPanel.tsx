@@ -107,7 +107,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     var itemFrameResources = [];
     var itemExpResources = [];
 
-    var showNewRecipe = this.props.expData.recipe != EXP_RECIPE_NONE;
+    var showNewRecipe = this.props.expData.hasOwnProperty("recipe");
 
     const sourceTransferStyle = {
       transform: 'translate(-250px, 50px)',

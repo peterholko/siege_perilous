@@ -77,6 +77,7 @@ export class ObjectScene extends Phaser.Scene {
     this.load.on('filecomplete', this.fileLoadComplete, this);
     this.load.on('complete', this.loadComplete, this);
   }
+  
 
   processImageDefMessage(message) {
     console.log('image_def')
@@ -371,9 +372,13 @@ export class ObjectScene extends Phaser.Scene {
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
     if(objectState.state == 'moving') {
-      sprite.play(objectState.image + '_moving');  
-      sprite.x = pixel.x;
-      sprite.y = pixel.y;
+      // Race condition, bug exists right now if the Update network packet is received prior to the object being drawn
+      // temporary fix to check if sprite is not null
+      if(sprite != null) {
+        sprite.play(objectState.image + '_moving');  
+        sprite.x = pixel.x;
+        sprite.y = pixel.y;
+      }
     } else {
       var animState;
       var anim;
@@ -395,7 +400,10 @@ export class ObjectScene extends Phaser.Scene {
       }
 
       if(this.anims.exists(anim)) {
-        if(sprite != null) {
+          console.log(anim);
+        if(typeof sprite !== 'undefined') {
+          console.log(typeof sprite);
+          console.log(sprite)          
           sprite.play(anim);
         } else {
           console.log("Error in animations for sprite for obj: " + objectState.id);
@@ -416,7 +424,7 @@ export class ObjectScene extends Phaser.Scene {
       }
 
       //Only follow if Hero
-      if(objectState.subclass == HERO) {
+      if(objectState.subclass == HERO && objectState.player == Global.playerId) {
 
         var mapScene = this.scene.get('MapScene') as MapScene;
         mapScene.cameras.main.startFollow(sprite, true);
@@ -766,8 +774,7 @@ export class ObjectScene extends Phaser.Scene {
       }
 
       var dmgMsg = ''
-
-      if(message.combo != false) {
+      if('combo' in message) {
         dmgMsg = message.combo + ' ' + message.dmg + '!';        
       } else {
         dmgMsg = message.dmg;
@@ -911,7 +918,7 @@ export class ObjectScene extends Phaser.Scene {
     var objectState = Global.objectStates[message.id];
     var source = Util.hex_to_pixel(objectState.x, objectState.y);
 
-    var value = '+' + message.xp + ' ' + message.type + ' XP';
+    var value = '+' + message.xp + ' ' + message.xp_type + ' XP';
 
     var xpText = this.add.text(source.x + 36, source.y - 5, value, { fontFamily: 'Verdana', fontSize: 18, color: '#FFFFFF' });
     xpText.setDepth(10);

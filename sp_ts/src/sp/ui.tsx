@@ -222,12 +222,15 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.NOTICE, this.handleNotice, this);
     Global.gameEmitter.on(NetworkEvent.HERO_INIT, this.handleHeroInit, this);
     Global.gameEmitter.on(NetworkEvent.HERO_DEAD, this.handleHeroDead, this);
-    Global.gameEmitter.on(NetworkEvent.INFO_OBJ, this.handleInfoObj, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_HERO, this.handleInfoHero, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_VILLAGER, this.handleInfoVillager, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_STRUCTURE, this.handleInfoStructure, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_NPC, this.handleInfoNPC, this);
     Global.gameEmitter.on(NetworkEvent.INFO_TILE, this.handleInfoTile, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM, this.handleInfoItem, this);
     Global.gameEmitter.on(NetworkEvent.INFO_INVENTORY, this.handleInfoInventory, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ITEM_TRANSFER, this.handleInfoItemTransfer, this);
-    Global.gameEmitter.on(NetworkEvent.INFO_ITEM_UPDATE, this.handleInfoItemUpdate, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_ITEMS_UPDATE, this.handleInfoItemsUpdate, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ATTRS, this.handleInfoAttrs, this);
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ADVANCE, this.handleInfoAdvance, this);
@@ -419,7 +422,14 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleHeroSleepClick(event: React.MouseEvent) {
-    Network.sendRest(Global.heroId);
+    //Network.sendRest(Global.heroId);
+
+    if(!Global.resourceLayerVisible)  {
+      Network.sendNearbyResources();
+    } else {
+      Global.gameEmitter.emit(GameEvent.RESOURCE_LAYER_CLICK, {});
+      
+    }
   }
 
   handleComboClick() {
@@ -526,6 +536,32 @@ export default class UI extends React.Component<any, UIState>{
     }
   }
 
+  handleInfoHero(message) {
+    console.log('UI handleInfoHero');
+    if(Util.isPlayerObj(message.id)) {
+      this.setState({hideHeroPanel: false, heroData: message});  
+    }
+  }
+
+  handleInfoVillager(message) {
+    console.log('UI handleInfoVillager');
+    if(Util.isPlayerObj(message.id)) {
+        this.setState({hideVillagerPanel: false, villagerData: message});  
+    }
+  }
+
+  handleInfoStructure(message) {
+    console.log('UI handleInfoStructure');
+    if(Util.isPlayerObj(message.id)) {
+        this.setState({hideStructurePanel: false, structureData: message});  
+    }
+  }  
+
+  handleInfoNPC(message) {
+    console.log('UI handleInfoNPC');
+    this.setState({hideNPCPanel: false, npcData: message});  
+  }
+
   handleInfoTile(message) {
     console.log('UI handleInfoTile');
     this.setState({hideTilePanel: false, tileData: message});
@@ -565,18 +601,39 @@ export default class UI extends React.Component<any, UIState>{
     }
   }
 
-  handleInfoItemUpdate(message) {
+  handleInfoItemsUpdate(message) {
     console.log('UI handleInfoItemUpdate');
-    this.setState({itemData: message.item});
+     
+    for(var j = 0; j < message.items_updated.length; j++) {
+      if(this.state.itemData.id == message.items_updated[j].id) {
+        this.setState({itemData: message.items_updated[j]});
+        break;
+      }
+    } 
 
-    //TODO improve this one day
     if(message.id == this.state.leftInventoryData.id) {
       var newLeftInventoryData : any = {...this.state.leftInventoryData};
 
-      for(var i = 0; i < newLeftInventoryData.items.length; i++) {
-        if(newLeftInventoryData.items[i].id == message.item.id) {
-          newLeftInventoryData.items[i] = message.item;
+      for(var j = 0; j < message.items_updated.length; j++) {
+        var item_found = false;
+
+        //Check if updated quantity of existing item
+        for(var i = 0; i < newLeftInventoryData.items.length; i++) {
+          if(newLeftInventoryData.items[i].id == message.items_updated[j].id) {
+            newLeftInventoryData.items[i] = message.items_updated[j];
+            item_found = true;
+          } 
         }
+
+        //Check if it is a brand new item
+        if(!item_found) {
+          newLeftInventoryData.items.push(message.items_updated[j]);
+        }
+      }
+
+      //Filter out removed items
+      for(var i = 0; i < message.items_removed.length; i++) {
+        newLeftInventoryData.items = newLeftInventoryData.items.filter(item => item.id != message.items_removed[i]);
       }
 
       this.setState({leftInventoryData: newLeftInventoryData});
@@ -585,10 +642,24 @@ export default class UI extends React.Component<any, UIState>{
     if(message.id == this.state.rightInventoryData.id) {
       var newRightInventoryData : any = {...this.state.rightInventoryData};
 
-      for(var i = 0; i < newRightInventoryData.items.length; i++) {
-        if(newRightInventoryData.items[i].id == message.item.id) {
-          newRightInventoryData.items[i] = message.item;
+      for(var j = 0; j < message.items_updated.length; j++) {
+        var item_found = false;
+
+        for(var i = 0; i < newRightInventoryData.items.length; i++) {          
+          if(newRightInventoryData.items[i].id == message.items_updated[j].id) {
+            newRightInventoryData.items[i] = message.items_updated[j];
+            item_found = true;
+          } 
         }
+
+        if(!item_found) {
+          newRightInventoryData.items.push(message.items_updated[j]);
+        }
+      }
+
+      //Filter out removed items
+      for(var i = 0; i < message.items_removed.length; i++) {
+        newRightInventoryData.items = newRightInventoryData.items.filter(item => item.id != message.items_removed[i]);
       }
 
       this.setState({rightInventoryData: newRightInventoryData});
@@ -624,6 +695,11 @@ export default class UI extends React.Component<any, UIState>{
     console.log("UI handleInfoExperiment");
     this.setState({hideExperimentPanel: false, expData: message});
   }
+
+  /*handleNearbyResources(message) {
+    console.log("UI handleNearbyResources");
+    console.log(message);
+  }*/
 
   handleItemTransfer(message) {
     console.log('UI handleItemTransfer leftId: ' + this.state.leftInventoryId + ' rightId: ' + 

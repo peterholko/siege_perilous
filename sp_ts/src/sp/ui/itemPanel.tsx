@@ -50,10 +50,10 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
   }
 
   handleEquipClick() {
-    if(this.props.itemData.equip == FALSE) {
-      Network.sendEquip(this.props.itemData.id);
+    if(this.props.itemData.equipped == false) {
+      Network.sendEquip(this.props.itemData.id, true);
     } else {
-      Network.sendUnEquip(this.props.itemData.id);
+      Network.sendEquip(this.props.itemData.id, false);
     }
   }
   
@@ -181,7 +181,7 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
           <tbody>
           <tr>
             <td>Equipped: </td>
-            <td>{this.props.itemData.equip}</td>
+            <td>{String(this.props.itemData.equipped)}</td>
           </tr>
           <tr>
             <td>Class: </td>

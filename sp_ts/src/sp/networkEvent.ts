@@ -12,7 +12,10 @@ export namespace NetworkEvent {
     export const MAP : string = 'MAP';
     export const IMAGE_DEF : string = 'IMAGE_DEF';
     export const STATS : string = 'STATS';
-    export const INFO_OBJ : string = 'INFO_OBJ';
+    export const INFO_HERO : string = 'INFO_HERO';
+    export const INFO_VILLAGER : string = 'INFO_VILLAGER';
+    export const INFO_STRUCTURE : string = 'INFO_STRUCTURE';
+    export const INFO_NPC : string = 'INFO_NPC';    
     export const INFO_TILE : string = 'INFO_TILE';
     export const INFO_ITEM : string = 'INFO_ITEM';
     export const INFO_INVENTORY : string = 'INFO_INVENTORY';
@@ -23,7 +26,8 @@ export namespace NetworkEvent {
     export const INFO_SKILLS : string = 'ITEM_SKILLS';
     export const INFO_ADVANCE : string = 'ITEM_ADVANCE';
     export const INFO_EXPERIMENT : string = 'ITEM_EXPERIMENT';
-    export const INFO_ITEM_UPDATE : string = 'INFO_ITEM_UPDATE';
+    export const INFO_ITEMS_UPDATE : string = 'INFO_ITEMS_UPDATE';
+    export const NEARBY_RESOURCES: string = 'NEARBY_RESOURCES';
     export const BUYSELL_ITEM : string = 'BUYSELL_ITEM';
     export const HIRE : string = 'HIRE';
     export const STRUCTURE_LIST : string = 'STRUCTURE_LIST';

@@ -6,6 +6,7 @@
 import { Util } from '../util';
 import { Global } from '../global';
 import { Tile } from '../objects/tile';
+import { Resource } from '../objects/resource';
 import { GameSprite } from '../objects/gameSprite';
 import { GameEvent } from '../gameEvent';
 import { NetworkEvent } from '../networkEvent';
@@ -22,6 +23,7 @@ export class MapScene extends Phaser.Scene {
   private extra : Phaser.GameObjects.Container;
   private void : Phaser.GameObjects.Container;
   private select : Phaser.GameObjects.Container;
+  private resources : Phaser.GameObjects.Container;
 
   private selectHex : Phaser.GameObjects.Image;
 
@@ -99,6 +101,9 @@ export class MapScene extends Phaser.Scene {
     this.load.image('void-ne', './static/art/tileset/void/void-ne.png');
     this.load.image('void', './static/art/tileset/void/void.png');
 
+
+    this.load.image('ore', './static/art/items/valleyruncopperore.png');
+
     this.load.json('tileset', './static/tileset.json');
     this.load.on('filecomplete-json-tileset', this.tilesetComplete, this)
 
@@ -120,10 +125,13 @@ export class MapScene extends Phaser.Scene {
 
   loadingComplete() {
     console.log('Loading complete');
+    Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.MAP, this.setRender, this);
+    Global.gameEmitter.on(NetworkEvent.NEARBY_RESOURCES, this.processNearbyResources, this);
+    Global.gameEmitter.on(GameEvent.RESOURCE_LAYER_CLICK, this.hideResourceLayer, this);
     
     this.time.addEvent({ delay: 1000, callback: this.processRender, callbackScope: this, loop: true });
-    this.setRender();
+    //this.setRender();
   }
 
   create(): void {
@@ -134,6 +142,7 @@ export class MapScene extends Phaser.Scene {
     this.extra = this.add.container(0, 0);
     this.void = this.add.container(0, 0);
     this.select = this.add.container(0, 0)
+    this.resources = this.add.container(0, 0)
 
     this.selectHex = new Phaser.GameObjects.Image(this, 0, 0, 'selecthex');
     this.selectHex.setOrigin(0);
@@ -161,6 +170,81 @@ export class MapScene extends Phaser.Scene {
       this.drawMap();
       this.renderToggle = false;
     }
+  }
+
+  processNearbyResources(message) : void {    
+    console.log(message);
+
+    Global.resourceLayerVisible = true;
+    this.resources.visible = true;
+
+    var data = message.data;
+
+    let loader = new Phaser.Loader.LoaderPlugin(this);
+
+    var resource_per_tile = {};
+
+    
+
+    for(var i = 0; i < data.length; i++) {
+      var resourceData = data[i];
+      var imageName = resourceData.name.replace(/\s/g,'').toLowerCase();
+      var pixel = Util.hex_to_pixel(resourceData.x, resourceData.y);
+
+      var key = pixel.x + '_' + pixel.y;
+
+      if(key in resource_per_tile) {
+        resource_per_tile[key] = resource_per_tile[key] + 1;
+      } else {
+        resource_per_tile[key] = 1;
+      }
+
+      var offsetX = 0;
+      var offsetY = 0;
+
+      if(resource_per_tile[key] == 2) {
+        offsetX = 25;
+        offsetY = 0;
+      } else if(resource_per_tile[key] == 3) {
+        offsetX = 0;
+        offsetY = 25;
+      } else if(resource_per_tile[key] == 4) {
+        offsetX = 25;
+        offsetY = 25;
+      }
+
+      var resource = new Resource({
+        scene: this,
+        x: pixel.x + 7 + offsetX,
+        y: pixel.y + 7 + offsetY,
+        imageName: imageName,            
+        hexX: resourceData.x,
+        hexY: resourceData.y
+      });     
+      
+      resource.setScale(0.66);      
+   
+      loader.image(imageName, `./static/art/items/${imageName}.png`);
+
+      loader.once(Phaser.Loader.Events.COMPLETE, () => {
+        // texture loaded so use instead of the placeholder
+        resource.setTexture(imageName);
+
+        
+
+      });
+
+      loader.start();
+
+      this.resources.add(resource);            
+    }
+  }
+
+  hideResourceLayer() : void {
+    this.resources.visible = false;
+    this.resources.removeAll();
+
+    Global.resourceLayerVisible = false;
   }
 
   setRender() : void {

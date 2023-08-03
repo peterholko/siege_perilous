@@ -28,7 +28,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     var maxProgress = 100;
 
     if('progress' in this.props.structureData) {
-      maxProgress = this.props.structureData.build_time / 5;
+      maxProgress = this.props.structureData.build_time / 10;
       progress = (this.props.structureData.progress / 100) * maxProgress;
     }
 
@@ -94,7 +94,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     console.log('Network build');
     const buildTimeSeconds = Math.floor(message.build_time);
 
-    this.setState({maxProgress: buildTimeSeconds,
+    this.setState({maxProgress: buildTimeSeconds / 10,
                    structureState: PROGRESSING});
 
     this.startTimer();
@@ -133,7 +133,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
     const showExperimentButton = (this.state.structureData.state == NONE &&
                                   this.state.structureData.subclass == CRAFT &&
-                                  this.state.structureData.level != 0);
+                                  this.state.structureData.level != -1);
 
     const showBuildButton = (this.state.structureData.state == FOUNDED ||
                              this.state.structureData.state == STALLED);                             
@@ -267,7 +267,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
             <tr>
               <td>Build Time:</td>
-              <td>{this.state.structureData.build_time / 5}</td>
+              <td>{this.state.structureData.build_time / 10} sec</td>
             </tr>
             { showProgress &&
               <tr>

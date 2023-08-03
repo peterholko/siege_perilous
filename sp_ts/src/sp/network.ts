@@ -60,7 +60,7 @@ export class Network {
   }
 
   public static sendInfoObj(id) {
-    var m = '{"cmd": "info_unit", "id": ' + id + '}';
+    var m = '{"cmd": "info_obj", "id": ' + id + '}';
     Global.socket.sendMessage(m);
   }
 
@@ -109,6 +109,11 @@ export class Network {
 
   public static sendExpore(id) {
     var m = '{"cmd": "explore", "sourceid": ' + id + '}';  
+    Global.socket.sendMessage(m);
+  }
+
+  public static sendNearbyResources() {
+    var m = '{"cmd": "nearby_resources"}';
     Global.socket.sendMessage(m);
   }
 
@@ -315,10 +320,11 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
-  public static sendEquip(itemId) {
+  public static sendEquip(itemId, status) {
       var m = {
       cmd: "equip",
-      item: itemId
+      item: itemId,
+      status: status
     }    
     Global.socket.sendMessage(JSON.stringify(m));
   }
@@ -374,7 +380,8 @@ export class Network {
 
 
   constructor() {
-    var url : string = "ws://" + window.location.host + "/websocket";
+    //var url : string = "ws://" + window.location.host + "/websocket";
+    var url : string = "ws://127.0.0.1:9002";
     this.websocket = new WebSocket(url);
 
     this.websocket.onopen = (evt) => {
@@ -440,8 +447,14 @@ export class Network {
       } else if(jsonData.packet == 'stats') {
         this.processGetStats(jsonData.data);
         Global.gameEmitter.emit(NetworkEvent.STATS, {});
-      } else if(jsonData.packet == "info_unit") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_OBJ, jsonData);
+      } else if(jsonData.packet == "info_hero") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_HERO, jsonData);
+      } else if(jsonData.packet == "info_villager") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_VILLAGER, jsonData);     
+      } else if(jsonData.packet == "info_structure") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_STRUCTURE, jsonData);            
+      } else if(jsonData.packet == "info_npc") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_NPC, jsonData);            
       } else if(jsonData.packet == "info_tile") {
         Global.gameEmitter.emit(NetworkEvent.INFO_TILE, jsonData);
       } else if(jsonData.packet == "info_item") {
@@ -450,8 +463,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_INVENTORY, jsonData);
       } else if(jsonData.packet == "info_item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_TRANSFER, jsonData);
-      } else if(jsonData.packet == "info_item_update") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_UPDATE, jsonData);
+      } else if(jsonData.packet == "info_items_update") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_ITEMS_UPDATE, jsonData);
       } else if(jsonData.packet == "item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.ITEM_TRANSFER, jsonData);
       } else if(jsonData.packet == "item_split") {
@@ -466,6 +479,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_ADVANCE, jsonData);
       } else if(jsonData.packet == "info_experiment") {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
+      } else if(jsonData.packet == "nearby_resources") {
+        Global.gameEmitter.emit(NetworkEvent.NEARBY_RESOURCES, jsonData);        
       } else if(jsonData.packet == "structure_list") {
         Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData);
       } else if(jsonData.packet == 'build') {
@@ -521,8 +536,9 @@ export class Network {
         op: 'added'
       };
 
-      if(objectState.subclass == 'hero') {
+      if(objectState.player == Global.playerId && objectState.subclass == 'hero') {
         Global.heroId = objectState.id;
+        
         Global.gameEmitter.emit(NetworkEvent.HERO_INIT, Global.heroId);
         
         Network.sendGetStats(Global.heroId);

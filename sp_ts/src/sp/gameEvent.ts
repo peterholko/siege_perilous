@@ -22,6 +22,7 @@ export namespace GameEvent {
     export const RESOURCE_CLICK : string = 'RESOURCE_CLICK';
     export const CRAFT_CLICK : string = 'CRAFT_CLICK';
     export const NOTICE_EXPIRE : string = 'NOTICE_EXPIRE';
+    export const RESOURCE_LAYER_CLICK : string = 'RESOURCE_LAYER_CLICK';
 
     export const OBJ_UPDATE: string = 'OBJ_UPDATE';
 }
