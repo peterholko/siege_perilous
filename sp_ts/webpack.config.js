@@ -1,6 +1,8 @@
 var path = require('path');
 var pathToPhaser = path.join(__dirname, '/node_modules/phaser/');
 var phaser = path.join(pathToPhaser, 'dist/phaser.min.js');
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+
 
 module.exports = {
   mode: "production",
@@ -9,30 +11,45 @@ module.exports = {
   entry: './src/sp/main.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'sp2.js',
+    //filename: 'sp2.js',
+    filename: "[name].[chunkhash].js",
+    sourceMapFilename: '[name].[hash:8].map',
+    chunkFilename: '[id].[hash:8].js',
     library: 'SP'
   },
   module: {
     rules: [
       { 
         test: /\.ts(x?)$/, 
+        use: "ts-loader",
         exclude: /node_modules/,
-        loader: 'ts-loader', 
-        exclude: '/node_modules/' 
-      },
-      { 
-        test: /phaser\.js$/, 
-        loader: 'expose-loader?Phaser' 
       },
       {
         test: /\.css$/i,
-        loader: 'style-loader!css-loader',
+        use: 'style-loader!css-loader',
       },
       {
         test: /\.(jpe?g|png|gif|woff|woff2|eot|ttf|svg)(\?[a-z0-9=.]+)?$/,
-        loader: 'url-loader?limit=140000' 
+        use: {
+          loader: 'url-loader',
+          options: {
+            limit: 14000
+          }
+        } 
       }
     ]
+  },
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: "phaser",
+          enforce: true,
+          chunks: "initial",
+        },
+      },
+    },
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js'],
@@ -44,4 +61,13 @@ module.exports = {
       art_comp: './../../../../priv/static/art/',
     }
   },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, "./src/index.html"),
+      filename: "index.html",
+      title: "Siege Perilous",
+      inject: "body",
+      hot: true,
+    }),
+  ],
 };
