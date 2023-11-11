@@ -29,9 +29,10 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     } as React.CSSProperties
 
     this.state = {
+      redrawSelect: true,
       hideLeftSelect: true,
       hideRightSelect: true,
-      hideSelectExpRes: true,
+      hideSelectExpItem: true,
       selectExpResStyle: selectExpResStyle
     };
   
@@ -46,42 +47,32 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
   }
 
   handleSelect() {
-    this.setState({hideLeftSelect: false,
-                   hideSelectExpRes: true});
+    this.setState({
+      hideLeftSelect: false,
+      hideSelectExpItem: true
+    });
   }
 
   handleExpItemSelect(eventData) {
-    console.log('handleExpItemSelect ' + eventData);
-
-    const selectStyle = {
-      transform: 'translate(-185px, 50px)',
-      position: 'fixed'
-    } as React.CSSProperties
+    console.log('handleExpItemSelect ' + JSON.stringify(eventData));
 
     Global.selectedItemOwnerId = eventData.ownerId;
     Global.selectedItemId = eventData.itemId;
 
-    this.setState({hideSelectExpRes: false,
-                   hideLeftSelect: true,
-                   selectExpResStyle: selectStyle})
+    var redrawSelect = this.state.redrawSelect;
+
+    this.setState({redrawSelect: !redrawSelect})
   }
 
   handleExpResSelect(eventData) {
-    console.log('handleExpResSelect ' + eventData);
-    var xPos = -215 + ((eventData.index % 5) * 60);
-    var yPos = 140 + (Math.floor(eventData.index / 5) * 53);
-
-    const selectStyle = {
-      transform: 'translate(' + xPos + 'px, ' + yPos + 'px)',
-      position: 'fixed'
-    } as React.CSSProperties
+    console.log('handleExpResSelect ' + JSON.stringify(eventData));
 
     Global.selectedItemOwnerId = eventData.ownerId;
     Global.selectedItemId = eventData.itemId;
 
-    this.setState({hideSelectExpRes: false,
-                   hideLeftSelect: true,
-                   selectExpResStyle: selectStyle});
+    var redrawSelect = this.state.redrawSelect;
+
+    this.setState({redrawSelect: !redrawSelect})
   }
 
   handleSetExpItemClick() {
@@ -108,6 +99,9 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
     var itemExpResources = [];
 
     var showNewRecipe = this.props.expData.hasOwnProperty("recipe");
+    var selectStyle;
+    var hideInventorySelect = false;
+    var hideExpSelect = true;
 
     const sourceTransferStyle = {
       transform: 'translate(-250px, 50px)',
@@ -210,6 +204,16 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
                        yPos={yPos}
                        handleSelect={this.handleExpItemSelect} />
       )
+
+      if(itemId == Global.selectedItemId) {
+        selectStyle = {
+          transform: 'translate(-185px, 50px)',
+          position: 'fixed'
+        } as React.CSSProperties  
+        
+        hideExpSelect = false;
+      }
+      
     }
 
     for(var i = 0; i < 2; i++) {
@@ -247,6 +251,19 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
                        yPos={yPos}
                        handleSelect={this.handleExpResSelect} />
       );
+
+      if(itemId == Global.selectedItemId) {
+
+        var xPos = -215 + ((i % 5) * 60);
+        var yPos = 140 + (Math.floor(i / 5) * 53);
+    
+        selectStyle = {
+          transform: 'translate(' + xPos + 'px, ' + yPos + 'px)',
+          position: 'fixed'
+        } as React.CSSProperties
+
+        hideExpSelect = false;
+      }
     }
 
     if(showNewRecipe) {
@@ -257,7 +274,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
                               items={this.props.expData.validresources}
                               panelType={'experiment'}
                               hideExitButton={true}
-                              hideSelect={this.state.hideLeftSelect}
+                              hideSelect={false}
                               handleSelect={this.handleSelect} />
 
           <HalfPanel left={false} 
@@ -283,7 +300,7 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
                                 items={this.props.expData.validresources}
                                 panelType={'experiment'}
                                 hideExitButton={true}
-                                hideSelect={this.state.hideLeftSelect}
+                                hideSelect={false}
                                 handleSelect={this.handleSelect} />
 
             <HalfPanel left={false} 
@@ -314,8 +331,8 @@ export default class ExperimentTransferPanel extends React.Component<ETPProps, a
                     style={expButtonStyle}
                     onClick={this.handleExperimentClick}  /> 
 
-              {!this.state.hideSelectExpRes && 
-                <img src={selectitemborder} style={this.state.selectExpResStyle} /> 
+              {!hideExpSelect && 
+                <img src={selectitemborder} style={selectStyle} /> 
               }
               
             </HalfPanel>

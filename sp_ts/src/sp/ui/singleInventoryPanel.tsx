@@ -21,7 +21,7 @@ export default class SingleInventoryPanel extends React.Component<any, any> {
     this.setState({hideSelect: false});
 
     Global.infoItemAction = 'inventory';
-    Network.sendInfoItem(eventData.itemId);
+    Network.sendInfoItem(eventData.itemId, -1, "None");
   }
 
   render() {

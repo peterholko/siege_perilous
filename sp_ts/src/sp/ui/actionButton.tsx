@@ -4,7 +4,7 @@ import quickattackbutton from "ui_comp/quickattackbutton.png";
 import preciseattackbutton from "ui_comp/preciseattackbutton.png";
 import fierceattackbutton from "ui_comp/fierceattackbutton.png";
 import cooldownbg from "ui_comp/cooldownbg.png";
-import styles from "./../ui.css";
+import styles from "./../ui.module.css";
 import { Global } from "../global";
 import { NetworkEvent } from "../networkEvent";
 import { QUICK, PRECISE, FIERCE } from "../config";

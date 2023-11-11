@@ -63,6 +63,7 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
 
     var imageName;
     var capacityText;
+    var selectItemStyle = this.state.selectItemStyle;
 
     if(Util.isSprite(Global.objectStates[objId].image)) {
       imageName = Global.objectStates[objId].image + '_single.png';
@@ -89,6 +90,8 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
       itemFrames.push(<img src={itemframe} key={i} style={itemFrameStyle}/> )
     }
 
+    var anyItemSelected = false;
+
     for(var i = 0; i < this.props.items.length; i++) {
       console.log('Item: ' + this.props.items[i]);
       var itemId = this.props.items[i].id;
@@ -109,6 +112,19 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
                                 xPos={xPos}
                                 yPos={yPos}
                                 handleSelect={this.handleSelect} />);
+
+      if(Global.selectedItemId == itemId) {
+        var xPos = -293 + ((i % 5) * 53);
+        var yPos = 73 + (Math.floor(i / 5) * 53);
+    
+        const style = {
+          transform: 'translate(' + xPos + 'px, ' + yPos + 'px)',
+          position: 'fixed'
+        };
+
+        selectItemStyle = style;
+        anyItemSelected = true;
+      }
     }
 
     const spriteStyle = {
@@ -151,8 +167,8 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
         {itemFrames}
         {items}
         {reqs}
-        {!this.props.hideSelect && 
-          <img src={selectitemborder} style={this.state.selectItemStyle} />
+        {anyItemSelected && 
+          <img src={selectitemborder} style={selectItemStyle} />
         }
       </HalfPanel>
     );

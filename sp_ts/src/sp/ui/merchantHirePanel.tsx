@@ -51,14 +51,14 @@ export default class MerchantHirePanel extends React.Component<MHPProps, any> {
 
     var topStats = [];
 
-    topStats.push({'name': 'Creativity', 'value': this.state.villager.Creativity});
-    topStats.push({'name': 'Dexterity', 'value': this.state.villager.Dexterity});
-    topStats.push({'name': 'Endurance', 'value': this.state.villager.Endurance});
-    topStats.push({'name': 'Focus', 'value': this.state.villager.Focus});
-    topStats.push({'name': 'Intellect', 'value': this.state.villager.Intellect});
-    topStats.push({'name': 'Spirit', 'value': this.state.villager.Spirit});
-    topStats.push({'name': 'Strength', 'value': this.state.villager.Strength});
-    topStats.push({'name': 'Toughness', 'value': this.state.villager.Toughness});
+    topStats.push({'name': 'Creativity', 'value': this.state.villager.creativity});
+    topStats.push({'name': 'Dexterity', 'value': this.state.villager.dexterity});
+    topStats.push({'name': 'Endurance', 'value': this.state.villager.endurance});
+    topStats.push({'name': 'Focus', 'value': this.state.villager.focus});
+    topStats.push({'name': 'Intellect', 'value': this.state.villager.intellect});
+    topStats.push({'name': 'Spirit', 'value': this.state.villager.spirit});
+    topStats.push({'name': 'Strength', 'value': this.state.villager.strength});
+    topStats.push({'name': 'Toughness', 'value': this.state.villager.toughness});
 
     topStats.sort((a, b) => (a.value < b.value) ? 1 : -1);
 

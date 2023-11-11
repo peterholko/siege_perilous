@@ -1,6 +1,6 @@
 
 import * as React from "react";
-import styles from "./../ui.css";
+import styles from "./../ui.module.css";
 
 interface InvItemProps {
   ownerId,

@@ -201,10 +201,10 @@ export class ObjectScene extends Phaser.Scene {
         }
         else if(objectState.op == 'updated') {
           console.log('Object Updated');
-
+          console.log(Global.imageDefList.hasOwnProperty(objectState.image));
           if(Global.imageDefList.hasOwnProperty(objectState.image)) {
             const imageType = Util.getImageType(objectState.image);
-
+            console.log(imageType); 
             if(imageType == IMAGE) {
               this.updateImage(objectState);
             } else if(imageType == SPRITE) {
@@ -246,6 +246,8 @@ export class ObjectScene extends Phaser.Scene {
 
         this.processVisibleTiles(objectState);
     }
+
+    console.log(Global.objectStates);
 
     //Call processWall here for loaded wall images
     this.processWallList();
@@ -339,6 +341,7 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   updateImage(objectState: ObjectState) {
+    console.log('UpdateImage: ' + objectState);
     var image = this.objectList[objectState.id] as GameImage;
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
@@ -348,6 +351,10 @@ export class ObjectScene extends Phaser.Scene {
         image.setTexture(objectState.image);
       }
     }
+    console.log(image);
+    console.log(pixel);
+
+    image.setDepth(10);
 
     //Move completed, add tween to new location
     if(image.x != pixel.x || image.y != pixel.y) {
@@ -436,18 +443,20 @@ export class ObjectScene extends Phaser.Scene {
         this.cameras.main.followOffset.y = -36;
       }
       
+      if(typeof sprite !== 'undefined') {
       //Move completed, add tween to new location
-      if(sprite.x != pixel.x || sprite.y != pixel.y) {
-        var tween = this.tweens.add({
-          targets: sprite,
-          x: pixel.x,
-          y: pixel.y,
-          ease: 'Power1',
-          duration: 500,
-          onComplete: this.onMoveComplete
-        });
+        if(sprite.x != pixel.x || sprite.y != pixel.y) {
+          var tween = this.tweens.add({
+            targets: sprite,
+            x: pixel.x,
+            y: pixel.y,
+            ease: 'Power1',
+            duration: 500,
+            onComplete: this.onMoveComplete
+          });
 
-        tween.play();
+          tween.play();
+        }
       }
     }
   }
@@ -490,7 +499,7 @@ export class ObjectScene extends Phaser.Scene {
       id: objectState.id,
       imageName: imageName
     });
- 
+
     sprite.setDepth(2);
 
     this.add.existing(sprite);
@@ -856,7 +865,11 @@ export class ObjectScene extends Phaser.Scene {
 
         if(Util.isVisible(otherState.x, otherState.y) == false) {
           var otherSprite = this.objectList[targetId];
-          otherSprite.destroy();          
+          otherSprite.destroy();
+
+          // Added Nov 2023, the objectStates has to be deleted otherwise the next time the object return 
+          // it will not be displayed
+          delete Global.objectStates[targetId];
         }
 
       }
@@ -864,6 +877,10 @@ export class ObjectScene extends Phaser.Scene {
 
       if(Util.isVisible(objectState.x, objectState.y) == false) {
         sprite.destroy();
+
+        // Added Nov 2023, the objectStates has to be deleted otherwise the next time the object return 
+        // it will not be displayed
+        delete Global.objectStates[sprite.id];
       }
     }
   }

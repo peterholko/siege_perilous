@@ -20,12 +20,13 @@ export namespace NetworkEvent {
     export const INFO_ITEM : string = 'INFO_ITEM';
     export const INFO_INVENTORY : string = 'INFO_INVENTORY';
     export const INFO_ITEM_TRANSFER : string = 'INFO_ITEM_TRANSFER';
-    export const INFO_HAULING : string = 'INFO_HAULING';
+    export const INFO_HIRE : string = 'INFO_HIRE';
     export const ITEM_TRANSFER : string = 'ITEM_TRANSFER';
     export const INFO_ATTRS : string = 'ITEM_ATTRS';
     export const INFO_SKILLS : string = 'ITEM_SKILLS';
     export const INFO_ADVANCE : string = 'ITEM_ADVANCE';
     export const INFO_EXPERIMENT : string = 'ITEM_EXPERIMENT';
+    export const INFO_EXPERIMENT_STATE : string = 'ITEM_EXPERIMENT_STATE';
     export const INFO_ITEMS_UPDATE : string = 'INFO_ITEMS_UPDATE';
     export const NEARBY_RESOURCES: string = 'NEARBY_RESOURCES';
     export const BUYSELL_ITEM : string = 'BUYSELL_ITEM';

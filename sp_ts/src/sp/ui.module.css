@@ -1,0 +1,159 @@
+.ui {
+  position: fixed;
+  margin: 0 auto;
+  z-index: 1; 
+}
+
+.movecompass {
+  left: 0px;
+  bottom: 0px;
+  z-index: 1;
+  position: fixed;
+}
+
+.heroinventorybutton {
+  transform: translate(10px, 160px);
+  z-index: 3;
+  position: fixed;
+}
+
+.heroattrsbutton {
+  transform: translate(10px, 110px);
+  z-index: 1;
+  position: fixed;
+}
+
+.heroexplorebutton {
+  transform: translate(60px, 160px);
+  z-index: 1;
+  position: fixed;
+}
+
+.herogatherbutton {
+  transform: translate(60px, 110px);
+  z-index: 1;
+  position: fixed;
+}
+
+.herobuildbutton {
+  transform: translate(110px, 110px);
+  z-index: 1;
+  position: fixed;
+}
+
+.herosleepbutton {
+  transform: translate(110px, 160px);
+  z-index: 1;
+  position: fixed;
+}
+
+.combobutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -200px;
+  position: fixed;
+}
+
+.quickattackbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -150px;
+  position: fixed;
+}
+
+.preciseattackbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -100px;
+  position: fixed;
+}
+
+.fierceattackbutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: -50px;
+  position: fixed;
+}
+
+.bracebutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 20px;
+  position: fixed;
+}
+
+.parrybutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 70px;
+  position: fixed;
+}
+
+.dodgebutton {
+  bottom: 10px;
+  left: 50%;
+  margin-left: 120px;
+  position: fixed;
+}
+
+progress {
+  /* Reset the default appearance */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+   appearance: none;
+
+  /* Get rid of default border in Firefox. */
+  border: none;
+}
+
+progress::-webkit-progress-bar {
+  background-color: rgb(102, 102, 102);
+  border-radius: 2px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) inset;
+}
+
+progress{
+  background-color: rgb(102, 102, 102);
+}
+
+progress::-webkit-progress-value {
+   border-radius: 2px; 
+}
+
+progress::-moz-progress-bar {
+  background-color: forestgreen !important;
+  border-radius: 2px;
+}
+
+.itemquantity {
+  transform: translate(-3px, 31px);
+  position: fixed;
+  color: white;
+  font-family: Verdana;
+  font-size: 12px;
+  width: 50px;
+  text-align: right;
+  -webkit-text-stroke: 0.5px black;
+  font-weight: bold;
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+
+.box {
+  margin: 30px;
+  height: 50px;
+  width: 50px;
+  background-color: blue;
+}
+.box.horizTranslate {
+  -webkit-transition: 3s;
+  -moz-transition: 3s;
+  -ms-transition: 3s;
+  -o-transition: 3s;
+  transition: 3s;
+  margin-left: 50% !important;
+}

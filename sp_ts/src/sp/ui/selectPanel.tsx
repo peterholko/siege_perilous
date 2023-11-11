@@ -148,10 +148,11 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
         position: 'fixed'
       } as React.CSSProperties
 
+      //TODO this should only happen on tile click not on selectbox click
       //By default select the further to the left object on tile click
-      if(i == (maxIndex - 1)) {
+      /*if(i == (maxIndex - 1)) {
         Global.selectedKey = {type: OBJ, id: objId};
-      }
+      }*/
 
       boxes.push(<SelectBox key={i} 
                             pos={selectBoxPos}

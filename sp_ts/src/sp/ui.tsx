@@ -7,7 +7,7 @@ import { GameEvent } from './gameEvent';
 import { Tile } from './objects/tile';
 
 import * as React from "react";
-import styles from "./ui.css";
+import styles from "./ui.module.css";
 
 import SingleInventoryPanel from './ui/singleInventoryPanel';
 import ItemPanel from './ui/itemPanel';
@@ -20,6 +20,7 @@ import buildbutton from "ui/buildbutton.png";
 import explorebutton from "ui/explorebutton.png";
 import gatherbutton from "ui/gatherbutton.png";
 import sleepbutton from "ui/sleepbutton.png";
+import resourcesbutton from "ui/resourcesbutton.png";
 
 import bracebutton from "ui/bracebutton.png";
 import parrybutton from "ui/parrybutton.png";
@@ -234,8 +235,9 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.INFO_ATTRS, this.handleInfoAttrs, this);
     Global.gameEmitter.on(NetworkEvent.INFO_SKILLS, this.handleInfoSkills, this);
     Global.gameEmitter.on(NetworkEvent.INFO_ADVANCE, this.handleInfoAdvance, this);
-    Global.gameEmitter.on(NetworkEvent.INFO_HAULING, this.handleInfoHauling, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_HIRE, this.handleInfoHire, this);
     Global.gameEmitter.on(NetworkEvent.INFO_EXPERIMENT, this.handleInfoExperiment, this);
+    Global.gameEmitter.on(NetworkEvent.INFO_EXPERIMENT_STATE, this.handleInfoExperimentState, this);
     Global.gameEmitter.on(NetworkEvent.ITEM_TRANSFER, this.handleItemTransfer, this);
     Global.gameEmitter.on(NetworkEvent.BUYSELL_ITEM, this.handleBuySellItem, this);
     Global.gameEmitter.on(NetworkEvent.STRUCTURE_LIST, this.handleStructureList, this);
@@ -255,6 +257,7 @@ export default class UI extends React.Component<any, UIState>{
       var angleRads = Math.atan2(pocX, pocY);
       var angleDegrees = ((angleRads * 180) / Math.PI) + 180;
 
+      console.log(Global.objectStates);
       var heroObj = Global.objectStates[Global.heroId] as ObjectState;
 
       if(angleDegrees < 30 || angleDegrees >= 330) {
@@ -285,9 +288,14 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleTileClick(gameObject) {
-    console.log("gameObject: " + gameObject);
-    this.setState({selectedTile: gameObject,
-                   hideTargetActionPanel: true});
+    console.log(gameObject);
+
+    if(Global.resourceLayerVisible) {
+      Network.sendInfoTile(gameObject.hexX, gameObject.hexY); 
+    } else {
+      this.setState({selectedTile: gameObject,
+                     hideTargetActionPanel: true});
+    }
   }
 
   handleSelectBoxClick(eventData) {
@@ -459,13 +467,17 @@ export default class UI extends React.Component<any, UIState>{
 
   handleNewItems(message) {
     console.log('handleNewItems');
-    var crafterName = Global.objectStates[message.crafter].name;
+    var sourceName = Global.objectStates[message.sourceid].name;
     var msg = '';
 
-    if (message.src == 'crafting') {
-      msg = crafterName + " has crafted a " + message.data[0].name;
-    } else if(message.src == 'refining') {
-      msg = crafterName + " has refined a " + message.data[0].name;
+    if (message.action == 'crafting') {
+      msg = sourceName + " has crafted a " + message.item_name;
+    } else if(message.action == 'refining') {
+      msg = sourceName + " has refined a " + message.item_name;
+    } else if(message.action == 'gathering') {
+      msg = sourceName + " has gathered a " + message.item_name;
+    } else if(message.action == 'exploring') {
+      msg = sourceName + " has discovered a source of " + message.item_name;
     }
 
     this.setState({hideNoticePanel: false,
@@ -636,6 +648,17 @@ export default class UI extends React.Component<any, UIState>{
         newLeftInventoryData.items = newLeftInventoryData.items.filter(item => item.id != message.items_removed[i]);
       }
 
+      let new_total_weight = 0;
+
+      //Recalculate total weight
+      for(var i = 0; i < newLeftInventoryData.items.length; i++) {
+        var item = newLeftInventoryData.items[i];
+        new_total_weight += (item.quantity * item.weight);
+      }
+
+      // Set new total weight
+      newLeftInventoryData.tw = new_total_weight;
+
       this.setState({leftInventoryData: newLeftInventoryData});
     }
 
@@ -676,13 +699,13 @@ export default class UI extends React.Component<any, UIState>{
     this.setState({hideSkillsPanel: false, skillsData: message});
   }
 
-  handleInfoAdvance(message) {
+  handleInfoAdvance(message) { 
     console.log('UI handleInfoAdvance');
     this.setState({hideAdvancePanel: false, advanceData: message});
   }
 
-  handleInfoHauling(message) {
-    console.log('UI handleInfoHauling');
+  handleInfoHire(message) {
+    console.log('UI handleInfoHire');
     if(message.data.length > 0) {
       this.setState({hideMerchantHirePanel: false, hireData : message.data})
     } else {
@@ -694,6 +717,15 @@ export default class UI extends React.Component<any, UIState>{
   handleInfoExperiment(message) {
     console.log("UI handleInfoExperiment");
     this.setState({hideExperimentPanel: false, expData: message});
+  }
+
+  handleInfoExperimentState(message) {
+    console.log("UI handleInfoExperiment");
+
+    var newExpData = this.state.expData;
+    newExpData.state = message.state; 
+
+    this.setState({hideExperimentPanel: false, expData: newExpData});
   }
 
   /*handleNearbyResources(message) {
@@ -759,7 +791,13 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleRecipeList(message) {
-    this.setState({hideCraftPanel: false, recipesData: message.result});
+
+    if(message.result.length > 0) {
+      this.setState({hideCraftPanel: false, recipesData: message.result});
+    } else {
+      this.setState({hideErrorPanel : false,
+        errmsg : "This structure has no recipes"})      
+    }
   }
 
   handleBuild(message) {
@@ -773,6 +811,7 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   render() {
+    console.log("styles", styles);
     return(
       <div id="ui" className={styles.ui}>
          <img src={attrsbutton} 
@@ -800,7 +839,7 @@ export default class UI extends React.Component<any, UIState>{
               className={styles.herogatherbutton} 
               onClick={this.handleHeroGatherClick} />
         
-          <img src={sleepbutton} 
+          <img src={resourcesbutton} 
               id="herosleepbutton" 
               className={styles.herosleepbutton} 
               onClick={this.handleHeroSleepClick} />

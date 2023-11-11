@@ -11,10 +11,10 @@ module.exports = {
   entry: './src/sp/main.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    //filename: 'sp2.js',
-    filename: "[name].[chunkhash].js",
-    sourceMapFilename: '[name].[hash:8].map',
-    chunkFilename: '[id].[hash:8].js',
+    filename: 'sp2.js',
+    //filename: "sp2.[chunkhash].js",
+    //sourceMapFilename: '[name].[hash:8].map',
+    //chunkFilename: '[id].[hash:8].js',
     library: 'SP'
   },
   module: {
@@ -26,20 +26,20 @@ module.exports = {
       },
       {
         test: /\.css$/i,
-        use: 'style-loader!css-loader',
+        use: ["style-loader", "css-loader"],
       },
       {
         test: /\.(jpe?g|png|gif|woff|woff2|eot|ttf|svg)(\?[a-z0-9=.]+)?$/,
         use: {
           loader: 'url-loader',
           options: {
-            limit: 14000
+            limit: 150000
           }
         } 
       }
     ]
   },
-  optimization: {
+  /*optimization: {
     splitChunks: {
       cacheGroups: {
         vendor: {
@@ -50,7 +50,7 @@ module.exports = {
         },
       },
     },
-  },
+  },*/
   resolve: {
     extensions: ['.ts', '.tsx', '.js'],
     alias: {
@@ -63,7 +63,7 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, "./src/index.html"),
+      template: path.resolve(__dirname, "./index.html"),
       filename: "index.html",
       title: "Siege Perilous",
       inject: "body",

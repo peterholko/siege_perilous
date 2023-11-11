@@ -7,7 +7,8 @@ import { GameEvent } from "../gameEvent";
 interface HalfPanelProps {
   left : boolean,
   panelType : string,
-  hideExitButton : boolean
+  hideExitButton : boolean,
+  children: React.ReactNode
 }
 
 export default class HalfPanel extends React.Component<HalfPanelProps, any> {

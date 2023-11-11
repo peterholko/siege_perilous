@@ -8,7 +8,7 @@ import assignbutton from "ui_comp/assignbutton.png";
 import refinebutton from "ui_comp/refinebutton.png";
 import experimentbutton from "ui_comp/experimentbutton.png";
 import { Network } from "../network";
-import '../ui.css';
+import '../ui.module.css';
 import { FOUNDED, PROGRESSING, STALLED, NONE, CRAFT} from "../config";
 import { NetworkEvent } from "../networkEvent";
 import { GameEvent } from "../gameEvent";

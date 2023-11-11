@@ -1,11 +1,13 @@
 
 import * as React from "react";
-import styles from "./../ui.css";
+import styles from "./../ui.module.css";
 import { Global } from "../global";
 import { GameEvent } from "../gameEvent";
 
 interface ResItemProps {
   resourceName,
+  yieldLabel?,
+  quantityLabel?,
   quantity,
   currentQuantity?,
   index,
@@ -25,7 +27,8 @@ export default class ResourceItem extends React.Component<ResItemProps, any> {
   handleClick = () => {
     const eventData = {
       name: this.props.resourceName,
-      quantity: this.props.quantity,
+      yieldLabel: this.props.yieldLabel,
+      quantityLabel: this.props.quantityLabel,
       index: this.props.index,
     }
 

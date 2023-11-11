@@ -46,7 +46,9 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
       resources.push(
         <ResourceItem key={i}
                       resourceName={resource.name}
-                      quantity={resource.quantity}
+                      yieldLabel={resource.yield_label}
+                      quantityLabel={resource.quantity_label}
+                      quantity={0}
                       index={i}
                       showQuantity={false}/>
       )

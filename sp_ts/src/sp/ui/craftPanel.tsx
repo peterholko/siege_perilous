@@ -1,5 +1,5 @@
 import * as React from "react";
-import 'overlayscrollbars/css/OverlayScrollbars.css';
+import 'overlayscrollbars/overlayscrollbars.css';
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react';
 
 import HalfPanel from "./halfPanel";
@@ -30,7 +30,7 @@ export default class CraftPanel extends React.Component<CraftPanelProps, any> {
     this.handleLeftClick = this.handleLeftClick.bind(this);
     this.handleRightClick = this.handleRightClick.bind(this);
     this.handleCraftClick = this.handleCraftClick.bind(this);
-  }u
+  }
 
   handleLeftClick(event) {
     if(this.state.index != 0) {

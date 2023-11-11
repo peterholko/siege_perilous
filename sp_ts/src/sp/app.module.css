@@ -1,0 +1,18 @@
+
+.game {
+  position: fixed;
+  margin: 0 auto;
+  z-index: 0;
+  left: 0;
+  top: 0;
+}
+
+
+
+canvas{ 
+  position: fixed; 
+  z-index: 0;
+  left: 0;
+  top: 0;
+}
+

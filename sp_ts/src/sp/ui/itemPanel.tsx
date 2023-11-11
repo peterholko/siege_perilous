@@ -81,6 +81,8 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     const showUseButton = (this.props.itemData.class == "Potion") ||
                           (this.props.itemData.class == "Deed");
 
+    const showPrice = this.props.itemData.hasOwnProperty('price');
+
     if(this.props.itemData.hasOwnProperty('effects')) {
 
       for(var i = 0; i < this.props.itemData.effects.length; i++) {
@@ -212,6 +214,12 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
               </table>
             </td>
           </tr>
+          {showPrice &&
+            <tr>
+              <td>Price: </td>
+              <td>{this.props.itemData.price}</td>
+            </tr> 
+          }
           </tbody>
         </table>
 

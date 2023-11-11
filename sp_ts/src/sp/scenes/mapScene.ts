@@ -141,8 +141,11 @@ export class MapScene extends Phaser.Scene {
     this.trans = this.add.container(0, 0);
     this.extra = this.add.container(0, 0);
     this.void = this.add.container(0, 0);
-    this.select = this.add.container(0, 0)
-    this.resources = this.add.container(0, 0)
+    this.resources = this.add.container(0, 0);
+    this.resources.setDepth(1);
+    
+    this.select = this.add.container(0, 0);
+    this.select.setDepth(2);
 
     this.selectHex = new Phaser.GameObjects.Image(this, 0, 0, 'selecthex');
     this.selectHex.setOrigin(0);
@@ -176,73 +179,97 @@ export class MapScene extends Phaser.Scene {
     console.log(message);
 
     Global.resourceLayerVisible = true;
-    this.resources.visible = true;
+
+    if(this.resources.visible === false) {
+      this.resources.visible = true;
+    }
 
     var data = message.data;
+    var resourceImages = [];
+    var resourcePerTile = {};
+    var bestResourceOnTile = {};
 
     let loader = new Phaser.Loader.LoaderPlugin(this);
 
-    var resource_per_tile = {};
-
-    
+    loader.on(Phaser.Loader.Events.FILE_COMPLETE, (key, type, data) => {
+      var resourceImage = resourceImages[key];
+      resourceImage.setTexture(key);  
+    });
 
     for(var i = 0; i < data.length; i++) {
       var resourceData = data[i];
-      var imageName = resourceData.name.replace(/\s/g,'').toLowerCase();
       var pixel = Util.hex_to_pixel(resourceData.x, resourceData.y);
-
       var key = pixel.x + '_' + pixel.y;
 
-      if(key in resource_per_tile) {
-        resource_per_tile[key] = resource_per_tile[key] + 1;
+      if(key in bestResourceOnTile) {
+        if(resourceData.color > bestResourceOnTile[key].color) {
+          bestResourceOnTile[key] = resourceData;
+        }
       } else {
-        resource_per_tile[key] = 1;
+        bestResourceOnTile[key] = resourceData;
+      }
+    }
+
+    for(var key in bestResourceOnTile) {
+      var resourceData = bestResourceOnTile[key];
+      var imageName = resourceData.name.replace(/\s/g,'').toLowerCase();
+      var pixel = Util.hex_to_pixel(resourceData.x, resourceData.y);
+      /*var key = pixel.x + '_' + pixel.y;
+
+      if(key in resourcePerTile) {
+        resourcePerTile[key] = resourcePerTile[key] + 1;
+      } else {
+        resourcePerTile[key] = 1;
       }
 
       var offsetX = 0;
       var offsetY = 0;
 
-      if(resource_per_tile[key] == 2) {
+      if(resourcePerTile[key] == 2) {
         offsetX = 25;
         offsetY = 0;
-      } else if(resource_per_tile[key] == 3) {
+      } else if(resourcePerTile[key] == 3) {
         offsetX = 0;
         offsetY = 25;
-      } else if(resource_per_tile[key] == 4) {
+      } else if(resourcePerTile[key] == 4) {
         offsetX = 25;
         offsetY = 25;
-      }
+      }*/
 
       var resource = new Resource({
         scene: this,
-        x: pixel.x + 7 + offsetX,
-        y: pixel.y + 7 + offsetY,
+        x: pixel.x + 12,
+        y: pixel.y + 12,
         imageName: imageName,            
         hexX: resourceData.x,
         hexY: resourceData.y
       });     
       
-      resource.setScale(0.66);      
-   
+      resource.setScale(0.90);
+
+      if(resourceData.color === 4) {
+        resource.postFX.addGlow(0x0070dd, 2, 0, false);
+      } else if(resourceData.color === 5) {
+        resource.postFX.addGlow(0xa335ee, 3, 0, false);
+      } else if(resourceData.color === 6) {
+        resource.postFX.addGlow(0xff8000, 3, 0, false);
+      } else if(resourceData.color === 7) {
+        resource.postFX.addGlow(0xe6cc80, 3, 0, false); 
+      }
+        
       loader.image(imageName, `./static/art/items/${imageName}.png`);
 
-      loader.once(Phaser.Loader.Events.COMPLETE, () => {
-        // texture loaded so use instead of the placeholder
-        resource.setTexture(imageName);
+      resourceImages[imageName] = resource;
 
-        
-
-      });
-
-      loader.start();
-
-      this.resources.add(resource);            
+      this.resources.add(resource);         
     }
+    
+    loader.start(); 
   }
 
   hideResourceLayer() : void {
     this.resources.visible = false;
-    this.resources.removeAll();
+    this.resources.removeAll(true);
 
     Global.resourceLayerVisible = false;
   }

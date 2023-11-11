@@ -1,5 +1,5 @@
 //import {startGame} from './game'
-import {Global} from './global'
+import { Global } from './global'
 import { NetworkEvent } from './networkEvent';
 import { ObjectState } from './objectState';
 import { TileState } from './tileState';
@@ -21,13 +21,13 @@ export class Network {
   public static sendSelectedClass(className: string) {
     var m = {
       cmd: "select_class",
-      classname: className 
+      classname: className
     };
 
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
-  public static sendImageDef(imageName : string) {
+  public static sendImageDef(imageName: string) {
     var m = {
       cmd: 'image_def',
       name: imageName
@@ -35,7 +35,7 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
-  public static sendMove(newX : integer, newY : integer) {
+  public static sendMove(newX: integer, newY: integer) {
     var m = {
       cmd: "move_unit",
       id: Global.heroId,
@@ -64,9 +64,14 @@ export class Network {
     Global.socket.sendMessage(m);
   }
 
-  public static sendInfoItem(id) {
-    var m = '{"cmd": "info_item", "id": ' + id + '}';
-    Global.socket.sendMessage(m);
+  public static sendInfoItem(id, merchantid, merchantaction) {
+    var m = {
+      cmd: "info_item",
+      id: id,
+      merchantid: merchantid,
+      merchantaction: merchantaction
+    };
+    Global.socket.sendMessage(JSON.stringify(m));
   }
 
   public static sendInfoTile(x, y) {
@@ -87,13 +92,13 @@ export class Network {
     };
     Global.socket.sendMessage(JSON.stringify(m));
   }
-  
+
   public static sendInfoExperiment(structureId) {
-     var m = {
+    var m = {
       cmd: 'info_experiment',
       structureid: structureId
     };
-    
+
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -108,7 +113,7 @@ export class Network {
   }
 
   public static sendExpore(id) {
-    var m = '{"cmd": "explore", "sourceid": ' + id + '}';  
+    var m = '{"cmd": "explore", "sourceid": ' + id + '}';
     Global.socket.sendMessage(m);
   }
 
@@ -136,7 +141,7 @@ export class Network {
 
   public static sendBuild(id, structureid) {
     var m = {
-      cmd: "build", 
+      cmd: "build",
       sourceid: id,
       structureid: structureid
     }
@@ -175,13 +180,13 @@ export class Network {
     }
     Global.socket.sendMessage(JSON.stringify(m));
   }
-  
+
   public static sendGetStats(id) {
     var m = {
       cmd: "get_stats",
       id: id
     };
-    Global.socket.sendMessage(JSON.stringify(m)); 
+    Global.socket.sendMessage(JSON.stringify(m));
   }
 
   public static sendCombo(id, comboType) {
@@ -200,9 +205,9 @@ export class Network {
       sourceid: sourceId,
       targetid: targetId
     };
-    Global.socket.sendMessage(JSON.stringify(m)); 
+    Global.socket.sendMessage(JSON.stringify(m));
   }
-  
+
   public static sendGather(id, resourceType) {
     var m = {
       cmd: "gather",
@@ -262,11 +267,11 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
-  public static sendInfoHauling(sourceId) {
+  public static sendInfoHire(sourceId) {
     var m = {
-      cmd: "info_hauling",
+      cmd: "info_hire",
       sourceid: sourceId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -275,7 +280,7 @@ export class Network {
       cmd: "hire",
       sourceid: sourceId,
       targetid: targetId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -283,7 +288,7 @@ export class Network {
     var m = {
       cmd: "set_exp_item",
       itemid: itemId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -291,7 +296,7 @@ export class Network {
     var m = {
       cmd: "set_exp_resource",
       itemid: itemId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -299,49 +304,49 @@ export class Network {
     var m = {
       cmd: "order_experiment",
       structureid: structureId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
   public static sendResetExperiment(structureId) {
-     var m = {
+    var m = {
       cmd: "reset_experiment",
       structureid: structureId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
-  public static sendInfoExit(Key, Type) {
-      var m = {
+  public static sendInfoExit(id, paneltype) {
+    var m = {
       cmd: "info_exit",
-      key: Key,
-      type: Type
-    }    
+      id: id,
+      paneltype: paneltype
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
   public static sendEquip(itemId, status) {
-      var m = {
+    var m = {
       cmd: "equip",
       item: itemId,
       status: status
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
   public static sendUnEquip(itemId) {
-      var m = {
+    var m = {
       cmd: "unequip",
       item: itemId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
- 
+
   public static sendUse(itemId) {
-      var m = {
+    var m = {
       cmd: "use",
       item: itemId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -349,7 +354,7 @@ export class Network {
     var m = {
       cmd: "rest",
       sourceid: sourceId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -357,7 +362,7 @@ export class Network {
     var m = {
       cmd: "info_advance",
       sourceid: sourceId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -365,7 +370,7 @@ export class Network {
     var m = {
       cmd: "advance",
       sourceid: sourceId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -373,7 +378,7 @@ export class Network {
     var m = {
       cmd: "delete",
       sourceid: sourceId
-    }    
+    }
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
@@ -381,12 +386,12 @@ export class Network {
 
   constructor() {
     //var url : string = "ws://" + window.location.host + "/websocket";
-    var url : string = "ws://127.0.0.1:9002";
+    var url: string = "ws://127.0.0.1:9002";
     this.websocket = new WebSocket(url);
 
     this.websocket.onopen = (evt) => {
       console.log('Opened websocket');
-      setInterval(function() {
+      setInterval(function () {
         console.log('Sending Ping');
         Network.sendPing()
       }, 50000);
@@ -406,120 +411,122 @@ export class Network {
       var jsonData = JSON.parse(evt.data);
 
       //Check if error message is in the packet
-      if(jsonData.hasOwnProperty('errmsg')) {
+      if (jsonData.hasOwnProperty('errmsg')) {
         console.log('Error received: ' + jsonData.errmsg);
         Global.gameEmitter.emit(NetworkEvent.ERROR, jsonData);
-      } else if(jsonData.hasOwnProperty('noticemsg')) {
+      } else if (jsonData.hasOwnProperty('noticemsg')) {
         Global.gameEmitter.emit(NetworkEvent.NOTICE, jsonData);
-      } else if(jsonData.packet == "select_class") {
+      } else if (jsonData.packet == "select_class") {
         Global.playerId = jsonData.player;
         Global.gameEmitter.emit(NetworkEvent.SELECT_CLASS, {});
-      } else if(jsonData.packet == "info_select_class") {
-        if(jsonData.result == "success") {
+      } else if (jsonData.packet == "info_select_class") {
+        if (jsonData.result == "success") {
           console.log("Class selected, logging in")
           Global.gameEmitter.emit(NetworkEvent.LOGGED_IN, {});
         }
-      } else if(jsonData.packet == "login") {
+      } else if (jsonData.packet == "login") {
         console.log("Login successful")
         Global.playerId = jsonData.player;
         Global.gameEmitter.emit(NetworkEvent.LOGGED_IN, {});
-      } else if(jsonData.packet == 'perception') {
+      } else if (jsonData.packet == 'perception') {
         console.log('Received Perception');
 
         this.processTileStates(jsonData.data.map);
         this.processInitObjStates(jsonData.data.objs);
 
         //Add small delay to prevent perception event before Scenes are created.
-        setTimeout(function() {console.log('Emitting perception event'); Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData);}, 3000);
-      } else if(jsonData.packet == 'changes') {
+        setTimeout(function () { console.log('Emitting perception event'); Global.gameEmitter.emit(NetworkEvent.PERCEPTION, jsonData); }, 3000);
+      } else if (jsonData.packet == 'changes') {
         console.log("--- Changes Packet Received ---");
         console.log(jsonData);
         this.processUpdateObjStates(jsonData.events);
         Global.gameEmitter.emit(NetworkEvent.CHANGES, jsonData);
-      } else if(jsonData.packet == 'hero_dead') {
+      } else if (jsonData.packet == 'hero_dead') {
         Global.gameEmitter.emit(NetworkEvent.HERO_DEAD, jsonData);
-      } else if(jsonData.packet == 'map') {
+      } else if (jsonData.packet == 'map') {
         console.log(jsonData);
         this.processTileStates(jsonData.data);
         Global.gameEmitter.emit(NetworkEvent.MAP, jsonData);
-      } else if(jsonData.packet == 'image_def') {
+      } else if (jsonData.packet == 'image_def') {
         Global.gameEmitter.emit(NetworkEvent.IMAGE_DEF, jsonData);
-      } else if(jsonData.packet == 'stats') {
+      } else if (jsonData.packet == 'stats') {
         this.processGetStats(jsonData.data);
         Global.gameEmitter.emit(NetworkEvent.STATS, {});
-      } else if(jsonData.packet == "info_hero") {
+      } else if (jsonData.packet == "info_hero") {
         Global.gameEmitter.emit(NetworkEvent.INFO_HERO, jsonData);
-      } else if(jsonData.packet == "info_villager") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_VILLAGER, jsonData);     
-      } else if(jsonData.packet == "info_structure") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_STRUCTURE, jsonData);            
-      } else if(jsonData.packet == "info_npc") {
-        Global.gameEmitter.emit(NetworkEvent.INFO_NPC, jsonData);            
-      } else if(jsonData.packet == "info_tile") {
+      } else if (jsonData.packet == "info_villager") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_VILLAGER, jsonData);
+      } else if (jsonData.packet == "info_structure") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_STRUCTURE, jsonData);
+      } else if (jsonData.packet == "info_npc") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_NPC, jsonData);
+      } else if (jsonData.packet == "info_tile") {
         Global.gameEmitter.emit(NetworkEvent.INFO_TILE, jsonData);
-      } else if(jsonData.packet == "info_item") {
+      } else if (jsonData.packet == "info_item") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM, jsonData)
-      } else if(jsonData.packet == "info_inventory") {
+      } else if (jsonData.packet == "info_inventory") {
         Global.gameEmitter.emit(NetworkEvent.INFO_INVENTORY, jsonData);
-      } else if(jsonData.packet == "info_item_transfer") {
+      } else if (jsonData.packet == "info_item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEM_TRANSFER, jsonData);
-      } else if(jsonData.packet == "info_items_update") {
+      } else if (jsonData.packet == "info_items_update") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ITEMS_UPDATE, jsonData);
-      } else if(jsonData.packet == "item_transfer") {
+      } else if (jsonData.packet == "item_transfer") {
         Global.gameEmitter.emit(NetworkEvent.ITEM_TRANSFER, jsonData);
-      } else if(jsonData.packet == "item_split") {
-        if(jsonData.result == 'success') {
+      } else if (jsonData.packet == "item_split") {
+        if (jsonData.result == 'success') {
           Network.sendInfoInventory(jsonData.owner);
         }
-      } else if(jsonData.packet == "info_attrs") {
+      } else if (jsonData.packet == "info_attrs") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ATTRS, jsonData);
-      } else if(jsonData.packet == "info_skills") {
+      } else if (jsonData.packet == "info_skills") {
         Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData);
-      } else if(jsonData.packet == "info_advance") {
+      } else if (jsonData.packet == "info_advance") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ADVANCE, jsonData);
-      } else if(jsonData.packet == "info_experiment") {
+      } else if (jsonData.packet == "info_experiment") {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
-      } else if(jsonData.packet == "nearby_resources") {
-        Global.gameEmitter.emit(NetworkEvent.NEARBY_RESOURCES, jsonData);        
-      } else if(jsonData.packet == "structure_list") {
+      } else if (jsonData.packet == "info_experiment_state") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT_STATE, jsonData);
+      } else if (jsonData.packet == "nearby_resources") {
+        Global.gameEmitter.emit(NetworkEvent.NEARBY_RESOURCES, jsonData);
+      } else if (jsonData.packet == "structure_list") {
         Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData);
-      } else if(jsonData.packet == 'build') {
+      } else if (jsonData.packet == 'build') {
         Global.gameEmitter.emit(NetworkEvent.BUILD, jsonData);
-      } else if(jsonData.packet == 'attack') {
-        Global.gameEmitter.emit(NetworkEvent.ATTACK, jsonData); 
-      } else if(jsonData.packet == 'dmg') {
+      } else if (jsonData.packet == 'attack') {
+        Global.gameEmitter.emit(NetworkEvent.ATTACK, jsonData);
+      } else if (jsonData.packet == 'dmg') {
         this.processDmg(jsonData);
         Global.gameEmitter.emit(NetworkEvent.DMG, jsonData);
-      } else if(jsonData.packet == "xp") {
+      } else if (jsonData.packet == "xp") {
         Global.gameEmitter.emit(NetworkEvent.XP, jsonData);
-      } else if(jsonData.packet == 'speech') {
+      } else if (jsonData.packet == 'speech') {
         Global.gameEmitter.emit(NetworkEvent.SPEECH, jsonData);
-      } else if(jsonData.packet == 'assign_list') {
+      } else if (jsonData.packet == 'assign_list') {
         Global.gameEmitter.emit(NetworkEvent.ASSIGN_LIST, jsonData);
-      } else if(jsonData.packet == 'recipe_list') {
+      } else if (jsonData.packet == 'recipe_list') {
         Global.gameEmitter.emit(NetworkEvent.RECIPE_LIST, jsonData);
-      } else if(jsonData.packet == 'buy_item') {
+      } else if (jsonData.packet == 'buy_item') {
         Global.gameEmitter.emit(NetworkEvent.BUYSELL_ITEM, jsonData);
-      } else if(jsonData.packet == 'sell_item') {
+      } else if (jsonData.packet == 'sell_item') {
         Global.gameEmitter.emit(NetworkEvent.BUYSELL_ITEM, jsonData);
-      } else if(jsonData.packet == 'info_hauling') {
-        Global.gameEmitter.emit(NetworkEvent.INFO_HAULING, jsonData);
-      } else if(jsonData.packet == 'set_exp_item') {
+      } else if (jsonData.packet == 'info_hire') {
+        Global.gameEmitter.emit(NetworkEvent.INFO_HIRE, jsonData);
+      } else if (jsonData.packet == 'set_exp_item') {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
-      } else if(jsonData.packet == 'set_exp_resource') {
+      } else if (jsonData.packet == 'set_exp_resource') {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
-      } else if(jsonData.packet == 'advance') {
+      } else if (jsonData.packet == 'advance') {
         Global.gameEmitter.emit(NetworkEvent.ADVANCE, jsonData);
-      } else if(jsonData.packet == 'new_items') {
+      } else if (jsonData.packet == 'new_items') {
         Global.gameEmitter.emit(NetworkEvent.NEW_ITEMS, jsonData);
-      }  
+      }
     }
   }
 
   processInitObjStates(objs) {
-    for(var index in objs) {
+    for (var index in objs) {
       var obj = objs[index];
-      var objectState : ObjectState = {
+      var objectState: ObjectState = {
         id: obj.id,
         player: obj.player,
         name: obj.name,
@@ -536,22 +543,25 @@ export class Network {
         op: 'added'
       };
 
-      if(objectState.player == Global.playerId && objectState.subclass == 'hero') {
+      console.log('Global.playerId: ' + Global.playerId);
+      if (objectState.player == Global.playerId && objectState.subclass == 'hero') {
+        console.log('Setting Hero Id');
+        console.log(objectState);
         Global.heroId = objectState.id;
-        
+
         Global.gameEmitter.emit(NetworkEvent.HERO_INIT, Global.heroId);
-        
+
         Network.sendGetStats(Global.heroId);
       }
 
-      Global.objectStates[objectState.id] = objectState; 
+      Global.objectStates[objectState.id] = objectState;
     }
   }
 
   processTileStates(tiles) {
-    for(var index in tiles) {
+    for (var index in tiles) {
       var tile = tiles[index];
-      var tileState : TileState = {
+      var tileState: TileState = {
         index: tile.x + '_' + tile.y,
         hexX: tile.x,
         hexY: tile.y,
@@ -564,31 +574,31 @@ export class Network {
 
   processUpdateObjStates(events) {
     //Reset the operation
-    for(var objectId in Global.objectStates) {
+    for (var objectId in Global.objectStates) {
       var objectState = Global.objectStates[objectId] as ObjectState;
       objectState.op = 'none';
     }
 
-    for(var i = 0; i < events.length; i++) {
+    for (var i = 0; i < events.length; i++) {
       var eventType = events[i].event;
 
-      if(eventType == "obj_create") {
+      if (eventType == "obj_create") {
         var obj = events[i].obj;
 
         Global.objectStates[obj.id] = obj;
         Global.objectStates[obj.id].prevstate = obj.state;
         Global.objectStates[obj.id].op = 'added';
-          
-      } else if(eventType == "obj_update") {
+
+      } else if (eventType == "obj_update") {
         var obj_id = events[i].obj_id;
         var attr = events[i].attr;
         var value = events[i].value;
 
-        if(attr == 'state') {
+        if (attr == 'state') {
           Global.objectStates[obj_id].prevstate = Global.objectStates[obj_id].state;
           Global.objectStates[obj_id].state = value;
           Global.objectStates[obj_id].updateAttr = 'state';
-        } else if(attr == 'template') {
+        } else if (attr == 'template') {
           Global.objectStates[obj_id].template = value;
           //Manually set image because obj_update only supports 1 attr
           Global.objectStates[obj_id].image = value.toLowerCase().replace(/\s/g, '');
@@ -598,30 +608,30 @@ export class Network {
         Global.objectStates[obj_id].op = 'updated';
         console.log("Emitting obj update: " + obj_id);
         Global.gameEmitter.emit(GameEvent.OBJ_UPDATE, obj_id);
-      } else if(eventType == "obj_move") {
-          var obj = events[i].obj;
-          var src_x = events[i].src_x;
-          var src_y = events[i].src_y;      
+      } else if (eventType == "obj_move") {
+        var obj = events[i].obj;
+        var src_x = events[i].src_x;
+        var src_y = events[i].src_y;
 
-          if(obj.id in Global.objectStates) {
-              Global.objectStates[obj.id].prevstate = Global.objectStates[obj.id].state;
-              Global.objectStates[obj.id].state = obj.state;
-              Global.objectStates[obj.id].x = obj.x;
-              Global.objectStates[obj.id].y = obj.y;
-              Global.objectStates[obj.id].op = 'updated';
-          } else {
-              Global.objectStates[obj.id] = obj;
-              Global.objectStates[obj.id].prevstate = obj.state;
-              Global.objectStates[obj.id].eventType = 'obj_move';
-              Global.objectStates[obj.id].prevX = src_x;
-              Global.objectStates[obj.id].prevY = src_y;
-              Global.objectStates[obj.id].op = 'added';
-          }            
-      } else if(eventType =="obj_delete") {            
-          var obj_id = events[i].obj_id;
+        if (obj.id in Global.objectStates) {
+          Global.objectStates[obj.id].prevstate = Global.objectStates[obj.id].state;
+          Global.objectStates[obj.id].state = obj.state;
+          Global.objectStates[obj.id].x = obj.x;
+          Global.objectStates[obj.id].y = obj.y;
+          Global.objectStates[obj.id].op = 'updated';
+        } else {
+          Global.objectStates[obj.id] = obj;
+          Global.objectStates[obj.id].prevstate = obj.state;
+          Global.objectStates[obj.id].eventType = 'obj_move';
+          Global.objectStates[obj.id].prevX = src_x;
+          Global.objectStates[obj.id].prevY = src_y;
+          Global.objectStates[obj.id].op = 'added';
+        }
+      } else if (eventType == "obj_delete") {
+        var obj_id = events[i].obj_id;
 
-          Global.objectStates[obj_id].op = 'deleted';
-      } 
+        Global.objectStates[obj_id].op = 'deleted';
+      }
     }
   }
 
@@ -634,20 +644,20 @@ export class Network {
     Global.heroMaxSta = data.base_stamina;
   }
 
-  public sendMessage(message : String) {
+  public sendMessage(message: String) {
     this.websocket.send(message);
   }
 
   processDmg(data) {
-    if(data.targetid == Global.heroId) {
+    if (data.targetid == Global.heroId) {
 
-      if(data.dmg > Global.heroHp) {
+      if (data.dmg > Global.heroHp) {
         Global.heroHp = 0;
       } else {
         Global.heroHp -= data.dmg;
       }
 
       Global.gameEmitter.emit(NetworkEvent.STATS, {});
-   }
+    }
   }
 }

@@ -9,11 +9,11 @@ import { MapScene } from './scenes/mapScene';
 import { Global } from './global';
 
 import * as React from "react";
-import styles from "./app.css";
+import styles from "./app.module.css";
 
-import {GAME_HEIGHT, GAME_WIDTH} from "./config";
+import { GAME_HEIGHT, GAME_WIDTH } from "./config";
 
-document.addEventListener("visibilitychange", function() {
+document.addEventListener("visibilitychange", function () {
   if (document.visibilityState === 'visible') {
     console.log("Tab visisble");
     Global.gameEmitter.emit("VISIBLE", {});
@@ -22,9 +22,9 @@ document.addEventListener("visibilitychange", function() {
   }
 });
 
-export default class Game extends React.Component{
+export default class Game extends React.Component {
   componentDidMount() {
-    const config : any = {
+    const config: any = {
       title: "Siege Perilous",
       version: "0.0.1",
       width: window.innerWidth,
@@ -35,7 +35,13 @@ export default class Game extends React.Component{
       input: {
         mouse: true
       },
-      render: { pixelArt: true }
+      render: { pixelArt: true },
+      fx: {
+        glow: {
+          distance: 32,
+          quality: 0.1
+        }
+      }
     };
 
     new Phaser.Game(config);
@@ -46,14 +52,14 @@ export default class Game extends React.Component{
   }
 
   public render() {
-    return <div id="game" className={styles.game}/>;
+    return <div id="game" className={styles.game} />;
   }
 }
 
 export function getTileAt(hexX, hexY) {
   var key = hexX + '_' + hexY;
 
-  if(key in Global.tileStates) {
+  if (key in Global.tileStates) {
     return Global.tileStates[key];
   } else {
     return false;

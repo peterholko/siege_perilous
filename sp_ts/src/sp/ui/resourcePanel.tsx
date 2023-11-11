@@ -51,8 +51,12 @@ export default class ResourcePanel extends React.Component<ResourceProps, any> {
           <tbody>
             <tr>
               <td>Quantity: </td>
-              <td>{this.props.resourceData.quantity}</td>
+              <td>{this.props.resourceData.quantityLabel}</td>
             </tr>
+            <tr>
+              <td>Yield: </td>
+              <td>{this.props.resourceData.yieldLabel}</td>
+            </tr>            
           </tbody>
         </table>
       </HalfPanel>

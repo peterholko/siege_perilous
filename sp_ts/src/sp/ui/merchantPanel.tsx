@@ -40,11 +40,11 @@ export default class MerchantPanel extends React.Component<MPProps, any> {
       Global.infoItemAction = 'merchantbuy';
     }
 
-    Network.sendInfoItem(Global.selectedItemId);
+    Network.sendInfoItem(Global.selectedItemId, Global.merchantSellTarget, Global.infoItemAction);
   }
 
   handleInfoHireClick() {
-    Network.sendInfoHauling(Global.merchantSellTarget);
+    Network.sendInfoHire(Global.merchantSellTarget);
   }
 
   render() {
@@ -81,7 +81,7 @@ export default class MerchantPanel extends React.Component<MPProps, any> {
 
       <img src={hirebutton}
                style={hireStyle}
-               onClick={this.handleInfoHireClick} />}
+               onClick={this.handleInfoHireClick} />
       </div>
     );
   }
