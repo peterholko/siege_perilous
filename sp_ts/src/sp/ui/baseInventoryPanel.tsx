@@ -93,7 +93,7 @@ export default class BaseInventoryPanel extends React.Component<BaseInventoryPro
     var anyItemSelected = false;
 
     for(var i = 0; i < this.props.items.length; i++) {
-      console.log('Item: ' + this.props.items[i]);
+      console.log('Item: ' + JSON.stringify(this.props.items[i]));
       var itemId = this.props.items[i].id;
       var itemName = this.props.items[i].name;
       var image = this.props.items[i].image;

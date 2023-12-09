@@ -126,7 +126,7 @@ export class MapScene extends Phaser.Scene {
   loadingComplete() {
     console.log('Loading complete');
     Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.setRender, this);
-    Global.gameEmitter.on(NetworkEvent.MAP, this.setRender, this);
+    Global.gameEmitter.on(NetworkEvent.OBJ_PERCEPTION, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.NEARBY_RESOURCES, this.processNearbyResources, this);
     Global.gameEmitter.on(GameEvent.RESOURCE_LAYER_CLICK, this.hideResourceLayer, this);
     
@@ -296,7 +296,6 @@ export class MapScene extends Phaser.Scene {
     //Base layer
     for(var i = 0; i < tileArray.length; i++) {
       var tileState = tileArray[i];
-      console.log(tileState);
 
       for(var j = 0; j < tileState.tiles.length; j++) {
         var tileTypeId = tileState.tiles[j];

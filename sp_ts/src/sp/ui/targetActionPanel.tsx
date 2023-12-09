@@ -70,6 +70,7 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
   
   handleInfoClick(event : React.MouseEvent) {
     if(this.props.selectedKey.type == OBJ) {
+      console.log('handleInfoClick');
       Network.sendInfoObj(this.props.selectedKey.id);
     } else if(this.props.selectedKey.type == TILE) {
       Network.sendInfoTile(this.props.selectedKey.x, 

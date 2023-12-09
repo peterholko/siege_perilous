@@ -9,12 +9,13 @@ export namespace NetworkEvent {
     export const HERO_DEAD : string = 'HERO_DEAD';
     export const PERCEPTION : string = 'PERCEPTION';
     export const CHANGES : string = 'CHANGES';
-    export const MAP : string = 'MAP';
+    export const OBJ_PERCEPTION : string = 'OBJ_PERCEPTION';
     export const IMAGE_DEF : string = 'IMAGE_DEF';
     export const STATS : string = 'STATS';
     export const INFO_HERO : string = 'INFO_HERO';
     export const INFO_VILLAGER : string = 'INFO_VILLAGER';
     export const INFO_STRUCTURE : string = 'INFO_STRUCTURE';
+    export const INFO_STRUCTURE_UPGRADE = 'INFO_STRUCTURE_UPGRADE';
     export const INFO_NPC : string = 'INFO_NPC';    
     export const INFO_TILE : string = 'INFO_TILE';
     export const INFO_ITEM : string = 'INFO_ITEM';
@@ -35,6 +36,7 @@ export namespace NetworkEvent {
     export const ASSIGN_LIST : string = 'ASSIGN_LIST';
     export const RECIPE_LIST : string = 'RECIPE_LIST';
     export const BUILD : string = 'BUILD';
+    export const UPGRADE : string = 'UPGRADE';
     export const ATTACK : string = 'ATTACK';
     export const DMG : string = 'DMG';
     export const XP : string = 'XP';

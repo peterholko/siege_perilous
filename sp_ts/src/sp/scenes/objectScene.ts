@@ -139,6 +139,7 @@ export class ObjectScene extends Phaser.Scene {
     this.drawObjects(objStates);
 
     Global.gameEmitter.on(NetworkEvent.CHANGES, this.setRender, this);
+    Global.gameEmitter.on(NetworkEvent.OBJ_PERCEPTION, this.setRender, this);
     Global.gameEmitter.on("VISIBLE", this.drawAllObjects, this);
     
     this.time.addEvent({ delay: 200, callback: this.processRender, callbackScope: this, loop: true });
@@ -172,6 +173,8 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   drawObjects(objectStates : Record<string, ObjectState> ) : void {
+    console.log('***** drawObjects ******');
+    console.log(objectStates);
     //Clear visibleTiles & shroud
     Global.visibleTiles = [];
     this.clearShroud();
@@ -198,6 +201,8 @@ export class ObjectScene extends Phaser.Scene {
             
             this.imageDefTasks.push(objectState);
           }
+
+          Global.objectStates[objectId].op = 'none';
         }
         else if(objectState.op == 'updated') {
           console.log('Object Updated');
@@ -226,7 +231,7 @@ export class ObjectScene extends Phaser.Scene {
               this.replaceImageDefTask(objectState);
             }
           }
-
+          Global.objectStates[objectId].op = 'none';
         } else if(objectState.op == 'deleted') {       
             console.log('Object deleted');
             var obj = this.objectList[objectState.id];
@@ -853,35 +858,41 @@ export class ObjectScene extends Phaser.Scene {
   onMoveComplete(tween, targets) {
     var sprite = targets[0]
     var objectState = Global.objectStates[sprite.id];
+    console.log(objectState);
 
-    if(objectState.subclass == HERO) {
+    if(objectState) {
+      if(objectState.subclass == HERO) {
 
-      var mapScene = this.scene.get('MapScene') as MapScene;
-      mapScene.cameras.main.stopFollow();
-      this.cameras.main.stopFollow();
+        var mapScene = this.scene.get('MapScene') as MapScene;
+        mapScene.cameras.main.stopFollow();
+        this.cameras.main.stopFollow();
 
-      for(var targetId in Global.objectStates) {
-        var otherState = Global.objectStates[targetId];
+        for(var targetId in Global.objectStates) {
+          var otherState = Global.objectStates[targetId];
 
-        if(Util.isVisible(otherState.x, otherState.y) == false) {
-          var otherSprite = this.objectList[targetId];
-          otherSprite.destroy();
+          if(Util.isVisible(otherState.x, otherState.y) == false) {
+            var otherSprite = this.objectList[targetId];
+            otherSprite.destroy();
+
+            // Added Nov 2023, the objectStates has to be deleted otherwise the next time the object return 
+            // it will not be displayed
+            delete Global.objectStates[targetId];
+          }
+
+        }
+      } else if(objectState.player != Global.playerId) {
+
+        if(Util.isVisible(objectState.x, objectState.y) == false) {
+          sprite.destroy();
 
           // Added Nov 2023, the objectStates has to be deleted otherwise the next time the object return 
           // it will not be displayed
-          delete Global.objectStates[targetId];
+          delete Global.objectStates[sprite.id];
         }
-
       }
-    } else if(objectState.player != Global.playerId) {
-
-      if(Util.isVisible(objectState.x, objectState.y) == false) {
-        sprite.destroy();
-
-        // Added Nov 2023, the objectStates has to be deleted otherwise the next time the object return 
-        // it will not be displayed
-        delete Global.objectStates[sprite.id];
-      }
+    } else {
+      // ObjectState has already been deleted, sprite should be destroyed;  
+      sprite.destroy();
     }
   }
 

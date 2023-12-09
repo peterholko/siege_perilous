@@ -24,5 +24,8 @@ export namespace GameEvent {
     export const NOTICE_EXPIRE : string = 'NOTICE_EXPIRE';
     export const RESOURCE_LAYER_CLICK : string = 'RESOURCE_LAYER_CLICK';
 
+    export const OBJ_CREATED: string = 'OBJ_CREATED';
+    export const OBJ_DELETED: string = 'OBJ_DELETED';
+    export const OBJ_MOVED: string = 'OBJ_MOVED';
     export const OBJ_UPDATE: string = 'OBJ_UPDATE';
 }

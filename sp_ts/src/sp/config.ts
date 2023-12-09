@@ -24,6 +24,7 @@ export const DEAD = 'dead';
 export const FOUNDED = 'founded';
 export const PROGRESSING = 'progressing';
 export const STALLED = 'stalled';
+export const UPGRADING = 'upgrading';
 export const NONE = 'none';
 export const OBJ = 'obj';
 export const TILE = 'tile';

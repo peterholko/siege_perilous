@@ -4,6 +4,7 @@ import { NetworkEvent } from './networkEvent';
 import { ObjectState } from './objectState';
 import { TileState } from './tileState';
 import { GameEvent } from './gameEvent';
+import { NONE} from "./config";
 
 export class Network {
 
@@ -364,12 +365,31 @@ export class Network {
       sourceid: sourceId
     }
     Global.socket.sendMessage(JSON.stringify(m));
-  }
+  }  
 
   public static sendAdvance(sourceId) {
     var m = {
       cmd: "advance",
       sourceid: sourceId
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+
+  public static sendInfoUpgrade(structureId) {
+    var m = {
+      cmd: "info_upgrade",
+      structureid: structureId
+    }
+    Global.socket.sendMessage(JSON.stringify(m));
+  }
+
+  public static sendUpgrade(sourceId, structureId, selectedUpgrade) {
+    var m = {
+      cmd: "upgrade",
+      sourceid: sourceId,
+      structureid: structureId,
+      selected_upgrade: selectedUpgrade
     }
     Global.socket.sendMessage(JSON.stringify(m));
   }
@@ -443,10 +463,14 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.CHANGES, jsonData);
       } else if (jsonData.packet == 'hero_dead') {
         Global.gameEmitter.emit(NetworkEvent.HERO_DEAD, jsonData);
-      } else if (jsonData.packet == 'map') {
+      } else if (jsonData.packet == 'obj_perception') {
+        console.log("----- OBJ PERCEPTION -----");
         console.log(jsonData);
-        this.processTileStates(jsonData.data);
-        Global.gameEmitter.emit(NetworkEvent.MAP, jsonData);
+
+        this.processObjPerception(jsonData.new_objs);
+        this.processTileStates(jsonData.new_tiles);
+        
+        Global.gameEmitter.emit(NetworkEvent.OBJ_PERCEPTION, jsonData);
       } else if (jsonData.packet == 'image_def') {
         Global.gameEmitter.emit(NetworkEvent.IMAGE_DEF, jsonData);
       } else if (jsonData.packet == 'stats') {
@@ -457,6 +481,7 @@ export class Network {
       } else if (jsonData.packet == "info_villager") {
         Global.gameEmitter.emit(NetworkEvent.INFO_VILLAGER, jsonData);
       } else if (jsonData.packet == "info_structure") {
+        console.log('info_structure: ' + JSON.stringify(jsonData));
         Global.gameEmitter.emit(NetworkEvent.INFO_STRUCTURE, jsonData);
       } else if (jsonData.packet == "info_npc") {
         Global.gameEmitter.emit(NetworkEvent.INFO_NPC, jsonData);
@@ -482,6 +507,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.INFO_SKILLS, jsonData);
       } else if (jsonData.packet == "info_advance") {
         Global.gameEmitter.emit(NetworkEvent.INFO_ADVANCE, jsonData);
+      } else if (jsonData.packet == "info_upgrade") {
+        Global.gameEmitter.emit(NetworkEvent.INFO_STRUCTURE_UPGRADE, jsonData);
       } else if (jsonData.packet == "info_experiment") {
         Global.gameEmitter.emit(NetworkEvent.INFO_EXPERIMENT, jsonData);
       } else if (jsonData.packet == "info_experiment_state") {
@@ -492,6 +519,8 @@ export class Network {
         Global.gameEmitter.emit(NetworkEvent.STRUCTURE_LIST, jsonData);
       } else if (jsonData.packet == 'build') {
         Global.gameEmitter.emit(NetworkEvent.BUILD, jsonData);
+      } else if (jsonData.packet == 'upgrade') {
+        Global.gameEmitter.emit(NetworkEvent.UPGRADE, jsonData);        
       } else if (jsonData.packet == 'attack') {
         Global.gameEmitter.emit(NetworkEvent.ATTACK, jsonData);
       } else if (jsonData.packet == 'dmg') {
@@ -558,6 +587,25 @@ export class Network {
     }
   }
 
+    processObjPerception(objs) {
+    for(var i = 0; i < objs.length; i++) {
+      var obj = objs[i];
+
+      var objectExists = obj.id in Global.objectStates;
+      console.log("objectExists: " + objectExists);      
+      if(!objectExists) {
+        Global.objectStates[obj.id] = obj;
+        Global.objectStates[obj.id].prevstate = obj.state;
+        Global.objectStates[obj.id].op = 'added';
+
+        Global.gameEmitter.emit(GameEvent.OBJ_CREATED, obj.id);
+      } 
+
+    }
+
+    console.log(Global.objectStates);
+  }
+
   processTileStates(tiles) {
     for (var index in tiles) {
       var tile = tiles[index];
@@ -574,10 +622,10 @@ export class Network {
 
   processUpdateObjStates(events) {
     //Reset the operation
-    for (var objectId in Global.objectStates) {
+    /*for (var objectId in Global.objectStates) {
       var objectState = Global.objectStates[objectId] as ObjectState;
       objectState.op = 'none';
-    }
+    }*/
 
     for (var i = 0; i < events.length; i++) {
       var eventType = events[i].event;
@@ -589,13 +637,19 @@ export class Network {
         Global.objectStates[obj.id].prevstate = obj.state;
         Global.objectStates[obj.id].op = 'added';
 
+        Global.gameEmitter.emit(GameEvent.OBJ_CREATED, obj.id);
       } else if (eventType == "obj_update") {
         var obj_id = events[i].obj_id;
         var attr = events[i].attr;
         var value = events[i].value;
 
-        if (attr == 'state') {
-          Global.objectStates[obj_id].prevstate = Global.objectStates[obj_id].state;
+        if (attr == 'state') {          
+          // During re-login, the objectState of the current obj could be unknown 
+          if(Global.objectStates[obj_id]) {
+            Global.objectStates[obj_id].prevstate = Global.objectStates[obj_id].state;
+          } else {
+            Global.objectStates[obj_id].prevstate = NONE;
+          }
           Global.objectStates[obj_id].state = value;
           Global.objectStates[obj_id].updateAttr = 'state';
         } else if (attr == 'template') {
@@ -609,6 +663,7 @@ export class Network {
         console.log("Emitting obj update: " + obj_id);
         Global.gameEmitter.emit(GameEvent.OBJ_UPDATE, obj_id);
       } else if (eventType == "obj_move") {
+        console.log(events[i]);
         var obj = events[i].obj;
         var src_x = events[i].src_x;
         var src_y = events[i].src_y;
@@ -616,6 +671,8 @@ export class Network {
         if (obj.id in Global.objectStates) {
           Global.objectStates[obj.id].prevstate = Global.objectStates[obj.id].state;
           Global.objectStates[obj.id].state = obj.state;
+          Global.objectStates[obj.id].prevX = Global.objectStates[obj.id].x;
+          Global.objectStates[obj.id].prevY = Global.objectStates[obj.id].y;
           Global.objectStates[obj.id].x = obj.x;
           Global.objectStates[obj.id].y = obj.y;
           Global.objectStates[obj.id].op = 'updated';
@@ -627,10 +684,13 @@ export class Network {
           Global.objectStates[obj.id].prevY = src_y;
           Global.objectStates[obj.id].op = 'added';
         }
+
+        Global.gameEmitter.emit(GameEvent.OBJ_MOVED, obj.id);
       } else if (eventType == "obj_delete") {
         var obj_id = events[i].obj_id;
 
         Global.objectStates[obj_id].op = 'deleted';
+        Global.gameEmitter.emit(GameEvent.OBJ_DELETED, obj_id);
       }
     }
   }

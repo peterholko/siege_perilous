@@ -12,7 +12,8 @@ import { GameEvent } from "../gameEvent";
 const MAX_SELECT_BOXES = (window.innerWidth < LARGE_SCREEN_WIDTH ? 3 : 6);
 
 interface SelectPanelProps {
-  selectedTile : Tile
+  selectedTile: Tile,
+  objIdsOnTile: any
 }
 
 export default class SelectPanel extends React.Component<SelectPanelProps, any> {
@@ -20,7 +21,7 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
     super(props);
 
     this.state = {
-      startIndex : 0
+      startIndex: 0
     };
 
     this.leftClick = this.leftClick.bind(this);
@@ -28,23 +29,26 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
   }
 
   leftClick() {
-    this.setState({startIndex: this.state.startIndex + MAX_SELECT_BOXES});
+    this.setState({ startIndex: this.state.startIndex + MAX_SELECT_BOXES });
     Global.gameEmitter.emit(GameEvent.SELECT_PANEL_CLICK, {});
   }
 
   rightClick() {
-    this.setState({startIndex: this.state.startIndex - MAX_SELECT_BOXES});
+    this.setState({ startIndex: this.state.startIndex - MAX_SELECT_BOXES });
     Global.gameEmitter.emit(GameEvent.SELECT_PANEL_CLICK, {});
   }
 
   render() {
-    if(this.props.selectedTile == null) {
+
+    console.log("Select Panel props: " + JSON.stringify(this.props));
+
+    if (this.props.selectedTile == null) {
       return null;
     }
 
     const boxes = [];
     const tile = this.props.selectedTile as Tile;
-    var objIdsOnTile = Obj.getObjsAt(tile.hexX, tile.hexY);
+    var objIdsOnTile = [...this.props.objIdsOnTile]; // deep copy
 
     var hideLeftButton = true;
     var hideRightButton = true;
@@ -57,24 +61,24 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
     //The default Grass was "above" forest, solved it via sort
     var tileId = tiles.sort().reverse()[0];
     var imageName = Global.tileset[tileId].image;
-    var imageStyle;    
+    var imageStyle;
     var selectBoxPos = 0;
 
     //Manual adjustments
-    if(tileId == 19) { //Forest
+    if (tileId == 19) { //Forest
       imageStyle = {
         top: '9px',
         right: '26px',
         width: '75px',
         height: '75px',
-        position: 'fixed'    
+        position: 'fixed'
       } as React.CSSProperties;
     } else if (tileId == 32) { //Mountain
       imageStyle = {
         top: '-5px',
         right: '22px',
         width: '90px',
-        position: 'fixed'    
+        position: 'fixed'
       } as React.CSSProperties
     } else {
       imageStyle = {
@@ -94,76 +98,84 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
 
     var maxIndex = (Math.floor(this.state.startIndex / MAX_SELECT_BOXES) + 1) * MAX_SELECT_BOXES;
 
+    console.log("objIdsOnTile: " + objIdsOnTile);
     //Add a fake object to represent the tile
-    objIdsOnTile.unshift(-1); 
+    objIdsOnTile.unshift(-1);
+    console.log("objIdsOnTile: " + objIdsOnTile);
 
     //Draw tile only if startIndex == 0
-    if(this.state.startIndex == 0) {
+    if (this.state.startIndex == 0) {
 
       boxes.push(<SelectBox key={-1}
-                            pos={0}
-                            selectedKey={{type: TILE, x: tile.hexX, y: tile.hexY}}
-                            imageName={imageName} 
-                            style={style}
-                            imageStyle={imageStyle} />)
-      
+        pos={0}
+        selectedKey={{ type: TILE, x: tile.hexX, y: tile.hexY }}
+        imageName={imageName}
+        style={style}
+        imageStyle={imageStyle} />)
+
       //Increment selectBoxPos due to tile
       selectBoxPos++;
 
     }
 
 
-    if(objIdsOnTile.length < maxIndex) {
-      maxIndex = objIdsOnTile.length;      
-    } 
+    if (objIdsOnTile.length < maxIndex) {
+      maxIndex = objIdsOnTile.length;
+    }
 
-    if(objIdsOnTile.length > maxIndex) {
+    if (objIdsOnTile.length > maxIndex) {
       hideLeftButton = false;
     }
 
-    if(this.state.startIndex > 0) {
+    if (this.state.startIndex > 0) {
       hideRightButton = false;
     }
 
 
-    for(var i = this.state.startIndex; i < maxIndex; i++) {
-      const objId : integer = Number(objIdsOnTile[i]);
+    for (var i = this.state.startIndex; i < maxIndex; i++) {
+      const objId: integer = Number(objIdsOnTile[i]);
 
-      if(objId == -1) {
+      if (objId == -1) {
         //Skip the fake object that represents the tile
         continue
       }
 
-      if(Util.isSprite(Global.objectStates[objId].image)) {
-        var imageName = Global.objectStates[objId].image + '_single.png';
-      } else {
-        var imageName = Global.objectStates[objId].image + '.png';
+      console.log("objId: " + objId);
+      console.log(Global.objectStates[objId]);
+
+      if (objId in Global.objectStates) {
+
+        if (Util.isSprite(Global.objectStates[objId].image)) {
+          var imageName = Global.objectStates[objId].image + '_single.png';
+        } else {
+          var imageName = Global.objectStates[objId].image + '.png';
+        }
+
+        var rightPos = i % MAX_SELECT_BOXES;
+
+        var style = {
+          top: '10px',
+          right: 35 + (75 * rightPos) + 'px',
+          position: 'fixed'
+        } as React.CSSProperties
+
+        //TODO this should only happen on tile click not on selectbox click
+        //By default select the further to the left object on tile click
+        /*if(i == (maxIndex - 1)) {
+          Global.selectedKey = {type: OBJ, id: objId};
+        }*/
+
+        boxes.push(<SelectBox key={i}
+          pos={selectBoxPos}
+          selectedKey={{ type: OBJ, id: objId }}
+          imageName={imageName}
+          style={style} />);
+
+        selectBoxPos++;
       }
-
-      var rightPos = i % MAX_SELECT_BOXES;
-
-      var style = {
-        top: '10px',
-        right: 35 + (75 * rightPos) + 'px',
-        position: 'fixed'
-      } as React.CSSProperties
-
-      //TODO this should only happen on tile click not on selectbox click
-      //By default select the further to the left object on tile click
-      /*if(i == (maxIndex - 1)) {
-        Global.selectedKey = {type: OBJ, id: objId};
-      }*/
-
-      boxes.push(<SelectBox key={i} 
-                            pos={selectBoxPos}
-                            selectedKey={{type: OBJ, id: objId}}
-                            imageName={imageName}
-                            style={style} />);
-
-      selectBoxPos++;
     }
 
-    
+
 
     const rightStyle = {
       top: '27px',
@@ -185,7 +197,7 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
 
     return (
       <div>
-        {!hideLeftButton && 
+        {!hideLeftButton &&
           <img src={leftbutton} style={leftStyle} onClick={this.leftClick} />}
         {boxes}
         {!hideRightButton &&
