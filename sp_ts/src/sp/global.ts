@@ -47,4 +47,6 @@ export class Global {
     public static resourceLayerVisible = false;
     
     public static merchantSellTarget;
+
+    public static attacks = [];
 }

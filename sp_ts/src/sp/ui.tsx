@@ -21,6 +21,7 @@ import explorebutton from "ui/explorebutton.png";
 import gatherbutton from "ui/gatherbutton.png";
 import sleepbutton from "ui/sleepbutton.png";
 import resourcesbutton from "ui/resourcesbutton.png";
+import smalliconborder from "ui/selectbordersmall.png";
 
 import bracebutton from "ui/bracebutton.png";
 import parrybutton from "ui/parrybutton.png";
@@ -62,12 +63,15 @@ import NPCPanel from './ui/npcPanel';
 import HeroAdvancePanel from './ui/heroAdvancePanel';
 import NoticePanel from './ui/noticePanel';
 import { Obj } from './obj';
+import SmallButton from './ui/smallButton';
+import AttacksPanel from './ui/attacksPanel';
 
 interface UIState {
   selectBoxes: [],
   inventoryPanels: [],
   hideSelectPanel: boolean,
   hideTargetActionPanel: boolean,
+  hideAttacksPanel: boolean,
   hideGatherPanel: boolean,
   hideInventoryPanel: boolean,
   hideItemTransferPanel: boolean,
@@ -122,6 +126,7 @@ interface UIState {
   selectedBoxPos: integer,
   selectedKey: any,
   infoItemAction: string,
+  resourcesIconBorder: boolean,
   errmsg: string
   noticemsg: string
 }
@@ -137,6 +142,7 @@ export default class UI extends React.Component<any, UIState>{
       inventoryPanels: [],
       hideSelectPanel: true,
       hideTargetActionPanel: true,
+      hideAttacksPanel: true,
       hideGatherPanel: true,
       hideInventoryPanel: true,
       hideItemTransferPanel: true,
@@ -191,6 +197,7 @@ export default class UI extends React.Component<any, UIState>{
       selectedBoxPos: 0,
       selectedKey: { type: '', id: -1 },
       infoItemAction: TRIGGER_INVENTORY,
+      resourcesIconBorder: false,
       errmsg: '',
       noticemsg: ''
     }
@@ -266,6 +273,7 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(NetworkEvent.ADVANCE, this.handleAdvance, this);
     Global.gameEmitter.on(NetworkEvent.UPGRADE, this.handleUpgrade, this);
     Global.gameEmitter.on(NetworkEvent.NEW_ITEMS, this.handleNewItems, this);
+    Global.gameEmitter.on(NetworkEvent.DMG, this.handleDamage, this);
   }
 
   handleMoveClick(event: React.MouseEvent) {
@@ -476,14 +484,15 @@ export default class UI extends React.Component<any, UIState>{
 
     if (!Global.resourceLayerVisible) {
       Network.sendNearbyResources();
+      this.setState({resourcesIconBorder: true});
     } else {
       Global.gameEmitter.emit(GameEvent.RESOURCE_LAYER_CLICK, {});
-
+      this.setState({resourcesIconBorder: false});
     }
   }
 
   handleComboClick() {
-    Network.sendCombo(Global.heroId, 'quick');
+    Network.sendCombo(Global.heroId, Global.selectedKey.id, 'quick');
   }
 
   handleQuickAttack(event: React.MouseEvent) {
@@ -498,8 +507,12 @@ export default class UI extends React.Component<any, UIState>{
     Network.sendAttack('fierce', Global.heroId, Global.selectedKey.id);
   }
 
-  handleAttack(message) {
+  handleDamage() {
+    var hideAttacks = Global.attacks.length == 0;
+    this.setState({hideAttacksPanel: hideAttacks});
+  }
 
+  handleAttack(message) {
   }
 
   handleAdvance(message) {
@@ -954,6 +967,11 @@ export default class UI extends React.Component<any, UIState>{
     }
   }*/
 
+          /*<img src={gatherbutton}
+          id="herogatherbutton"
+          className={styles.herogatherbutton}
+          onClick={this.handleHeroGatherClick} /> */
+
   handleTransitionEnd() {
     console.log("TransitionEnd");
   }
@@ -962,40 +980,40 @@ export default class UI extends React.Component<any, UIState>{
     console.log("styles", styles);
     return (
       <div id="ui" className={styles.ui}>
-        <img src={attrsbutton}
-          id="heroattrsbutton"
-          className={styles.heroattrsbutton}
-          onClick={this.handleHeroAttrsClick} />
+       
+        <SmallButton handler={this.handleHeroAttrsClick}
+                     imageName="attrsbutton"
+                     className={styles.heroattrsbutton} />             
 
-        <img src={inventorybutton}
-          id="heroinventorybutton"
-          className={styles.heroinventorybutton}
-          onClick={this.handleHeroInventoryClick} />
+        <SmallButton handler={this.handleHeroInventoryClick}
+                     imageName="inventorybutton"
+                     className={styles.heroinventorybutton} />   
 
-        <img src={explorebutton}
-          id="heroexplorebutton"
-          className={styles.heroexplorebutton}
-          onClick={this.handleHeroExploreClick} />
+        <SmallButton handler={this.handleHeroExploreClick}
+                     imageName="explorebutton"
+                     className={styles.heroexplorebutton} />                          
 
-        <img src={buildbutton}
-          id="herobuildbutton"
-          className={styles.herobuildbutton}
-          onClick={this.handleHeroBuildClick} />
+        <SmallButton handler={this.handleHeroBuildClick}
+                     imageName="buildbutton"
+                     className={styles.herobuildbutton} />   
 
-        <img src={gatherbutton}
-          id="herogatherbutton"
-          className={styles.herogatherbutton}
-          onClick={this.handleHeroGatherClick} />
+        <SmallButton handler={this.handleHeroGatherClick}
+                     imageName="gatherbutton"
+                     className={styles.herogatherbutton} />                     
 
-        <img src={resourcesbutton}
-          id="herosleepbutton"
-          className={styles.herosleepbutton}
-          onClick={this.handleHeroSleepClick} />
+        <SmallButton handler={this.handleHeroSleepClick}
+                     imageName="resourcesbutton"
+                     className={styles.herosleepbutton} />    
 
-        <img src={parrybutton}
-          id="combobutton"
-          className={styles.combobutton}
-          onClick={this.handleComboClick} />
+        
+        {this.state.resourcesIconBorder &&
+        <img src={smalliconborder} 
+         className={styles.herosleepbutton} />
+        }
+
+        <SmallButton handler={this.handleComboClick}
+                     imageName="combobutton"
+                     className={styles.combobutton} />           
 
         <ActionButton type={QUICK}
           handler={this.handleQuickAttack} />
@@ -1005,6 +1023,9 @@ export default class UI extends React.Component<any, UIState>{
 
         <ActionButton type={FIERCE}
           handler={this.handleFierceAttack} />
+
+        {!this.state.hideAttacksPanel &&
+          <AttacksPanel attacks={Global.attacks} />}           
 
         <img src={bracebutton}
           id="bracebutton"

@@ -22,7 +22,7 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
 
     this.state = {
     };
-    
+
     this.handleDivideClick = this.handleDivideClick.bind(this);
     this.handleBuyClick = this.handleBuyClick.bind(this);
     this.handleSellClick = this.handleSellClick.bind(this);
@@ -35,28 +35,32 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
   }
 
   handleBuyClick() {
-    const eventData = {'itemData': this.props.itemData,
-                       'action': 'buy'};
+    const eventData = {
+      'itemData': this.props.itemData,
+      'action': 'buy'
+    };
 
     Global.gameEmitter.emit(GameEvent.MERCHANT_BUYSELL_CLICK, eventData);
   }
 
   handleSellClick() {
     //Network.sendSellItem(this.props.itemData.id, this.props.itemData.quantity);
-    const eventData = {'itemData': this.props.itemData,
-                       'action': 'sell'};
+    const eventData = {
+      'itemData': this.props.itemData,
+      'action': 'sell'
+    };
 
     Global.gameEmitter.emit(GameEvent.MERCHANT_BUYSELL_CLICK, eventData);
   }
 
   handleEquipClick() {
-    if(this.props.itemData.equipped == false) {
+    if (this.props.itemData.equipped == false) {
       Network.sendEquip(this.props.itemData.id, true);
     } else {
       Network.sendEquip(this.props.itemData.id, false);
     }
   }
-  
+
   handleUseClick() {
     Network.sendUse(this.props.itemData.id);
   }
@@ -67,40 +71,58 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
     const effects = [];
     var produces = '';
 
-    const showDivideButton = (this.props.itemData.quantity > 1) && 
-                             (this.props.triggerAction == TRIGGER_INVENTORY)
+    const showDivideButton = (this.props.itemData.quantity > 1) &&
+      (this.props.triggerAction == TRIGGER_INVENTORY)
 
     const showBuyButton = (this.props.triggerAction == TRIGGER_MERCHANT_BUY);
     const showSellButton = (this.props.triggerAction == TRIGGER_MERCHANT_SELL);
 
     const isLeftPanel = (this.props.triggerAction == TRIGGER_MERCHANT_BUY);
 
-    const showEquipButton = (this.props.itemData.class == "Weapon") || 
-                            (this.props.itemData.class == "Armor");
+    const showEquipButton = (this.props.itemData.class == "Weapon") ||
+      (this.props.itemData.class == "Armor");
 
     const showUseButton = (this.props.itemData.class == "Potion") ||
-                          (this.props.itemData.class == "Deed");
+      (this.props.itemData.class == "Deed");
 
-    const showPrice = this.props.itemData.hasOwnProperty('price');
+    const hasEquipable = this.props.itemData?.attrs.hasOwnProperty('Equipable');
+    const hasPrice = this.props.itemData.hasOwnProperty('price');
 
-    if(this.props.itemData.hasOwnProperty('effects')) {
+    var hasProduces = false;
+    var hasEffects = false;
 
-      for(var i = 0; i < this.props.itemData.effects.length; i++) {
+    var attrs = [];
+
+    if(this.props.itemData.hasOwnProperty('attrs')) {
+      for(var attrKey in this.props.itemData.attrs) {
+        var attrValue = String(this.props.itemData.attrs[attrKey]);
+        console.log(attrValue);
+        attrs.push(<tr key={attrKey}>
+          <td>{attrKey}</td>
+          <td>{attrValue}</td>
+        </tr>)
+      }
+    }
+
+    if (this.props.itemData.hasOwnProperty('effects')) {
+      hasEffects = true;
+
+      for (var i = 0; i < this.props.itemData.effects.length; i++) {
         var effect = this.props.itemData.effects[i];
         var type = ''
         var value = ''
 
-        if(effect.type.indexOf('%') != -1) {
+        if (effect.type.indexOf('%') != -1) {
           type = effect.type.replace('%', '');
 
-          if(effect.value > 0) {
-            value = type + '+' + (effect.value * 100)+ '%';
+          if (effect.value > 0) {
+            value = type + '+' + (effect.value * 100) + '%';
           } else {
-            value = type + (effect.value * 100)+ '%';
+            value = type + (effect.value * 100) + '%';
           }
 
         } else {
-          value = type + effect.value;     
+          value = type + effect.value;
         }
 
         effects.push(<tr key={i}>
@@ -109,7 +131,8 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
       }
     }
 
-    if(this.props.itemData.hasOwnProperty('produces')) {
+    if (this.props.itemData.hasOwnProperty('produces')) {
+      hasProduces = true;
       produces = this.props.itemData.produces.join();
     }
 
@@ -172,82 +195,87 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
 
 
     return (
-      <HalfPanel left={isLeftPanel} 
-                 panelType={'item'} 
-                 hideExitButton={false}>
+      <HalfPanel left={isLeftPanel}
+        panelType={'item'}
+        hideExitButton={false}>
         <img src={'/static/art/items/' + imageName} style={itemStyle} />
         <span style={spanNameStyle}>
           {itemName} x {this.props.itemData.quantity}
         </span>
         <table style={tableStyle}>
           <tbody>
-          <tr>
-            <td>Equipped: </td>
-            <td>{String(this.props.itemData.equipped)}</td>
-          </tr>
-          <tr>
-            <td>Class: </td>
-            <td>{this.props.itemData.class}</td>
-          </tr>
-          <tr>
-            <td>Subclass: </td>
-            <td>{this.props.itemData.subclass}</td>
-          </tr>
-          <tr>
-            <td>Weight: </td>
-            <td>
-              {this.props.itemData.weight} per unit 
-              ({this.props.itemData.quantity * this.props.itemData.weight})
-            </td>
-          </tr>
-          <tr>
-            <td>Produces: </td>
-            <td >{produces}</td>
-          </tr>
-          <tr>
-            <td>Effects: </td>
-            <td>
-              <table style={tableStyle2}>
-                <tbody>
-                  {effects}
-                </tbody>
-              </table>
-            </td>
-          </tr>
-          {showPrice &&
+            {hasEquipable &&
+              <tr>
+                <td>Equipped: </td>
+                <td>{String(this.props.itemData.equipped)}</td>
+              </tr>
+            }
             <tr>
-              <td>Price: </td>
-              <td>{this.props.itemData.price}</td>
-            </tr> 
-          }
+              <td>Class: </td>
+              <td>{this.props.itemData.subclass} ({this.props.itemData.class})</td>
+            </tr>
+            <tr>
+              <td>Weight: </td>
+              <td>
+                {this.props.itemData.weight} per unit
+                ({this.props.itemData.quantity * this.props.itemData.weight})
+              </td>
+            </tr>
+
+            {attrs}
+
+            {hasProduces &&
+              <tr>
+                <td>Produces: </td>
+                <td >{produces}</td>
+              </tr>
+            }
+            {hasEffects &&
+              <tr>
+                <td>Effects: </td>
+                <td>
+                  <table style={tableStyle2}>
+                    <tbody>
+                      {effects}
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            }
+            {hasPrice &&
+              <tr>
+                <td>Price: </td>
+                <td>{this.props.itemData.price}</td>
+              </tr>
+            }
           </tbody>
         </table>
 
-        {showDivideButton && 
+        {showDivideButton &&
           <img src={dividebutton}
-               style={divideStyle}
-               onClick={this.handleDivideClick} />}
+            style={divideStyle}
+            onClick={this.handleDivideClick} />}
 
-        {showBuyButton && 
+        {showBuyButton &&
           <img src={buybutton}
-               style={buyStyle}
-               onClick={this.handleBuyClick} />}
+            style={buyStyle}
+            onClick={this.handleBuyClick} />}
 
-        {showSellButton && 
+        {showSellButton &&
           <img src={sellbutton}
-               style={sellStyle}
-               onClick={this.handleSellClick} />}
- 
-        {showEquipButton && 
+            style={sellStyle}
+            onClick={this.handleSellClick} />}
+
+        {showEquipButton &&
           <img src={equipbutton}
-               style={equipStyle}
-               onClick={this.handleEquipClick} />}
- 
-         {showUseButton && 
+            style={equipStyle}
+            onClick={this.handleEquipClick} />}
+
+        {showUseButton &&
           <img src={usebutton}
-               style={useStyle}
-               onClick={this.handleUseClick} />}
- 
+            style={useStyle}
+            onClick={this.handleUseClick} />}
+
       </HalfPanel>
     );
   }

@@ -21,11 +21,14 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
     super(props);
 
     this.state = {
-      startIndex: 0
+      startIndex: 0,
+      showBorderSelectedKey: -1
     };
 
     this.leftClick = this.leftClick.bind(this);
     this.rightClick = this.rightClick.bind(this);
+
+    Global.gameEmitter.on(GameEvent.SELECTBOX_CLICK, this.handleSelectBoxClick, this);
   }
 
   leftClick() {
@@ -36,6 +39,10 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
   rightClick() {
     this.setState({ startIndex: this.state.startIndex - MAX_SELECT_BOXES });
     Global.gameEmitter.emit(GameEvent.SELECT_PANEL_CLICK, {});
+  }
+
+  handleSelectBoxClick(eventData) {
+    this.setState({showBorderSelectedKey: eventData.selectedKey});
   }
 
   render() {
@@ -106,12 +113,17 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
     //Draw tile only if startIndex == 0
     if (this.state.startIndex == 0) {
 
+      var showBorder = (this.state.showBorderSelectedKey.x == tile.hexX) && 
+                       (this.state.showBorderSelectedKey.y == tile.hexY);
+
       boxes.push(<SelectBox key={-1}
         pos={0}
         selectedKey={{ type: TILE, x: tile.hexX, y: tile.hexY }}
         imageName={imageName}
         style={style}
-        imageStyle={imageStyle} />)
+        imageStyle={imageStyle} 
+        showBorder={showBorder}
+        />)
 
       //Increment selectBoxPos due to tile
       selectBoxPos++;
@@ -165,11 +177,15 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
           Global.selectedKey = {type: OBJ, id: objId};
         }*/
 
+        var showBorder = this.state.showBorderSelectedKey.id == objId;
+
         boxes.push(<SelectBox key={i}
           pos={selectBoxPos}
           selectedKey={{ type: OBJ, id: objId }}
           imageName={imageName}
-          style={style} />);
+          style={style}
+          showBorder={showBorder}
+          />);
 
         selectBoxPos++;
       }

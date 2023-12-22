@@ -190,10 +190,11 @@ export class Network {
     Global.socket.sendMessage(JSON.stringify(m));
   }
 
-  public static sendCombo(id, comboType) {
+  public static sendCombo(sourceId, targetId, comboType) {
     var m = {
       cmd: "combo",
-      sourceid: id,
+      sourceid: sourceId,
+      targetid: targetId,
       combotype: comboType
     };
     Global.socket.sendMessage(JSON.stringify(m));
@@ -718,6 +719,13 @@ export class Network {
       }
 
       Global.gameEmitter.emit(NetworkEvent.STATS, {});
+    } else if(data.sourceid == Global.heroId) {
+
+      if(data.attacktype == 'combo') {
+        Global.attacks.length = 0;
+      } else {
+        Global.attacks.push(data.attacktype);
+      }
     }
   }
 }
