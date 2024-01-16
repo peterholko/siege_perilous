@@ -41,12 +41,9 @@ export default class AttacksPanel extends React.Component<AttacksProp, any> {
     }
 
     const attacksStyle = {
-      top: '50%',
+      bottom: '85px',
       left: '50%',
-      width: '104px',
-      height: '22px',
-      marginTop: '131px', // -33 + 164px
-      marginLeft: '-153px',
+      marginLeft: '-130px',
       position: 'fixed',
       zIndex: 6
     } as React.CSSProperties

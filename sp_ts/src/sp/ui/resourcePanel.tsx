@@ -34,12 +34,31 @@ export default class ResourcePanel extends React.Component<ResourceProps, any> {
     } as React.CSSProperties
 
     const tableStyle = {
-      transform: 'translate(20px, -250px)',
+      transform: 'translate(20px, -240px)',
       position: 'fixed',
       color: 'white',
       fontFamily: 'Verdana',
       fontSize: '12px'
     } as React.CSSProperties
+
+    const tableStyle2 = {
+      //transform: 'translate(-5px, -5px)',
+      //position: 'fixed',
+      color: 'white',
+      fontFamily: 'Verdana',
+      fontSize: '12px'
+    } as React.CSSProperties
+
+    var characteristics = [];
+
+    if(this.props.resourceData.characteristics) {
+      for(var i = 0; i < this.props.resourceData.characteristics.length; i++) {
+        characteristics.push(<tr key={i}>
+                      <td>+[{this.props.resourceData.characteristics[i].min} - {this.props.resourceData.characteristics[i].max}] {this.props.resourceData.characteristics[i].name}</td>
+                    </tr>);
+      }
+    }
+
 
     return (
       <HalfPanel left={false} 
@@ -53,10 +72,21 @@ export default class ResourcePanel extends React.Component<ResourceProps, any> {
               <td>Quantity: </td>
               <td>{this.props.resourceData.quantityLabel}</td>
             </tr>
+
             <tr>
               <td>Yield: </td>
               <td>{this.props.resourceData.yieldLabel}</td>
-            </tr>            
+            </tr>
+            <tr><td></td></tr>
+            <tr>
+              <td colSpan={2}>
+                <table style={tableStyle2}>
+                  <tbody>
+                    {characteristics}
+                  </tbody>
+                </table>
+              </td>
+            </tr>        
           </tbody>
         </table>
       </HalfPanel>

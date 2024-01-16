@@ -8,17 +8,18 @@ import inventorybutton from "ui_comp/inventorybutton.png";
 import transferbutton from "ui_comp/transferbutton.png";
 import explorebutton from "ui_comp/explorebutton.png";
 import gatherbutton from "ui_comp/gatherbutton.png";
-import followbutton from "ui_comp/followbutton.png"; 
+import followbutton from "ui_comp/followbutton.png";
 import infobutton from "ui_comp/infobutton.png";
 import merchantbutton from "ui_comp/merchantbutton.png";
 
 import { Util } from "../util";
-import { VILLAGER, DEAD, OBJ, TILE, FOUNDED, BUTTON_WIDTH} from "../config";
+import { VILLAGER, DEAD, OBJ, TILE, FOUNDED, BUTTON_WIDTH } from "../config";
 import { GameEvent } from "../gameEvent";
+import SmallButton from "./smallButton";
 
 interface TAProps {
-  selectedBoxPos : integer,
-  selectedKey : any
+  selectedBoxPos: integer,
+  selectedKey: any
 }
 
 export default class TargetActionPanel extends React.Component<TAProps, any> {
@@ -37,44 +38,44 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
     this.handleMerchantClick = this.handleMerchantClick.bind(this)
   }
 
-  handleInventoryClick(event : React.MouseEvent) {
+  handleInventoryClick(event: React.MouseEvent) {
     console.log('Inventory Click');
     Network.sendInfoInventory(this.props.selectedKey.id);
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
-  handleTransferClick(event : React.MouseEvent) {
+  handleTransferClick(event: React.MouseEvent) {
     console.log('Transfer Click');
     Global.infoItemTransferAction = 'transfer';
     Network.sendInfoItemTransfer(Global.heroId, this.props.selectedKey.id);
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
-  handleStatsClick(event : React.MouseEvent) {
+  handleStatsClick(event: React.MouseEvent) {
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
-  handleExploreClick(event : React.MouseEvent) {
+  handleExploreClick(event: React.MouseEvent) {
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
-  handleGatherClick(event : React.MouseEvent) {
+  handleGatherClick(event: React.MouseEvent) {
     Global.gameEmitter.emit(GameEvent.VILLAGER_GATHER_CLICK, this.props.selectedKey);
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
 
-  handleFollowClick(event : React.MouseEvent) {
+  handleFollowClick(event: React.MouseEvent) {
     Network.sendFollow(this.props.selectedKey.id);
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
   }
-  
-  handleInfoClick(event : React.MouseEvent) {
-    if(this.props.selectedKey.type == OBJ) {
+
+  handleInfoClick(event: React.MouseEvent) {
+    if (this.props.selectedKey.type == OBJ) {
       console.log('handleInfoClick');
       Network.sendInfoObj(this.props.selectedKey.id);
-    } else if(this.props.selectedKey.type == TILE) {
-      Network.sendInfoTile(this.props.selectedKey.x, 
-                           this.props.selectedKey.y); 
+    } else if (this.props.selectedKey.type == TILE) {
+      Network.sendInfoTile(this.props.selectedKey.x,
+        this.props.selectedKey.y);
     }
 
     Global.gameEmitter.emit(GameEvent.TAP_CLICK, {});
@@ -106,9 +107,9 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
 
     var numButtons = 1;
 
-    if(this.props.selectedKey.type == OBJ) {
-      if(Util.isPlayerObj(this.props.selectedKey.id)) {
-        if(Util.isSubclass(this.props.selectedKey.id, VILLAGER)) {
+    if (this.props.selectedKey.type == OBJ) {
+      if (Util.isPlayerObj(this.props.selectedKey.id)) {
+        if (Util.isSubclass(this.props.selectedKey.id, VILLAGER)) {
           hideInfoButton = false;
           hideInventoryButton = false;
           hideTranferButton = false;
@@ -117,7 +118,7 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
           hideFollowButton = false;
           numButtons = 3; //Shortcut because the explore, gather, follow are stacked below
 
-        } else if(Util.isState(this.props.selectedKey.id, FOUNDED)) {
+        } else if (Util.isState(this.props.selectedKey.id, FOUNDED)) {
           hideInfoButton = false;
           hideTranferButton = false;
           numButtons = 2;
@@ -128,23 +129,23 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
           numButtons = 3;
         }
       } else {
-        if(Util.isState(this.props.selectedKey.id, DEAD)) {
+        if (Util.isState(this.props.selectedKey.id, DEAD)) {
           hideInfoButton = false;
           hideTranferButton = false;
           numButtons = 2;
         }
-        else if(Util.isSubclass(this.props.selectedKey.id, "merchant")) {
+        else if (Util.isSubclass(this.props.selectedKey.id, "merchant")) {
           hideMerchantButton = false;
           hideInfoButton = false;
         }
-        else if(Util.hasGroup(this.props.selectedKey.id, "Tax Collector")) {
+        else if (Util.hasGroup(this.props.selectedKey.id, "Tax Collector")) {
           hideTranferButton = false;
           hideInfoButton = false;
         } else {
           hideInfoButton = false;
         }
       }
-    } else if(this.props.selectedKey.type == TILE) {
+    } else if (this.props.selectedKey.type == TILE) {
       hideInfoButton = false;
     }
 
@@ -153,7 +154,7 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
 
     const targetActionPanelStyle = {
       top: '82px',
-      right:  panelPos + 'px',
+      right: panelPos + 'px',
       position: 'fixed',
       zIndex: 6
     } as React.CSSProperties
@@ -176,66 +177,66 @@ export default class TargetActionPanel extends React.Component<TAProps, any> {
 
     const transferStyle = {
       transform: 'translate(50px, 0px)',
-      position: 'fixed'  
+      position: 'fixed'
     } as React.CSSProperties
 
     const merchantStyle = {
       transform: 'translate(50px, 0px)',
-      position: 'fixed'  
+      position: 'fixed'
     } as React.CSSProperties
 
     const exploreStyle = {
       transform: 'translate(0px, 50px)',
-      position: 'fixed'  
+      position: 'fixed'
     } as React.CSSProperties
 
     const gatherStyle = {
       transform: 'translate(50px, 50px)',
-      position: 'fixed'  
+      position: 'fixed'
     } as React.CSSProperties
 
     const followStyle = {
       transform: 'translate(100px, 50px)',
-      position: 'fixed'  
+      position: 'fixed'
     } as React.CSSProperties
 
     return (
       <div style={targetActionPanelStyle} >
 
-          {!hideInfoButton && 
-              <img src={infobutton} 
-                   style={infoStyle} 
-                   onClick={this.handleInfoClick}/>}
-                 
-          {!hideInventoryButton &&
-            <img src={inventorybutton} 
-                 style={inventoryStyle} 
-                 onClick={this.handleInventoryClick}/>}
+        {!hideInfoButton &&
+          <SmallButton handler={this.handleInfoClick}
+            imageName="infobutton"
+            style={infoStyle} />}
 
-          {!hideTranferButton &&  
-            <img src={transferbutton} 
-                 style={transferStyle} 
-                 onClick={this.handleTransferClick}/>}
+        {!hideInventoryButton &&
+          <SmallButton handler={this.handleInventoryClick}
+            imageName="inventorybutton"
+            style={inventoryStyle} />}
 
-          {!hideExploreButton && 
-            <img src={explorebutton} 
-                 style={exploreStyle} 
-                 onClick={this.handleExploreClick}/>}
+        {!hideTranferButton &&
+          <SmallButton handler={this.handleTransferClick}
+            imageName="transferbutton"
+            style={transferStyle} />}
 
-          {!hideGatherButton && 
-            <img src={gatherbutton} 
-                 style={gatherStyle} 
-                 onClick={this.handleGatherClick}/>}
+        {!hideExploreButton &&
+          <img src={explorebutton}
+            style={exploreStyle}
+            onClick={this.handleExploreClick} />}
 
-          {!hideFollowButton && 
-            <img src={followbutton} 
-                 style={followStyle} 
-                 onClick={this.handleFollowClick}/>}
+        {!hideGatherButton &&
+          <img src={gatherbutton}
+            style={gatherStyle}
+            onClick={this.handleGatherClick} />}
 
-          {!hideMerchantButton && 
-            <img src={merchantbutton} 
-                 style={merchantStyle} 
-                 onClick={this.handleMerchantClick}/>}
+        {!hideFollowButton &&
+          <SmallButton handler={this.handleFollowClick}
+            imageName="followbutton"
+            style={followStyle} />}
+
+        {!hideMerchantButton &&
+          <SmallButton handler={this.handleMerchantClick}
+            imageName="merchantbutton"
+            style={merchantStyle} />}
 
       </div>
     );

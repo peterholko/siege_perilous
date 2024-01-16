@@ -4,7 +4,7 @@ import { NetworkEvent } from './networkEvent';
 import { ObjectState } from './objectState';
 import { TileState } from './tileState';
 import { GameEvent } from './gameEvent';
-import { NONE} from "./config";
+import { DEAD, NONE} from "./config";
 
 export class Network {
 
@@ -521,7 +521,11 @@ export class Network {
       } else if (jsonData.packet == 'build') {
         Global.gameEmitter.emit(NetworkEvent.BUILD, jsonData);
       } else if (jsonData.packet == 'upgrade') {
-        Global.gameEmitter.emit(NetworkEvent.UPGRADE, jsonData);        
+        Global.gameEmitter.emit(NetworkEvent.UPGRADE, jsonData);
+      } else if (jsonData.packet == 'explore') {
+        Global.gameEmitter.emit(NetworkEvent.EXPLORE, jsonData);            
+      } else if (jsonData.packet == 'gather') {
+        Global.gameEmitter.emit(NetworkEvent.GATHER, jsonData);  
       } else if (jsonData.packet == 'attack') {
         Global.gameEmitter.emit(NetworkEvent.ATTACK, jsonData);
       } else if (jsonData.packet == 'dmg') {
@@ -573,10 +577,10 @@ export class Network {
         op: 'added'
       };
 
+      console.log(objectState);
       console.log('Global.playerId: ' + Global.playerId);
       if (objectState.player == Global.playerId && objectState.subclass == 'hero') {
         console.log('Setting Hero Id');
-        console.log(objectState);
         Global.heroId = objectState.id;
 
         Global.gameEmitter.emit(NetworkEvent.HERO_INIT, Global.heroId);
@@ -710,6 +714,11 @@ export class Network {
   }
 
   processDmg(data) {
+    //Set object state to dead because an update is not sent to save on messages
+    if(data.state == DEAD) {
+      Global.objectStates[data.targetid].state = DEAD;
+    }
+
     if (data.targetid == Global.heroId) {
 
       if (data.dmg > Global.heroHp) {

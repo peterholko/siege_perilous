@@ -8,6 +8,9 @@ import selectitemborder from "ui_comp/selectitemborder.png";
 import { Util } from "../util";
 import ResourceItem from "./resourceItem";
 import { STRUCTURE, FOUNDED } from "../config";
+import SmallButton from "./smallButton";
+import { Network } from "../network";
+import { GameEvent } from "../gameEvent";
 
 interface FoundedInventoryProps {
   id: integer,
@@ -31,7 +34,8 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
       selectItemStyle : selectItemStyle
     };
     
-    this.handleSelect = this.handleSelect.bind(this)
+    this.handleSelect = this.handleSelect.bind(this);
+    this.handleBuildClick = this.handleBuildClick.bind(this);
   }
 
   handleSelect(eventData) {
@@ -52,12 +56,19 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
     this.props.handleSelect(eventData);
   }
 
+  handleBuildClick() {
+    Network.sendBuild(Global.heroId, this.props.id);
+    Global.gameEmitter.emit(GameEvent.START_BUILD_CLICK, {});
+  }
+
   render() {
     const objId = this.props.id;
     const itemFrames = []
     
     const items = []
     const reqs = []
+
+    var showBuildButton = true;
 
     const spriteStyle = {
       transform: 'translate(-200px, 5px)',
@@ -84,6 +95,12 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
       width: '295px'
     } as React.CSSProperties
 
+    const buildStyle = {
+      transform: 'translate(-187px, 155px)',
+      position: 'fixed',
+      zIndex: 6
+    } as React.CSSProperties
+
 
     if(Util.isSprite(Global.objectStates[objId].image)) {
       var imageName = Global.objectStates[objId].image + '_single.png';
@@ -94,6 +111,10 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
     for(var i = 0; i < this.props.reqs.length; i++) {
       var xPos = 25 + ((i % 5) * 53);
       var yPos = -265 + (Math.floor(i / 5) * 53);
+
+      if(this.props.reqs[i].cquantity != 0) {
+        showBuildButton = false;
+      }
 
       reqs.push(
         <ResourceItem key={i}
@@ -154,6 +175,10 @@ export default class FoundedInventoryPanel extends React.Component<FoundedInvent
         {!this.props.hideSelect && 
           <img src={selectitemborder} style={this.state.selectItemStyle} />
         }
+            {showBuildButton &&
+      <SmallButton handler={this.handleBuildClick}
+        imageName="buildbutton"
+        style={buildStyle} />}
       </HalfPanel>
     );
   }

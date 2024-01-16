@@ -11,6 +11,13 @@
   position: fixed;
 }
 
+.movecompassclick {
+  left: 43px;
+  bottom: 44px;
+  z-index: 3;
+  position: fixed;
+}
+
 .heroinventorybutton {
   transform: translate(10px, 160px);
   z-index: 3;

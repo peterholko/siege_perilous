@@ -4,10 +4,10 @@ import * as React from "react";
 interface SmallButtonProps {
   handler: any,
   imageName: string,
-  style: any,
+  className: any,
 }
 
-export default class SmallButton extends React.Component<SmallButtonProps, any> {
+export default class SmallButtonClassName extends React.Component<SmallButtonProps, any> {
 
   constructor(props) {
     super(props);
@@ -38,14 +38,10 @@ export default class SmallButton extends React.Component<SmallButtonProps, any> 
 
   render() {
 
-    const divStyle = {
-      display: "inline"
-    } as React.CSSProperties
-
     return (
-      <div style={divStyle} onClick={this.handleClick}>
-        <img src={'/static/art/ui/' + this.props.imageName + '.png'} style={this.props.style} />
-        {this.state.showClicked && <img src={'/static/art/ui/' + this.props.imageName + '_click.png'} style={this.props.style} /> }
+      <div onClick={this.handleClick}>
+        <img src={'/static/art/ui/' + this.props.imageName + '.png'} className={this.props.className} />
+        {this.state.showClicked && <img src={'/static/art/ui/' + this.props.imageName + '_click.png'} className={this.props.className} /> }
       </div>
     );
   }

@@ -1,19 +1,21 @@
 import * as React from "react";
 import { Global } from "../global";
 import SelectBox from "./selectBox";
-import { TILE, OBJ, LARGE_SCREEN_WIDTH } from "../config";
+import { TILE, OBJ, LARGE_SCREEN_WIDTH, DEAD } from "../config";
 import { Util } from "../util";
 import { Tile } from "../objects/tile";
 import { Obj } from "../obj";
 import leftbutton from "ui_comp/leftbutton.png";
 import rightbutton from "ui_comp/rightbutton.png";
 import { GameEvent } from "../gameEvent";
+import { NetworkEvent } from "../networkEvent";
 
 const MAX_SELECT_BOXES = (window.innerWidth < LARGE_SCREEN_WIDTH ? 3 : 6);
 
 interface SelectPanelProps {
   selectedTile: Tile,
-  objIdsOnTile: any
+  objIdsOnTile: any,
+  selectedKey: any
 }
 
 export default class SelectPanel extends React.Component<SelectPanelProps, any> {
@@ -22,13 +24,15 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
 
     this.state = {
       startIndex: 0,
-      showBorderSelectedKey: -1
+      showBorderSelectedKey: -1,
+      objKilled: false
     };
 
     this.leftClick = this.leftClick.bind(this);
     this.rightClick = this.rightClick.bind(this);
 
-    Global.gameEmitter.on(GameEvent.SELECTBOX_CLICK, this.handleSelectBoxClick, this);
+    //Global.gameEmitter.on(GameEvent.SELECTBOX_CLICK, this.handleSelectBoxClick, this);
+    Global.gameEmitter.on(NetworkEvent.DMG, this.handleDamage, this); 
   }
 
   leftClick() {
@@ -45,8 +49,15 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
     this.setState({showBorderSelectedKey: eventData.selectedKey});
   }
 
-  render() {
+  handleDamage(eventData) {
+    for(var i = 0; i < this.props.objIdsOnTile.length; i++) {
+      if(eventData.state == DEAD && eventData.targetid == this.props.objIdsOnTile[i]) {
+        this.setState({objKilled: true});
+      }
+    }
+  }
 
+  render() {
     console.log("Select Panel props: " + JSON.stringify(this.props));
 
     if (this.props.selectedTile == null) {
@@ -113,8 +124,9 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
     //Draw tile only if startIndex == 0
     if (this.state.startIndex == 0) {
 
-      var showBorder = (this.state.showBorderSelectedKey.x == tile.hexX) && 
-                       (this.state.showBorderSelectedKey.y == tile.hexY);
+      /*var showBorder = (this.state.showBorderSelectedKey.x == tile.hexX) && 
+                       (this.state.showBorderSelectedKey.y == tile.hexY);*/
+      var showBorder = this.props.selectedKey.type == TILE;
 
       boxes.push(<SelectBox key={-1}
         pos={0}
@@ -123,11 +135,11 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
         style={style}
         imageStyle={imageStyle} 
         showBorder={showBorder}
+        showGravestone={false}
         />)
 
       //Increment selectBoxPos due to tile
       selectBoxPos++;
-
     }
 
 
@@ -177,7 +189,10 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
           Global.selectedKey = {type: OBJ, id: objId};
         }*/
 
-        var showBorder = this.state.showBorderSelectedKey.id == objId;
+        //var showBorder = this.state.showBorderSelectedKey.id == objId;
+        var showBorder = this.props.selectedKey.id == objId;
+        var isDead = Global.objectStates[objId].state == DEAD;
+        console.log("isDead: " + isDead);
 
         boxes.push(<SelectBox key={i}
           pos={selectBoxPos}
@@ -185,6 +200,7 @@ export default class SelectPanel extends React.Component<SelectPanelProps, any> 
           imageName={imageName}
           style={style}
           showBorder={showBorder}
+          showGravestone={isDead}
           />);
 
         selectBoxPos++;

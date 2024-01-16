@@ -95,11 +95,20 @@ export default class ItemPanel extends React.Component<ItemPanelProps, any> {
 
     if(this.props.itemData.hasOwnProperty('attrs')) {
       for(var attrKey in this.props.itemData.attrs) {
-        var attrValue = String(this.props.itemData.attrs[attrKey]);
-        console.log(attrValue);
+        var attrValue = this.props.itemData.attrs[attrKey];
+
+        if(typeof attrValue === "number") {
+          if(attrValue < 0) {
+            attrValue = '-' + String(attrValue);
+          } else {
+            attrValue = '+' + String(attrValue);
+          }
+        } else {
+          attrValue = String(attrValue);
+        }
+
         attrs.push(<tr key={attrKey}>
-          <td>{attrKey}</td>
-          <td>{attrValue}</td>
+          <td colSpan={2}>{attrValue} {attrKey}</td>          
         </tr>)
       }
     }

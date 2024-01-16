@@ -37,6 +37,8 @@ export namespace NetworkEvent {
     export const RECIPE_LIST : string = 'RECIPE_LIST';
     export const BUILD : string = 'BUILD';
     export const UPGRADE : string = 'UPGRADE';
+    export const EXPLORE : string = 'EXPLORE';
+    export const GATHER : string = 'GATHER';
     export const ATTACK : string = 'ATTACK';
     export const DMG : string = 'DMG';
     export const XP : string = 'XP';

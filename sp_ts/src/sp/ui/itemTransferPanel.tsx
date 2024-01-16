@@ -7,6 +7,7 @@ import { GameEvent } from "../gameEvent";
 import { Network } from "../network";
 import { STRUCTURE, FOUNDED } from "../config";
 import FoundedInventoryPanel from "./foundedInventoryPanel";
+import SmallButton from "./smallButton";
 
 interface ITPProps {
   leftInventoryData,
@@ -25,36 +26,42 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
       hideLeftSelect: true,
       hideRightSelect: true
     };
-  
+
     this.handleSelect = this.handleSelect.bind(this);
     this.handleItemTransferClick = this.handleItemTransferClick.bind(this);
   }
 
   handleSelect() {
-    if(Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
-      this.setState({hideLeftSelect: false,
-                     hideRightSelect: true});
+    if (Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
+      this.setState({
+        hideLeftSelect: false,
+        hideRightSelect: true
+      });
     } else {
-      this.setState({hideLeftSelect: true,
-                     hideRightSelect: false});
+      this.setState({
+        hideLeftSelect: true,
+        hideRightSelect: false
+      });
     }
   }
 
-  handleItemTransferClick(event : React.MouseEvent) {
+  handleItemTransferClick(event: React.MouseEvent) {
     console.log('Item Transfer Click');
-    if(Global.selectedItemId != -1) {
+    if (Global.selectedItemId != -1) {
       var targetId;
 
-      if(Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
+      if (Global.selectedItemOwnerId == this.props.leftInventoryData.id) {
         targetId = this.props.rightInventoryData.id;
       } else {
         targetId = this.props.leftInventoryData.id;
       }
-      this.setState({hideLeftSelect: true,
-                    hideRightSelect: true});
+      this.setState({
+        hideLeftSelect: true,
+        hideRightSelect: true
+      });
 
       Network.sendItemTransfer(targetId, Global.selectedItemId);
-      
+
       //Reset Global selected item / owner
       Global.selectedItemId = -1;
       Global.selectedItemOwnerId = -1;
@@ -63,6 +70,10 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
   }
 
   render() {
+    console.log("Left: ");
+    console.log(this.props.leftInventoryData);
+    console.log("Right: ");
+    console.log(this.props.rightInventoryData);
     var objState = Global.objectStates[this.props.rightInventoryData.id];
     var isFounded = objState.class == STRUCTURE && objState.state == FOUNDED;
 
@@ -105,32 +116,32 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
     return (
       <div>
         <BaseInventoryPanel left={true}
-                            id={this.props.leftInventoryData.id} 
-                            items={this.props.leftInventoryData.items} 
-                            capacity={this.props.leftInventoryData.cap}
-                            totalWeight={this.props.leftInventoryData.tw}
-                            panelType={'itemTransfer'}
-                            hideExitButton={true}
-                            hideSelect={this.state.hideLeftSelect}
-                            handleSelect={this.handleSelect} />
+          id={this.props.leftInventoryData.id}
+          items={this.props.leftInventoryData.items}
+          capacity={this.props.leftInventoryData.cap}
+          totalWeight={this.props.leftInventoryData.tw}
+          panelType={'itemTransfer'}
+          hideExitButton={true}
+          hideSelect={this.state.hideLeftSelect}
+          handleSelect={this.handleSelect} />
         {!isFounded &&
           <BaseInventoryPanel left={false}
-                              id={this.props.rightInventoryData.id} 
-                              items={this.props.rightInventoryData.items} 
-                              capacity={this.props.rightInventoryData.cap}
-                              totalWeight={this.props.rightInventoryData.tw}
-                              panelType={'itemTransfer'}
-                              hideExitButton={false}
-                              hideSelect={this.state.hideRightSelect}
-                              handleSelect={this.handleSelect} />}
+            id={this.props.rightInventoryData.id}
+            items={this.props.rightInventoryData.items}
+            capacity={this.props.rightInventoryData.cap}
+            totalWeight={this.props.rightInventoryData.tw}
+            panelType={'itemTransfer'}
+            hideExitButton={false}
+            hideSelect={this.state.hideRightSelect}
+            handleSelect={this.handleSelect} />}
         {isFounded &&
           <FoundedInventoryPanel id={this.props.rightInventoryData.id}
-                                 items={this.props.rightInventoryData.items}
-                                 reqs={this.props.reqs} 
-                                 panelType={'itemTransfer'}
-                                 hideExitButton={false}
-                                 hideSelect={this.state.hideRightSelect}
-                                 handleSelect={this.handleSelect} />}
+            items={this.props.rightInventoryData.items}
+            reqs={this.props.reqs}
+            panelType={'itemTransfer'}
+            hideExitButton={false}
+            hideSelect={this.state.hideRightSelect}
+            handleSelect={this.handleSelect} />}
 
         {!this.state.hideLeftSelect &&
           <span style={leftItemNameStyle}>{Global.selectedItemName}</span>}
@@ -138,9 +149,10 @@ export default class ItemTransferPanel extends React.Component<ITPProps, any> {
         {!this.state.hideRightSelect &&
           <span style={rightItemNameStyle}>{Global.selectedItemName}</span>}
 
-        <img src={transferbutton} 
-              style={transferStyle} 
-              onClick={this.handleItemTransferClick}/> 
+        <SmallButton handler={this.handleItemTransferClick}
+          imageName="transferbutton"
+          style={transferStyle} />
+
       </div>
     );
   }

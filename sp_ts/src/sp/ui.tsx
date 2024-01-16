@@ -12,16 +12,11 @@ import styles from "./ui.module.css";
 import SingleInventoryPanel from './ui/singleInventoryPanel';
 import ItemPanel from './ui/itemPanel';
 
-import movecompass from "ui/movecompass.png";
-
-import inventorybutton from "ui/inventorybutton.png";
-import attrsbutton from "ui/attrsbutton.png";
-import buildbutton from "ui/buildbutton.png";
 import explorebutton from "ui/explorebutton.png";
-import gatherbutton from "ui/gatherbutton.png";
-import sleepbutton from "ui/sleepbutton.png";
-import resourcesbutton from "ui/resourcesbutton.png";
-import smalliconborder from "ui/selectbordersmall.png";
+
+
+import movecompass from "ui/movecompass.png";
+import movecompass_click from "ui/movecompass_click.png"
 
 import bracebutton from "ui/bracebutton.png";
 import parrybutton from "ui/parrybutton.png";
@@ -34,7 +29,8 @@ import {
   QUICK,
   PRECISE,
   FIERCE,
-  OBJ
+  OBJ,
+  TILE
 } from './config';
 import TargetActionPanel from './ui/targetActionPanel';
 import ItemTransferPanel from './ui/itemTransferPanel';
@@ -48,6 +44,7 @@ import BuildPanel from './ui/buildPanel';
 import StructurePanel from './ui/structurePanel';
 import StructureUpgradePanel from './ui/structureUpgradePanel';
 import ErrorPanel from './ui/errorPanel';
+import ConfirmPanel from './ui/confirmPanel';
 import SelectPanel from './ui/selectPanel';
 import AssignPanel from './ui/assignPanel';
 import CraftPanel from './ui/craftPanel';
@@ -63,8 +60,11 @@ import NPCPanel from './ui/npcPanel';
 import HeroAdvancePanel from './ui/heroAdvancePanel';
 import NoticePanel from './ui/noticePanel';
 import { Obj } from './obj';
-import SmallButton from './ui/smallButton';
+import SmallButtonClassName from './ui/smallButtonClassName';
 import AttacksPanel from './ui/attacksPanel';
+import ToggleButton from './ui/toggleButton';
+import CooldownButton from './ui/cooldownButton';
+import GatherButton from './ui/gatherButton';
 
 interface UIState {
   selectBoxes: [],
@@ -88,6 +88,7 @@ interface UIState {
   hideStructurePanel: boolean,
   hideStructureUpgradePanel: boolean,
   hideErrorPanel: boolean,
+  hideConfirmPanel: boolean,
   hideNoticePanel: boolean,
   hideAssignPanel: boolean,
   hideCraftPanel: boolean,
@@ -127,8 +128,11 @@ interface UIState {
   selectedKey: any,
   infoItemAction: string,
   resourcesIconBorder: boolean,
-  errmsg: string
-  noticemsg: string
+  errmsg: string,
+  noticemsg: string,
+  confirmMsg: string,
+  confirmData: any,
+  showMoveCompassClick: boolean
 }
 
 export default class UI extends React.Component<any, UIState>{
@@ -162,6 +166,7 @@ export default class UI extends React.Component<any, UIState>{
       hideCraftPanel: true,
       hideErrorPanel: true,
       hideNoticePanel: true,
+      hideConfirmPanel: true,
       hideMerchantPanel: true,
       hideMerchantQuantityPanel: true,
       hideMerchantHirePanel: true,
@@ -199,7 +204,10 @@ export default class UI extends React.Component<any, UIState>{
       infoItemAction: TRIGGER_INVENTORY,
       resourcesIconBorder: false,
       errmsg: '',
-      noticemsg: ''
+      noticemsg: '',
+      confirmMsg: '',
+      confirmData: {},
+      showMoveCompassClick: false
     }
 
     this.handleMoveClick = this.handleMoveClick.bind(this);
@@ -217,6 +225,8 @@ export default class UI extends React.Component<any, UIState>{
     this.handleFierceAttack = this.handleFierceAttack.bind(this);
 
     this.handleTransitionEnd = this.handleTransitionEnd.bind(this);
+
+    this.hideMoveCompassClick = this.hideMoveCompassClick.bind(this);
 
     Global.gameEmitter.on(GameEvent.TILE_CLICK, this.handleTileClick, this);
     Global.gameEmitter.on(GameEvent.SELECTBOX_CLICK, this.handleSelectBoxClick, this);
@@ -236,6 +246,10 @@ export default class UI extends React.Component<any, UIState>{
     Global.gameEmitter.on(GameEvent.RESOURCE_CLICK, this.handleResourceClick, this);
     Global.gameEmitter.on(GameEvent.CRAFT_CLICK, this.handleCraftClick, this);
     Global.gameEmitter.on(GameEvent.NOTICE_EXPIRE, this.handleNoticeExpire, this);
+    Global.gameEmitter.on(GameEvent.DELETE_STRUCTURE_CLICK, this.handleDeleteStructureClick, this);
+    Global.gameEmitter.on(GameEvent.CONFIRMATION, this.handleConfirmation, this);
+    Global.gameEmitter.on(GameEvent.CONFIRM_OK_CLICK, this.handleConfirmOkClick, this);
+    
     Global.gameEmitter.on(GameEvent.OBJ_CREATED, this.handleObjCreated, this);
     Global.gameEmitter.on(GameEvent.OBJ_DELETED, this.handleObjDeleted, this);
     Global.gameEmitter.on(GameEvent.OBJ_MOVED, this.handleObjMoved, this);
@@ -277,6 +291,9 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleMoveClick(event: React.MouseEvent) {
+    this.setState({showMoveCompassClick: true});
+    setTimeout(this.hideMoveCompassClick, 100);
+
     const compass = this.compassRef.current!;
 
     var pocX = event.nativeEvent.offsetX - compass.naturalWidth / 2;
@@ -325,12 +342,44 @@ export default class UI extends React.Component<any, UIState>{
 
       var objIdsOnTile = Obj.getObjsAt(gameObject.hexX, gameObject.hexY);
       console.log("ObjIdsOnTile: " + JSON.stringify(objIdsOnTile));
+
+      var pos;
+      var selectedKey;
+
+      if(objIdsOnTile.length > 0) {
+        pos = objIdsOnTile.length;
+        selectedKey = {
+          type: OBJ,
+          id: Number(objIdsOnTile[objIdsOnTile.length - 1])
+        }
+      } else {
+        pos = 0;        
+        selectedKey = {
+          type: TILE, 
+          x: gameObject.hexX,
+          y: gameObject.hexY 
+        }
+      }
+
+      Global.selectedKey = selectedKey;
+
       this.setState({
         selectedTile: gameObject,
         objIdsOnTile: objIdsOnTile,
         hideSelectPanel: false,
+        hideTargetActionPanel: false,
+        selectedBoxPos: pos,
+        selectedKey: selectedKey
+      })
+  
+      //Global.gameEmitter.emit(GameEvent.SELECTBOX_CLICK, eventData);
+
+      /*this.setState({
+        selectedTile: gameObject,
+        objIdsOnTile: objIdsOnTile,
+        hideSelectPanel: false,
         hideTargetActionPanel: true
-      });
+      });*/
     }
   }
 
@@ -395,6 +444,8 @@ export default class UI extends React.Component<any, UIState>{
     } else if (event.panelType == 'experiment') {
       Network.sendInfoExit(this.state.expData.id, "experiment");
       this.setState({ hideExperimentPanel: true });
+    } else if (event.panelType == 'confirm') {
+      this.setState({ hideConfirmPanel: true });
     }
   }
 
@@ -441,7 +492,7 @@ export default class UI extends React.Component<any, UIState>{
   }
 
   handleTargetActionPanelClick(event: React.MouseEvent) {
-    this.setState({ hideTargetActionPanel: true });
+    //this.setState({ hideTargetActionPanel: true });
   }
 
   handleVillagerGatherClick(event: React.MouseEvent) {
@@ -454,6 +505,7 @@ export default class UI extends React.Component<any, UIState>{
 
   handleStartBuildClick(event: React.MouseEvent) {
     this.setState({ hideBuildPanel: true });
+    this.setState({ hideItemTransferPanel: true });
   }
 
   handleHeroAttrsClick(event: React.MouseEvent) {
@@ -565,6 +617,20 @@ export default class UI extends React.Component<any, UIState>{
     });
   }
 
+  handleConfirmation(event) {
+    this.setState({
+      hideConfirmPanel: false,
+      confirmMsg: event.msg,
+      confirmData: event.data
+    });
+  }
+
+  handleConfirmOkClick(event) {
+    this.setState({
+      hideConfirmPanel: true,
+    });
+  }
+
   handleServerOffline() {
     Global.serverOffline = true;
 
@@ -610,6 +676,15 @@ export default class UI extends React.Component<any, UIState>{
     });
   }
 
+  handleDeleteStructureClick() {
+    console.log('handleDeleteStructureClick')
+    this.setState({hideStructurePanel: true});
+  }  
+
+  hideMoveCompassClick() {
+    this.setState({showMoveCompassClick: false});
+  }
+
   handleObjCreated(objId) {
     console.log('Obj Created: ' + objId);
 
@@ -646,7 +721,18 @@ export default class UI extends React.Component<any, UIState>{
     if (this.state.selectedTile) {
       if (this.state.selectedTile.hexX == Global.objectStates[objId].prevX &&
         this.state.selectedTile.hexY == Global.objectStates[objId].prevY) {
-        this.setState({ objIdsOnTile: Obj.getObjsAt(this.state.selectedTile.hexX, this.state.selectedTile.hexY) });
+
+        // Check if moving obj is selected
+        if(Global.selectedKey.id == objId) {
+          var objMovedEvent = {
+            hexX: Global.objectStates[objId].x,
+            hexY: Global.objectStates[objId].y
+          }          
+          console.log(objMovedEvent);
+          Global.gameEmitter.emit(GameEvent.SELECTED_OBJ_MOVED, objMovedEvent);
+        } else {
+          this.setState({ objIdsOnTile: Obj.getObjsAt(this.state.selectedTile.hexX, this.state.selectedTile.hexY) });        
+        }
       }
     }
   }
@@ -981,37 +1067,31 @@ export default class UI extends React.Component<any, UIState>{
     return (
       <div id="ui" className={styles.ui}>
        
-        <SmallButton handler={this.handleHeroAttrsClick}
+        <SmallButtonClassName handler={this.handleHeroAttrsClick}
                      imageName="attrsbutton"
                      className={styles.heroattrsbutton} />             
 
-        <SmallButton handler={this.handleHeroInventoryClick}
+        <SmallButtonClassName handler={this.handleHeroInventoryClick}
                      imageName="inventorybutton"
                      className={styles.heroinventorybutton} />   
 
-        <SmallButton handler={this.handleHeroExploreClick}
-                     imageName="explorebutton"
-                     className={styles.heroexplorebutton} />                          
+        <CooldownButton imageName='explorebutton'
+                        imageButton={explorebutton}
+                        handler={this.handleHeroExploreClick}                    
+                        className={styles.heroexplorebutton} />                          
 
-        <SmallButton handler={this.handleHeroBuildClick}
+        <GatherButton   handler={this.handleHeroGatherClick}                    
+                        className={styles.herogatherbutton} />  
+
+        <SmallButtonClassName handler={this.handleHeroBuildClick}
                      imageName="buildbutton"
-                     className={styles.herobuildbutton} />   
+                     className={styles.herobuildbutton} />                      
 
-        <SmallButton handler={this.handleHeroGatherClick}
-                     imageName="gatherbutton"
-                     className={styles.herogatherbutton} />                     
-
-        <SmallButton handler={this.handleHeroSleepClick}
+        <ToggleButton handler={this.handleHeroSleepClick}
                      imageName="resourcesbutton"
                      className={styles.herosleepbutton} />    
 
-        
-        {this.state.resourcesIconBorder &&
-        <img src={smalliconborder} 
-         className={styles.herosleepbutton} />
-        }
-
-        <SmallButton handler={this.handleComboClick}
+        <SmallButtonClassName handler={this.handleComboClick}
                      imageName="combobutton"
                      className={styles.combobutton} />           
 
@@ -1045,11 +1125,15 @@ export default class UI extends React.Component<any, UIState>{
           className={styles.movecompass}
           onClick={this.handleMoveClick} />
 
+        {this.state.showMoveCompassClick && 
+          <img id="movecompassclick" src={movecompass_click} className={styles.movecompassclick} />}
+
         <HeroFrame></HeroFrame>
 
         {!this.state.hideSelectPanel &&
           <SelectPanel selectedTile={this.state.selectedTile}
-            objIdsOnTile={this.state.objIdsOnTile} />}
+            objIdsOnTile={this.state.objIdsOnTile}
+            selectedKey={this.state.selectedKey} />}
 
         {!this.state.hideTargetActionPanel &&
           <TargetActionPanel selectedBoxPos={this.state.selectedBoxPos}
@@ -1135,6 +1219,9 @@ export default class UI extends React.Component<any, UIState>{
 
         {!this.state.hideErrorPanel &&
           <ErrorPanel errmsg={this.state.errmsg} />}
+        
+        {!this.state.hideConfirmPanel &&
+          <ConfirmPanel msg={this.state.confirmMsg} />}
       </div>
     );
   }

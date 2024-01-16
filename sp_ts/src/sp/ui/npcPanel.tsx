@@ -18,6 +18,15 @@ export default class NPCPanel extends React.Component<NPCPanelProps, any> {
   render() {
     let imagePath = '/static/art/' + this.props.npcData.image  + '_single.png';
 
+    var effects = [];
+
+    for(var i = 0; i < this.props.npcData.effects.length; i++) {
+      effects.push(<tr key={i}>
+        <td>{this.props.npcData.effects[i]}</td>
+        </tr>
+      );
+    }
+
     const npcStyle = {
       transform: 'translate(-185px, 25px)',
       position: 'fixed'
@@ -44,8 +53,18 @@ export default class NPCPanel extends React.Component<NPCPanelProps, any> {
             <td>{this.props.npcData.name}</td>
           </tr>
           <tr>
+            <td>State: </td>
+            <td>{this.props.npcData.state}</td>
+          </tr>          
+          <tr>
             <td>Effects: </td>
-            <td>{this.props.npcData.effects}</td>
+            <td>
+              <table style={tableStyle}>
+                <tbody>
+                {effects}
+                </tbody>
+              </table>
+            </td>
           </tr>
           </tbody>
         </table>

@@ -29,7 +29,7 @@ export class ObjectScene extends Phaser.Scene {
   private shroudTiles = [];
 
   private wallList: Array<ObjectState> = [];
-  
+
   private multiImages: Record<string, Array<MultiImage>> = {};
 
   private stateTimerList = {};
@@ -49,7 +49,7 @@ export class ObjectScene extends Phaser.Scene {
     this.load.image('gravestone', './static/art/gravestone.png');
     this.load.image('rubble', './static/art/rubble.png');
     this.load.image('shroud', './static/art/shroud.png');
-    this.load.spritesheet('shadowbolt', './static/art/shadowbolt.png', { frameWidth: 72, frameHeight: 72, endFrame: 5});
+    this.load.spritesheet('shadowbolt', './static/art/shadowbolt.png', { frameWidth: 72, frameHeight: 72, endFrame: 5 });
 
   }
 
@@ -58,14 +58,15 @@ export class ObjectScene extends Phaser.Scene {
 
     var shadowBoltConfig = {
       key: 'shadowboltanim',
-      frames: this.anims.generateFrameNumbers('shadowbolt', {start: 0, end: 5, first: 0}),
+      frames: this.anims.generateFrameNumbers('shadowbolt', { start: 0, end: 5, first: 0 }),
       frameRate: 10
     }
 
     this.anims.create(shadowBoltConfig);
-   
+
     this.onJumpComplete = this.onJumpComplete.bind(this);
     this.onMoveComplete = this.onMoveComplete.bind(this);
+    this.onReturnComplete = this.onReturnComplete.bind(this);
     this.onDmgTextComplete = this.onDmgTextComplete.bind(this);
 
     Global.gameEmitter.on(NetworkEvent.PERCEPTION, this.renderInit, this);
@@ -73,37 +74,37 @@ export class ObjectScene extends Phaser.Scene {
     Global.gameEmitter.on(NetworkEvent.DMG, this.processDmgMessage, this);
     Global.gameEmitter.on(NetworkEvent.SPEECH, this.processSpeech, this);
     Global.gameEmitter.on(NetworkEvent.XP, this.processXp, this);
-    
+
     this.load.on('filecomplete', this.fileLoadComplete, this);
     this.load.on('complete', this.loadComplete, this);
   }
-  
+
 
   processImageDefMessage(message) {
     console.log('image_def')
-    
-    if(message.result != '404') {
+
+    if (message.result != '404') {
       console.log(message.name);
       console.log(message.data);
 
-      if(Array.isArray(message.data.images)) {
+      if (Array.isArray(message.data.images)) {
         console.log(message.data.images);
 
         //Check if already loaded
-        if(!(message.name in Global.imageDefList)) {
+        if (!(message.name in Global.imageDefList)) {
 
-          for(var i = 0; i < message.data.images.length; i++) {
+          for (var i = 0; i < message.data.images.length; i++) {
 
-            var multiImage : MultiImage = {
-              key : message.name + i,
-              imageName : message.data.images[i],
-              width : message.data.frames[i][2],
-              height : message.data.frames[i][3],
-              regX : message.data.frames[i][5],
-              regY : message.data.frames[i][6]
+            var multiImage: MultiImage = {
+              key: message.name + i,
+              imageName: message.data.images[i],
+              width: message.data.frames[i][2],
+              height: message.data.frames[i][3],
+              regX: message.data.frames[i][5],
+              regY: message.data.frames[i][6]
             }
 
-            if(!this.multiImages.hasOwnProperty(message.name)) {
+            if (!this.multiImages.hasOwnProperty(message.name)) {
               this.multiImages[message.name] = new Array();
             }
 
@@ -112,14 +113,16 @@ export class ObjectScene extends Phaser.Scene {
             this.load.image(message.name + i, multiImage.imageName);
             this.load.start();
           }
-          
+
           this.containerTasks.push(message.name);
         }
       } else {
         console.log(message.name);
         this.load.spritesheet(message.name, './static/art/' + message.name + '.png',
-                              {frameWidth: message.data.frames.width, 
-                                frameHeight: message.data.frames.height})
+          {
+            frameWidth: message.data.frames.width,
+            frameHeight: message.data.frames.height
+          })
         this.load.start();
       }
 
@@ -127,11 +130,11 @@ export class ObjectScene extends Phaser.Scene {
     }
   }
 
-  renderInit() : void {
+  renderInit(): void {
     console.log('renderInit');
     var objStates = Object.assign({}, Global.objectStates);
 
-    for(var objId in objStates) {
+    for (var objId in objStates) {
       var objState = objStates[objId];
       objState.op = 'added';
     }
@@ -141,30 +144,30 @@ export class ObjectScene extends Phaser.Scene {
     Global.gameEmitter.on(NetworkEvent.CHANGES, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.OBJ_PERCEPTION, this.setRender, this);
     Global.gameEmitter.on("VISIBLE", this.drawAllObjects, this);
-    
+
     this.time.addEvent({ delay: 200, callback: this.processRender, callbackScope: this, loop: true });
   }
 
-  processRender() : void {
-    if(this.renderToggle) {
+  processRender(): void {
+    if (this.renderToggle) {
       this.drawObjects(Global.objectStates)
       this.renderToggle = false;
     }
   }
 
-  setRender() : void {
+  setRender(): void {
     console.log('ObjectScene setRender')
     this.renderToggle = true;
   }
 
-   drawAllObjects() : void {
+  drawAllObjects(): void {
     //Clear all objects
-    for(var key in this.objectList) {
+    for (var key in this.objectList) {
       var obj = this.objectList[key];
       obj.destroy();
     }
 
-    for(var objectId in Global.objectStates) {
+    for (var objectId in Global.objectStates) {
       var objectState = Global.objectStates[objectId] as ObjectState;
       objectState.op = 'added';
     }
@@ -172,84 +175,84 @@ export class ObjectScene extends Phaser.Scene {
     this.setRender();
   }
 
-  drawObjects(objectStates : Record<string, ObjectState> ) : void {
+  drawObjects(objectStates: Record<string, ObjectState>): void {
     console.log('***** drawObjects ******');
     console.log(objectStates);
     //Clear visibleTiles & shroud
     Global.visibleTiles = [];
     this.clearShroud();
 
-    for(var objectId in objectStates) {
-        var objectState = objectStates[objectId] as ObjectState;
-        console.log(objectState);
+    for (var objectId in objectStates) {
+      var objectState = objectStates[objectId] as ObjectState;
+      console.log(objectState);
 
-        if(objectState.op == 'added') {
-          console.log('Object Added');
+      if (objectState.op == 'added') {
+        console.log('Object Added');
 
-          if(Global.imageDefList.hasOwnProperty(objectState.image)) {
-            const imageType = Util.getImageType(objectState.image);
+        if (Global.imageDefList.hasOwnProperty(objectState.image)) {
+          const imageType = Util.getImageType(objectState.image);
 
-            if(imageType == SPRITE) {
-              this.addSprite(objectState);
-            } else if(imageType == IMAGE) {
-              this.addImage(objectState);
-            } else if (imageType == CONTAINER) {
-              this.addContainer(objectState);
-            }
-          } else {
-            Network.sendImageDef(objectState.image);
-            
-            this.imageDefTasks.push(objectState);
+          if (imageType == SPRITE) {
+            this.addSprite(objectState);
+          } else if (imageType == IMAGE) {
+            this.addImage(objectState);
+          } else if (imageType == CONTAINER) {
+            this.addContainer(objectState);
           }
+        } else {
+          Network.sendImageDef(objectState.image);
 
-          Global.objectStates[objectId].op = 'none';
+          this.imageDefTasks.push(objectState);
         }
-        else if(objectState.op == 'updated') {
-          console.log('Object Updated');
-          console.log(Global.imageDefList.hasOwnProperty(objectState.image));
-          if(Global.imageDefList.hasOwnProperty(objectState.image)) {
-            const imageType = Util.getImageType(objectState.image);
-            console.log(imageType); 
-            if(imageType == IMAGE) {
-              this.updateImage(objectState);
-            } else if(imageType == SPRITE) {
-              this.updateSprite(objectState);
-            } else if(imageType == CONTAINER) {
-              this.updateContainer(objectState);
-            }
-          } else {
-            Network.sendImageDef(objectState.image);
-            
-            if(objectState.updateAttr == 'state') {
-              this.imageDefTasks.push(objectState);
-            } else if(objectState.updateAttr == 'template') {
-              //Remove old image template
-              var obj = this.objectList[objectState.id];
-              obj.destroy();
 
-              //Replace old imageDef task with new one
-              this.replaceImageDefTask(objectState);
-            }
+        Global.objectStates[objectId].op = 'none';
+      }
+      else if (objectState.op == 'updated') {
+        console.log('Object Updated');
+        console.log(Global.imageDefList.hasOwnProperty(objectState.image));
+        if (Global.imageDefList.hasOwnProperty(objectState.image)) {
+          const imageType = Util.getImageType(objectState.image);
+          console.log(imageType);
+          if (imageType == IMAGE) {
+            this.updateImage(objectState);
+          } else if (imageType == SPRITE) {
+            this.updateSprite(objectState);
+          } else if (imageType == CONTAINER) {
+            this.updateContainer(objectState);
           }
-          Global.objectStates[objectId].op = 'none';
-        } else if(objectState.op == 'deleted') {       
-            console.log('Object deleted');
+        } else {
+          Network.sendImageDef(objectState.image);
+
+          if (objectState.updateAttr == 'state') {
+            this.imageDefTasks.push(objectState);
+          } else if (objectState.updateAttr == 'template') {
+            //Remove old image template
             var obj = this.objectList[objectState.id];
-
-            if(obj instanceof GameContainer) {
-              console.log('Removing contents of container');
-              var f = obj.getAt(0) as Phaser.GameObjects.Image;
-              console.log(f);
-              f.destroy();
-            }
-
             obj.destroy();
 
-            //Remove from Global States
-            delete Global.objectStates[objectId];
+            //Replace old imageDef task with new one
+            this.replaceImageDefTask(objectState);
+          }
+        }
+        Global.objectStates[objectId].op = 'none';
+      } else if (objectState.op == 'deleted') {
+        console.log('Object deleted');
+        var obj = this.objectList[objectState.id];
+
+        if (obj instanceof GameContainer) {
+          console.log('Removing contents of container');
+          var f = obj.getAt(0) as Phaser.GameObjects.Image;
+          console.log(f);
+          f.destroy();
         }
 
-        this.processVisibleTiles(objectState);
+        obj.destroy();
+
+        //Remove from Global States
+        delete Global.objectStates[objectId];
+      }
+
+      this.processVisibleTiles(objectState);
     }
 
     console.log(Global.objectStates);
@@ -261,12 +264,12 @@ export class ObjectScene extends Phaser.Scene {
     this.addShroud();
   }
 
-  processVisibleTiles(objectState : ObjectState) {
-    if(objectState.player == Global.playerId) {
-      if(objectState.vision > 0) {
-        var visibleTiles = Util.range(objectState.x, 
-                                      objectState.y,
-                                      objectState.vision);
+  processVisibleTiles(objectState: ObjectState) {
+    if (objectState.player == Global.playerId) {
+      if (objectState.vision > 0) {
+        var visibleTiles = Util.range(objectState.x,
+          objectState.y,
+          objectState.vision);
 
         Global.visibleTiles = Global.visibleTiles.concat(visibleTiles);
       }
@@ -275,36 +278,36 @@ export class ObjectScene extends Phaser.Scene {
 
   processWallList() {
     //Hide overlapping containers images
-    for(var wallKey in this.wallList) {
+    for (var wallKey in this.wallList) {
       var wall = this.wallList[wallKey];
       var neighbours = Util.getNeighbours(wall.x, wall.y);
 
-      for(var neighbourId in neighbours) {
+      for (var neighbourId in neighbours) {
         var neighbour = neighbours[neighbourId];
 
-        for(var otherId in this.wallList) {
+        for (var otherId in this.wallList) {
           var other = this.wallList[otherId];
 
-          if((neighbour.q == other.x) && (neighbour.r == other.y)) {
+          if ((neighbour.q == other.x) && (neighbour.r == other.y)) {
             var container = this.objectList[wall.id] as GameContainer;
 
-            if(neighbour.d == 'nw') {
+            if (neighbour.d == 'nw') {
               (container.getAt(2) as Phaser.GameObjects.Image).setVisible(false);
               (container.getAt(4) as Phaser.GameObjects.Image).setVisible(false);
-            } else if(neighbour.d == 'ne') {
+            } else if (neighbour.d == 'ne') {
               (container.getAt(3) as Phaser.GameObjects.Image).setVisible(false);
               (container.getAt(5) as Phaser.GameObjects.Image).setVisible(false);
-            } else if(neighbour.d == 'n') {
+            } else if (neighbour.d == 'n') {
               (container.getAt(0) as Phaser.GameObjects.Image).setVisible(false);
               (container.getAt(1) as Phaser.GameObjects.Image).setVisible(false);
               (container.getAt(4) as Phaser.GameObjects.Image).setVisible(false);
               (container.getAt(5) as Phaser.GameObjects.Image).setVisible(false);
-            } else if(neighbour.d == 's') {
+            } else if (neighbour.d == 's') {
               (container.getAt(8) as Phaser.GameObjects.Image).setVisible(false);
               (container.getAt(9) as Phaser.GameObjects.Image).setVisible(false);
-            } else if(neighbour.d == 'sw') {
+            } else if (neighbour.d == 'sw') {
               (container.getAt(6) as Phaser.GameObjects.Image).setVisible(false);
-            } else if(neighbour.d == 'se') {
+            } else if (neighbour.d == 'se') {
               (container.getAt(7) as Phaser.GameObjects.Image).setVisible(false);
             }
           }
@@ -314,10 +317,10 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   addShroud() {
-    for(var index in Global.tileStates) {
+    for (var index in Global.tileStates) {
       var tileState = Global.tileStates[index];
-    
-      if(Util.isVisible(tileState.hexX, tileState.hexY) == false) {
+
+      if (Util.isVisible(tileState.hexX, tileState.hexY) == false) {
         var pixel = Util.hex_to_pixel(tileState.hexX, tileState.hexY);
 
         var shroud = new GameImage({
@@ -336,7 +339,7 @@ export class ObjectScene extends Phaser.Scene {
   }
 
   clearShroud() {
-    for(var i = 0; i < this.shroudTiles.length; i++) {
+    for (var i = 0; i < this.shroudTiles.length; i++) {
       var shroud = this.shroudTiles[i];
 
       shroud.destroy();
@@ -351,8 +354,8 @@ export class ObjectScene extends Phaser.Scene {
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
     //Structure construction complete
-    if(objectState.state == 'none') {
-      if(objectState.image != image.imageName) {
+    if (objectState.state == 'none') {
+      if (objectState.image != image.imageName) {
         image.setTexture(objectState.image);
       }
     }
@@ -362,7 +365,7 @@ export class ObjectScene extends Phaser.Scene {
     image.setDepth(10);
 
     //Move completed, add tween to new location
-    if(image.x != pixel.x || image.y != pixel.y) {
+    if (image.x != pixel.x || image.y != pixel.y) {
       var tween = this.tweens.add({
         targets: image,
         x: pixel.x,
@@ -383,11 +386,11 @@ export class ObjectScene extends Phaser.Scene {
 
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
-    if(objectState.state == 'moving') {
+    if (objectState.state == 'moving') {
       // Race condition, bug exists right now if the Update network packet is received prior to the object being drawn
       // temporary fix to check if sprite is not null
-      if(sprite != null) {
-        sprite.play(objectState.image + '_moving');  
+      if (sprite != null) {
+        sprite.play(objectState.image + '_moving');
         sprite.x = pixel.x;
         sprite.y = pixel.y;
       }
@@ -395,7 +398,7 @@ export class ObjectScene extends Phaser.Scene {
       var animState;
       var anim;
 
-      if(objectState.state == DEAD && objectState.prevstate != DEAD) {
+      if (objectState.state == DEAD && objectState.prevstate != DEAD) {
         animState = 'die';
       } else {
         animState = objectState.state;
@@ -403,19 +406,19 @@ export class ObjectScene extends Phaser.Scene {
 
       anim = objectState.image + '_' + animState;
 
-      if(objectState.prevstate != objectState.state) {
-        if(objectState.id in this.stateTimerList) {
+      if (objectState.prevstate != objectState.state) {
+        if (objectState.id in this.stateTimerList) {
           //Clear timer and remove from list
           clearInterval(this.stateTimerList[objectState.id]);
           delete this.stateTimerList[objectState.id];
         }
       }
 
-      if(this.anims.exists(anim)) {
-          console.log(anim);
-        if(typeof sprite !== 'undefined') {
+      if (this.anims.exists(anim)) {
+        console.log(anim);
+        if (typeof sprite !== 'undefined') {
           console.log(typeof sprite);
-          console.log(sprite)          
+          console.log(sprite)
           sprite.play(anim);
         } else {
           console.log("Error in animations for sprite for obj: " + objectState.id);
@@ -423,7 +426,7 @@ export class ObjectScene extends Phaser.Scene {
       } else {
         console.log('Animation ' + anim + ' does not exist');
 
-        if(!(objectState.id in this.stateTimerList)) {
+        if (!(objectState.id in this.stateTimerList)) {
           this.processTextState(sprite, animState);
 
           //TODO reconsider if sprite isn't available yet
@@ -436,7 +439,7 @@ export class ObjectScene extends Phaser.Scene {
       }
 
       //Only follow if Hero
-      if(objectState.subclass == HERO && objectState.player == Global.playerId) {
+      if (objectState.subclass == HERO && objectState.player == Global.playerId) {
 
         var mapScene = this.scene.get('MapScene') as MapScene;
         mapScene.cameras.main.startFollow(sprite, true);
@@ -447,10 +450,10 @@ export class ObjectScene extends Phaser.Scene {
         this.cameras.main.followOffset.x = -36;
         this.cameras.main.followOffset.y = -36;
       }
-      
-      if(typeof sprite !== 'undefined') {
-      //Move completed, add tween to new location
-        if(sprite.x != pixel.x || sprite.y != pixel.y) {
+
+      if (typeof sprite !== 'undefined') {
+        //Move completed, add tween to new location
+        if (sprite.x != pixel.x || sprite.y != pixel.y) {
           var tween = this.tweens.add({
             targets: sprite,
             x: pixel.x,
@@ -469,12 +472,12 @@ export class ObjectScene extends Phaser.Scene {
   updateContainer(objectState: ObjectState) {
 
     //Structure construction complete
-    if(objectState.state == 'none') {
+    if (objectState.state == 'none') {
       var multiImageList = this.multiImages[objectState.image];
       var container = this.objectList[objectState.id] as GameContainer;
       container.removeAll();
-      
-      for(var i = 0; i < multiImageList.length; i++) {
+
+      for (var i = 0; i < multiImageList.length; i++) {
         var multiImage = multiImageList[i] as MultiImage;
 
         var image = new GameImage({
@@ -487,13 +490,13 @@ export class ObjectScene extends Phaser.Scene {
         container.add(image);
       }
 
-      if(objectState.subclass == WALL) {
-       this.wallList.push(objectState);
+      if (objectState.subclass == WALL) {
+        this.wallList.push(objectState);
       }
     }
   }
 
-  addSprite(objectState : ObjectState) {
+  addSprite(objectState: ObjectState) {
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
     var imageName = objectState.image;
 
@@ -511,10 +514,10 @@ export class ObjectScene extends Phaser.Scene {
 
     var anim = objectState.image + '_' + objectState.state;
 
-    if(this.anims.exists(anim)) {
+    if (this.anims.exists(anim)) {
       sprite.anims.play(anim);
     } else {
-      if(objectState.state == DEAD) {
+      if (objectState.state == DEAD) {
         sprite.setTexture('gravestone');
       }
 
@@ -523,19 +526,19 @@ export class ObjectScene extends Phaser.Scene {
 
     this.objectList[objectState.id] = sprite;
 
-    if(objectState.subclass == 'hero') {
+    if (objectState.subclass == 'hero') {
       var mapScene = this.scene.get('MapScene') as MapScene;
       mapScene.cameras.main.centerOn(sprite.x + 36, sprite.y + 36);
       this.cameras.main.centerOn(sprite.x + 36, sprite.y + 36);
 
       sprite.setDepth(5);
-   }
+    }
   }
 
   addLoadedSprites(imageName) {
     var spritesToAdd = this.imageDefTasks.filter(obj => obj.image === imageName);
 
-    for(var i = 0; i < spritesToAdd.length; i++) {
+    for (var i = 0; i < spritesToAdd.length; i++) {
       var spriteObj = spritesToAdd[i];
       this.addSprite(spriteObj);
     }
@@ -544,31 +547,31 @@ export class ObjectScene extends Phaser.Scene {
   createSpriteAnimation(imageName) {
     var animsData = Global.imageDefList[imageName].animations;
 
-    for(var animName in animsData) {
+    for (var animName in animsData) {
       var anim = animsData[animName];
       var repeat = 0;
       var duration;
       var frames;
 
-      if(Array.isArray(anim)) {
-        if(anim.length > 1) {
+      if (Array.isArray(anim)) {
+        if (anim.length > 1) {
           var start = anim[0];
           var end = anim[1];
 
           repeat = anim[2];
           duration = anim[3];
 
-          frames = this.anims.generateFrameNumbers(imageName, { start: start, end: end});
+          frames = this.anims.generateFrameNumbers(imageName, { start: start, end: end });
 
         } else {
           duration = 10000;
-          frames = this.anims.generateFrameNumbers(imageName, { start: anim[0], end: anim[0]});
+          frames = this.anims.generateFrameNumbers(imageName, { start: anim[0], end: anim[0] });
         }
       }
-      else if(Array.isArray(anim.frames)) {
+      else if (Array.isArray(anim.frames)) {
         duration = anim.speed;
         repeat = anim.repeat;
-        frames = this.anims.generateFrameNumbers(imageName, { frames: anim.frames});
+        frames = this.anims.generateFrameNumbers(imageName, { frames: anim.frames });
       } else {
         console.log('Should never reach here')
       }
@@ -579,17 +582,17 @@ export class ObjectScene extends Phaser.Scene {
         repeat: repeat,
         duration: duration
       };
-      
+
       console.log(config);
       this.anims.create(config);
     }
   }
 
-  addImage(objectState : ObjectState) {
+  addImage(objectState: ObjectState) {
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
     var imageName = '';
 
-    if(objectState.state == FOUNDED) {
+    if (objectState.state == FOUNDED) {
       imageName = 'foundation';
     } else {
       imageName = objectState.image;
@@ -602,8 +605,8 @@ export class ObjectScene extends Phaser.Scene {
       id: objectState.id,
       imageName: imageName
     });
-  
-    if(objectState.class == 'structure') {
+
+    if (objectState.class == 'structure') {
       image.setDepth(1);
     } else {
       image.setDepth(2);
@@ -617,25 +620,25 @@ export class ObjectScene extends Phaser.Scene {
   addLoadedImages(imageName) {
     var imagesToAdd = this.imageDefTasks.filter(obj => obj.image === imageName);
 
-    for(var i = 0; i < imagesToAdd.length; i++) {
+    for (var i = 0; i < imagesToAdd.length; i++) {
       var imageObj = imagesToAdd[i];
       this.addImage(imageObj);
     }
   }
 
-  addContainer(objectState : ObjectState) {
+  addContainer(objectState: ObjectState) {
     console.log('Adding container')
     var pixel = Util.hex_to_pixel(objectState.x, objectState.y);
 
     var container = new GameContainer({
-        scene: this,
-        x: pixel.x,
-        y: pixel.y,
-        id: objectState.id,
-        containerName: objectState.image
+      scene: this,
+      x: pixel.x,
+      y: pixel.y,
+      id: objectState.id,
+      containerName: objectState.image
     });
 
-    if(objectState.class == 'structure') {
+    if (objectState.class == 'structure') {
       container.setDepth(1);
     } else {
       container.setDepth(2);
@@ -645,7 +648,7 @@ export class ObjectScene extends Phaser.Scene {
 
     this.objectList[objectState.id] = container;
 
-    if(objectState.state == FOUNDED) {
+    if (objectState.state == FOUNDED) {
       var image = new GameImage({
         scene: this,
         x: 0,
@@ -660,7 +663,7 @@ export class ObjectScene extends Phaser.Scene {
 
       var multiImageList = this.multiImages[objectState.image];
 
-      for(var i = 0; i < multiImageList.length; i++) {
+      for (var i = 0; i < multiImageList.length; i++) {
         var multiImage = multiImageList[i] as MultiImage;
 
         var image = new GameImage({
@@ -673,16 +676,16 @@ export class ObjectScene extends Phaser.Scene {
         container.add(image);
       }
 
-      if(objectState.subclass == WALL) {
-       this.wallList.push(objectState);
-      } 
+      if (objectState.subclass == WALL) {
+        this.wallList.push(objectState);
+      }
     }
- }
+  }
 
   addLoadedContainerImages(imageName) {
     var containersToAdd = this.imageDefTasks.filter(obj => obj.image === imageName);
 
-    for(var i = 0; i < containersToAdd.length; i++) {
+    for (var i = 0; i < containersToAdd.length; i++) {
       var containerObj = containersToAdd[i];
       this.addContainer(containerObj);
     }
@@ -693,12 +696,12 @@ export class ObjectScene extends Phaser.Scene {
     var imageName = key;
     var imageType = Util.getImageType(imageName);
 
-    if(imageType == SPRITE) {
+    if (imageType == SPRITE) {
       this.createSpriteAnimation(imageName);
       this.addLoadedSprites(imageName);
-    } else if(imageType == IMAGE) {
+    } else if (imageType == IMAGE) {
       this.addLoadedImages(imageName);
-    } else if(imageType == CONTAINER) {
+    } else if (imageType == CONTAINER) {
       //this.addLoadedContainers(imageName);
     }
 
@@ -706,12 +709,12 @@ export class ObjectScene extends Phaser.Scene {
 
   loadComplete() {
     console.log('loadComplete')
-    for(var i = 0; i < this.containerTasks.length; i++) {
+    for (var i = 0; i < this.containerTasks.length; i++) {
       var containerName = this.containerTasks[i];
 
       var containersToAdd = this.imageDefTasks.filter(obj => obj.image === containerName);
 
-      for(var j = 0; j < containersToAdd.length; j++) {
+      for (var j = 0; j < containersToAdd.length; j++) {
         var objState = containersToAdd[j] as ObjectState;
         this.addContainer(objState);
       }
@@ -726,70 +729,101 @@ export class ObjectScene extends Phaser.Scene {
 
   processDmgMessage(message) {
     console.log('Dmg Message: ' + message.sourceid + ' -> ' + message.targetid);
-    if(message.sourceid in this.objectList && 
-       message.targetid in this.objectList) {
+    if (message.sourceid in this.objectList &&
+      message.targetid in this.objectList) {
       var source = this.objectList[message.sourceid] as GameSprite;
       var target = this.objectList[message.targetid];
 
       console.log('Source: ' + source);
 
-      if(source == null || target == null)
-        return;      
+      if (source == null || target == null)
+        return;
 
-      if(Global.objectStates[message.sourceid].subclass == HERO) {
+      if (Global.objectStates[message.sourceid].subclass == HERO) {
 
         var mapScene = this.scene.get('MapScene') as MapScene;
         mapScene.cameras.main.stopFollow();
         this.cameras.main.stopFollow();
       }
 
-      if(message.attacktype == 'Shadow Bolt') {
-        source.play(source.imageName + '_cast');
-        source.anims.chain(source.imageName + '_none');
+      //TODO Check subclass 
+      if (message.state == DEAD) {
+        var anim = target.imageName + '_die';
 
-        var shadowBolt = this.add.sprite(source.x, source.y, 'shadowbolt');
-        shadowBolt.anims.play('shadowboltanim');
+        //Set object state to dead because an update is not sent to save on messages
+        //Global.objectStates[message.targetid].state = DEAD;
 
-        var diffX = (target.x - source.x) * 0.5;
-        var diffY = (target.y - source.y) * 0.5;
 
-        var destX = target.x + 36;
-        var destY = target.y + 36;
+        if (Global.objectStates[message.targetid].class == UNIT) {
 
-        var tween = this.tweens.add({
-          targets: shadowBolt,
-          x: destX,
-          y: destY,
-          ease: 'Power2',
-          duration: 1000,
-        });
+          if (this.anims.exists(anim)) {
+            target.play(target.imageName + '_die');
+          } else {
+            target.setTexture('gravestone');
+          }
+        } else if (Global.objectStates[message.targetid].class == STRUCTURE) {
+          target.removeAll();
 
+          var image = new GameImage({
+            scene: this,
+            x: 0,
+            y: 0,
+            id: message.targetid,
+            imageName: "foundation"
+          });
+
+          target.add(image);
+        }
       } else {
-        console.log('Play attack');
-        source.play(source.imageName + '_attack');
-        source.anims.chain(source.imageName + '_none');
 
-        var diffX = (target.x - source.x) * 0.5;
-        var diffY = (target.y - source.y) * 0.5;
+        if (message.attacktype == 'Shadow Bolt') {
+          source.play(source.imageName + '_cast');
+          source.anims.chain(source.imageName + '_none');
 
-        var destX = source.x + diffX;
-        var destY = source.y + diffY;
+          var shadowBolt = this.add.sprite(source.x, source.y, 'shadowbolt');
+          shadowBolt.anims.play('shadowboltanim');
 
-        var tween = this.tweens.add({
-          targets: source,
-          x: destX,
-          y: destY,
-          ease: 'Power2',
-          duration: 750,
-          onComplete: this.onJumpComplete
-        });
+          var diffX = (target.x - source.x) * 0.5;
+          var diffY = (target.y - source.y) * 0.5;
 
-        tween.play();
+          var destX = target.x + 36;
+          var destY = target.y + 36;
+
+          var tween = this.tweens.add({
+            targets: shadowBolt,
+            x: destX,
+            y: destY,
+            ease: 'Power2',
+            duration: 1000,
+          });
+
+        } else {
+          console.log('Play attack');
+          source.play(source.imageName + '_attack');
+          source.anims.chain(source.imageName + '_none');
+
+          var diffX = (target.x - source.x) * 0.5;
+          var diffY = (target.y - source.y) * 0.5;
+
+          var destX = source.x + diffX;
+          var destY = source.y + diffY;
+
+          var tween = this.tweens.add({
+            targets: source,
+            x: destX,
+            y: destY,
+            ease: 'Power2',
+            duration: 750,
+            onComplete: this.onJumpComplete
+          });
+
+          tween.play();
+        }
       }
 
       var dmgMsg = ''
-      if('combo' in message) {
-        dmgMsg = message.combo + ' ' + message.dmg + '!';        
+      if ('combo' in message) {
+        dmgMsg = message.combo + ' ' + message.dmg + '!';
       } else {
         dmgMsg = message.dmg;
       }
@@ -807,52 +841,34 @@ export class ObjectScene extends Phaser.Scene {
       });
 
       textTween.play();
-
-      //TODO Check subclass 
-      if(message.state == 'dead') {
-        var anim = target.imageName + '_die';
-        
-        //Set object state to dead because an update is not sent to save on messages
-        Global.objectStates[message.targetid].state = DEAD;
-
-
-        if(Global.objectStates[message.targetid].class == UNIT) {
-          
-          if(this.anims.exists(anim)) {
-            target.play(target.imageName + '_die');
-          } else {
-            target.setTexture('gravestone');
-          }
-        } else if(Global.objectStates[message.targetid].class == STRUCTURE) {
-          target.removeAll();
-        
-          var image = new GameImage({
-            scene: this,
-            x: 0,
-            y: 0,
-            id: message.targetid,
-            imageName: "foundation"
-          });
-    
-          target.add(image); 
-        }
-      }
     }
   }
 
   onJumpComplete(tween, targets) {
     var objectState = Global.objectStates[targets[0].id];
-    var origin = Util.hex_to_pixel(objectState.x, objectState.y); 
+
+    var origin = Util.hex_to_pixel(objectState.x, objectState.y);
 
     var returnTween = this.tweens.add({
-        targets: targets[0],
-        x: origin.x,
-        y: origin.y,
-        ease: 'Power2',
-        duration: 200,
-      });
+      targets: targets[0],
+      x: origin.x,
+      y: origin.y,
+      ease: 'Power2',
+      duration: 200,
+      onComplete: this.onReturnComplete 
+    });
 
     returnTween.play();
+  }
+
+  onReturnComplete(tween, targets) {    
+    console.log('onReturnComplete');
+    var objectState = Global.objectStates[targets[0].id];
+    if (objectState.state == DEAD) {
+      targets[0].anims.stop();
+      console.log('Setting to gravestone');
+      targets[0].setTexture('gravestone');
+    }
   }
 
   onMoveComplete(tween, targets) {
@@ -860,17 +876,17 @@ export class ObjectScene extends Phaser.Scene {
     var objectState = Global.objectStates[sprite.id];
     console.log(objectState);
 
-    if(objectState) {
-      if(objectState.subclass == HERO) {
+    if (objectState) {
+      if (objectState.subclass == HERO) {
 
         var mapScene = this.scene.get('MapScene') as MapScene;
         mapScene.cameras.main.stopFollow();
         this.cameras.main.stopFollow();
 
-        for(var targetId in Global.objectStates) {
+        for (var targetId in Global.objectStates) {
           var otherState = Global.objectStates[targetId];
 
-          if(Util.isVisible(otherState.x, otherState.y) == false) {
+          if (Util.isVisible(otherState.x, otherState.y) == false) {
             var otherSprite = this.objectList[targetId];
             otherSprite.destroy();
 
@@ -880,9 +896,9 @@ export class ObjectScene extends Phaser.Scene {
           }
 
         }
-      } else if(objectState.player != Global.playerId) {
+      } else if (objectState.player != Global.playerId) {
 
-        if(Util.isVisible(objectState.x, objectState.y) == false) {
+        if (Util.isVisible(objectState.x, objectState.y) == false) {
           sprite.destroy();
 
           // Added Nov 2023, the objectStates has to be deleted otherwise the next time the object return 
@@ -896,7 +912,7 @@ export class ObjectScene extends Phaser.Scene {
     }
   }
 
-  onDmgTextComplete(tween, targets){
+  onDmgTextComplete(tween, targets) {
     targets[0].destroy();
   }
 
@@ -916,13 +932,13 @@ export class ObjectScene extends Phaser.Scene {
     container.setDepth(20);
 
     graphics.fillStyle(0x000000, 0.50);
-    graphics.fillRoundedRect(0, 
-                             0,
-                             120,
-                             40,
-                             5);
+    graphics.fillRoundedRect(0,
+      0,
+      120,
+      40,
+      5);
 
-    if(message.text.length < 5) {
+    if (message.text.length < 5) {
       graphics.setVisible(false);
     }
 
@@ -963,20 +979,20 @@ export class ObjectScene extends Phaser.Scene {
     textTween.play();
   }
 
-  onXpTextComplete(tween, targets){
+  onXpTextComplete(tween, targets) {
     targets[0].destroy();
   }
 
   processTextState(sprite, state) {
-    if(sprite == null) 
+    if (sprite == null)
       return;
 
     var value = '';
 
-    if(state == 'sleeping') {
+    if (state == 'sleeping') {
       value = '...zzzZZZ';
     } else {
-      value = '* ' + state + ' *'; 
+      value = '* ' + state + ' *';
     }
 
     var stateText = this.add.text(sprite.x + 36, sprite.y - 5, value, { fontFamily: 'Verdana', fontSize: 14, color: '#00d2ff' });
@@ -994,14 +1010,14 @@ export class ObjectScene extends Phaser.Scene {
     textTween.play();
   }
 
-  onTextStateComplete(tween, targets){
+  onTextStateComplete(tween, targets) {
     targets[0].destroy();
   }
 
   replaceImageDefTask(objectState) {
     //imageDefTasks could be replaced with a map to increase performance
-    for(var i = 0; i < this.imageDefTasks.length; i++) {
-      if(objectState.id == this.imageDefTasks[i].id) {
+    for (var i = 0; i < this.imageDefTasks.length; i++) {
+      if (objectState.id == this.imageDefTasks[i].id) {
         this.imageDefTasks[i] = objectState;
         break;
       }

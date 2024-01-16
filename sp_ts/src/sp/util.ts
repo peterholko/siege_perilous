@@ -197,28 +197,52 @@ export class Util {
   }
   
   static isPlayerObj(objId: integer): boolean {
-    return Global.objectStates[objId].player == Global.playerId
+    if(objId in Global.objectStates) {
+      return Global.objectStates[objId].player == Global.playerId
+    } else {
+      return false;
+    }
   }
 
   static isClass(objId: integer, _class: string) : boolean {
-    return Global.objectStates[objId].class == _class;
+    if(objId in Global.objectStates) { 
+      return Global.objectStates[objId].class == _class;
+    } else {
+      return false;
+    }
   }
 
   static isSubclass(objId: integer, subclass: string) : boolean {
-    return Global.objectStates[objId].subclass == subclass;
+    if(objId in Global.objectStates) {     
+      return Global.objectStates[objId].subclass == subclass;
+    } else {
+      return false;
+    }
   }
 
   static isState(objId: integer, state: string) : boolean {
-    return Global.objectStates[objId].state == state;
+    if(objId in Global.objectStates) { 
+      return Global.objectStates[objId].state == state;
+    } else {
+      return false;
+    }
   }
 
   static isTemplate(objId: integer, template: string) : boolean {
-    return Global.objectStates[objId].template == template;
+    if(objId in Global.objectStates) {     
+      return Global.objectStates[objId].template == template;
+    } else {
+      return false;
+    }
   }
 
   static hasGroup(objId: integer, group: string) : boolean {
-    let groups : Array<string> = Global.objectStates[objId].groups;
-    return groups.includes(group);
+    if(objId in Global.objectStates) { 
+      let groups : Array<string> = Global.objectStates[objId].groups;
+      return groups.includes(group);
+    } else {
+      return false;
+    }
   }
 
 }

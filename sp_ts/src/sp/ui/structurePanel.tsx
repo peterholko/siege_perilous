@@ -10,10 +10,11 @@ import experimentbutton from "ui_comp/experimentbutton.png";
 import upgradebutton from "ui_comp/upgradebutton.png";
 import { Network } from "../network";
 import '../ui.module.css';
-import { FOUNDED, PROGRESSING, STALLED, NONE, CRAFT, UPGRADING} from "../config";
+import { FOUNDED, PROGRESSING, STALLED, NONE, CRAFT, UPGRADING } from "../config";
 import { NetworkEvent } from "../networkEvent";
 import { GameEvent } from "../gameEvent";
 import ResourceItem from "./resourceItem";
+import SmallButton from "./smallButton";
 
 interface StructurePanelProps {
   structureData,
@@ -28,8 +29,8 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     var progress = 0;
     var maxProgress = 100;
 
-    if('progress' in this.props.structureData) {
-      if(this.props.structureData.state != UPGRADING) {
+    if ('progress' in this.props.structureData) {
+      if (this.props.structureData.state != UPGRADING) {
         maxProgress = this.props.structureData.build_time / 10;
       } else {
         maxProgress = this.props.structureData.upgrade_time / 10;
@@ -50,15 +51,17 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     this.handleDeleteClick = this.handleDeleteClick.bind(this);
     this.handleExperimentClick = this.handleExperimentClick.bind(this);
     this.handleUpgradeClick = this.handleUpgradeClick.bind(this);
-  
+    this.handleSendDelete = this.handleSendDelete.bind(this);
+    this.handleResponseUpgrade = this.handleResponseUpgrade.bind(this);
+
     this.startTimer = this.startTimer.bind(this)
     this.stopTimer = this.stopTimer.bind(this)
 
     Global.gameEmitter.on(NetworkEvent.BUILD, this.handleNetworkBuild, this);
     Global.gameEmitter.on(NetworkEvent.UPGRADE, this.handleResponseUpgrade, this);
+    Global.gameEmitter.on(GameEvent.CONFIRM_OK_CLICK, this.handleSendDelete, this);
+  }
 
-   }
-  
   componentWillUnmount() {
     this.stopTimer();
     Global.gameEmitter.removeListener(NetworkEvent.BUILD, this.handleNetworkBuild);
@@ -66,7 +69,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
   }
 
   componentDidMount() {
-    if(this.props.structureData.state == PROGRESSING) {
+    if (this.props.structureData.state == PROGRESSING) {
       this.startTimer();
     }
   }
@@ -93,32 +96,46 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
   handleBuildClick() {
     Network.sendBuild(Global.heroId, this.state.structureData.id);
-    //Global.gameEmitter.emit(GameEvent.START_BUILD_CLICK, {});
   }
 
   handleAssignClick() {
     Network.sendGetAssignList();
   }
 
+  handleSendDelete() {
+    Network.sendDelete(this.state.structureData.id);    
+    
+    //To hide the structure panel
+    Global.gameEmitter.emit(GameEvent.DELETE_STRUCTURE_CLICK, {});
+  }
+
   handleDeleteClick() {
     console.log('Delete Structure');
-    Network.sendDelete(this.state.structureData.id);
+
+    const event = {
+      msg: 'Remove the structure?',
+      type: 'delete_structure'
+    };
+
+    Global.gameEmitter.emit(GameEvent.CONFIRMATION, event);
   }
 
   handleNetworkBuild(message) {
     console.log('Network build');
     const buildTimeSeconds = Math.floor(message.build_time);
 
-    this.setState({maxProgress: buildTimeSeconds / 10});
+    this.setState({ maxProgress: buildTimeSeconds / 10 });
     this.startTimer();
   }
 
   handleResponseUpgrade(message) {
-    console.log('Response Upgrade'); 
+    console.log('Response Upgrade');
     const upgradeTimeSeconds = Math.floor(message.upgrade_time);
 
-    this.setState({progress: 0,
-                   maxProgress: upgradeTimeSeconds / 10});
+    this.setState({
+      progress: 0,
+      maxProgress: upgradeTimeSeconds / 10
+    });
     this.startTimer();
   }
 
@@ -126,13 +143,13 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     this.timer = setInterval(() => {
       console.log("progress: " + this.state.progress);
       console.log("maxProgress: " + this.state.maxProgress);
-      
-      if(this.state.progress >= this.state.maxProgress) {
+
+      if (this.state.progress >= this.state.maxProgress) {
         this.stopTimer();
         console.log('progress >>> maxProgress');
-        Network.sendInfoObj(this.state.structureData.id);        
+        Network.sendInfoObj(this.state.structureData.id);
       } else {
-        this.setState({progress: this.state.progress + 1});
+        this.setState({ progress: this.state.progress + 1 });
       }
     }, 1000);
   }
@@ -145,23 +162,23 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     console.log('Rendering Structure Panel...');
     console.log(this.props.structureData);
 
-    const showCraftButton = (this.props.structureData.state == NONE && 
-                             this.props.structureData.subclass == CRAFT);
+    const showCraftButton = (this.props.structureData.state == NONE &&
+      this.props.structureData.subclass == CRAFT);
 
     const showRefineButton = (this.props.structureData.state == NONE &&
-                              this.props.structureData.subclass == CRAFT);
+      this.props.structureData.subclass == CRAFT);
 
     const showExperimentButton = (this.props.structureData.state == NONE &&
-                                  this.props.structureData.subclass == CRAFT &&
-                                  this.props.structureData.level != -1);
+      this.props.structureData.subclass == CRAFT &&
+      this.props.structureData.level != -1);
 
     const showBuildButton = (this.props.structureData.state == FOUNDED ||
-                             this.props.structureData.state == STALLED);                             
+      this.props.structureData.state == STALLED);
 
     const showProgress = (this.props.structureData.state == FOUNDED ||
-                          this.props.structureData.state == PROGRESSING ||
-                          this.props.structureData.state == STALLED ||
-                          this.props.structureData.state == UPGRADING)
+      this.props.structureData.state == PROGRESSING ||
+      this.props.structureData.state == STALLED ||
+      this.props.structureData.state == UPGRADING)
 
     const showAssignButton = this.props.structureData.state == NONE;
     const showUpgradeButton = this.props.structureData.state == NONE;
@@ -171,7 +188,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     let progressLabel = "Build";
     let duration = this.props.structureData.build_time / 10;
 
-    if(this.props.structureData.state == UPGRADING) {
+    if (this.props.structureData.state == UPGRADING) {
       progressLabel = "Upgrade";
       //TODO need to set upgrade time on structure data on server
       //duration = this.props.structureData.upgrade_time
@@ -179,7 +196,7 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
     var imageName = '';
 
-    if(this.props.structureData.props == 'founded') {
+    if (this.props.structureData.props == 'founded') {
       imageName = 'foundation.png'
     } else {
       imageName = this.props.structureData.image + '.png';
@@ -187,16 +204,16 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
 
     const reqs = [];
 
-    if(this.props.structureData.hasOwnProperty('req')) {
-      for(var i = 0; i < this.props.structureData.req.length; i++) {
+    if (this.props.structureData.hasOwnProperty('req')) {
+      for (var i = 0; i < this.props.structureData.req.length; i++) {
         var req = this.props.structureData.req[i];
 
         reqs.push(
           <ResourceItem key={i}
-                        resourceName={req.type}
-                        quantity={req.quantity}
-                        index={i}
-                        showQuantity={true}/>
+            resourceName={req.type}
+            quantity={req.quantity}
+            index={i}
+            showQuantity={true} />
         )
       }
     }
@@ -268,16 +285,16 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
     } as React.CSSProperties
 
     return (
-      <HalfPanel left={true} 
-                 panelType={'structure'} 
-                 hideExitButton={false}>
+      <HalfPanel left={true}
+        panelType={'structure'}
+        hideExitButton={false}>
         <img src={'/static/art/' + imageName} style={imageStyle} />
         <span style={spanNameStyle}>
           {this.props.structureData.name} Level {this.props.structureData.level}
         </span>
         <table style={tableStyle}>
           <tbody>
-            
+
             <tr>
               <td>State:</td>
               <td>{this.props.structureData.state}</td>
@@ -287,37 +304,37 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
               <td>{this.props.structureData.subclass}</td>
             </tr>
 
-            { isFinished && 
+            {isFinished &&
               <tr>
                 <td>HP:</td>
                 <td>{this.props.structureData.hp} / {this.props.structureData.base_hp}</td>
-              </tr> 
+              </tr>
             }
 
-            { isFinished &&
+            {isFinished &&
               <tr>
                 <td>Defense:</td>
                 <td>{this.props.structureData.base_def}</td>
-              </tr> 
-            }
-
-            { !isFinished && 
-            <tr>
-              <td>{progressLabel} Time:</td>
-              <td>{duration} sec</td>
-            </tr>
-            }
-            
-            { showProgress &&
-              <tr>
-                <td>{progressLabel} Progress: </td>
-                <td><progress max={this.state.maxProgress} 
-                              value={this.state.progress}>{this.state.progress}
-                              </progress></td>
               </tr>
             }
-            
-            { !isFinished && 
+
+            {!isFinished &&
+              <tr>
+                <td>{progressLabel} Time:</td>
+                <td>{duration} sec</td>
+              </tr>
+            }
+
+            {showProgress &&
+              <tr>
+                <td>{progressLabel} Progress: </td>
+                <td><progress max={this.state.maxProgress}
+                  value={this.state.progress}>{this.state.progress}
+                </progress></td>
+              </tr>
+            }
+
+            {!isFinished &&
               <tr>
                 <td>Requirements:</td>
                 <td>
@@ -330,39 +347,39 @@ export default class StructurePanel extends React.Component<StructurePanelProps,
           </tbody>
         </table>
 
-        {showUpgradeButton && 
-          <img src={upgradebutton}
-               style={upgradeStyle}
-               onClick={this.handleUpgradeClick} />}    
+        {showUpgradeButton &&
+          <SmallButton handler={this.handleUpgradeClick}
+            imageName="upgradebutton"
+            style={upgradeStyle} />}
 
-        {showExperimentButton && 
-          <img src={experimentbutton}
-               style={experimentStyle}
-               onClick={this.handleExperimentClick} />}
+        {showExperimentButton &&
+          <SmallButton handler={this.handleExperimentClick}
+            imageName="experimentbutton"
+            style={experimentStyle} />}
 
         {showCraftButton &&
-          <img src={craftbutton}
-               style={craftStyle}
-               onClick={this.handleCraftClick} />}
- 
+          <SmallButton handler={this.handleCraftClick}
+            imageName="craftbutton"
+            style={craftStyle} />}
+
         {showRefineButton &&
-          <img src={refinebutton}
-               style={refineStyle}
-               onClick={this.handleRefineClick} />}
+          <SmallButton handler={this.handleRefineClick}
+            imageName="refinebutton"
+            style={refineStyle} />}
 
-        {showBuildButton && 
-          <img src={buildbutton} 
-               style={buildStyle} 
-               onClick={this.handleBuildClick} />}
+        {showBuildButton &&
+          <SmallButton handler={this.handleBuildClick}
+            imageName="buildbutton"
+            style={buildStyle} />}
 
-        {showAssignButton && 
-          <img src={assignbutton}
-               style={assignStyle}
-               onClick={this.handleAssignClick} />}
+        {showAssignButton &&
+          <SmallButton handler={this.handleAssignClick}
+            imageName="assignbutton"
+            style={assignStyle} />}
 
-            
-
-        <img src={deletebutton} style={deleteStyle} onClick={this.handleDeleteClick} />
+        <SmallButton handler={this.handleDeleteClick}
+          imageName="deletebutton"
+          style={deleteStyle} />
       </HalfPanel>
     );
   }

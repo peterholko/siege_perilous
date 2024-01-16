@@ -23,6 +23,10 @@ export namespace GameEvent {
     export const CRAFT_CLICK : string = 'CRAFT_CLICK';
     export const NOTICE_EXPIRE : string = 'NOTICE_EXPIRE';
     export const RESOURCE_LAYER_CLICK : string = 'RESOURCE_LAYER_CLICK';
+    export const SELECTED_OBJ_MOVED : string = 'SELECTED_OBJ_MOVED';
+    export const DELETE_STRUCTURE_CLICK: string = 'DELETE_STRUCTURE_CLICK';
+    export const CONFIRM_OK_CLICK : string = 'CONFIRM_OK_CLICK';
+    export const CONFIRMATION : string = 'CONFIRMATION';
 
     export const OBJ_CREATED: string = 'OBJ_CREATED';
     export const OBJ_DELETED: string = 'OBJ_DELETED';

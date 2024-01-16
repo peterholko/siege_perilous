@@ -4,6 +4,7 @@ import attrsbutton from "ui_comp/attrsbutton.png";
 import skillsbutton from "ui_comp/skillsbutton.png";
 import { GameEvent } from "../gameEvent";
 import { Network } from "../network";
+import SmallButton from "./smallButton";
 
 interface VillagerPanelProps {
   villagerData,
@@ -137,8 +138,15 @@ export default class VillagerPanel extends React.Component<VillagerPanelProps, a
          
           </tbody>
         </table>
-        <img src={attrsbutton} style={attrsStyle} onClick={this.handleAttrsClick} />
-        <img src={skillsbutton} style={skillsStyle} onClick={this.handleSkillsClick} /> 
+
+        <SmallButton handler={this.handleAttrsClick}
+          imageName="attrsbutton"
+          style={attrsStyle} />
+
+        <SmallButton handler={this.handleSkillsClick}
+          imageName="skillsbutton"
+          style={skillsStyle} />
+        
       </HalfPanel>
     );
   }

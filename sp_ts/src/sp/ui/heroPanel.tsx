@@ -2,9 +2,10 @@ import * as React from "react";
 import HalfPanel from "./halfPanel";
 import attrsbutton from "ui_comp/attrsbutton.png";
 import skillsbutton from "ui_comp/skillsbutton.png";
-import advancebutton from "ui_comp/upgradebutton.png";
+import upgradebutton from "ui_comp/upgradebutton.png";
 import { Global } from "../global";
 import { Network } from "../network";
+import SmallButton from "./smallButton";
 
 interface HeroPanelProps {
   heroData,
@@ -16,7 +17,7 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
 
     this.state = {
     };
-    
+
     this.handleAttrsClick = this.handleAttrsClick.bind(this)
     this.handleSkillsClick = this.handleSkillsClick.bind(this)
     this.handleAdvanceClick = this.handleAdvanceClick.bind(this)
@@ -36,7 +37,7 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
 
   render() {
     let imageName = Global.objectStates[Global.heroId].image.toLowerCase().replace(/\s/g, '');
-    let imagePath = '/static/art/' + imageName  + '_single.png';
+    let imagePath = '/static/art/' + imageName + '_single.png';
 
     const heroStyle = {
       transform: 'translate(-185px, 25px)',
@@ -79,33 +80,43 @@ export default class HeroPanel extends React.Component<HeroPanelProps, any> {
     } as React.CSSProperties
 
     return (
-      <HalfPanel left={true} 
-                 panelType={'hero'} 
-                 hideExitButton={false}>
+      <HalfPanel left={true}
+        panelType={'hero'}
+        hideExitButton={false}>
         <img src={imagePath} style={heroStyle} />
         <table style={tableStyle}>
           <tbody>
-          <tr>
-            <td>Name: </td>
-            <td>{this.props.heroData.name}</td>
-          </tr>
-          <tr>
-            <td>HP: </td>
-            <td>{this.props.heroData.hp}</td>
-          </tr>
-          <tr>
-            <td>Stamina: </td>
-            <td>{this.props.heroData.stamina}</td>
-          </tr>
-          <tr>
-            <td>State: </td>
-            <td>{this.props.heroData.state}</td>
-          </tr>
+            <tr>
+              <td>Name: </td>
+              <td>{this.props.heroData.name}</td>
+            </tr>
+            <tr>
+              <td>HP: </td>
+              <td>{this.props.heroData.hp}</td>
+            </tr>
+            <tr>
+              <td>Stamina: </td>
+              <td>{this.props.heroData.stamina}</td>
+            </tr>
+            <tr>
+              <td>State: </td>
+              <td>{this.props.heroData.state}</td>
+            </tr>
           </tbody>
         </table>
-        <img src={attrsbutton} style={attrsStyle} onClick={this.handleAttrsClick} />
-        <img src={skillsbutton} style={skillsStyle} onClick={this.handleSkillsClick} /> 
-        <img src={advancebutton} style={advanceStyle} onClick={this.handleAdvanceClick} /> 
+
+        <SmallButton handler={this.handleAttrsClick}
+          imageName="attrsbutton"
+          style={attrsStyle} />
+
+        <SmallButton handler={this.handleSkillsClick}
+          imageName="skillsbutton"
+          style={skillsStyle} />
+
+        <SmallButton handler={this.handleAdvanceClick}
+          imageName="upgradebutton"
+          style={advanceStyle} />
+
       </HalfPanel>
     );
   }

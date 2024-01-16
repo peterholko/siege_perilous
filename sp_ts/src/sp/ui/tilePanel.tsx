@@ -49,7 +49,8 @@ export default class TilePanel extends React.Component<TilePanelProps, any> {
                       yieldLabel={resource.yield_label}
                       quantityLabel={resource.quantity_label}
                       quantity={0}
-                      index={i}
+                      characteristics={resource.characteristics}
+                      index={i}                      
                       showQuantity={false}/>
       )
     }

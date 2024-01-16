@@ -129,6 +129,8 @@ export class MapScene extends Phaser.Scene {
     Global.gameEmitter.on(NetworkEvent.OBJ_PERCEPTION, this.setRender, this);
     Global.gameEmitter.on(NetworkEvent.NEARBY_RESOURCES, this.processNearbyResources, this);
     Global.gameEmitter.on(GameEvent.RESOURCE_LAYER_CLICK, this.hideResourceLayer, this);
+    Global.gameEmitter.on(GameEvent.SELECTED_OBJ_MOVED, this.selectedObjMoved, this);
+    
     
     this.time.addEvent({ delay: 1000, callback: this.processRender, callbackScope: this, loop: true });
     //this.setRender();
@@ -272,6 +274,28 @@ export class MapScene extends Phaser.Scene {
     this.resources.removeAll(true);
 
     Global.resourceLayerVisible = false;
+  }
+
+  // This event handler is required to move the tile select asset
+  selectedObjMoved(objMovedEvent) : void {
+    console.log(objMovedEvent);
+    var pixel = Util.hex_to_pixel(objMovedEvent.hexX, objMovedEvent.hexY);
+    console.log('selectedObjMoved - pixel: ' + pixel.x + ',' + pixel.y);
+    this.selectHex.x = pixel.x;
+    this.selectHex.y = pixel.y;
+
+    var all_tiles = this.base.getAll();
+    var new_selected_tile;
+
+    for(var i = 0; i < all_tiles.length; i++) {
+      var tile = all_tiles[i] as Tile;
+
+      if(tile.hexX == objMovedEvent.hexX && tile.hexY == objMovedEvent.hexY) {
+        new_selected_tile = tile;
+
+        Global.gameEmitter.emit(GameEvent.TILE_CLICK, new_selected_tile);
+      }
+    }
   }
 
   setRender() : void {

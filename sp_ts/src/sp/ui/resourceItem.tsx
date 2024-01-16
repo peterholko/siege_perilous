@@ -12,6 +12,7 @@ interface ResItemProps {
   currentQuantity?,
   index,
   showQuantity,
+  characteristics?,
   fixedPos?,
   xPos?,
   yPos?
@@ -29,6 +30,7 @@ export default class ResourceItem extends React.Component<ResItemProps, any> {
       name: this.props.resourceName,
       yieldLabel: this.props.yieldLabel,
       quantityLabel: this.props.quantityLabel,
+      characteristics: this.props.characteristics,
       index: this.props.index,
     }
 

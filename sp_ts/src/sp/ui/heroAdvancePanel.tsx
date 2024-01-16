@@ -4,6 +4,7 @@ import { Global } from "../global";
 import advancebutton from "ui_comp/upgradebutton.png";
 import rightbutton from "ui_comp/rightbutton.png";
 import { Network } from "../network";
+import SmallButton from "./smallButton";
 
 interface HAPProps {
   advanceData,
@@ -98,7 +99,10 @@ export default class HeroAdvancePanel extends React.Component<HAPProps, any> {
         <span style={heroNameStyle}>{heroRank}</span>
         <span style={nextRankNameStyle}>{nextRankName}</span>
 
-        <img src={advancebutton} style={advanceStyle} onClick={this.handleAdvanceClick} /> 
+        <SmallButton handler={this.handleAdvanceClick}
+            imageName="upgradebutton"
+            style={advanceStyle} />
+
       </HalfPanel>
     );
   }
